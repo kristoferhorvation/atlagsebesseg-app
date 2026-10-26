@@ -3,6 +3,8 @@ import type { ExpoConfig } from 'expo/config';
 // A Mapbox nyilvános (pk.) tokenje futásidőben, az EXPO_PUBLIC_MAPBOX_TOKEN környezeti változóból jön
 // (lásd .env.example). A titkos letöltő tokent (RNMAPBOX_MAPS_DOWNLOAD_TOKEN) – ha egyáltalán kell –
 // a natív build olvassa a környezetből; SOHA ne kerüljön ide vagy a repóba.
+// A Supabase URL és az anon kulcs (nyilvános, RLS védi) az apps/mobile/.env-ből jön, az `extra`-n át
+// olvassa az app (expo-constants). Service role kulcs SOHA nem kerülhet ide.
 const config: ExpoConfig = {
   name: 'Átlagsebesség',
   slug: 'atlagsebesseg',
@@ -25,6 +27,10 @@ const config: ExpoConfig = {
       monochromeImage: './assets/android-icon-monochrome.png',
     },
     predictiveBackGestureEnabled: false,
+  },
+  extra: {
+    supabaseUrl: process.env.SUPABASE_URL ?? '',
+    supabaseAnonKey: process.env.SUPABASE_ANON_KEY ?? '',
   },
   plugins: [
     '@rnmapbox/maps',

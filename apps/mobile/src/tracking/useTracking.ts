@@ -17,8 +17,10 @@ export function useTracking(sections: readonly Section[]) {
   const [manualSnap, setManualSnap] = useState<ManualSnapshot | null>(null);
   const [manualResult, setManualResult] = useState<ManualResult | null>(null);
 
+  // Új szakaszlista (pl. a szerverről) a futó mérés megszakítása nélkül.
   useEffect(() => {
-    tracker.current = new SectionTracker(sections);
+    if (!tracker.current) tracker.current = new SectionTracker(sections);
+    else tracker.current.setSections(sections);
     setSnapshot(tracker.current.snapshot(Date.now()));
   }, [sections]);
 
