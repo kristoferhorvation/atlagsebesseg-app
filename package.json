@@ -6,7 +6,7 @@
     "apps/*"
   ],
   "scripts": {
-    "test": "npm run test --workspace @atlagsebesseg/core --workspace @atlagsebesseg/data",
+    "test": "npm run test --workspaces --if-present",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "import:sections": "npm run import --workspace @atlagsebesseg/data",
     "db:live": "supabase/tests/run-live.sh",
@@ -14,7 +14,8 @@
     "build:edge": "npm run build:edge --workspace @atlagsebesseg/data",
     "test:edge": "npm run build:edge && deno test --allow-env supabase/functions/promote-temp-gates/",
     "deploy:edge": "npm run build:edge && supabase functions deploy promote-temp-gates",
-    "upload:sections": "npm run upload --workspace @atlagsebesseg/data"
+    "upload:sections": "npm run upload --workspace @atlagsebesseg/data",
+    "test:all": "npm test && npm run test:edge && npm run db:test:local"
   },
   "engines": {
     "node": ">=20",

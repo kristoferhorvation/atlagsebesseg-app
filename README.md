@@ -8,10 +8,13 @@ Saját navigáció nincs.
 ## Szerkezet
 
 ```
-packages/core   tiszta TypeScript, függőségek nélkül: szakasz-felismerés, átlag, állapotgép, kézi mód
-packages/data   szakasz-import (OSM Overpass) → Section JSON  (output/: ODbL!)
-apps/mobile     Expo (React Native, TS) + @rnmapbox/maps – egyelőre dizájn nélküli váz
-supabase/       migrációk (sections, reports, report_votes + RLS)
+packages/core   tiszta TypeScript, függőségek nélkül: szakasz-felismerés, átlag, állapotgép, kézi mód,
+                tűrés, napállás
+packages/data   szakasz-import (OSM Overpass, IT/AT/HU + hu-manual.json) → Section JSON  (output/: ODbL!),
+                feltöltés Supabase-be, ideiglenes kapupár → szakasz (edge function logikája)
+apps/mobile     Expo (React Native, TS) + @rnmapbox/maps + supabase-js – dizájn nélküli váz
+supabase/       migrációk (sections, reports, report_votes, app_config, ideiglenes kapuk + RLS),
+                edge function (promote-temp-gates), SQL-tesztek
 ```
 
 ## Gyorsindítás
@@ -21,8 +24,19 @@ Node ≥ 20 és **npm ≥ 11** kell (az npm 10 egy ismert hibával – `Cannot r
 
 ```bash
 npm install
-npm test                 # core + data unit-tesztek
+npm test                 # core + data + mobile (logika) unit-tesztek
 npm run typecheck        # mindhárom csomag
+npm run test:edge        # edge function bundle + Deno-teszt
+npm run db:test:local    # migrációk + SQL-tesztek helyi PostgreSQL-en (PGHOST, PGUSER)
+```
+
+Élő Supabase (a kulcsok a gyökér `.env`-ben, lásd `.env.example` – soha nem kerülnek a repóba):
+
+```bash
+npm run db:live          # supabase db push + az összes SQL-teszt élőben, ROLLBACK-kel
+npm run import:sections  # OSM → packages/data/output (helyi gépen, internet kell)
+npm run upload:sections  # → sections tábla (service role kulccsal, csak helyben)
+npm run deploy:edge      # promote-temp-gates edge function
 ```
 
 ## Architektúra-döntések
@@ -48,6 +62,11 @@ npm run typecheck        # mindhárom csomag
   Mapbox-implementáció egyetlen helyen (`createMapAdapter`) cserélhető MapLibre-re.
 - **Szavazás külön táblában** (`report_votes`): felhasználónként egy megerősítés/cáfolat, a
   számlálókat trigger tartja karban, így nem hamisíthatók.
+- **Ideiglenes kapuk → közösségi szakasz:** a párosítás és a független megerősítések SQL-ben, a
+  két kapu közti útvonal geometriája edge functionben (úthálózat kell hozzá) – indoklás:
+  [`supabase/README.md`](supabase/README.md#miért-sql--edge-function).
+- **Térkép-előbeállítás** (`lightPreset`): a rendszer világos/sötét módja és a helyi napállás
+  (`core/sun.ts`) alapján; sötét módban sosem világos.
 
 Az állapotgép: `nincs_szakasz → kozeledik → szakaszon → kesz | megszakadt`
 (kész/megszakadt után 60 s-ig látszik az eredmény; egymást követő szakaszoknál kész után
