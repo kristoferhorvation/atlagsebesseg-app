@@ -300,6 +300,24 @@ describe('SectionTracker – speciális esetek', () => {
     expect(last.lastResult!.averageKmh).toBeCloseTo(130, 0);
   });
 
+  it('setSections menet közben: a futó mérés megmarad, az új szakaszok felismerhetők', () => {
+    const samples = drive({ path: toLatLon(course.fullXY), speedKmh: () => 120 });
+    const fs = fixes(samples);
+    const t = new SectionTracker([]);
+    const half = Math.floor(fs.length / 2);
+    for (const f of fs.slice(0, 50)) t.update(f);
+    expect(t.currentState).toBe('nincs_szakasz');
+    t.setSections([course.section]); // a szerverről megjött a szakasz
+    for (const f of fs.slice(50, half)) t.update(f);
+    expect(t.currentState).toBe('szakaszon');
+    // újabb frissítés (új objektumok, plusz egy másik szakasz) – nem szakíthatja meg
+    t.setSections([{ ...course.section }, { ...course.section, id: 'MASIK', start: toLatLon([{ x: 50_000, y: 0 }])[0]! }]);
+    let last = t.snapshot(0);
+    for (const f of fs.slice(half)) last = t.update(f);
+    expect(last.lastResult?.sectionId).toBe('TEST-1');
+    expect(Math.abs(last.lastResult!.averageKmh - 120)).toBeLessThan(0.5);
+  });
+
   it('reset után tiszta állapot', () => {
     const t = new SectionTracker([course.section]);
     for (const f of fixes(drive({ path: toLatLon(course.fullXY), speedKmh: () => 120 })).slice(0, 150)) t.update(f);

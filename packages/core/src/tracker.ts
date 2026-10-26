@@ -128,7 +128,7 @@ interface Active {
  */
 export class SectionTracker {
   private readonly opts: TrackerOptions;
-  private readonly prepared: Prepared[];
+  private prepared: Prepared[];
   private readonly filter: FixFilter;
   private state: TrackerState = 'nincs_szakasz';
   private current: Prepared | null = null;
@@ -143,10 +143,24 @@ export class SectionTracker {
   constructor(sections: readonly Section[], options: Partial<TrackerOptions> = {}) {
     this.opts = { ...DEFAULT_TRACKER_OPTIONS, ...options };
     this.filter = new FixFilter(this.opts.fixFilter);
-    this.prepared = sections.map((section) => ({
-      section,
-      route: new Route(section.geometry?.length ? section.geometry : [section.start, section.end], section.lengthM),
-    }));
+    this.prepared = sections.map(prepare);
+  }
+
+  /**
+   * A szakaszlista cseréje (pl. a szerverről frissült adat) a folyamatban lévő mérés megtartásával:
+   * az aktív / közeledő szakasz a régi geometriával fut tovább, a változás a következő
+   * felismeréstől érvényes.
+   */
+  setSections(sections: readonly Section[]): void {
+    const old = new Map(this.prepared.map((p) => [p.section.id, p]));
+    this.prepared = sections.map((s) => {
+      const prev = old.get(s.id);
+      return prev && prev.section === s ? prev : prepare(s);
+    });
+    if (this.current && this.state !== 'szakaszon') {
+      // közeledés / kész állapotban a frissített példányra mutatunk (ha még létezik)
+      this.current = this.prepared.find((p) => p.section.id === this.current!.section.id) ?? this.current;
+    }
   }
 
   get currentState(): TrackerState {
@@ -463,6 +477,13 @@ export class SectionTracker {
     const dt = (fix.timestamp - prev.timestamp) / 1000;
     return dt > 0 ? haversineM(prev, fix) / dt : null;
   }
+}
+
+function prepare(section: Section): Prepared {
+  return {
+    section,
+    route: new Route(section.geometry?.length ? section.geometry : [section.start, section.end], section.lengthM),
+  };
 }
 
 function validSpeed(fix: GpsFix): number | null {
