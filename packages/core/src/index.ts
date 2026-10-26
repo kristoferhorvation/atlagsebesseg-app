@@ -5,3 +5,4 @@ export * from './fixFilter';
 export * from './metrics';
 export * from './tracker';
 export * from './manual';
+export * from './sun';
