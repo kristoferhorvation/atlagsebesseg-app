@@ -1,0 +1,11 @@
+{
+  "country": "HU",
+  "generatedAt": null,
+  "source": "hivatalos",
+  "attribution": "",
+  "license": "",
+  "count": 0,
+  "sections": [],
+  "skipped": [],
+  "todo": "Magyarországon az átlagsebesség-mérés bevezetése még nem történt meg. Ha megjelenik a hivatalos szakaszlista, abból töltjük (source: \"hivatalos\", verified: true)."
+}

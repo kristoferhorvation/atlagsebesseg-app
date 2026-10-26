@@ -1,0 +1,28 @@
+{
+  "name": "@atlagsebesseg/mobile",
+  "version": "1.0.0",
+  "main": "index.ts",
+  "dependencies": {
+    "@atlagsebesseg/core": "*",
+    "@atlagsebesseg/data": "*",
+    "@rnmapbox/maps": "^10.3.11",
+    "expo": "~58.0.19",
+    "expo-constants": "~58.0.13",
+    "expo-location": "~58.0.19",
+    "expo-status-bar": "~58.0.4",
+    "expo-system-ui": "~58.0.6",
+    "react": "19.3.0",
+    "react-native": "0.88.0"
+  },
+  "devDependencies": {
+    "@types/react": "~19.3.0",
+    "typescript": "~6.0.3"
+  },
+  "scripts": {
+    "start": "expo start",
+    "android": "expo run:android",
+    "ios": "expo run:ios",
+    "typecheck": "tsc --noEmit"
+  },
+  "private": true
+}

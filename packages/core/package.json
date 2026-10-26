@@ -1,0 +1,19 @@
+{
+  "name": "@atlagsebesseg/core",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Átlagsebesség-mérő szakasz felismerése és számítás – tiszta TypeScript, függőségek nélkül.",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "sideEffects": false,
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "tsc -p tsconfig.json && tsc -p tsconfig.test.json"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.5",
+    "typescript": "~6.0.3",
+    "vitest": "^4.0.0"
+  }
+}

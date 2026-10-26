@@ -1,0 +1,18 @@
+{
+  "name": "atlagsebesseg-app",
+  "private": true,
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "test": "npm run test --workspace @atlagsebesseg/core --workspace @atlagsebesseg/data",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "import:sections": "npm run import --workspace @atlagsebesseg/data"
+  },
+  "engines": {
+    "node": ">=20",
+    "npm": ">=11"
+  },
+  "packageManager": "npm@11.21.1"
+}

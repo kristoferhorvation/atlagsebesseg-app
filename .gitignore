@@ -1,0 +1,23 @@
+node_modules/
+.env
+.env.*
+!.env.example
+*.log
+.DS_Store
+coverage/
+dist/
+
+# Expo / native (Continuous Native Generation: ios/ és android/ generált)
+.expo/
+apps/mobile/ios/
+apps/mobile/android/
+apps/mobile/dist/
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+
+# Supabase helyi állapot
+supabase/.branches/
+supabase/.temp/
