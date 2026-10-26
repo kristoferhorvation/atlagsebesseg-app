@@ -1,0 +1,67 @@
+{
+  "version": "5",
+  "specifiers": {
+    "jsr:@std/assert@1": "1.0.19",
+    "jsr:@std/internal@^1.0.12": "1.0.14"
+  },
+  "jsr": {
+    "@std/assert@1.0.19": {
+      "integrity": "eaada96ee120cb980bc47e040f82814d786fe8162ecc53c91d8df60b8755991e",
+      "dependencies": [
+        "jsr:@std/internal"
+      ]
+    },
+    "@std/internal@1.0.14": {
+      "integrity": "291516b3d4c35024d6ffbc0a9df5bf4c64116e05b50012cf846710152d2ffdf7"
+    }
+  },
+  "workspace": {
+    "packageJson": {
+      "dependencies": [
+        "npm:deno@^2.9.6",
+        "npm:supabase@^2.122.0"
+      ]
+    },
+    "members": {
+      "apps/mobile": {
+        "packageJson": {
+          "dependencies": [
+            "npm:@atlagsebesseg/core@*",
+            "npm:@atlagsebesseg/data@*",
+            "npm:@rnmapbox/maps@^10.3.11",
+            "npm:@types/react@19.3",
+            "npm:expo-constants@~58.0.13",
+            "npm:expo-location@~58.0.19",
+            "npm:expo-status-bar@~58.0.4",
+            "npm:expo-system-ui@~58.0.6",
+            "npm:expo@~58.0.19",
+            "npm:react-native@0.88.0",
+            "npm:react@19.3.0",
+            "npm:typescript@~6.0.3"
+          ]
+        }
+      },
+      "packages/core": {
+        "packageJson": {
+          "dependencies": [
+            "npm:@types/node@^22.20.5",
+            "npm:typescript@~6.0.3",
+            "npm:vitest@4"
+          ]
+        }
+      },
+      "packages/data": {
+        "packageJson": {
+          "dependencies": [
+            "npm:@atlagsebesseg/core@*",
+            "npm:@types/node@22",
+            "npm:esbuild@~0.28.2",
+            "npm:tsx@^4.20.0",
+            "npm:typescript@~6.0.3",
+            "npm:vitest@4"
+          ]
+        }
+      }
+    }
+  }
+}
