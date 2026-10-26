@@ -4,9 +4,14 @@
  *   npm run import --workspace @atlagsebesseg/data -- --country IT,AT
  *   npm run import --workspace @atlagsebesseg/data -- --country IT --limit 5 --endpoint https://overpass.kumi.systems/api/interpreter
  *
+ *   npm run import:sections -- --country HU
+ *
+ * Forrásonként: (1) enforcement=average_speed relációk, (2) maxspeed:enforcement / enforcement
+ * címkéjű utak, (3) ha létezik, a manual/<cc>-manual.json kézi lista – ezeket összefésüli.
  * Kimenet: output/sections.<CC>.json (ODbL – lásd output/ATTRIBUTION.md).
  */
-import { mkdir, writeFile } from 'node:fs/promises';
+import { existsSync } from 'node:fs';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { Section } from '@atlagsebesseg/core';
@@ -23,6 +28,8 @@ import {
   type OsmWay,
 } from '../src/overpass';
 import { sectionFile } from '../src/output';
+import { manualToSection, mergeSections, sameSection, validateManualFile } from '../src/manual';
+import { enforcedWaysQuery, waysToSections } from '../src/ways';
 
 const here = dirname(fileURLToPath(import.meta.url));
 
@@ -31,7 +38,7 @@ function arg(name: string): string | undefined {
   return i >= 0 ? process.argv[i + 1] : undefined;
 }
 
-const countries = (arg('country') ?? 'IT,AT').split(',').map((c) => c.trim().toUpperCase()).filter(Boolean);
+const countries = (arg('country') ?? 'IT,AT,HU').split(',').map((c) => c.trim().toUpperCase()).filter(Boolean);
 const endpoint = arg('endpoint') ?? process.env.OVERPASS_ENDPOINT ?? DEFAULT_ENDPOINT;
 const outDir = arg('out') ?? join(here, '..', 'output');
 const limit = arg('limit') ? Number(arg('limit')) : Infinity;
@@ -68,21 +75,46 @@ async function importCountry(cc: string) {
       skipped.push({ relationId: rel.id, reason: `lekérdezési hiba: ${(e as Error).message}` });
     }
   }
-  sections.sort((a, b) => a.id.localeCompare(b.id));
-  const file = sectionFile(cc, sections, skipped, new Date().toISOString());
+  // (2) címkézett utak – ami relációként már megvan, azt nem duplikáljuk
+  await sleep(delayMs);
+  const tagged = await runOverpass(enforcedWaysQuery(cc), { endpoint });
+  const fromWays = waysToSections(tagged.elements.filter((e): e is OsmWay => e.type === 'way'), cc);
+  skipped.push(...fromWays.skipped);
+  const newFromWays = fromWays.sections.filter((w) => !sections.some((r) => sameSection(r, w)));
+  sections.push(...newFromWays);
+  console.log(`[${cc}] címkézett utakból: ${fromWays.sections.length} szakasz (${newFromWays.length} új)`);
+
+  // (3) kézi lista
+  let result = sections;
+  const manualPath = join(here, '..', 'manual', `${cc.toLowerCase()}-manual.json`);
+  if (existsSync(manualPath)) {
+    const { file: manual, errors } = validateManualFile(JSON.parse(await readFile(manualPath, 'utf8')));
+    if (!manual) throw new Error(`${manualPath} hibás:\n${errors.join('\n')}`);
+    const manualSections = [];
+    for (const entry of manual.sections) {
+      await sleep(delayMs);
+      const roads = await runOverpass(roadsQuery(bboxAround([entry.start, entry.end], 1500)), { endpoint });
+      const graph = new RoadGraph(roads.elements.filter((e): e is OsmWay => e.type === 'way'));
+      const r = manualToSection(entry, cc, graph);
+      if (r.warning) console.warn(`[${cc}] figyelmeztetés: ${r.warning}`);
+      manualSections.push(r.section);
+    }
+    const merged = mergeSections(sections, manualSections);
+    result = merged.sections;
+    console.log(`[${cc}] kézi lista: ${manualSections.length} szakasz, ${merged.replaced.length} OSM-szakaszt váltott ki`);
+  }
+
+  result.sort((a, b) => a.id.localeCompare(b.id));
+  const file = sectionFile(cc, result, skipped, new Date().toISOString());
   await writeFile(join(outDir, `sections.${cc}.json`), JSON.stringify(file, null, 2) + '\n');
-  console.log(`[${cc}] kész: ${sections.length} szakasz, ${skipped.length} kihagyva → sections.${cc}.json`);
-  return { cc, ok: sections.length, skipped: skipped.length };
+  console.log(`[${cc}] kész: ${result.length} szakasz, ${skipped.length} kihagyva → sections.${cc}.json`);
+  return { cc, ok: result.length, skipped: skipped.length };
 }
 
 async function main() {
   await mkdir(outDir, { recursive: true });
   const summary = [];
   for (const cc of countries) {
-    if (cc === 'HU') {
-      console.log('[HU] kihagyva: a hivatalos listából töltjük (lásd output/sections.HU.json todo)');
-      continue;
-    }
     summary.push(await importCountry(cc));
   }
   console.table(summary);
