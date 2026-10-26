@@ -1,4 +1,4 @@
--- RLS-teszt: psql -v ON_ERROR_STOP=1 -f stub_supabase.sql -f ../migrations/*.sql -f rls_test.sql
+-- RLS-teszt. Futtatás: tests/run-local.sh vagy tests/run-live.sh (tranzakcióban, a végén ROLLBACK).
 \set QUIET on
 insert into auth.users values
   ('00000000-0000-0000-0000-00000000000a'),
