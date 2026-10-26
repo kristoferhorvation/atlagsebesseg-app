@@ -28,16 +28,20 @@
           "dependencies": [
             "npm:@atlagsebesseg/core@*",
             "npm:@atlagsebesseg/data@*",
+            "npm:@react-native-async-storage/async-storage@2.2.0",
             "npm:@rnmapbox/maps@^10.3.11",
+            "npm:@supabase/supabase-js@^2.118.0",
             "npm:@types/react@19.3",
             "npm:expo-constants@~58.0.13",
             "npm:expo-location@~58.0.19",
             "npm:expo-status-bar@~58.0.4",
             "npm:expo-system-ui@~58.0.6",
             "npm:expo@~58.0.19",
+            "npm:react-native-url-polyfill@4",
             "npm:react-native@0.88.0",
             "npm:react@19.3.0",
-            "npm:typescript@~6.0.3"
+            "npm:typescript@~6.0.3",
+            "npm:vitest@4"
           ]
         }
       },
