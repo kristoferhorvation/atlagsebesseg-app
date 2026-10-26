@@ -1,10 +1,18 @@
-import { useEffect } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
-import type { RequiredSpeed, TrackerState } from '@atlagsebesseg/core';
-import { BUNDLED_SECTIONS } from '../data/sections';
+import { useCallback, useEffect, useState } from 'react';
+import { Pressable, StyleSheet, Switch, Text, View } from 'react-native';
+import { limitWithToleranceKmh, type GpsFix, type RequiredSpeed, type TrackerState } from '@atlagsebesseg/core';
+import { createReports, listActiveReports } from '../backend/reportsRepo';
+import { ensureSignedIn, supabase } from '../backend/supabase';
+import { gateReportsFromManual } from '../logic/gateReports';
+import { tileBBox, tileKey } from '../logic/sectionCache';
 import { useMap } from '../map';
+import { useAutoLightPreset } from '../map/useAutoLightPreset';
+import { useSettings } from '../settings/useSettings';
 import { useLocationFixes } from '../tracking/useLocationFixes';
+import { useSections } from '../tracking/useSections';
 import { useTracking } from '../tracking/useTracking';
+
+type GateReportStatus = 'nincs' | 'kuldes' | 'elkuldve' | 'hiba';
 
 const STATE_LABEL: Record<TrackerState, string> = {
   nincs_szakasz: 'Nincs szakasz',
@@ -25,18 +33,63 @@ function requiredText(r: RequiredSpeed): string {
 /** Ideiglenes, dizájn nélküli képernyő: térkép + a core állapota és az átlag. */
 export function StatusScreen() {
   const map = useMap();
-  const { snapshot, onFix, manualSnap, manualResult, toggleManual } = useTracking(BUNDLED_SECTIONS);
-  const locationStatus = useLocationFixes(onFix);
+  const [lastFix, setLastFix] = useState<GpsFix | null>(null);
+  const { sections, status: sectionsStatus } = useSections(lastFix);
+  const { snapshot, onFix, manualSnap, manualResult, toggleManual } = useTracking(sections);
+  const handleFix = useCallback(
+    (fix: GpsFix) => {
+      onFix(fix);
+      setLastFix(fix);
+    },
+    [onFix],
+  );
+  const locationStatus = useLocationFixes(handleFix);
+  const lightPreset = useAutoLightPreset(lastFix);
+  const { settings, update: updateSettings } = useSettings();
+  const [authStatus, setAuthStatus] = useState<'nincs_beallitva' | 'bejelentkezes' | 'anon' | 'hiba'>(
+    supabase ? 'bejelentkezes' : 'nincs_beallitva',
+  );
+  const [reportCount, setReportCount] = useState<number | null>(null);
+  const [gateStatus, setGateStatus] = useState<GateReportStatus>('nincs');
 
   useEffect(() => {
-    map.setLightPreset('night');
+    if (!supabase) return;
+    ensureSignedIn()
+      .then(() => setAuthStatus('anon'))
+      .catch(() => setAuthStatus('hiba'));
+  }, []);
+
+  // aktív bejelentések a környéken (csempeváltáskor)
+  const tile = lastFix ? tileKey(lastFix.lat, lastFix.lon) : null;
+  useEffect(() => {
+    if (!supabase || !tile) return;
+    listActiveReports(tileBBox(tile))
+      .then((r) => setReportCount(r.length))
+      .catch(() => setReportCount(null));
+  }, [tile]);
+
+  useEffect(() => {
     map.followUser(true);
   }, [map]);
 
+  useEffect(() => {
+    map.setLightPreset(lightPreset);
+  }, [map, lightPreset]);
+
   const activeId = snapshot?.state === 'szakaszon' ? snapshot.section?.id ?? null : null;
   useEffect(() => {
-    map.showSections(BUNDLED_SECTIONS, activeId);
-  }, [map, activeId]);
+    map.showSections(sections, activeId);
+  }, [map, sections, activeId]);
+
+  useEffect(() => setGateStatus('nincs'), [manualResult]);
+  const gateReports = manualResult ? gateReportsFromManual(manualResult) : null;
+  const reportGates = useCallback(() => {
+    if (!gateReports) return;
+    setGateStatus('kuldes');
+    createReports(gateReports)
+      .then(() => setGateStatus('elkuldve'))
+      .catch(() => setGateStatus('hiba'));
+  }, [gateReports]);
 
   const live = snapshot?.live;
   return (
@@ -44,13 +97,19 @@ export function StatusScreen() {
       <map.MapView style={styles.map} />
       <View style={styles.panel}>
         <Text style={styles.small}>
-          GPS: {locationStatus} · betöltött szakaszok: {BUNDLED_SECTIONS.length}
+          GPS: {locationStatus} · szakaszok: {sections.length} ({sectionsStatus}) · szerver: {authStatus}
+          {reportCount !== null ? ` · bejelentések a környéken: ${reportCount}` : ''} · térkép: {lightPreset}
         </Text>
         <Text style={styles.state}>{snapshot ? STATE_LABEL[snapshot.state] : '…'}</Text>
         {snapshot?.section && (
           <Text style={styles.small}>
             {snapshot.section.road} {snapshot.section.direction} · {(snapshot.section.lengthM / 1000).toFixed(1)} km ·
             határ {snapshot.section.speedLimitKmh} km/h
+          </Text>
+        )}
+        {snapshot?.section && settings.hatosagi_tures_megjelenitese && (
+          <Text style={styles.small}>
+            határ + tűrés: {kmh(limitWithToleranceKmh(snapshot.section.speedLimitKmh))} (a számítás a szigorú határhoz)
           </Text>
         )}
         {live && (
@@ -84,6 +143,22 @@ export function StatusScreen() {
             átlag {kmh(manualResult.averageKmh)}
           </Text>
         )}
+        {gateReports && supabase && gateStatus !== 'elkuldve' && (
+          <Pressable style={styles.button} onPress={reportGates} disabled={gateStatus === 'kuldes'} accessibilityRole="button">
+            <Text style={styles.buttonText}>
+              {gateStatus === 'kuldes' ? 'Küldés…' : 'Ideiglenes ellenőrzés: kezdő- és zárókapu bejelentése'}
+            </Text>
+          </Pressable>
+        )}
+        {gateStatus === 'elkuldve' && <Text style={styles.text}>A két kapu bejelentve – mások megerősítésére vár.</Text>}
+        {gateStatus === 'hiba' && <Text style={styles.text}>A bejelentés nem sikerült (nincs hálózat?).</Text>}
+        <View style={styles.row}>
+          <Text style={styles.text}>Hatósági tűrés megjelenítése</Text>
+          <Switch
+            value={settings.hatosagi_tures_megjelenitese}
+            onValueChange={(v) => updateSettings({ hatosagi_tures_megjelenitese: v })}
+          />
+        </View>
         <Text style={styles.attribution}>Szakaszadatok: © OpenStreetMap contributors (ODbL)</Text>
       </View>
     </View>
@@ -101,4 +176,5 @@ const styles = StyleSheet.create({
   button: { marginTop: 12, padding: 12, borderRadius: 8, backgroundColor: '#333', alignItems: 'center' },
   buttonText: { color: '#fff', fontSize: 16 },
   attribution: { color: '#666', fontSize: 11, marginTop: 8 },
+  row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 8 },
 });

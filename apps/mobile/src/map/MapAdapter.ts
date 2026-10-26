@@ -32,7 +32,7 @@ export interface MapState {
 
 /** Minimális külső store (useSyncExternalStore-hoz), hogy az adapter metódusai újrarendereljék a térképet. */
 export class MapStore {
-  private state: MapState = { sections: [], highlightId: null, follow: true, lightPreset: 'night' };
+  private state: MapState = { sections: [], highlightId: null, follow: true, lightPreset: 'day' };
   private readonly listeners = new Set<() => void>();
 
   getState = (): MapState => this.state;
