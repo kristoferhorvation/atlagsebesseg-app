@@ -1,6 +1,6 @@
 import { angleDiffDeg, bearingDeg, haversineM } from './geo';
 import { DEFAULT_FIX_FILTER, FixFilter, type FixFilterOptions } from './fixFilter';
-import { averageSpeedKmh, mpsToKmh, requiredSpeed, slowDownByKmh, type RequiredSpeed } from './metrics';
+import { averageSpeedKmh, DEFAULT_MIN_PRACTICAL_FRACTION, mpsToKmh, requiredSpeed, slowDownByKmh, type RequiredSpeed } from './metrics';
 import { Route, type RouteProjection } from './route';
 import type { GpsFix, Section } from './types';
 
@@ -35,8 +35,8 @@ export interface TrackerOptions {
   estimateAfterMs: number;
   /** A GPS-irányszöget csak ennél nagyobb sebességnél vesszük figyelembe (m/s). */
   minHeadingSpeedMps: number;
-  /** Lásd `requiredSpeed`. */
-  minPracticalKmh: number;
+  /** Lásd `requiredSpeed`: a határ ekkora hányada alatt „nem lehetséges”. */
+  minPracticalFraction: number;
   /** Kész/megszakadt állapot ennyi ideig marad látható (ms), utána `nincs_szakasz`. */
   resultHoldMs: number;
   fixFilter: FixFilterOptions;
@@ -56,7 +56,7 @@ export const DEFAULT_TRACKER_OPTIONS: TrackerOptions = {
   maxGapMs: 15 * 60_000,
   estimateAfterMs: 3000,
   minHeadingSpeedMps: 3,
-  minPracticalKmh: 60,
+  minPracticalFraction: DEFAULT_MIN_PRACTICAL_FRACTION,
   resultHoldMs: 60_000,
   fixFilter: DEFAULT_FIX_FILTER,
 };
@@ -388,7 +388,7 @@ export class SectionTracker {
       speedLimitKmh: p.section.speedLimitKmh,
       distanceDoneM: distanceM,
       elapsedMs,
-      minPracticalKmh: this.opts.minPracticalKmh,
+      minPracticalFraction: this.opts.minPracticalFraction,
     });
     const currentKmh = v !== null ? mpsToKmh(v) : null;
     return {

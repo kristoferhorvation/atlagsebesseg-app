@@ -116,6 +116,17 @@ describe('SectionTracker – gyorsítás a végén', () => {
     expect(snap.live!.required.kind).toBe('nem_lehetseges');
     expect(r.last.lastResult!.averageKmh).toBeCloseTo(160, 0);
   });
+
+  it('a "nem lehetséges" küszöb a határ 60%-a (130 → 78 km/h), és konfigurálható', () => {
+    // 160 km/h mellett a megengedett sebesség ≈ 7,8 km-nél esik 78 km/h alá (60 km/h alá csak ≈ 8,6 km-nél)
+    const fast = drive({ path: toLatLon(course.fullXY), speedKmh: () => 160 });
+    const def = run([course.section], fixes(fast));
+    expect(snapAt(fast, def.snaps, IN + 7600).live!.required.kind).toBe('ok');
+    expect(snapAt(fast, def.snaps, IN + 8200).live!.required.kind).toBe('nem_lehetseges');
+    const t = new SectionTracker([course.section], { minPracticalFraction: 60 / 130 });
+    const snaps = fixes(fast).map((f) => t.update(f));
+    expect(snapAt(fast, snaps, IN + 8200).live!.required.kind).toBe('ok');
+  });
 });
 
 describe('SectionTracker – alagút és GPS-ugrás', () => {

@@ -39,8 +39,11 @@ npm run typecheck        # mindhárom csomag
   (> 35 m) és fizikailag lehetetlen (> 250 km/h-s ugrás) fixeket eldobjuk.
 - **Belépés / kilépés ideje** a két szomszédos fix között interpolálva (1 Hz-es GPS mellett is
   < 0,3 s hiba).
-- **„Szükséges sebesség”** = a hátralévő út / (hossz/határ − eltelt idő). Ha ez 60 km/h alá
-  esne (autópályán irreális lassítás), az eredmény `nem_lehetseges`.
+- **„Szükséges sebesség”** = a hátralévő út / (hossz/határ − eltelt idő). Ha ez a határ 60%-a
+  alá esne (130-as határnál 78 km/h – irreális lassítás), az eredmény `nem_lehetseges`
+  (`minPracticalFraction`, konfigurálható).
+- **Tűrés** (`toleranceKmh`, `limitWithToleranceKmh`): 5% vagy 5 km/h, a nagyobb – csak
+  megjelenítésre; a szükséges sebesség és a figyelmeztetés mindig a szigorú határhoz számol.
 - **Térkép-adapter:** az app csak a `MapAdapter` interfészt látja (`apps/mobile/src/map`); a
   Mapbox-implementáció egyetlen helyen (`createMapAdapter`) cserélhető MapLibre-re.
 - **Szavazás külön táblában** (`report_votes`): felhasználónként egy megerősítés/cáfolat, a

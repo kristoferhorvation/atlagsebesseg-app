@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { averageSpeedKmh, requiredSpeed, slowDownByKmh } from '../src/metrics';
+import { averageSpeedKmh, limitWithToleranceKmh, requiredSpeed, slowDownByKmh, toleranceKmh } from '../src/metrics';
 
 describe('averageSpeedKmh', () => {
   it('10 km 5 perc alatt = 120 km/h', () => {
@@ -35,12 +35,26 @@ describe('requiredSpeed', () => {
   it('nem lehetséges, ha csak irreálisan lassan lehetne a határ alá kerülni', () => {
     const r = requiredSpeed({ ...base, distanceDoneM: 9000, elapsedMs: (9 / 160) * 3_600_000 });
     expect(r.kind).toBe('nem_lehetseges');
-    if (r.kind === 'nem_lehetseges') expect(r.maxKmh).toBeLessThan(60);
+    if (r.kind === 'nem_lehetseges') expect(r.maxKmh).toBeLessThan(130 * 0.6);
   });
 
-  it('a minimum-küszöb állítható', () => {
-    const r = requiredSpeed({ ...base, distanceDoneM: 9000, elapsedMs: (9 / 160) * 3_600_000, minPracticalKmh: 30 });
+  it('a minimum-küszöb állítható (a határ hányadaként)', () => {
+    const r = requiredSpeed({ ...base, distanceDoneM: 9000, elapsedMs: (9 / 160) * 3_600_000, minPracticalFraction: 0.3 });
     expect(r.kind).toBe('ok');
+  });
+
+  it('a küszöb a határ 60%-a: 130-nál 78, 100-nál 60 km/h', () => {
+    // a hátralévő 2 km-en legfeljebb 70 km/h
+    const at = (limit: number) => {
+      const L = 10_000;
+      const budgetS = 2000 / (70 / 3.6);
+      const elapsedMs = (L / (limit / 3.6) - budgetS) * 1000;
+      return requiredSpeed({ lengthM: L, speedLimitKmh: limit, distanceDoneM: 8000, elapsedMs });
+    };
+    expect(at(130)).toMatchObject({ kind: 'nem_lehetseges' });
+    expect(at(100)).toMatchObject({ kind: 'ok' });
+    const r = at(130);
+    if (r.kind !== 'nincs_korlat') expect(r.maxKmh).toBeCloseTo(70, 6);
   });
 
   it('célba érve határ felett: nem lehetséges', () => {
@@ -58,5 +72,27 @@ describe('slowDownByKmh', () => {
     expect(slowDownByKmh(120, { kind: 'ok', maxKmh: 140 })).toBe(0);
     expect(slowDownByKmh(200, { kind: 'nincs_korlat' })).toBe(0);
     expect(slowDownByKmh(null, { kind: 'ok', maxKmh: 140 })).toBeNull();
+  });
+});
+
+describe('tűrés', () => {
+  it('5% vagy 5 km/h, a nagyobb', () => {
+    expect(toleranceKmh(130)).toBeCloseTo(6.5, 9);
+    expect(toleranceKmh(100)).toBe(5);
+    expect(toleranceKmh(80)).toBe(5);
+    expect(toleranceKmh(50)).toBe(5);
+    expect(limitWithToleranceKmh(130)).toBeCloseTo(136.5, 9);
+    expect(limitWithToleranceKmh(110)).toBeCloseTo(115.5, 9);
+    expect(limitWithToleranceKmh(90)).toBe(95);
+  });
+
+  it('a szabály paraméterezhető', () => {
+    expect(toleranceKmh(130, { percent: 3, minKmh: 3 })).toBeCloseTo(3.9, 9);
+    expect(limitWithToleranceKmh(60, { percent: 0, minKmh: 0 })).toBe(60);
+  });
+
+  it('a szükséges sebesség a tűréstől független (mindig a szigorú határ)', () => {
+    const r = requiredSpeed({ lengthM: 10_000, speedLimitKmh: 130, distanceDoneM: 0, elapsedMs: 0 });
+    expect(r).toEqual({ kind: 'ok', maxKmh: 130 });
   });
 });
