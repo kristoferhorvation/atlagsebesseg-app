@@ -1,4 +1,4 @@
-import { haversineM } from './geo';
+import { bearingDeg, haversineM } from './geo';
 import { DEFAULT_FIX_FILTER, FixFilter, type FixFilterOptions } from './fixFilter';
 import { averageSpeedKmh } from './metrics';
 import type { GpsFix } from './types';
@@ -32,9 +32,20 @@ export interface ManualSnapshot {
   acceptedFixes: number;
 }
 
+/** Egy kapu helye és iránya – kézi mérés végén ebből lehet ideiglenes kaput bejelenteni. */
+export interface ManualGate {
+  lat: number;
+  lon: number;
+  /** Haladási irány a kapunál (fok), ha meghatározható. */
+  headingDeg: number | null;
+  timestamp: number;
+}
+
 export interface ManualResult extends ManualSnapshot {
   startedAt: number;
   stoppedAt: number;
+  /** A mért szakasz első és utolsó elfogadott pontja (kezdő- és zárókapu); `null`, ha nincs elég adat. */
+  gates: { start: ManualGate; end: ManualGate } | null;
 }
 
 /**
@@ -55,6 +66,9 @@ export class ManualTracker {
   private distanceM = 0;
   private estimatedGapM = 0;
   private accepted = 0;
+  private startHeading: number | null = null;
+  private last: GpsFix | null = null;
+  private lastMoveHeading: number | null = null;
 
   constructor(options: Partial<ManualOptions> = {}) {
     this.opts = { ...DEFAULT_MANUAL_OPTIONS, ...options };
@@ -74,6 +88,9 @@ export class ManualTracker {
     this.distanceM = 0;
     this.estimatedGapM = 0;
     this.accepted = 0;
+    this.startHeading = null;
+    this.last = null;
+    this.lastMoveHeading = null;
     this.filter.reset();
   }
 
@@ -89,9 +106,12 @@ export class ManualTracker {
         if (step >= Math.max(this.opts.minStepM, 2 * (fix.accuracy ?? 0)) || gap) {
           this.distanceM += step;
           if (gap) this.estimatedGapM += step;
+          this.lastMoveHeading = bearingDeg(this.anchor, fix);
+          this.startHeading ??= this.first.heading ?? this.lastMoveHeading;
           this.anchor = fix;
         }
       }
+      this.last = fix;
       this.lastTime = fix.timestamp;
     }
     return this.snapshot();
@@ -100,7 +120,16 @@ export class ManualTracker {
   stop(nowMs: number): ManualResult {
     const snap = this.snapshot();
     this.running = false;
-    return { ...snap, running: false, startedAt: this.startedAt, stoppedAt: nowMs };
+    const first = this.first;
+    const last = this.last;
+    const gates =
+      first && last && first !== last && this.distanceM > 0
+        ? {
+            start: gate(first, this.startHeading),
+            end: gate(last, last.heading ?? this.lastMoveHeading),
+          }
+        : null;
+    return { ...snap, running: false, startedAt: this.startedAt, stoppedAt: nowMs, gates };
   }
 
   snapshot(): ManualSnapshot {
@@ -114,4 +143,8 @@ export class ManualTracker {
       acceptedFixes: this.accepted,
     };
   }
+}
+
+function gate(fix: GpsFix, headingDeg: number | null): ManualGate {
+  return { lat: fix.lat, lon: fix.lon, headingDeg, timestamp: fix.timestamp };
 }

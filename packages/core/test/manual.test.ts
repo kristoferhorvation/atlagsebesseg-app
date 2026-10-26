@@ -18,6 +18,28 @@ describe('ManualTracker – kézi mód', () => {
     expect(r.running).toBe(false);
     expect(Math.abs(r.distanceM - 5000) / 5000).toBeLessThan(0.01);
     expect(Math.abs(r.averageKmh! - 100)).toBeLessThan(1);
+    // kapuk: az első és az utolsó pont, haladási iránnyal (indulás észak felé, a végén az íven kelet felé fordulva)
+    expect(r.gates).not.toBeNull();
+    expect(r.gates!.start.timestamp).toBe(fixes(samples)[0]!.timestamp);
+    expect(r.gates!.start.headingDeg!).toBeCloseTo(0, -1);
+    expect(r.gates!.end.headingDeg!).toBeGreaterThan(20);
+    expect(r.gates!.end.headingDeg!).toBeLessThan(40);
+  });
+
+  it('irányszög nélküli fixekből is ad kapu-irányt', () => {
+    const samples = drive({ path, speedKmh: () => 100 });
+    const m = new ManualTracker();
+    m.start(samples[0]!.t);
+    for (const f of fixes(samples)) m.addFix({ ...f, heading: null });
+    const r = m.stop(samples[samples.length - 1]!.t);
+    expect(Math.min(r.gates!.start.headingDeg!, 360 - r.gates!.start.headingDeg!)).toBeLessThan(2);
+    expect(r.gates!.end.headingDeg!).toBeGreaterThan(20);
+  });
+
+  it('adat nélkül nincs kapu', () => {
+    const m = new ManualTracker();
+    m.start(0);
+    expect(m.stop(1000).gates).toBeNull();
   });
 
   it('alagút az egyenesen: a kiesést egyenessel becsüli', () => {
