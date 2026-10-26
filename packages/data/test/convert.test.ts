@@ -156,3 +156,24 @@ describe('Overpass', () => {
     expect(fetchImpl).toHaveBeenCalledTimes(1);
   });
 });
+
+describe('routeBetween – élre illesztés', () => {
+  it('ritka csomópontú úton (1 km-es élek) a kapuk az élre illeszkednek', async () => {
+    const { routeBetween } = await import('../src/routeBetween');
+    const { RoadGraph } = await import('../src/graph');
+    const { way, ys } = await import('./helpers/synthetic');
+    const sparse = way(41, 8000, ys(0, 10000, 1000).map((y) => at(15, y)), { highway: 'motorway', ref: 'A1', maxspeed: '130' });
+    const g = new RoadGraph([sparse.way]);
+    const r = routeBetween(g, at(5, 1500), at(5, 8700));
+    expect(typeof r).not.toBe('string');
+    if (typeof r === 'string') return;
+    expect(Math.abs(r.lengthM - 7200)).toBeLessThan(2);
+    expect(Math.abs(P.toXY(r.geometry[0]!).x - 15)).toBeLessThan(0.5);
+    expect(P.toXY(r.geometry[0]!).y).toBeCloseTo(1500, 0);
+    // ugyanazon az élen
+    const same = routeBetween(g, at(15, 2100), at(15, 2900));
+    expect(typeof same !== 'string' && Math.round(same.lengthM)).toBe(800);
+    // fordított sorrendben (egyirányú autópályán) nincs út
+    expect(routeBetween(g, at(15, 8700), at(15, 1500))).toMatch(/nem található/);
+  });
+});

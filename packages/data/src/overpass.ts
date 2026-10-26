@@ -62,6 +62,14 @@ way["highway"~"^(motorway|motorway_link|trunk|trunk_link|primary|primary_link)$"
 out body geom;`;
 }
 
+/** Melyik ország területén van a pont (ISO3166-1 kód a `tags`-ben). */
+export function countryAtQuery(lat: number, lon: number): string {
+  return `[out:json][timeout:30];
+is_in(${lat.toFixed(6)},${lon.toFixed(6)})->.a;
+area.a["ISO3166-1"][admin_level=2];
+out tags;`;
+}
+
 export interface FetchOptions {
   endpoint?: string;
   retries?: number;

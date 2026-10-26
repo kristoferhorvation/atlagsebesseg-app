@@ -10,7 +10,11 @@
     "typecheck": "npm run typecheck --workspaces --if-present",
     "import:sections": "npm run import --workspace @atlagsebesseg/data",
     "db:live": "supabase/tests/run-live.sh",
-    "db:test:local": "supabase/tests/run-local.sh"
+    "db:test:local": "supabase/tests/run-local.sh",
+    "build:edge": "npm run build:edge --workspace @atlagsebesseg/data",
+    "test:edge": "npm run build:edge && deno test --allow-env supabase/functions/promote-temp-gates/",
+    "deploy:edge": "npm run build:edge && supabase functions deploy promote-temp-gates",
+    "upload:sections": "npm run upload --workspace @atlagsebesseg/data"
   },
   "engines": {
     "node": ">=20",

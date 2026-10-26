@@ -81,3 +81,27 @@ ez a kulcs soha nem kerül az appba vagy a repóba.
 ```bash
 PGHOST=localhost PGUSER=postgres supabase/tests/run-local.sh
 ```
+
+## Edge function: `promote-temp-gates`
+
+A kész kapupárokból szakaszt csináló függvény (`functions/promote-temp-gates/index.ts`). A
+logika a `packages/data` csomagban van (`src/promote.ts`, `src/edge.ts`); a Deno nem oldja fel a
+workspace-csomagokat, ezért deploy előtt egyetlen fájlba csomagoljuk (`promote.bundle.js`, generált,
+gitignore-ban):
+
+```bash
+npm run test:edge      # bundle + Deno-teszt (hamis Supabase/Overpass)
+npm run deploy:edge    # bundle + supabase functions deploy promote-temp-gates
+```
+
+Csak `Authorization: Bearer <service role kulcs>` fejléccel hívható. Ütemezés (a projekteden,
+egyszer beállítva): Dashboard → Integrations → Cron → új job, 10 percenként HTTP POST a
+függvény URL-jére a fenti fejléccel. A kulcsot a Vaultban tárold, ne a job szövegében.
+
+## Szakaszok feltöltése
+
+```bash
+npm run import:sections          # OSM → packages/data/output/*.json (helyi gépen)
+npm run upload:sections          # → sections tábla, upsert id szerint (service role, gyökér .env)
+npm run upload:sections -- --country IT --dry-run
+```

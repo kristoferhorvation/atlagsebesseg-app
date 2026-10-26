@@ -8,19 +8,23 @@
     "import": "tsx scripts/import-osm.ts",
     "fixture": "tsx scripts/make-fixture.ts",
     "test": "vitest run",
-    "typecheck": "tsc -p tsconfig.json"
+    "typecheck": "tsc -p tsconfig.json",
+    "build:edge": "tsx scripts/build-edge.ts",
+    "upload": "tsx scripts/upload-sections.ts"
   },
   "dependencies": {
     "@atlagsebesseg/core": "*"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
+    "esbuild": "^0.28.2",
     "tsx": "^4.20.0",
     "typescript": "~6.0.3",
     "vitest": "^4.0.0"
   },
   "exports": {
     ".": "./src/index.ts",
-    "./output/*": "./output/*"
+    "./output/*": "./output/*",
+    "./rows": "./src/rows.ts"
   }
 }
