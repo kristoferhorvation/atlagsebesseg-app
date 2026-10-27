@@ -7,4 +7,4 @@
 | A2b | 2026-10-27 | Sonnet (helyi) | `39bfbdb` | Helyi összekötés, migráció, feltöltés, CRON_SECRET-es cron, élő DB-tesztek. |
 | A3 | 2026-10-27 | Opus (helyi) | `b7646e0` | Web PWA, DESIGN.md + tokenek, app-logic kiemelés, szimulátor, Vercel-előkészítés. |
 | A3b | 2026-10-27 | Sonnet 5.5 (helyi) | `22da7a2` | CLAUDE.md, ROUNDS.md és caffeinate-hook. |
-| A4 | 2026-10-27 | Opus 5.5 (helyi) | `162ad36` | Dizájn-döntések (várható végső átlag színe, Lassíts-sáv, ideiglenes szakasz, térkép-téma), csiszolás, térkép-magasság hiba javítva, Vercel production: atlagsebesseg.vercel.app. |
+| A4 | 2026-10-27 | Opus 5.5 (helyi) | `162ad36` | Dizájn-döntések (várható végső átlag színe, Lassíts-sáv, ideiglenes szakasz, térkép-téma), csiszolás, térkép-magasság hiba javítva; Vercel production, main-push = deploy: https://atlagsebesseg.vercel.app (deploy-commit `a05e508`). |
