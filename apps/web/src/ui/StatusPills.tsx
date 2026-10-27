@@ -48,8 +48,9 @@ export function StatusPills({
     pills.push({ key: 'gps', ...gps[geo] });
   }
   if (wake === 'aktiv') pills.push({ key: 'wake', tone: 'jo', icon: 'screen', text: 'Kijelző ébren' });
-  else if (wake === 'inaktiv') pills.push({ key: 'wake', tone: 'hataron', icon: 'screen', text: 'Kijelző elalhat – koppints', onClick: onWake });
-  else pills.push({ key: 'wake', tone: 'hataron', icon: 'screen', text: 'Kijelző elalhat', onClick: onWake });
+  // csendes: a figyelmeztetés egyszer, induláskor jön (toast); itt csak semleges ikon
+  else if (wake === 'inaktiv') pills.push({ key: 'wake', tone: 'semleges', icon: 'screen', text: 'Kijelző elalhat – koppints', onClick: onWake });
+  else pills.push({ key: 'wake', tone: 'semleges', icon: 'screen', text: 'Kijelző elalhat', onClick: onWake });
   if (offline) pills.push({ key: 'net', tone: 'semleges', text: 'Offline · beépített szakaszok' });
 
   return (

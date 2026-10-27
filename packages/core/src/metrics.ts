@@ -50,6 +50,30 @@ export function requiredSpeed(input: RequiredSpeedInput): RequiredSpeed {
   return maxKmh < minPractical ? { kind: 'nem_lehetseges', maxKmh } : { kind: 'ok', maxKmh };
 }
 
+export interface ProjectedAverageInput {
+  lengthM: number;
+  distanceDoneM: number;
+  elapsedMs: number;
+  /** A pillanatnyi sebesség – a hátralévő utat ezzel számoljuk végig. */
+  currentKmh: number | null;
+}
+
+/**
+ * Várható végső átlag: ha a hátralévő utat a jelenlegi sebességgel teszed meg,
+ *   v_végső = hossz / (eltelt_idő + hátralévő_út / v_most).
+ * A státusz-szín ebből számol, mert a pillanatnyi átlag a szakasz elején még alig mozdul.
+ * Sebesség nélkül (vagy közel álló helyzetben) `null` – a hívó a pillanatnyi átlagra esik vissza.
+ */
+export function projectedAverageKmh(input: ProjectedAverageInput): number | null {
+  const { lengthM, distanceDoneM, elapsedMs, currentKmh } = input;
+  if (lengthM <= 0) return null;
+  const remainingM = Math.max(0, lengthM - distanceDoneM);
+  if (remainingM === 0) return averageSpeedKmh(lengthM, elapsedMs);
+  if (currentKmh === null || currentKmh < 1) return null;
+  const totalS = elapsedMs / 1000 + remainingM / kmhToMps(currentKmh);
+  return mpsToKmh(lengthM / totalS);
+}
+
 /** Mennyivel kell lassítani a jelenlegi sebességhez képest (km/h, ≥ 0). */
 export function slowDownByKmh(currentKmh: number | null, req: RequiredSpeed): number | null {
   if (currentKmh === null) return null;

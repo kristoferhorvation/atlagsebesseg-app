@@ -31,6 +31,25 @@ describe('TrackingSession', () => {
     expect(session.dismiss().phase).toBe('nincs_szakasz');
   });
 
+  it('a színkód a várható végső átlagból jön, nem a pillanatnyiból', () => {
+    // 5 km 150-nel, aztán 100-zal (határ 130): 6 km-nél a pillanatnyi átlag ~138, a várható végső ~120
+    const course = testCourse();
+    const L = course.section.lengthM;
+    const speed = (s: number) => (s < course.leadInM + L / 2 ? 150 : 100);
+    const samples = fixes(drive({ path: toLatLon(course.fullXY), speedKmh: speed }));
+    let t = 0;
+    const session = new TrackingSession([course.section], { now: () => t });
+    let at60 = null as ReturnType<TrackingSession['view']> | null;
+    for (const f of samples) {
+      t = f.timestamp;
+      const v = session.onFix(f);
+      if (v.phase === 'meres' && v.progress! > 0.6 && !at60) at60 = v;
+    }
+    expect(at60!.live!.averageKmh!).toBeGreaterThan(130);
+    expect(at60!.live!.projectedKmh!).toBeLessThan(125);
+    expect(at60!.status).toBe('jo');
+  });
+
   it('határ felett: tul', () => {
     const { course, samples } = run(140);
     let t = 0;

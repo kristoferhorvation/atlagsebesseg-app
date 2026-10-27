@@ -39,7 +39,13 @@ describe('beállítások', () => {
     expect(parseSettings('{"egyseg":"furlong","hatosagi_tures_megjelenitese":true}')).toEqual({
       egyseg: 'kmh',
       hatosagi_tures_megjelenitese: true,
+      terkep: 'szines',
     });
+  });
+  it('a térkép alapból színes; a visszafogott megmarad, ismeretlen érték színes', () => {
+    expect(DEFAULT_SETTINGS.terkep).toBe('szines');
+    expect(parseSettings('{"terkep":"visszafogott"}').terkep).toBe('visszafogott');
+    expect(parseSettings('{"terkep":"monochrome"}').terkep).toBe('szines');
   });
 });
 

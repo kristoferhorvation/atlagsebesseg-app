@@ -2,18 +2,20 @@ import type { FeatureCollection, LineString } from 'geojson';
 import mapboxgl, { type GeoJSONSource, type Map as MbMap } from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { useEffect, useRef } from 'react';
-import { MapStore, type LightPreset } from '@atlagsebesseg/app-logic';
+import { MapStore, type LightPreset, type MapLook } from '@atlagsebesseg/app-logic';
 import { bearingDeg, haversineM, type GpsFix, type Section } from '@atlagsebesseg/core';
 import { color } from '@atlagsebesseg/design-tokens';
 import type { WebMapAdapter, WebMapState } from './WebMapAdapter';
 
 const STANDARD_STYLE = 'mapbox://styles/mapbox/standard';
 const PITCH = 60;
+/** Mapbox Standard `theme` konfiguráció a beállítás szerint. */
+const THEME: Record<MapLook, string> = { szines: 'default', visszafogott: 'monochrome' };
 const OSM_ATTRIBUTION = 'Szakaszok © OpenStreetMap contributors (ODbL)';
 
 /** Mapbox GL JS v3 – Mapbox Standard stílus, autót követő 3D-s kamera. */
 export class MapboxWebAdapter implements WebMapAdapter {
-  private readonly store = new MapStore<WebMapState>({ position: null, progress: null, tone: color.accent, focusY: 0.38, lightPreset: 'night' });
+  private readonly store = new MapStore<WebMapState>({ position: null, progress: null, tone: color.accent, focusY: 0.38, lightPreset: 'night', look: 'szines' });
   readonly MapView: (props: { className?: string }) => React.JSX.Element;
 
   constructor(accessToken: string) {
@@ -46,6 +48,9 @@ export class MapboxWebAdapter implements WebMapAdapter {
   }
   setFocusY(focusY: number): void {
     this.store.set({ focusY });
+  }
+  setLook(look: MapLook): void {
+    this.store.set({ look });
   }
 }
 
@@ -92,6 +97,7 @@ class MapController {
       config: {
         basemap: {
           lightPreset: s.lightPreset,
+          theme: THEME[s.look],
           showPointOfInterestLabels: false,
           showTransitLabels: false,
           showPedestrianRoads: false,
@@ -160,6 +166,7 @@ class MapController {
     if (!this.styleReady) return;
     const m = this.map;
     if (s.lightPreset !== p?.lightPreset) m.setConfigProperty('basemap', 'lightPreset', s.lightPreset);
+    if (s.look !== p?.look) m.setConfigProperty('basemap', 'theme', THEME[s.look]);
     if (s.sections !== p?.sections) (m.getSource('sections') as GeoJSONSource | undefined)?.setData(toGeoJson(s.sections));
     if (s.highlightId !== p?.highlightId) {
       const f: mapboxgl.FilterSpecification = ['==', ['get', 'id'], s.highlightId ?? ''];

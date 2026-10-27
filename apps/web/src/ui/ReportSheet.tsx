@@ -10,24 +10,27 @@ const TONE: Record<ReportChoice, string> = {
   akadaly: 'hataron',
   utlezaras: 'tul',
   szakasz_hiba: 'semleges',
-  kapu_kezdo: 'jo',
-  kapu_zaro: 'jo',
+  ideiglenes_szakasz: 'kezi',
 };
 
 /**
  * Bejelentés: 1. koppintás megnyitja, 2. koppintás a típusra azonnal elküldi a jelenlegi
- * helyről (és irányból) – nincs megerősítő lépés.
+ * helyről (és irányból) – nincs megerősítő lépés. Az „Ideiglenes szakasz kezdete” a kézi mérést
+ * is elindítja (és bejelenti a kezdő kaput); a záró kaput a mérés „Vége” gombja küldi.
  */
 export function ReportSheet({
   fix,
   online,
   sending,
+  manualRunning,
   onPick,
   onClose,
 }: {
   fix: GpsFix | null;
   online: boolean;
   sending: ReportChoice | null;
+  /** Fut már kézi mérés – ilyenkor nem indítható ideiglenes szakasz. */
+  manualRunning: boolean;
   onPick: (c: ReportChoice) => void;
   onClose: () => void;
 }) {
@@ -35,18 +38,16 @@ export function ReportSheet({
     ? 'Nincs szerver-beállítás – a bejelentés most nem küldhető.'
     : !fix
       ? 'Nincs még GPS-helyzet.'
-      : fix.heading === null
-        ? 'Az ideiglenes kapuhoz mozgás közbeni irány kell.'
-        : 'A jelenlegi helyed és haladási irányod kerül a bejelentésbe.';
+      : 'A jelenlegi helyed és haladási irányod kerül a bejelentésbe. Ideiglenes szakasz: a mérés végén a „Vége” gomb jelenti be a záró kaput.';
   return (
     <Sheet title="Bejelentés" onClose={onClose}>
       <div className="tiles">
         {REPORT_CHOICES.map((c) => (
           <button
             key={c.id}
-            className={`tile${sending === c.id ? ' sending' : ''}`}
+            className={`tile${sending === c.id ? ' sending' : ''}${c.id === 'ideiglenes_szakasz' ? ' wide' : ''}`}
             data-tone={TONE[c.id]}
-            disabled={!online || !fix || (c.needsHeading && fix.heading === null) || sending !== null}
+            disabled={!online || !fix || sending !== null || (c.id === 'ideiglenes_szakasz' && manualRunning)}
             onClick={() => onPick(c.id)}
           >
             <span className="ic">

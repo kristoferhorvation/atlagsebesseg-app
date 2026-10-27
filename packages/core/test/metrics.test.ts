@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { averageSpeedKmh, limitWithToleranceKmh, requiredSpeed, slowDownByKmh, toleranceKmh } from '../src/metrics';
+import { averageSpeedKmh, limitWithToleranceKmh, projectedAverageKmh, requiredSpeed, slowDownByKmh, toleranceKmh } from '../src/metrics';
 
 describe('averageSpeedKmh', () => {
   it('10 km 5 perc alatt = 120 km/h', () => {
@@ -94,5 +94,23 @@ describe('tűrés', () => {
   it('a szükséges sebesség a tűréstől független (mindig a szigorú határ)', () => {
     const r = requiredSpeed({ lengthM: 10_000, speedLimitKmh: 130, distanceDoneM: 0, elapsedMs: 0 });
     expect(r).toEqual({ kind: 'ok', maxKmh: 130 });
+  });
+});
+
+describe('projectedAverageKmh', () => {
+  const L = 10_000;
+  it('állandó sebességnél a végső átlag a jelenlegi átlag', () => {
+    const v = projectedAverageKmh({ lengthM: L, distanceDoneM: 4000, elapsedMs: (4 / 120) * 3_600_000, currentKmh: 120 });
+    expect(v).toBeCloseTo(120, 6);
+  });
+  it('gyors kezdés után lassítva a végső átlag a pillanatnyi alá esik', () => {
+    // 5 km 150-nel, onnan 100-zal: 10 / (5/150 + 5/100) = 120
+    const v = projectedAverageKmh({ lengthM: L, distanceDoneM: 5000, elapsedMs: (5 / 150) * 3_600_000, currentKmh: 100 });
+    expect(v).toBeCloseTo(120, 6);
+  });
+  it('sebesség nélkül vagy állva null; célban a tényleges átlag', () => {
+    expect(projectedAverageKmh({ lengthM: L, distanceDoneM: 1000, elapsedMs: 30_000, currentKmh: null })).toBeNull();
+    expect(projectedAverageKmh({ lengthM: L, distanceDoneM: 1000, elapsedMs: 30_000, currentKmh: 0.5 })).toBeNull();
+    expect(projectedAverageKmh({ lengthM: L, distanceDoneM: L, elapsedMs: 300_000, currentKmh: 0 })).toBeCloseTo(120, 6);
   });
 });

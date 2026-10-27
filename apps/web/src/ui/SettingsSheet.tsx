@@ -1,4 +1,4 @@
-import type { Settings, SpeedUnit } from '@atlagsebesseg/app-logic';
+import type { MapLook, Settings, SpeedUnit } from '@atlagsebesseg/app-logic';
 import { DEFAULT_TOLERANCE } from '@atlagsebesseg/core';
 import { Sheet } from './Sheet';
 
@@ -30,6 +30,10 @@ export function SettingsSheet({
     { id: 'kmh', label: 'km/h' },
     { id: 'mph', label: 'mph' },
   ];
+  const looks: { id: MapLook; label: string }[] = [
+    { id: 'szines', label: 'színes' },
+    { id: 'visszafogott', label: 'visszafogott' },
+  ];
   return (
     <Sheet title="Beállítások" onClose={onClose}>
       <div className="group-label">Kijelző</div>
@@ -54,6 +58,16 @@ export function SettingsSheet({
             {units.map((u) => (
               <button key={u.id} aria-pressed={settings.egyseg === u.id} onClick={() => update({ egyseg: u.id })}>
                 {u.label}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div className="list-row">
+          <div className="label">Térkép</div>
+          <div className="segmented" role="group" aria-label="Térkép">
+            {looks.map((l) => (
+              <button key={l.id} aria-pressed={settings.terkep === l.id} onClick={() => update({ terkep: l.id })}>
+                {l.label}
               </button>
             ))}
           </div>

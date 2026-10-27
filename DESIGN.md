@@ -19,18 +19,24 @@ változókká alakítja, a natív app közvetlenül importálja.
 | token | érték | használat |
 |---|---|---|
 | `bg` | `#06070A` | háttér térkép nélkül |
-| `surface` | `rgba(16,18,24,0.66)` + blur 28 px | üvegkártyák |
+| `surface` | `rgba(14,16,22,0.72)` + blur 28 px, saturate 150% | üvegkártyák (A4: a színes térképen is olvasható) |
 | `surfaceStrong` | `rgba(22,25,32,0.88)` | lapok (beállítások, bejelentés) |
 | `stroke` | `rgba(255,255,255,0.08)` | 1 px-es élek |
 | `text` / `textMuted` / `textFaint` | `#F4F6FA` / 64% / 40% | szöveg |
 | `accent` | `#7A86FF` | márka, kézi mód, fókusz |
-| `ok` | `#2EE59D` | **jó** – az átlag ≥ 3% (min. 3 km/h) a határ alatt |
-| `near` | `#FFB224` | **határon** – az utolsó 3%-on belül |
-| `over` | `#FF4D61` | **túl** – az átlag a határ felett |
+| `ok` | `#2EE59D` | **jó** – a várható végső átlag ≥ 3% (min. 3 km/h) a határ alatt |
+| `near` | `#FFB224` | **határon** – a várható végső átlag az utolsó 3%-on belül |
+| `over` | `#FF4D61` | **túl** – a várható végső átlag a határ felett |
 | `idle` | `#8C93A3` | megszakadt / nincs adat |
 
 A státuszszín a nagy számot, a progress kitöltését, a kártya felső fényívét és a térképen az
 aktív szakasz vonalát színezi. Az állapot-ikonok: ✓ jó, ≈ határon, ↑ túl, ⏸ megszakadt.
+
+**Mi alapján színez (A4-döntés):** mérés közben a **várható végső átlag** szerint – a core
+becslése: a hátralévő utat a jelenlegi sebességgel megtéve mennyi lesz a szakasz átlaga
+(`projectedAverageKmh`). A **nagy szám marad a pillanatnyi átlag**; mellette kicsiben
+„várható 118”, hogy a szín érthető legyen. A „határon” sáv is a várható végsőre vonatkozik.
+Sebesség nélkül (álló helyzet) a pillanatnyi átlag a tartalék. Befejezve a tényleges végső átlag.
 
 ## Tipográfia
 
@@ -57,10 +63,21 @@ biztonsági zóna fölött lebeg.
   (piros gyűrűs kör, benne a szám), opcionálisan „max 112” javaslat-pill.
 - **Határ-tábla**: KRESZ-tábla stílusú kör, `title` méret; tűrés bekapcsolva a tábla mellett
   „+tűrés 137”.
-- **Állapot-pillek** (fent): GPS pontosság, kijelző ébren / elalhat, offline. Koppinthatók,
-  ha teendő van (pl. ébrentartás újrakérése).
+- **Állapot-pillek** (fent): GPS pontosság, kijelző ébren / elalhat, offline. Vezetés közben
+  **csak ikonok** (szöveg nélkül). Koppinthatók, ha teendő van (pl. ébrentartás újrakérése).
+- **Ébrentartás (A4-döntés):** ha a Wake Lock nem sikerül, **egyszer**, induláskor egy csendes,
+  semleges toast szól (5 s); utána csak a szürke kijelző-ikon jelzi – nem sárga, nem ismétlődik.
+- **„Lassíts · max X” (A4-döntés):** külön, nagy üvegpill középen a kártya fölött (76 px magas,
+  `title` címke + 44 px-es szám), **csak amikor kell**. Megjelenés/eltűnés `slow` (480 ms)
+  opacity + transform; hiszterézis: 1,5 s fennállás után jelenik meg, 3 s hiány után tűnik el,
+  így a határérték körüli ingadozás nem villog. A kártya chipje ilyenkor a státuszt mutatja.
 - **Kerek gombok** (64 px, üveg): bejelentés, kézi mérés, beállítások.
 - **Lap** (bottom sheet): bejelentés-rács (2 oszlop, 76 px-es csempék), beállítások.
+- **Ideiglenes szakasz (A4-döntés):** a bejelentés-rácsban **egy** teljes szélességű csempe,
+  „Ideiglenes szakasz kezdete”: elindítja a kézi mérést **és** bejelenti a kezdő kaput (ha még
+  nincs irány, a kezdő kapu a mérés első pontjából a végén megy el). Mérés közben a gomb
+  „Vége · záró kapu”: lezárja és bejelenti a záró kaput. A sima „Kézi mérés” (stopper-gomb)
+  bejelentés nélkül marad külön. A két külön kapu-csempe megszűnt.
 - **Toast**: rövid visszajelzés felül, 2,5 s.
 
 ## Állapotok
@@ -71,7 +88,8 @@ biztonsági zóna fölött lebeg.
 | **közeledés** | kártya: út + irány, „múlva” távolság (`display`), határ-tábla; a szakasz vonala kiemelve |
 | **mérés** | HUD-kártya; a szín az átlag és a határ viszonyából; alagútban „becsült” jelzés |
 | **befejezve** | összegzés: végső átlag (hero, státuszszín), ítélet („határ alatt” / „+4 km/h”), hossz, idő, határ; 60 s után eltűnik |
-| **kézi mód** | HUD az `accent` színnel (nincs határ): átlag, megtett út, idő, nagy „Leállítás” gomb; utána összegzés „Kapuk bejelentése” gombbal |
+| **kézi mód** | HUD az `accent` színnel (nincs határ): átlag, megtett út, idő, nagy „Leállítás” gomb; utána összegzés (bejelentés nélkül) |
+| **ideiglenes szakasz** | mint a kézi mód, „Ideiglenes szakasz” chip és „Vége · záró kapu” gomb; az összegzés a kapuk küldésének állapotát mutatja (hiba esetén „Újraküldés”) |
 | **megszakadt** | szürke kártya ⏸ ikonnal: ok (háttérbe került / letértél / ellenirány / nincs GPS) és „Az átlag nem érvényes” – nincs szám |
 
 ## Mozgás
@@ -82,5 +100,10 @@ Adatkövető átmenet (progress, kamera): 1000 ms lineáris – pont a GPS-ütem
 ## Térkép
 
 Mapbox Standard, `lightPreset` automatikusan (rendszermód + napállás), POI- és tömegközlekedési
-címkék nélkül. Kamera: pitch 60°, haladási irány felfelé, az autó a képernyő alsó harmadában
+címkék nélkül.
+
+**Téma (A4-döntés):** alapból a Standard `default` témája – a színes, 3D-s look marad. A nyugalmat
+a UI-rétegek adják (üveg, kevés saját szín, felső/alsó sötét átmenet), **nem a térkép
+szegényítése**. A Beállításokban „Térkép: színes / visszafogott” kapcsoló (`default` /
+`monochrome`), alapból színes. Kamera: pitch 60°, haladási irány felfelé, az autó a képernyő alsó harmadában
 (a HUD fölött). A szakaszok vonala halványan, az aktív a státuszszínnel, a megtett rész teltebb.

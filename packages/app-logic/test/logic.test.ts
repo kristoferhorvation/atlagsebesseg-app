@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { ManualResult, Section } from '@atlagsebesseg/core';
-import { gateReportsFromManual } from '../src/gateReports';
+import { gateReportsFromManual, tempSectionEndReports } from '../src/gateReports';
 import { chooseLightPreset } from '../src/lightPreset';
 import { mergeById, SectionCache, tileBBox, tileKey, tilesAround, type KeyValueStore } from '../src/sectionCache';
 
@@ -126,5 +126,13 @@ describe('gateReportsFromManual', () => {
   it('irány vagy kapu nélkül nincs bejelentés', () => {
     expect(gateReportsFromManual(result(null, 10))).toBeNull();
     expect(gateReportsFromManual({ ...result(1, 2), gates: null })).toBeNull();
+  });
+
+  it('ideiglenes szakasz vége: csak a záró, ha a kezdő már elment; különben mindkettő', () => {
+    expect(tempSectionEndReports(result(10, 20), true)!.map((r) => r.gate_kind)).toEqual(['zaro']);
+    expect(tempSectionEndReports(result(10, 20), false)!.map((r) => r.gate_kind)).toEqual(['kezdo', 'zaro']);
+    expect(tempSectionEndReports(result(null, 20), true)!.map((r) => r.gate_kind)).toEqual(['zaro']);
+    expect(tempSectionEndReports(result(null, 20), false)).toBeNull();
+    expect(tempSectionEndReports({ ...result(1, 2), gates: null }, true)).toBeNull();
   });
 });

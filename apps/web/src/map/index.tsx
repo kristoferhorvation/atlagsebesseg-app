@@ -21,4 +21,5 @@ class NoMapAdapter implements WebMapAdapter {
   setPosition(): void {}
   setProgress(): void {}
   setFocusY(): void {}
+  setLook(): void {}
 }

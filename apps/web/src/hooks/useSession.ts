@@ -18,8 +18,17 @@ export function useSession(sections: readonly Section[], now: () => number) {
       onFix: (fix: GpsFix) => setView(session.onFix(fix)),
       tick: () => setView(session.tick()),
       interrupt: () => setView(session.interrupt('hatter')),
-      startManual: () => setView(session.startManual()),
-      stopManual: () => setView(session.stopManual()),
+      startManual: () => {
+        const v = session.startManual();
+        setView(v);
+        return v;
+      },
+      /** A lezárt mérés nézetét is visszaadja (az ideiglenes szakasz záró kapujához). */
+      stopManual: () => {
+        const v = session.stopManual();
+        setView(v);
+        return v;
+      },
       dismiss: () => setView(session.dismiss()),
     }),
     [session],

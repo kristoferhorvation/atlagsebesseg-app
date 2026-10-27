@@ -14,18 +14,23 @@ export interface SimpleReportInsert {
 
 export type ReportInsert = SimpleReportInsert | GateReportInsert;
 
-/** A bejelentés-lap választható elemei, megjelenítési sorrendben. */
-export type ReportChoice = SimpleReportInsert['type'] | 'kapu_kezdo' | 'kapu_zaro';
+/** Egy ideiglenes kapu a jelenlegi helyről. */
+export type GateChoice = 'kapu_kezdo' | 'kapu_zaro';
 
-export const REPORT_CHOICES: readonly { id: ReportChoice; label: string; needsHeading: boolean }[] = [
-  { id: 'rendorseg', label: 'Rendőrség', needsHeading: false },
-  { id: 'traffipax', label: 'Traffipax', needsHeading: false },
-  { id: 'baleset', label: 'Baleset', needsHeading: false },
-  { id: 'akadaly', label: 'Akadály', needsHeading: false },
-  { id: 'utlezaras', label: 'Útlezárás', needsHeading: false },
-  { id: 'szakasz_hiba', label: 'Hibás szakasz', needsHeading: false },
-  { id: 'kapu_kezdo', label: 'Ideiglenes kapu · kezdő', needsHeading: true },
-  { id: 'kapu_zaro', label: 'Ideiglenes kapu · záró', needsHeading: true },
+/**
+ * A bejelentés-lap választható elemei. Az `ideiglenes_szakasz` nem egy sor, hanem egy folyamat:
+ * elindítja a kézi mérést és bejelenti a kezdő kaput; a mérés „Vége” gombja a záró kaput.
+ */
+export type ReportChoice = SimpleReportInsert['type'] | 'ideiglenes_szakasz';
+
+export const REPORT_CHOICES: readonly { id: ReportChoice; label: string }[] = [
+  { id: 'rendorseg', label: 'Rendőrség' },
+  { id: 'traffipax', label: 'Traffipax' },
+  { id: 'baleset', label: 'Baleset' },
+  { id: 'akadaly', label: 'Akadály' },
+  { id: 'utlezaras', label: 'Útlezárás' },
+  { id: 'szakasz_hiba', label: 'Hibás szakasz' },
+  { id: 'ideiglenes_szakasz', label: 'Ideiglenes szakasz kezdete' },
 ];
 
 const heading = (h: number | null) => (h === null ? null : ((Math.round(h) % 360) + 360) % 360);
@@ -34,7 +39,7 @@ const heading = (h: number | null) => (h === null ? null : ((Math.round(h) % 360
  * Egy koppintásos bejelentés a jelenlegi helyről. Kapunál irány kell (a kapu iránya a haladási
  * irány) – ha nincs, `null`.
  */
-export function reportFromFix(choice: ReportChoice, fix: GpsFix): ReportInsert | null {
+export function reportFromFix(choice: SimpleReportInsert['type'] | GateChoice, fix: GpsFix): ReportInsert | null {
   if (choice === 'kapu_kezdo' || choice === 'kapu_zaro') {
     const h = heading(fix.heading);
     if (h === null) return null;

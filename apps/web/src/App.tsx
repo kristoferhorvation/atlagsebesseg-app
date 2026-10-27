@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import {
   createReports,
-  gateReportsFromManual,
   mergeById,
   REPORT_CHOICES,
   reportFromFix,
+  tempSectionEndReports,
   type ReportChoice,
+  type ReportInsert,
   type SessionView,
 } from '@atlagsebesseg/app-logic';
 import { BUNDLED_SECTIONS } from '@atlagsebesseg/app-logic/bundled-sections';
@@ -20,7 +21,7 @@ import { useSettings } from './hooks/useSettings';
 import { useWakeLock } from './hooks/useWakeLock';
 import { createWebMapAdapter, type WebMapAdapter } from './map';
 import { simStartFromUrl, useSimulator } from './sim/useSimulator';
-import { Hud, toneOf, type GateReportState } from './ui/Hud';
+import { Hud, SlowDown, toneOf, type GateReportState } from './ui/Hud';
 import { Icon, type IconName } from './ui/Icon';
 import { ReportSheet } from './ui/ReportSheet';
 import { SettingsSheet } from './ui/SettingsSheet';
@@ -53,6 +54,8 @@ interface Toast {
   text: string;
   tone: string;
   icon: IconName;
+  /** Megjelenési idő (ms), alapból 2,6 s. */
+  ms?: number;
 }
 
 const GEO_TEXT: Record<GeoStatus, string> = {
@@ -111,14 +114,32 @@ function Drive({ map }: { map: WebMapAdapter }) {
   const highlightId = view.phase === 'meres' || view.phase === 'kozeledik' ? (view.section?.id ?? null) : null;
   useEffect(() => map.followUser(true), [map]);
   useEffect(() => map.setLightPreset(lightPreset), [map, lightPreset]);
+  useEffect(() => map.setLook(settings.terkep), [map, settings.terkep]);
   useEffect(() => map.showSections(all, highlightId), [map, all, highlightId]);
   useEffect(() => map.setPosition(view.lastFix), [map, view.lastFix]);
   useEffect(
     () => map.setProgress(view.phase === 'meres' ? view.progress : null, statusColor[tone as keyof typeof statusColor] ?? statusColor.kezi),
     [map, view.phase, view.progress, tone],
   );
-  const big = view.phase !== 'nincs_szakasz';
-  useEffect(() => map.setFocusY(big ? 0.3 : 0.45), [map, big]);
+  // az autó a HUD feletti szabad terület ~60%-ánál – a kártya magasságát mérjük, nem becsüljük
+  const hudRef = useRef<HTMLDivElement>(null);
+  useLayoutEffect(() => {
+    const el = hudRef.current;
+    if (!el) return;
+    const update = () => {
+      const h = window.innerHeight;
+      const top = h - el.offsetHeight;
+      map.setFocusY(Math.min(0.5, Math.max(0.18, (top * 0.6) / h)));
+    };
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    window.addEventListener('resize', update);
+    return () => {
+      ro.disconnect();
+      window.removeEventListener('resize', update);
+    };
+  }, [map]);
 
   // lapok, visszajelzés
   const [sheet, setSheet] = useState<'report' | 'settings' | null>(null);
@@ -126,13 +147,85 @@ function Drive({ map }: { map: WebMapAdapter }) {
   const showToast = useCallback((t: Omit<Toast, 'id'>) => setToast({ ...t, id: Date.now() }), []);
   useEffect(() => {
     if (!toast) return;
-    const id = setTimeout(() => setToast(null), 2600);
+    const id = setTimeout(() => setToast(null), toast.ms ?? 2600);
     return () => clearTimeout(id);
   }, [toast]);
+
+  // Ébrentartás: egyetlen, csendes figyelmeztetés induláskor (ha nem sikerült), utána csak az ikon.
+  const wakeWarned = useRef(false);
+  const wakeStatus = useRef(wake.status);
+  wakeStatus.current = wake.status;
+  useEffect(() => {
+    const id = setTimeout(() => {
+      if (wakeWarned.current || wakeStatus.current === 'aktiv') return;
+      wakeWarned.current = true;
+      showToast({ text: 'A kijelző elalhat – állítsd az automatikus zárolást „Soha” értékre', tone: 'semleges', icon: 'screen', ms: 5000 });
+    }, 2500);
+    return () => clearTimeout(id);
+  }, [showToast]);
+
+  // Ideiglenes szakasz: kézi mérés + kezdő kapu induláskor, záró kapu a „Vége” gombra.
+  const [temp, setTemp] = useState<{ startSent: boolean } | null>(null);
+  const [gateState, setGateState] = useState<GateReportState>('nincs');
+  const [gateRows, setGateRows] = useState<ReportInsert[] | null>(null);
+  const sendGates = useCallback((rows: ReportInsert[]) => {
+    setGateRows(rows);
+    setGateState('kuldes');
+    // toast is, mert közeledéskor a szakasz-kártya elfedi a kézi összegzést
+    createReports(supabase, rows)
+      .then(() => {
+        setGateState('elkuldve');
+        showToast({ text: 'Ideiglenes szakasz bejelentve', tone: 'jo', icon: 'check' });
+      })
+      .catch(() => {
+        setGateState('hiba');
+        showToast({ text: 'A kapukat nem sikerült elküldeni', tone: 'tul', icon: 'report' });
+      });
+  }, [showToast]);
+  useEffect(() => {
+    if (view.phase === 'megszakadt') setTemp(null);
+  }, [view.phase]);
+
+  const startTempSection = useCallback(() => {
+    const fix = view.lastFix;
+    session.startManual();
+    setGateState('nincs');
+    setSheet(null);
+    const start = fix ? reportFromFix('kapu_kezdo', fix) : null;
+    if (!start) {
+      // álló helyzetben még nincs irány: a kezdő kapu a mérés első pontjából, a végén megy el
+      setTemp({ startSent: false });
+      showToast({ text: 'Mérés indult – a kezdő kaput a végén küldjük', tone: 'kezi', icon: 'kapu_kezdo' });
+      return;
+    }
+    setTemp({ startSent: false });
+    createReports(supabase, [start])
+      .then(() => {
+        setTemp((t) => t && { startSent: true });
+        showToast({ text: 'Kezdő kapu bejelentve', tone: 'jo', icon: 'check' });
+      })
+      .catch(() => showToast({ text: 'A kezdő kaput a végén újra megpróbáljuk', tone: 'hataron', icon: 'kapu_kezdo' }));
+  }, [view.lastFix, session.startManual, showToast]);
+
+  const startManual = useCallback(() => {
+    setTemp(null);
+    setGateState('nincs');
+    session.startManual();
+  }, [session.startManual]);
+
+  const stopManual = useCallback(() => {
+    const v = session.stopManual();
+    if (!temp || !v.manualResult) return;
+    setTemp(null);
+    const rows = tempSectionEndReports(v.manualResult, temp.startSent);
+    if (rows) sendGates(rows);
+    else setGateState('nem_hatarozhato');
+  }, [session.stopManual, temp, sendGates]);
 
   const [sending, setSending] = useState<ReportChoice | null>(null);
   const report = useCallback(
     (choice: ReportChoice) => {
+      if (choice === 'ideiglenes_szakasz') return startTempSection();
       const row = view.lastFix ? reportFromFix(choice, view.lastFix) : null;
       if (!row) return;
       const label = REPORT_CHOICES.find((c) => c.id === choice)?.label ?? 'Bejelentés';
@@ -145,19 +238,8 @@ function Drive({ map }: { map: WebMapAdapter }) {
           setSheet(null);
         });
     },
-    [view.lastFix, showToast],
+    [view.lastFix, showToast, startTempSection],
   );
-
-  const [gateState, setGateState] = useState<GateReportState>('nincs');
-  useEffect(() => setGateState('nincs'), [view.manualResult]);
-  const gateRows = view.manualResult ? gateReportsFromManual(view.manualResult) : null;
-  const reportGates = useCallback(() => {
-    if (!gateRows) return;
-    setGateState('kuldes');
-    createReports(supabase, gateRows)
-      .then(() => setGateState('elkuldve'))
-      .catch(() => setGateState('hiba'));
-  }, [gateRows]);
 
   const driving = view.phase === 'meres' || view.phase === 'kozeledik' || view.phase === 'kezi';
   const accuracy = view.lastFix?.accuracy ?? null;
@@ -179,14 +261,15 @@ function Drive({ map }: { map: WebMapAdapter }) {
       />
       {SIM_MODE && <SimDriver onFix={onFix} onTick={session.tick} clock={clock} onSection={setSimSection} onBackground={session.interrupt} />}
 
-      <div className="hud">
+      <div className="hud" ref={hudRef}>
+        {view.phase === 'meres' && <SlowDown view={view} unit={settings.egyseg} />}
         <div className="actions">
           {!driving && view.phase !== 'kezi_eredmeny' && (
             <>
               <button className="round-btn glass" onClick={() => setSheet('settings')} aria-label="Beállítások">
                 <Icon name="sliders" size={26} />
               </button>
-              <button className="round-btn glass" onClick={session.startManual} aria-label="Kézi mérés indítása">
+              <button className="round-btn glass" onClick={startManual} aria-label="Kézi mérés indítása">
                 <Icon name="stopwatch" size={26} />
               </button>
             </>
@@ -200,11 +283,11 @@ function Drive({ map }: { map: WebMapAdapter }) {
           view={view}
           settings={settings}
           gpsReady={view.lastFix !== null}
-          canReportGates={gateRows !== null && supabase !== null}
+          tempSection={temp !== null}
           gateState={gateState}
-          onStopManual={session.stopManual}
+          onStopManual={stopManual}
           onDismiss={session.dismiss}
-          onReportGates={reportGates}
+          onRetryGates={() => gateRows && sendGates(gateRows)}
         />
       </div>
 
@@ -215,7 +298,14 @@ function Drive({ map }: { map: WebMapAdapter }) {
       )}
 
       {sheet === 'report' && (
-        <ReportSheet fix={view.lastFix} online={supabase !== null} sending={sending} onPick={report} onClose={() => setSheet(null)} />
+        <ReportSheet
+          fix={view.lastFix}
+          online={supabase !== null}
+          sending={sending}
+          manualRunning={view.phase === 'kezi'}
+          onPick={report}
+          onClose={() => setSheet(null)}
+        />
       )}
       {sheet === 'settings' && (
         <SettingsSheet

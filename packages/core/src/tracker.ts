@@ -1,6 +1,6 @@
 import { angleDiffDeg, bearingDeg, haversineM } from './geo';
 import { DEFAULT_FIX_FILTER, FixFilter, type FixFilterOptions } from './fixFilter';
-import { averageSpeedKmh, DEFAULT_MIN_PRACTICAL_FRACTION, mpsToKmh, requiredSpeed, slowDownByKmh, type RequiredSpeed } from './metrics';
+import { averageSpeedKmh, DEFAULT_MIN_PRACTICAL_FRACTION, mpsToKmh, projectedAverageKmh, requiredSpeed, slowDownByKmh, type RequiredSpeed } from './metrics';
 import { Route, type RouteProjection } from './route';
 import type { GpsFix, Section } from './types';
 
@@ -68,6 +68,8 @@ export interface LiveMetrics {
   elapsedMs: number;
   averageKmh: number | null;
   currentKmh: number | null;
+  /** Várható végső átlag, ha a hátralévő utat a jelenlegi sebességgel teszed meg (lásd `projectedAverageKmh`). */
+  projectedKmh: number | null;
   required: RequiredSpeed;
   /** Mennyivel kell lassítani a jelenlegi sebességhez képest (km/h). */
   slowDownKmh: number | null;
@@ -411,6 +413,7 @@ export class SectionTracker {
       elapsedMs,
       averageKmh: averageSpeedKmh(distanceM, elapsedMs),
       currentKmh,
+      projectedKmh: projectedAverageKmh({ lengthM: L, distanceDoneM: distanceM, elapsedMs, currentKmh }),
       required,
       slowDownKmh: slowDownByKmh(currentKmh, required),
       estimated,

@@ -5,7 +5,7 @@
 
 export const color = {
   bg: '#06070A',
-  surface: 'rgba(16,18,24,0.66)',
+  surface: 'rgba(14,16,22,0.72)',
   surfaceStrong: 'rgba(22,25,32,0.88)',
   surfaceRaised: 'rgba(255,255,255,0.06)',
   stroke: 'rgba(255,255,255,0.08)',
