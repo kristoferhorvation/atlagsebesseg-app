@@ -1,11 +1,10 @@
 {
   "country": "HU",
-  "generatedAt": null,
-  "source": "OpenStreetMap (Overpass) + manual/hu-manual.json",
+  "generatedAt": "2026-10-26T22:06:14.708Z",
+  "source": "OpenStreetMap, Overpass API: relation[type=enforcement][enforcement=average_speed]",
   "attribution": "© OpenStreetMap contributors",
   "license": "ODbL-1.0 (Open Database License) – https://opendatacommons.org/licenses/odbl/1-0/",
   "count": 0,
   "sections": [],
-  "skipped": [],
-  "todo": "Az import még nem futott. Futtasd helyben: npm run import:sections -- --country HU. A kézi lista: packages/data/manual/hu-manual.json (formátum: packages/data/README.md)."
+  "skipped": []
 }

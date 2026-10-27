@@ -25,5 +25,10 @@
   "devDependencies": {
     "deno": "^2.9.6",
     "supabase": "^2.122.0"
+  },
+  "allowScripts": {
+    "deno@2.9.6": true,
+    "esbuild@0.28.2": true,
+    "fsevents@2.3.3": true
   }
 }
