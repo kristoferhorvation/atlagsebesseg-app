@@ -79,12 +79,24 @@ biztonsági zóna fölött lebeg.
   „Vége · záró kapu”: lezárja és bejelenti a záró kaput. A sima „Kézi mérés” (stopper-gomb)
   bejelentés nélkül marad külön. A két külön kapu-csempe megszűnt.
 - **Toast**: rövid visszajelzés felül, 2,5 s.
+- **Bejelentések a térképen (A5):** minden aktív bejelentés ikonként (a bejelentés-lap ikonja
+  és tónusa; kapunál kezdő/záró), 44 px-es kör 56 px-es érintési céllal, mindig a képernyő felé
+  fordulva. Koppintásra kis kártya a HUD fölött: típus, „12 perce”, **Megerősítés** / **Nincs ott**
+  (60 px magas gombok, a saját bejelentésnél „Saját bejelentésed”). A térkép üres részére
+  koppintva bezárul. Lekérés a látható terület szerint, csempe-rácsra kerekítve, 60 s-enként.
+- **Szabad térkép (A5):** húzás, csípés, forgatás. Mozdításkor a követés kikapcsol, és a gombsor
+  fölött megjelenik a **„Vissza a helyemre”** (64 px, célkereszt, accent); rá a követő kamera
+  animálva (900 ms) áll vissza. Mérés közben 5 s tétlenség után magától is; mérésen kívül csak a
+  gombra. Mérés közben a gomb a „Lassíts” sáv helye fölött ül.
+- **Mapbox-attribúció (A5):** logó a bal, kompakt „i” a jobb felső sarokban, alapméretben, a
+  biztonsági zóna alatt 4 px-re; kinyitva az attribúció több sorba tördel, nem takarja a logót.
+  Az állapot-pillek ez alatt, egy sorral lejjebb kezdődnek.
 
 ## Állapotok
 
 | állapot | mit mutat |
 |---|---|
-| **nincs szakasz** | térkép teljes képen; alul kompakt kártya: pillanatnyi sebesség (`display`), „Nincs mérőszakasz a közelben”, gombsor |
+| **nincs szakasz** | **kompakt** (A5): egysoros kártya – pillanatnyi sebesség (`title`, félkövér) + „Nincs mérőszakasz a közelben”; az alsó sötétítés is kisebb, a térkép a képernyő ~80%-át látja. Közeledéskor / méréskor a nagy kártya; a váltásnál a gombsor és a kártya a régi helyéről csúszik (FLIP, `base`), az autó helye simán követi |
 | **közeledés** | kártya: út + irány, „múlva” távolság (`display`), határ-tábla; a szakasz vonala kiemelve |
 | **mérés** | HUD-kártya; a szín az átlag és a határ viszonyából; alagútban „becsült” jelzés |
 | **befejezve** | összegzés: végső átlag (hero, státuszszín), ítélet („határ alatt” / „+4 km/h”), hossz, idő, határ; 60 s után eltűnik |

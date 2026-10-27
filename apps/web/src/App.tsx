@@ -1,7 +1,15 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import {
   createReports,
+  currentUserId,
+  listActiveReports,
   mergeById,
+  ownReport,
+  reportVisual,
+  rowToActiveReport,
+  voteReport,
+  type ActiveReport,
+  type BBox,
   REPORT_CHOICES,
   reportFromFix,
   tempSectionEndReports,
@@ -13,16 +21,20 @@ import { BUNDLED_SECTIONS } from '@atlagsebesseg/app-logic/bundled-sections';
 import type { GpsFix, Section } from '@atlagsebesseg/core';
 import { statusColor } from '@atlagsebesseg/design-tokens';
 import { supabase } from './backend';
+import { useFollow } from './hooks/useFollow';
 import { useGeolocation, type GeoStatus } from './hooks/useGeolocation';
 import { useLightPreset } from './hooks/useLightPreset';
+import { useReports } from './hooks/useReports';
 import { useSections } from './hooks/useSections';
 import { useSession } from './hooks/useSession';
 import { useSettings } from './hooks/useSettings';
 import { useWakeLock } from './hooks/useWakeLock';
-import { createWebMapAdapter, type WebMapAdapter } from './map';
+import { createWebMapAdapter, type MapReport, type WebMapAdapter } from './map';
+import { simReports } from './sim/scenarios';
 import { simStartFromUrl, useSimulator } from './sim/useSimulator';
 import { Hud, SlowDown, toneOf, type GateReportState } from './ui/Hud';
 import { Icon, type IconName } from './ui/Icon';
+import { ReportCard } from './ui/ReportCard';
 import { ReportSheet } from './ui/ReportSheet';
 import { SettingsSheet } from './ui/SettingsSheet';
 import { SimPanel } from './ui/SimPanel';
@@ -30,6 +42,13 @@ import { StartScreen } from './ui/StartScreen';
 import { StatusPills } from './ui/StatusPills';
 
 const SIM_MODE = new URLSearchParams(location.search).has('sim');
+
+/** A szerver aktív bejelentései a téglalapban; a saját sorokat a meglévő munkamenetből ismeri fel. */
+async function fetchServerReports(b: BBox): Promise<ActiveReport[]> {
+  if (!supabase) return [];
+  const [rows, uid] = await Promise.all([listActiveReports(supabase, b), currentUserId(supabase)]);
+  return rows.map((r) => rowToActiveReport(r, uid));
+}
 
 export function App() {
   const [map, setMap] = useState<WebMapAdapter | null>(null);
@@ -112,7 +131,6 @@ function Drive({ map }: { map: WebMapAdapter }) {
   const lightPreset = useLightPreset(view.lastFix, now);
   const tone = toneOf(view);
   const highlightId = view.phase === 'meres' || view.phase === 'kozeledik' ? (view.section?.id ?? null) : null;
-  useEffect(() => map.followUser(true), [map]);
   useEffect(() => map.setLightPreset(lightPreset), [map, lightPreset]);
   useEffect(() => map.setLook(settings.terkep), [map, settings.terkep]);
   useEffect(() => map.showSections(all, highlightId), [map, all, highlightId]);
@@ -121,15 +139,49 @@ function Drive({ map }: { map: WebMapAdapter }) {
     () => map.setProgress(view.phase === 'meres' ? view.progress : null, statusColor[tone as keyof typeof statusColor] ?? statusColor.kezi),
     [map, view.phase, view.progress, tone],
   );
+  // követő kamera: a térkép mozgatása kikapcsolja; mérés közben 5 s után magától visszaáll
+  const follow = useFollow(map, view.phase === 'meres' || view.phase === 'kezi');
+
+  // bejelentések a térképen (szimulátorban a minta-bejelentések a szerver helyett)
+  const [simReps, setSimReps] = useState<ActiveReport[]>([]);
+  const simRepsRef = useRef(simReps);
+  simRepsRef.current = simReps;
+  const fetchReports = useMemo(() => (SIM_MODE ? async () => simRepsRef.current : fetchServerReports), []);
+  const feed = useReports(map, view.lastFix, fetchReports, now);
+  const { reload: reloadReports } = feed;
+  useEffect(() => {
+    if (simReps.length) reloadReports();
+  }, [simReps, reloadReports]);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const selected = feed.reports.find((r) => r.id === selectedId) ?? null;
+  useEffect(() => map.setHandlers({ onReportTap: setSelectedId }), [map]);
+  const pinsKey = feed.reports.map((r) => `${r.id}:${r.type}:${r.gateKind}`).join('|');
+  const pins = useMemo<MapReport[]>(
+    () => feed.reports.map((r) => ({ id: r.id, lat: r.lat, lon: r.lon, ...reportVisual(r) })),
+    // csak ha a halmaz változik (a lista minden frissítésnél új tömb)
+    [pinsKey],
+  );
+  useEffect(() => map.showReports(pins, selected?.id ?? null), [map, pins, selected?.id]);
+
   // az autó a HUD feletti szabad terület ~60%-ánál – a kártya magasságát mérjük, nem becsüljük
   const hudRef = useRef<HTMLDivElement>(null);
   useLayoutEffect(() => {
     const el = hudRef.current;
     if (!el) return;
+    let prevH: number | null = null;
+    const reduced = matchMedia('(prefers-reduced-motion: reduce)');
     const update = () => {
       const h = window.innerHeight;
       const top = h - el.offsetHeight;
       map.setFocusY(Math.min(0.5, Math.max(0.18, (top * 0.6) / h)));
+      // kompakt ↔ nagy kártya: a gombsor és a kártya a régi helyéről csúszik az újra (FLIP)
+      const delta = prevH === null ? 0 : el.offsetHeight - prevH;
+      prevH = el.offsetHeight;
+      if (Math.abs(delta) < 24 || reduced.matches) return;
+      for (const c of el.children) {
+        if (c.classList.contains('slowdown')) continue;
+        c.animate([{ transform: `translateY(${delta}px)` }, { transform: 'none' }], { duration: 280, easing: 'cubic-bezier(0.2, 0.8, 0.2, 1)' });
+      }
     };
     update();
     const ro = new ResizeObserver(update);
@@ -173,7 +225,8 @@ function Drive({ map }: { map: WebMapAdapter }) {
     setGateState('kuldes');
     // toast is, mert közeledéskor a szakasz-kártya elfedi a kézi összegzést
     createReports(supabase, rows)
-      .then(() => {
+      .then((ids) => {
+        ids.forEach((id, i) => rows[i] && feed.addOwn(ownReport(rows[i], id, now())));
         setGateState('elkuldve');
         showToast({ text: 'Ideiglenes szakasz bejelentve', tone: 'jo', icon: 'check' });
       })
@@ -181,7 +234,7 @@ function Drive({ map }: { map: WebMapAdapter }) {
         setGateState('hiba');
         showToast({ text: 'A kapukat nem sikerült elküldeni', tone: 'tul', icon: 'report' });
       });
-  }, [showToast]);
+  }, [showToast, feed.addOwn, now]);
   useEffect(() => {
     if (view.phase === 'megszakadt') setTemp(null);
   }, [view.phase]);
@@ -200,12 +253,13 @@ function Drive({ map }: { map: WebMapAdapter }) {
     }
     setTemp({ startSent: false });
     createReports(supabase, [start])
-      .then(() => {
+      .then(([id]) => {
+        if (id) feed.addOwn(ownReport(start, id, now()));
         setTemp((t) => t && { startSent: true });
         showToast({ text: 'Kezdő kapu bejelentve', tone: 'jo', icon: 'check' });
       })
       .catch(() => showToast({ text: 'A kezdő kaput a végén újra megpróbáljuk', tone: 'hataron', icon: 'kapu_kezdo' }));
-  }, [view.lastFix, session.startManual, showToast]);
+  }, [view.lastFix, session.startManual, showToast, feed.addOwn, now]);
 
   const startManual = useCallback(() => {
     setTemp(null);
@@ -231,14 +285,36 @@ function Drive({ map }: { map: WebMapAdapter }) {
       const label = REPORT_CHOICES.find((c) => c.id === choice)?.label ?? 'Bejelentés';
       setSending(choice);
       createReports(supabase, [row])
-        .then(() => showToast({ text: `Elküldve: ${label}`, tone: 'jo', icon: 'check' }))
+        .then(([id]) => {
+          if (id) feed.addOwn(ownReport(row, id, now()));
+          showToast({ text: `Elküldve: ${label}`, tone: 'jo', icon: 'check' });
+        })
         .catch(() => showToast({ text: 'Nem sikerült elküldeni – nincs kapcsolat?', tone: 'tul', icon: 'report' }))
         .finally(() => {
           setSending(null);
           setSheet(null);
         });
     },
-    [view.lastFix, showToast, startTempSection],
+    [view.lastFix, showToast, startTempSection, feed.addOwn, now],
+  );
+
+  // megerősítés / nincs ott (report_votes); szimulátorban csak helyben
+  const [voting, setVoting] = useState(false);
+  const vote = useCallback(
+    (id: string, confirm: boolean) => {
+      const done = () => {
+        feed.vote(id, confirm);
+        showToast({ text: confirm ? 'Köszönjük – megerősítve' : 'Köszönjük – jelezted, hogy nincs ott', tone: 'jo', icon: 'check' });
+        setSelectedId(null);
+      };
+      if (SIM_MODE) return done();
+      setVoting(true);
+      voteReport(supabase, id, confirm)
+        .then(done)
+        .catch(() => showToast({ text: 'Nem sikerült elküldeni – nincs kapcsolat?', tone: 'tul', icon: 'report' }))
+        .finally(() => setVoting(false));
+    },
+    [feed.vote, showToast],
   );
 
   const driving = view.phase === 'meres' || view.phase === 'kozeledik' || view.phase === 'kezi';
@@ -259,10 +335,34 @@ function Drive({ map }: { map: WebMapAdapter }) {
           else wake.request();
         }}
       />
-      {SIM_MODE && <SimDriver onFix={onFix} onTick={session.tick} clock={clock} onSection={setSimSection} onBackground={session.interrupt} />}
+      {SIM_MODE && (
+        <SimDriver onFix={onFix} onTick={session.tick} clock={clock} onSection={setSimSection} onReports={setSimReps} onBackground={session.interrupt} />
+      )}
 
       <div className="hud" ref={hudRef}>
         {view.phase === 'meres' && <SlowDown view={view} unit={settings.egyseg} />}
+        {/* a HUD fölött lebeg (nem változtat a magasságán → a kamera nem ugrik); mérésnél a Lassíts-sáv fölött */}
+        <div className="hud-float" data-raised={view.phase === 'meres'}>
+          {selected && (
+            <ReportCard
+              key={selected.id}
+              report={selected}
+              now={now()}
+              canVote={SIM_MODE || supabase !== null}
+              voted={feed.myVote(selected.id)}
+              sending={voting}
+              onVote={(c) => vote(selected.id, c)}
+              onClose={() => setSelectedId(null)}
+            />
+          )}
+          {!follow.following && (
+            <div className="recenter-row">
+              <button className="round-btn glass recenter" onClick={follow.recenter} aria-label="Vissza a helyemre">
+                <Icon name="crosshair" size={28} />
+              </button>
+            </div>
+          )}
+        </div>
         <div className="actions">
           {!driving && view.phase !== 'kezi_eredmeny' && (
             <>
@@ -334,12 +434,14 @@ function SimDriver({
   onTick,
   clock,
   onSection,
+  onReports,
   onBackground,
 }: {
   onFix: (f: GpsFix) => void;
   onTick: () => void;
   clock: { current: () => number };
   onSection: (s: Section) => void;
+  onReports: (r: ActiveReport[]) => void;
   onBackground: () => void;
 }) {
   const sim = useSimulator(BUNDLED_SECTIONS, { onFix, onTick }, useMemo(() => simStartFromUrl(location.search), []));
@@ -348,5 +450,6 @@ function SimDriver({
     clock.current = sim.now;
     onSection(sim.section);
   }, [clock, sim.now, onSection, sim.section]);
+  useEffect(() => onReports(simReports(sim.simulation)), [onReports, sim.simulation]);
   return <SimPanel sim={sim} onBackground={onBackground} />;
 }

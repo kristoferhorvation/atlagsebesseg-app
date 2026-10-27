@@ -94,17 +94,51 @@ select:focus-visible {
   bottom: 0;
   height: 58%;
   background: linear-gradient(rgba(6, 7, 10, 0), rgba(6, 7, 10, 0.78) 70%);
+  transform-origin: bottom;
+  transition: transform var(--motion-slow) var(--motion-ease);
 }
 
-/* Mapbox-vezérlők a biztonsági zónán belül */
+/* kompakt alapállapotban az alsó sötétítés is kisebb – a térkép lássa a képernyő ~80%-át */
+.app:has(.card.compact) .scrim-bottom {
+  transform: scaleY(0.45);
+}
+
+/*
+ * Mapbox-logó (bal felső) és kompakt „i” attribúció (jobb felső): kötelezőek, nem rejthetők el.
+ * Alapméretben, a lehető legfeljebb – a felső sötétített sávban, közvetlenül a biztonsági zóna
+ * alatt, minimális margóval. A pillek egy sorral lejjebb kezdődnek, hogy (a kinyitott
+ * attribúciót sem) takarják.
+ */
 .mapboxgl-ctrl-top-left,
 .mapboxgl-ctrl-top-right {
   top: env(safe-area-inset-top) !important;
 }
 
+.mapboxgl-ctrl-top-left {
+  left: env(safe-area-inset-left) !important;
+}
+
+.mapboxgl-ctrl-top-right {
+  right: env(safe-area-inset-right) !important;
+}
+
+.app .mapboxgl-ctrl-top-left .mapboxgl-ctrl {
+  margin: 4px 0 0 8px;
+}
+
+.app .mapboxgl-ctrl-top-right .mapboxgl-ctrl {
+  margin: 4px 8px 0 0;
+}
+
 .mapboxgl-ctrl-attrib.mapboxgl-compact {
   background: rgba(16, 18, 24, 0.6) !important;
   color: var(--color-text-muted);
+}
+
+/* kinyitva se takarja a logót (a bal felső sarokban): inkább több sorba tördel */
+.app .mapboxgl-ctrl-attrib.mapboxgl-compact-show {
+  box-sizing: border-box;
+  max-width: calc(100vw - 112px - env(safe-area-inset-left) - env(safe-area-inset-right));
 }
 
 /* ---------- üveg ---------- */
@@ -183,6 +217,116 @@ select:focus-visible {
   color: var(--color-near);
 }
 
+/* a HUD fölött lebegő réteg (bejelentés-kártya, „Vissza a helyemre”) – nem növeli a HUD magasságát */
+.hud-float {
+  position: absolute;
+  left: max(12px, env(safe-area-inset-left));
+  right: max(12px, env(safe-area-inset-right));
+  bottom: calc(100% + 12px);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  pointer-events: none;
+  transition: transform var(--motion-base) var(--motion-ease);
+}
+
+.hud-float > * {
+  pointer-events: auto;
+}
+
+/* mérés közben a „Lassíts” sáv helye szabadon marad */
+.hud-float[data-raised='true'] {
+  transform: translateY(-84px);
+}
+
+.recenter-row {
+  display: flex;
+  justify-content: flex-end;
+  pointer-events: none;
+}
+
+.recenter {
+  pointer-events: auto;
+  color: var(--color-accent);
+  animation: rise var(--motion-base) var(--motion-ease);
+}
+
+/* ---------- bejelentés a térképen ---------- */
+
+.report-pin {
+  width: var(--size-touch);
+  height: var(--size-touch);
+  display: grid;
+  place-items: center;
+}
+
+.report-pin-disc {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  color: var(--tone);
+  background: color-mix(in srgb, var(--tone) 22%, rgba(14, 16, 22, 0.9));
+  border: 2px solid var(--tone);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.5), 0 0 14px color-mix(in srgb, var(--tone) 40%, transparent);
+  transition: transform var(--motion-fast) var(--motion-ease);
+}
+
+.report-pin.selected .report-pin-disc {
+  transform: scale(1.18);
+  background: var(--tone);
+  color: var(--color-bg);
+}
+
+.report-card {
+  border-radius: var(--radius-card);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  animation: rise var(--motion-base) var(--motion-ease);
+}
+
+.report-card-head {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.report-card-ic {
+  flex: none;
+  width: 52px;
+  height: 52px;
+  border-radius: 16px;
+  display: grid;
+  place-items: center;
+  background: color-mix(in srgb, var(--tone) 18%, transparent);
+  color: var(--tone);
+}
+
+.report-card-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.report-card-title {
+  font-size: 22px;
+  font-weight: 640;
+  line-height: 1.2;
+}
+
+/* bezárás: 56 px-es érintési cél (vezetés közben) */
+.report-card .icon-btn {
+  width: var(--size-touch);
+  height: var(--size-touch);
+  flex: none;
+}
+
+.report-card .btn[data-active='true'] {
+  background: color-mix(in srgb, var(--tone) 28%, transparent);
+}
+
 .card {
   position: relative;
   overflow: hidden;
@@ -221,6 +365,42 @@ select:focus-visible {
   display: flex;
   flex-direction: column;
   gap: 14px;
+}
+
+/* kompakt alapállapot (nincs szakasz a közelben): egy sor, sebesség + szöveg */
+.card.compact {
+  padding: 12px 20px;
+  border-radius: 24px;
+}
+
+.card.compact::before {
+  opacity: 0.1;
+}
+
+.compact-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  min-height: 48px;
+}
+
+.compact-row .body {
+  line-height: 1.2;
+}
+
+.compact-speed {
+  flex: none;
+  font-size: var(--type-title-size);
+  font-weight: 700;
+  letter-spacing: var(--type-title-tracking);
+  white-space: nowrap;
+}
+
+.compact-speed small {
+  font-size: var(--type-body-size);
+  font-weight: 560;
+  color: var(--color-text-muted);
+  margin-left: 5px;
 }
 
 .row {
@@ -499,8 +679,8 @@ select:focus-visible {
 
 .pills {
   position: absolute;
-  /* a Mapbox-logó (bal felső sarok) alatt */
-  top: calc(env(safe-area-inset-top) + 40px);
+  /* a Mapbox-logó és az „i” sora alatt, egy sorral lejjebb */
+  top: calc(env(safe-area-inset-top) + 72px);
   left: max(12px, env(safe-area-inset-left));
   right: max(12px, env(safe-area-inset-right));
   display: flex;
@@ -850,7 +1030,7 @@ a.list-row {
 
 .toast {
   position: absolute;
-  top: calc(env(safe-area-inset-top) + 88px);
+  top: calc(env(safe-area-inset-top) + 120px);
   left: 50%;
   transform: translateX(-50%);
   max-width: calc(100% - 32px);
@@ -904,7 +1084,7 @@ a.list-row {
 
 .sim {
   position: absolute;
-  top: calc(env(safe-area-inset-top) + 88px);
+  top: calc(env(safe-area-inset-top) + 120px);
   right: 12px;
   width: min(340px, calc(100% - 24px));
   border-radius: var(--radius-tile);

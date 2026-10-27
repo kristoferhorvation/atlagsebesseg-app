@@ -1,17 +1,7 @@
-import { REPORT_CHOICES, type ReportChoice } from '@atlagsebesseg/app-logic';
+import { REPORT_CHOICES, REPORT_TONE, type ReportChoice } from '@atlagsebesseg/app-logic';
 import type { GpsFix } from '@atlagsebesseg/core';
 import { Icon } from './Icon';
 import { Sheet } from './Sheet';
-
-const TONE: Record<ReportChoice, string> = {
-  rendorseg: 'kezi',
-  traffipax: 'hataron',
-  baleset: 'tul',
-  akadaly: 'hataron',
-  utlezaras: 'tul',
-  szakasz_hiba: 'semleges',
-  ideiglenes_szakasz: 'kezi',
-};
 
 /**
  * Bejelentés: 1. koppintás megnyitja, 2. koppintás a típusra azonnal elküldi a jelenlegi
@@ -46,7 +36,7 @@ export function ReportSheet({
           <button
             key={c.id}
             className={`tile${sending === c.id ? ' sending' : ''}${c.id === 'ideiglenes_szakasz' ? ' wide' : ''}`}
-            data-tone={TONE[c.id]}
+            data-tone={REPORT_TONE[c.id]}
             disabled={!online || !fix || sending !== null || (c.id === 'ideiglenes_szakasz' && manualRunning)}
             onClick={() => onPick(c.id)}
           >

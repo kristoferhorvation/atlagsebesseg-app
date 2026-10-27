@@ -1,3 +1,4 @@
+import type { ActiveReport } from '@atlagsebesseg/app-logic';
 import { bearingDeg, LocalProjection, polylineLengthM, type LatLon, type Section } from '@atlagsebesseg/core';
 // A core tesztjeinek vezetés-generátora (Route menti mozgás, zaj, alagút) – ugyanaz, amin a core tesztel.
 import { drive, testCourse, toLatLon, type DriveSample } from '@atlagsebesseg/core/test/helpers/trace';
@@ -95,4 +96,40 @@ export function buildSimulation(route: SimRoute, scenario: SimScenario, t0 = Dat
     dropRanges: scenario === 'alagut' ? [[leadInM + len * 0.35, leadInM + len * 0.5]] : [],
   });
   return { section, samples, leadInM };
+}
+
+/** Minta-bejelentések a szimulált út mentén: típus, a pálya hányada, hány perce jelentették. */
+const SIM_REPORTS: readonly { type: ActiveReport['type']; gateKind?: 'kezdo' | 'zaro'; at: number; agoMin: number }[] = [
+  { type: 'rendorseg', at: 0.08, agoMin: 12 },
+  { type: 'akadaly', at: 0.25, agoMin: 3 },
+  { type: 'traffipax', at: 0.42, agoMin: 41 },
+  { type: 'baleset', at: 0.6, agoMin: 7 },
+  { type: 'ideiglenes_kapu', gateKind: 'kezdo', at: 0.75, agoMin: 95 },
+  { type: 'utlezaras', at: 0.9, agoMin: 26 },
+];
+
+/** A szimulátor bejelentései (a szerver helyett) – hogy a térkép-ikonok és a kártya látszódjanak. */
+export function simReports(sim: Simulation): ActiveReport[] {
+  const n = sim.samples.length;
+  const t0 = sim.samples[0]?.t ?? Date.now();
+  return SIM_REPORTS.flatMap((r, i) => {
+    const fix = sim.samples[Math.min(n - 1, Math.floor(r.at * n))]?.fix;
+    if (!fix) return [];
+    const createdAt = t0 - r.agoMin * 60_000;
+    return [
+      {
+        id: `sim-${sim.section.id}-${i}`,
+        type: r.type,
+        gateKind: r.gateKind ?? null,
+        lat: fix.lat,
+        lon: fix.lon,
+        headingDeg: fix.heading,
+        createdAt,
+        expiresAt: createdAt + 2 * 3600_000,
+        confirmations: 0,
+        denials: 0,
+        own: false,
+      },
+    ];
+  });
 }

@@ -54,3 +54,11 @@ export function formatDuration(ms: number): string {
 
 /** Megtett hányad 0…1 között. */
 export const progressOf = (doneM: number, lengthM: number) => (lengthM > 0 ? Math.min(1, Math.max(0, doneM / lengthM)) : 0);
+
+/** „most”, „12 perce”, „2 órája” – mikor jelentették. */
+export function timeAgo(ms: number): string {
+  const min = Math.floor(Math.max(0, ms) / 60_000);
+  if (min < 1) return 'most';
+  if (min < 60) return `${min} perce`;
+  return `${Math.floor(min / 60)} órája`;
+}

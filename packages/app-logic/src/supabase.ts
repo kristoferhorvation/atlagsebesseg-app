@@ -33,6 +33,13 @@ function need(client: SupabaseClient | null): SupabaseClient {
 }
 
 /** Bejelentkezés: meglévő munkamenet, különben anonim. A felhasználó azonosítóját adja. */
+/** A meglévő munkamenet felhasználója – bejelentkezést NEM indít (olvasáshoz nem kell). */
+export async function currentUserId(client: SupabaseClient | null): Promise<string | null> {
+  if (!client) return null;
+  const { data } = await client.auth.getSession();
+  return data.session?.user.id ?? null;
+}
+
 export async function ensureSignedIn(client: SupabaseClient | null): Promise<string | null> {
   if (!client) return null;
   const { data } = await client.auth.getSession();
@@ -63,15 +70,21 @@ export interface ReportRow {
   gate_kind: 'kezdo' | 'zaro' | null;
   confirmations: number;
   denials: number;
+  created_at: string;
   expires_at: string;
   user_id: string;
 }
 
-/** Le nem járt bejelentések a téglalapban (olvasás bejelentkezés nélkül is megy). */
-export async function listActiveReports(client: SupabaseClient | null, b: BBox): Promise<ReportRow[]> {
+/**
+ * Le nem járt bejelentések a téglalapban (olvasás bejelentkezés nélkül is megy). A `reports`
+ * táblából, nem az `active_reports` nézetből: a nézet `select *`-gal a `gate_kind` oszlop előtt
+ * készült, így abban nincs meg (Postgres a nézet oszloplistáját létrehozáskor rögzíti).
+ */
+export async function listActiveReports(client: SupabaseClient | null, b: BBox, now: Date = new Date()): Promise<ReportRow[]> {
   const { data, error } = await need(client)
-    .from('active_reports')
-    .select('id,type,lat,lon,heading_deg,gate_kind,confirmations,denials,expires_at,user_id')
+    .from('reports')
+    .select('id,type,lat,lon,heading_deg,gate_kind,confirmations,denials,created_at,expires_at,user_id')
+    .gt('expires_at', now.toISOString())
     .gte('lat', b.south)
     .lte('lat', b.north)
     .gte('lon', b.west)

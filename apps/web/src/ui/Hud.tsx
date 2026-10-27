@@ -55,9 +55,9 @@ export function toneOf(view: SessionView): string {
   return view.status ?? (view.phase === 'kozeledik' ? 'kezi' : 'semleges');
 }
 
-function Card({ tone, children, label }: { tone: string; children: ReactNode; label: string }) {
+function Card({ tone, children, label, compact }: { tone: string; children: ReactNode; label: string; compact?: boolean }) {
   return (
-    <section className="card glass card-stack" data-tone={tone} aria-label={label} aria-live="polite">
+    <section className={`card glass card-stack${compact ? ' compact' : ''}`} data-tone={tone} aria-label={label} aria-live="polite">
       {children}
     </section>
   );
@@ -283,14 +283,15 @@ export function Hud(p: HudProps) {
 
     case 'nincs_szakasz':
       return (
-        <Card tone={tone} label="Nincs mérőszakasz">
-          <div className="hero-row">
-            <div className="display num">
+        // kompakt alapállapot: egy sor, hogy a térkép lássa a képernyő ~80%-át
+        <Card tone={tone} label="Nincs mérőszakasz" compact>
+          <div className="compact-row">
+            <div className="compact-speed num">
               {p.gpsReady ? (speedIn(view.currentKmh ?? 0, unit) ?? 0) : '–'}
               <small>{u}</small>
             </div>
+            <div className="body muted">{p.gpsReady ? 'Nincs mérőszakasz a közelben' : 'GPS-jelre vár…'}</div>
           </div>
-          <div className="body muted">{p.gpsReady ? 'Nincs mérőszakasz a közelben' : 'GPS-jelre vár…'}</div>
         </Card>
       );
   }

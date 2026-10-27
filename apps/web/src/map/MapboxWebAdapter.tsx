@@ -5,26 +5,43 @@ import { useEffect, useRef } from 'react';
 import { MapStore, type LightPreset, type MapLook } from '@atlagsebesseg/app-logic';
 import { bearingDeg, haversineM, type GpsFix, type Section } from '@atlagsebesseg/core';
 import { color } from '@atlagsebesseg/design-tokens';
-import type { WebMapAdapter, WebMapState } from './WebMapAdapter';
+import { iconSvg } from '../ui/Icon';
+import type { MapHandlers, MapReport, WebMapAdapter, WebMapState } from './WebMapAdapter';
 
 const STANDARD_STYLE = 'mapbox://styles/mapbox/standard';
 const PITCH = 60;
 /** Mapbox Standard `theme` konfiguráció a beállítás szerint. */
 const THEME: Record<MapLook, string> = { szines: 'default', visszafogott: 'monochrome' };
 const OSM_ATTRIBUTION = 'Szakaszok © OpenStreetMap contributors (ODbL)';
+/** „Vissza a helyemre”: a követő kamera ennyi idő alatt áll vissza. */
+const RECENTER_MS = 900;
+/** Mozdulat közben a jelzés és a nézet-frissítés ritkítása. */
+const GESTURE_THROTTLE_MS = 250;
+const VIEW_DEBOUNCE_MS = 500;
 
 /** Mapbox GL JS v3 – Mapbox Standard stílus, autót követő 3D-s kamera. */
 export class MapboxWebAdapter implements WebMapAdapter {
-  private readonly store = new MapStore<WebMapState>({ position: null, progress: null, tone: color.accent, focusY: 0.38, lightPreset: 'night', look: 'szines' });
+  private readonly store = new MapStore<WebMapState>({
+    position: null,
+    progress: null,
+    tone: color.accent,
+    focusY: 0.38,
+    lightPreset: 'night',
+    look: 'szines',
+    reports: [],
+    selectedReportId: null,
+  });
+  private readonly handlers: MapHandlers = { onGesture: () => {}, onReportTap: () => {}, onView: () => {} };
   readonly MapView: (props: { className?: string }) => React.JSX.Element;
 
   constructor(accessToken: string) {
     const store = this.store;
+    const handlers = this.handlers;
     this.MapView = function MapboxMapView({ className }) {
       const container = useRef<HTMLDivElement>(null);
       useEffect(() => {
         if (!container.current) return;
-        const controller = new MapController(container.current, accessToken, store);
+        const controller = new MapController(container.current, accessToken, store, handlers);
         return () => controller.destroy();
       }, []);
       return <div ref={container} className={className} />;
@@ -52,6 +69,21 @@ export class MapboxWebAdapter implements WebMapAdapter {
   setLook(look: MapLook): void {
     this.store.set({ look });
   }
+  showReports(reports: readonly MapReport[], selectedId: string | null): void {
+    this.store.set({ reports, selectedReportId: selectedId });
+  }
+  setHandlers(h: Partial<MapHandlers>): void {
+    Object.assign(this.handlers, h);
+  }
+}
+
+interface Camera {
+  lat: number;
+  lon: number;
+  bearing: number;
+  zoom: number;
+  pitch: number;
+  padBottom: number;
 }
 
 interface Pose {
@@ -76,11 +108,19 @@ class MapController {
   private lastArrival = 0;
   private lastFix: GpsFix | null = null;
   private raf = 0;
+  /** A követés visszakapcsolásakor a kamera innen indul (animálva a követő pózba). */
+  private recenter: { from: Camera; start: number } | null = null;
+  private following = true;
+  private focusY = 0.38;
+  private lastGesture = 0;
+  private viewTimer: ReturnType<typeof setTimeout> | undefined;
+  private readonly pins = new Map<string, { marker: mapboxgl.Marker; el: HTMLButtonElement; key: string }>();
 
   constructor(
     container: HTMLElement,
     accessToken: string,
     private readonly store: MapStore<WebMapState>,
+    private readonly handlers: MapHandlers,
   ) {
     const s = store.getState();
     this.map = new mapboxgl.Map({
@@ -90,7 +130,10 @@ class MapController {
       center: [12.5, 46.5],
       zoom: 5.2,
       pitch: 0,
-      interactive: false,
+      // húzás, csípés, forgatás; a dupla koppintás nem zoomol (vezetés közben véletlen)
+      interactive: true,
+      doubleClickZoom: false,
+      touchPitch: false,
       attributionControl: false,
       logoPosition: 'top-left',
       fadeDuration: 0,
@@ -117,13 +160,19 @@ class MapController {
       this.prev = null;
       this.apply(store.getState());
     });
+    this.map.on('movestart', this.onUserMove);
+    this.map.on('move', this.onUserMove);
+    this.map.on('moveend', this.onMoveEnd);
+    this.map.on('click', () => this.handlers.onReportTap(null));
     this.unsubscribe = store.subscribe(() => this.apply(store.getState()));
     this.raf = requestAnimationFrame(this.frame);
   }
 
   destroy(): void {
     cancelAnimationFrame(this.raf);
+    clearTimeout(this.viewTimer);
     this.unsubscribe();
+    for (const p of this.pins.values()) p.marker.remove();
     this.marker.remove();
     this.map.remove();
   }
@@ -160,9 +209,80 @@ class MapController {
     });
   }
 
+  /** Csak a felhasználó mozdulata (a saját `jumpTo`-nak nincs `originalEvent`-je). */
+  private onUserMove = (e: { type: string; originalEvent?: unknown }): void => {
+    if (!e.originalEvent) return;
+    this.recenter = null;
+    if (this.following) {
+      // azonnal elengedjük a kamerát, ne húzza vissza a következő képkocka
+      this.following = false;
+      this.store.set({ follow: false });
+    }
+    const now = performance.now();
+    if (e.type === 'movestart' || now - this.lastGesture > GESTURE_THROTTLE_MS) {
+      this.lastGesture = now;
+      this.handlers.onGesture();
+    }
+  };
+
+  private onMoveEnd = (): void => {
+    if (this.viewTimer !== undefined) return;
+    this.viewTimer = setTimeout(() => {
+      this.viewTimer = undefined;
+      const b = this.map.getBounds();
+      if (b) this.handlers.onView({ south: b.getSouth(), west: b.getWest(), north: b.getNorth(), east: b.getEast() });
+    }, VIEW_DEBOUNCE_MS);
+  };
+
+  /** A bejelentés-ikonok: DOM-jelölők (56 px-es érintési cél), a képernyővel párhuzamosan állva. */
+  private syncPins(reports: readonly MapReport[], selectedId: string | null): void {
+    const keep = new Set<string>();
+    for (const r of reports) {
+      keep.add(r.id);
+      const key = `${r.icon}|${r.tone}|${r.lat}|${r.lon}`;
+      let pin = this.pins.get(r.id);
+      if (pin && pin.key !== key) {
+        pin.marker.remove();
+        pin = undefined;
+      }
+      if (!pin) {
+        const el = document.createElement('button');
+        el.className = 'report-pin';
+        el.dataset.tone = r.tone;
+        el.setAttribute('aria-label', r.label);
+        el.innerHTML = `<span class="report-pin-disc">${iconSvg(r.icon, 24)}</span>`;
+        el.addEventListener('click', (ev) => {
+          ev.stopPropagation();
+          this.handlers.onReportTap(r.id);
+        });
+        const marker = new mapboxgl.Marker({ element: el, rotationAlignment: 'viewport', pitchAlignment: 'viewport' })
+          .setLngLat([r.lon, r.lat])
+          .addTo(this.map);
+        pin = { marker, el, key };
+        this.pins.set(r.id, pin);
+      }
+      pin.el.classList.toggle('selected', r.id === selectedId);
+    }
+    for (const [id, pin] of this.pins) {
+      if (keep.has(id)) continue;
+      pin.marker.remove();
+      this.pins.delete(id);
+    }
+  }
+
+  private camera(): Camera {
+    const c = this.map.getCenter();
+    return { lat: c.lat, lon: c.lng, bearing: this.map.getBearing(), zoom: this.map.getZoom(), pitch: this.map.getPitch(), padBottom: this.map.getPadding().bottom ?? 0 };
+  }
+
   private apply(s: WebMapState): void {
     const p = this.prev;
     if (s.position !== p?.position && s.position) this.onPosition(s.position);
+    if (s.follow !== this.following) {
+      this.following = s.follow;
+      this.recenter = s.follow ? { from: this.camera(), start: performance.now() } : null;
+    }
+    if (s.reports !== p?.reports || s.selectedReportId !== p?.selectedReportId) this.syncPins(s.reports, s.selectedReportId);
     if (!this.styleReady) return;
     const m = this.map;
     if (s.lightPreset !== p?.lightPreset) m.setConfigProperty('basemap', 'lightPreset', s.lightPreset);
@@ -227,20 +347,38 @@ class MapController {
     this.shown = pose;
     this.marker.setLngLat([pose.lon, pose.lat]).setRotation(pose.bearing);
     const s = this.store.getState();
-    if (!s.follow) return;
+    // a kártya méretváltásakor az autó helye finoman, nem ugrásszerűen követi
+    this.focusY += (s.focusY - this.focusY) * 0.12;
+    if (!this.following) return;
     const h = this.map.getContainer().clientHeight;
-    const bottom = Math.max(0, h - 2 * s.focusY * h);
+    let cam: Camera = { ...pose, pitch: PITCH, padBottom: Math.max(0, h - 2 * this.focusY * h) };
+    if (this.recenter) {
+      const k = clamp((t - this.recenter.start) / RECENTER_MS, 0, 1);
+      cam = blend(this.recenter.from, cam, easeInOut(k));
+      if (k >= 1) this.recenter = null;
+    }
     this.map.jumpTo({
-      center: [pose.lon, pose.lat],
-      bearing: pose.bearing,
-      pitch: PITCH,
-      zoom: pose.zoom,
-      padding: { top: 0, bottom, left: 0, right: 0 },
+      center: [cam.lon, cam.lat],
+      bearing: cam.bearing,
+      pitch: cam.pitch,
+      zoom: cam.zoom,
+      padding: { top: 0, bottom: cam.padBottom, left: 0, right: 0 },
     });
   };
 }
 
 const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
+const easeInOut = (k: number) => (k < 0.5 ? 4 * k * k * k : 1 - (-2 * k + 2) ** 3 / 2);
+function blend(a: Camera, b: Camera, k: number): Camera {
+  return {
+    lat: lerp(a.lat, b.lat, k),
+    lon: lerp(a.lon, b.lon, k),
+    bearing: lerpAngle(a.bearing, b.bearing, k),
+    zoom: lerp(a.zoom, b.zoom, k),
+    pitch: lerp(a.pitch, b.pitch, k),
+    padBottom: lerp(a.padBottom, b.padBottom, k),
+  };
+}
 const lerp = (a: number, b: number, k: number) => a + (b - a) * k;
 function lerpAngle(a: number, b: number, k: number): number {
   const d = ((((b - a) % 360) + 540) % 360) - 180;

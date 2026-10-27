@@ -99,6 +99,7 @@ export function useSimulator(bundled: readonly Section[], cb: SimCallbacks, star
     routes,
     route,
     section: route.section,
+    simulation: sim,
     scenario,
     setScenario,
     setRouteId,

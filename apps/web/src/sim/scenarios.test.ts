@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { BUNDLED_SECTIONS } from '@atlagsebesseg/app-logic/bundled-sections';
 import { TrackingSession } from '@atlagsebesseg/app-logic';
-import { buildSimulation, simRoutes, type SimScenario } from './scenarios';
+import { buildSimulation, simReports, simRoutes, type SimScenario } from './scenarios';
 
 /** Lejátszás a mérés-munkamenettel: a szimulált vezetés valóban végigmegy az állapotokon. */
 function play(routeIdx: number, scenario: SimScenario) {
@@ -42,5 +42,21 @@ describe('szimulátor', () => {
   it('alagút: kiesés alatt becsült, a végén van eredmény', () => {
     const { end } = play(0, 'alagut');
     expect(end.phase).toBe('befejezve');
+  });
+});
+
+describe('szimulátor minta-bejelentései', () => {
+  it('az út mentén, különböző típusokkal, le nem járva', () => {
+    const route = simRoutes(BUNDLED_SECTIONS)[0]!;
+    const sim = buildSimulation(route, 'jo', 1_700_000_000_000);
+    const reps = simReports(sim);
+    expect(reps.length).toBeGreaterThanOrEqual(5);
+    expect(new Set(reps.map((r) => r.type)).size).toBe(reps.length);
+    expect(new Set(reps.map((r) => r.id)).size).toBe(reps.length);
+    const t = sim.samples[0]!.t;
+    for (const r of reps) {
+      expect(r.createdAt).toBeLessThan(t);
+      expect(r.expiresAt).toBeGreaterThan(t);
+    }
   });
 });

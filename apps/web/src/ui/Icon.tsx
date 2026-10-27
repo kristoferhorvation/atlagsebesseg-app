@@ -25,6 +25,7 @@ const PATHS = {
   tunnel: ['M3 20v-7a9 9 0 0 1 18 0v7', 'M3 20h18', 'M9 20v-5a3 3 0 0 1 6 0v5'],
   approach: ['M12 21V9', 'M7 13l5-5 5 5', 'M5 3.5h14'],
   restart: ['M4 12a8 8 0 1 0 2.5-5.8', 'M4 4v4.5h4.5'],
+  crosshair: ['M12 19a7 7 0 1 0 0-14 7 7 0 0 0 0 14z', 'M12 2v4', 'M12 18v4', 'M2 12h4', 'M18 12h4', 'M12 12h.01'],
 } as const;
 
 export type IconName = keyof typeof PATHS;
@@ -49,4 +50,10 @@ export function Icon({ name, size = 24, className }: { name: IconName; size?: nu
       ))}
     </svg>
   );
+}
+
+/** Ugyanaz az ikon SVG-szövegként – a térkép (nem React) jelölőinek. */
+export function iconSvg(name: IconName, size = 24): string {
+  const paths = PATHS[name].map((d) => `<path d="${d}"/>`).join('');
+  return `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${paths}</svg>`;
 }
