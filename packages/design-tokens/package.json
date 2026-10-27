@@ -1,0 +1,18 @@
+{
+  "name": "@atlagsebesseg/design-tokens",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Dizájn-tokenek (színek, típus, térköz, mozgás) – platformfüggetlen TS; a web CSS-változókká alakítja, a natív app közvetlenül használja.",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "sideEffects": false,
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "devDependencies": {
+    "typescript": "~6.0.3",
+    "vitest": "^4.0.0"
+  }
+}
