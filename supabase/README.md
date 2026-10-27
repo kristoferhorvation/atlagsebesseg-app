@@ -94,9 +94,13 @@ npm run test:edge      # bundle + Deno-teszt (hamis Supabase/Overpass)
 npm run deploy:edge    # bundle + supabase functions deploy promote-temp-gates
 ```
 
-Csak `Authorization: Bearer <service role kulcs>` fejléccel hívható. Ütemezés (a projekteden,
-egyszer beállítva): Dashboard → Integrations → Cron → új job, 10 percenként HTTP POST a
-függvény URL-jére a fenti fejléccel. A kulcsot a Vaultban tárold, ne a job szövegében.
+Csak `Authorization: Bearer <CRON_SECRET>` fejléccel hívható (a `CRON_SECRET` a függvény secretje:
+`supabase secrets set CRON_SECRET=…`; a platform JWT-ellenőrzése ki van kapcsolva, `verify_jwt = false`).
+A függvény a Supabase-hez a platform által injektált `SUPABASE_SERVICE_ROLE_KEY`-jel fér hozzá.
+
+Ütemezés (a projekten egyszer beállítva): `pg_cron` job `promote-temp-gates`, `*/10 * * * *`, ami a
+`pg_net` `net.http_post`-jával hívja a függvény URL-jét. A titok a Vaultban van
+(`vault.decrypted_secrets`, név: `promote_temp_gates_cron_secret`), nem a job szövegében.
 
 ## Szakaszok feltöltése
 
