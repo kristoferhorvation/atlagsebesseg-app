@@ -1,0 +1,37 @@
+{
+  "name": "@atlagsebesseg/web",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "PWA: átlagsebesség-mérő kijelző böngészőben (iPhone Safari, kezdőképernyő).",
+  "scripts": {
+    "dev": "vite",
+    "dev:https": "HTTPS=1 vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "icons": "node scripts/make-icons.mjs",
+    "test": "vitest run",
+    "typecheck": "tsc -p tsconfig.json && tsc -p tsconfig.node.json"
+  },
+  "dependencies": {
+    "@atlagsebesseg/app-logic": "*",
+    "@atlagsebesseg/core": "*",
+    "@atlagsebesseg/data": "*",
+    "@atlagsebesseg/design-tokens": "*",
+    "@fontsource-variable/inter": "5.3.0",
+    "mapbox-gl": "3.32.0",
+    "react": "19.3.0",
+    "react-dom": "19.3.0"
+  },
+  "devDependencies": {
+    "@types/geojson": "7946.0.16",
+    "@types/node": "^22.20.5",
+    "@types/react": "~19.3.0",
+    "@types/react-dom": "19.3.0",
+    "@vitejs/plugin-react": "6.1.2",
+    "typescript": "~6.0.3",
+    "vite": "^8.3.4",
+    "vite-plugin-mkcert": "2.1.0",
+    "vitest": "^4.0.0"
+  }
+}
