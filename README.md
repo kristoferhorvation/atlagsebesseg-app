@@ -12,6 +12,10 @@ packages/core   tiszta TypeScript, függőségek nélkül: szakasz-felismerés, 
                 tűrés, napállás
 packages/data   szakasz-import (OSM Overpass, IT/AT/HU + hu-manual.json) → Section JSON  (output/: ODbL!),
                 feltöltés Supabase-be, ideiglenes kapupár → szakasz (edge function logikája)
+packages/app-logic      a web és a mobil közös logikája: mérés-munkamenet (háttérbe kerülés, kézi mód),
+                szakasz-cache, bejelentések, Supabase-kliens, lightPreset, térkép-állapot
+packages/design-tokens  színek, típus, térköz, mozgás – platformfüggetlen (DESIGN.md)
+apps/web        PWA (Vite + React + mapbox-gl) – iPhone Safari, kezdőképernyő; szimulátor
 apps/mobile     Expo (React Native, TS) + @rnmapbox/maps + supabase-js – dizájn nélküli váz
 supabase/       migrációk (sections, reports, report_votes, app_config, ideiglenes kapuk + RLS),
                 edge function (promote-temp-gates), SQL-tesztek
@@ -24,8 +28,10 @@ Node ≥ 20 és **npm ≥ 11** kell (az npm 10 egy ismert hibával – `Cannot r
 
 ```bash
 npm install
-npm test                 # core + data + mobile (logika) unit-tesztek
-npm run typecheck        # mindhárom csomag
+npm test                 # core, data, app-logic, design-tokens, web unit-tesztek
+npm run typecheck        # minden csomag (a mobilé is)
+npm run dev --workspace apps/web        # PWA: http://localhost:5173  (szimulátor: /?sim)
+npm run dev:https --workspace apps/web  # HTTPS a helyi hálózatra (iPhone) – apps/web/README.md
 npm run test:edge        # edge function bundle + Deno-teszt
 npm run db:test:local    # migrációk + SQL-tesztek helyi PostgreSQL-en (PGHOST, PGUSER)
 ```
@@ -58,7 +64,9 @@ npm run deploy:edge      # promote-temp-gates edge function
   (`minPracticalFraction`, konfigurálható).
 - **Tűrés** (`toleranceKmh`, `limitWithToleranceKmh`): 5% vagy 5 km/h, a nagyobb – csak
   megjelenítésre; a szükséges sebesség és a figyelmeztetés mindig a szigorú határhoz számol.
-- **Térkép-adapter:** az app csak a `MapAdapter` interfészt látja (`apps/mobile/src/map`); a
+- **Közös logika:** a platformfüggetlen app-logika (`packages/app-logic`) és a dizájn-tokenek
+  (`packages/design-tokens`) külön csomag – a web és a mobil ugyanazt használja, a `core` függőségmentes marad.
+- **Térkép-adapter:** az app csak a `MapAdapter` interfészt látja (`apps/mobile/src/map`, webe `apps/web/src/map`); a
   Mapbox-implementáció egyetlen helyen (`createMapAdapter`) cserélhető MapLibre-re.
 - **Szavazás külön táblában** (`report_votes`): felhasználónként egy megerősítés/cáfolat, a
   számlálókat trigger tartja karban, így nem hamisíthatók.
@@ -72,6 +80,19 @@ Az állapotgép: `nincs_szakasz → kozeledik → szakaszon → kesz | megszakad
 (kész/megszakadt után 60 s-ig látszik az eredmény; egymást követő szakaszoknál kész után
 azonnal `szakaszon` jöhet).
 
+## Web deploy (Vercel) – előkészítve, nincs deployolva
+
+A `vercel.json` a gyökérben van (npm 11-es install, `apps/web` build, `apps/web/dist` kimenet,
+SPA-átirányítás, `sw.js` cache nélkül, immutable assetek).
+
+1. **Projekt:** Vercel → Add New → Project → a GitHub-repó importja; Root Directory: a repó gyökere
+   (`./`), Framework Preset: Other – a build-beállításokat a `vercel.json` adja.
+2. **Környezeti változók** (Settings → Environment Variables, Production + Preview):
+   `VITE_MAPBOX_TOKEN` (pk., URL-korlátozva a Vercel-domainre), `VITE_SUPABASE_URL`,
+   `VITE_SUPABASE_ANON_KEY`. Service role kulcsot SOHA.
+3. **Deploy:** Deploy gomb (vagy `npx vercel --prod` a gyökérből); utána a Mapbox-tokenen és – ha
+   kell – a Supabase Auth URL-beállításainál engedélyezd a kapott `https://….vercel.app` domaint.
+
 ## Szakaszadatok – licenc
 
 Az OSM-ből importált szakaszok az **OpenStreetMap** adatai: **© OpenStreetMap contributors**,
@@ -82,7 +103,9 @@ appban és az adatfájlok mellett; részletek: [`packages/data/output/ATTRIBUTIO
 
 - [`packages/data/README.md`](packages/data/README.md) – az import futtatása
 - [`supabase/README.md`](supabase/README.md) – séma, RLS, helyi teszt
+- [`apps/web/README.md`](apps/web/README.md) – PWA, szimulátor, iPhone a helyi hálózaton
 - [`apps/mobile/README.md`](apps/mobile/README.md) – Mapbox-token, dev build
+- [`DESIGN.md`](DESIGN.md) – dizájn-elvek, tokenek, állapotok
 
 ## Szabályok
 
