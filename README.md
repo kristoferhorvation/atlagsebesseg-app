@@ -80,18 +80,31 @@ Az állapotgép: `nincs_szakasz → kozeledik → szakaszon → kesz | megszakad
 (kész/megszakadt után 60 s-ig látszik az eredmény; egymást követő szakaszoknál kész után
 azonnal `szakaszon` jöhet).
 
-## Web deploy (Vercel) – előkészítve, nincs deployolva
+## Web deploy (Vercel) – élesben
 
-A `vercel.json` a gyökérben van (npm 11-es install, `apps/web` build, `apps/web/dist` kimenet,
-SPA-átirányítás, `sw.js` cache nélkül, immutable assetek).
+**Élő app: https://atlagsebesseg.vercel.app** (szimulátor: https://atlagsebesseg.vercel.app/?sim)
 
-1. **Projekt:** Vercel → Add New → Project → a GitHub-repó importja; Root Directory: a repó gyökere
-   (`./`), Framework Preset: Other – a build-beállításokat a `vercel.json` adja.
-2. **Környezeti változók** (Settings → Environment Variables, Production + Preview):
-   `VITE_MAPBOX_TOKEN` (pk., URL-korlátozva a Vercel-domainre), `VITE_SUPABASE_URL`,
-   `VITE_SUPABASE_ANON_KEY`. Service role kulcsot SOHA.
-3. **Deploy:** Deploy gomb (vagy `npx vercel --prod` a gyökérből); utána a Mapbox-tokenen és – ha
-   kell – a Supabase Auth URL-beállításainál engedélyezd a kapott `https://….vercel.app` domaint.
+Vercel-projekt: `atlagsebesseg` (CLI-ből deployolva, Git-integráció nélkül). A `vercel.json` a
+gyökérben van (npm 11-es install, `apps/web` build, `apps/web/dist` kimenet, SPA-átirányítás,
+`sw.js` cache nélkül, immutable assetek).
+
+- **Környezeti változók** (Production, típus: config – mind nyilvános kliensérték):
+  `VITE_MAPBOX_TOKEN`, `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`. Service role kulcsot SOHA.
+  Új változó: `printf '%s' "$ERTEK" | npx vercel env add NEV production --type config --yes`.
+- **Új deploy:** `npx vercel deploy --prod` a gyökérből (a `.vercel/` helyi kötés, nincs a repóban).
+- Automatikus deploy commitonként: a GitHub-repó összekötése a Vercel-projekttel (még nincs).
+
+## Mapbox
+
+A web a `VITE_MAPBOX_TOKEN` nyilvános (pk.) tokent használja, Mapbox Standard stílussal.
+
+**Teendő (Kristof dönt):** URL-korlátozás a tokenre a Mapbox-fiókban (Account → Tokens → a token →
+URL restrictions). Javasolt lista:
+- `https://atlagsebesseg.vercel.app` – az élő domain
+- `http://localhost:5173`, `https://<helyi IP>:5173` – helyi fejlesztéshez (iPhone HTTPS-teszt)
+
+Korlátozás nélkül a token bárki által kimásolható a kliens-kódból, és más oldalon is használható
+(a forgalmat a fiók fizeti). Korlátozás után a nem listázott domainen a térkép nem tölt be.
 
 ## Szakaszadatok – licenc
 

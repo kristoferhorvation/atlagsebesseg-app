@@ -21,3 +21,6 @@ apps/mobile/dist/
 # Supabase helyi állapot
 supabase/.branches/
 supabase/.temp/
+
+# Vercel CLI helyi projekt-kötés
+.vercel/
