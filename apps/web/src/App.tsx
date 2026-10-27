@@ -42,6 +42,8 @@ import { StartScreen } from './ui/StartScreen';
 import { StatusPills } from './ui/StatusPills';
 
 const SIM_MODE = new URLSearchParams(location.search).has('sim');
+/** Mérés közben a bejelentés-kártya ennyi idő után magától bezárul (mérésen kívül nyitva marad). */
+const REPORT_CARD_AUTOCLOSE_MS = 3000;
 
 /** A szerver aktív bejelentései a téglalapban; a saját sorokat a meglévő munkamenetből ismeri fel. */
 async function fetchServerReports(b: BBox): Promise<ActiveReport[]> {
@@ -140,7 +142,8 @@ function Drive({ map }: { map: WebMapAdapter }) {
     [map, view.phase, view.progress, tone],
   );
   // követő kamera: a térkép mozgatása kikapcsolja; mérés közben 5 s után magától visszaáll
-  const follow = useFollow(map, view.phase === 'meres' || view.phase === 'kezi');
+  const measuring = view.phase === 'meres' || view.phase === 'kezi';
+  const follow = useFollow(map, measuring);
 
   // bejelentések a térképen (szimulátorban a minta-bejelentések a szerver helyett)
   const [simReps, setSimReps] = useState<ActiveReport[]>([]);
@@ -155,6 +158,11 @@ function Drive({ map }: { map: WebMapAdapter }) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const selected = feed.reports.find((r) => r.id === selectedId) ?? null;
   useEffect(() => map.setHandlers({ onReportTap: setSelectedId }), [map]);
+  useEffect(() => {
+    if (!selectedId || !measuring) return;
+    const id = setTimeout(() => setSelectedId(null), REPORT_CARD_AUTOCLOSE_MS);
+    return () => clearTimeout(id);
+  }, [selectedId, measuring]);
   const pinsKey = feed.reports.map((r) => `${r.id}:${r.type}:${r.gateKind}`).join('|');
   const pins = useMemo<MapReport[]>(
     () => feed.reports.map((r) => ({ id: r.id, lat: r.lat, lon: r.lon, ...reportVisual(r) })),

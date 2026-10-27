@@ -22,7 +22,8 @@ adatokat nem módosítja. **Az anonim bejelentkezést a Supabase-dashboardon be 
   megerősítés legalább +1 órára hosszabbít).
 - **report_votes** – megerősítés/cáfolat, felhasználónként és bejelentésenként egy; a
   számlálókat trigger tartja karban.
-- **active_reports** – nézet a le nem járt bejelentésekre.
+- **active_reports** – nézet a le nem járt bejelentésekre, **explicit oszloplistával** (A5): a
+  `reports` új oszlopát ide is fel kell venni (a `select *` a létrehozáskor rögzül).
 - **app_config** – konfiguráció (pl. `temp_gate_min_confirmations` = 3); csak service_role írja.
 - **temp_gate_sections** – melyik kapupárból melyik szakasz lett (vagy miért nem).
 - `sections.expires_at` – a kapupárból létrejött szakaszok lejárata; a lejártakat az RLS elrejti.

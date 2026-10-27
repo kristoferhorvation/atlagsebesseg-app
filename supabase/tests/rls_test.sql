@@ -83,5 +83,7 @@ reset role;
 
 set role anon;
 select pg_temp.expect((select count(*) from public.active_reports where id = '11111111-1111-1111-1111-111111111111') = 0, 'active_reports nézet olvasható');
+-- az app ezeket az oszlopokat kéri (A5): a gate_kind is benne van a nézetben
+select pg_temp.expect((select count(*) from (select id, type, lat, lon, heading_deg, gate_kind, confirmations, denials, created_at, expires_at, user_id from public.active_reports) t) >= 0, 'active_reports: gate_kind és created_at olvasható');
 reset role;
 \echo 'RLS-teszt: minden ellenőrzés zöld'

@@ -83,14 +83,15 @@ biztonsági zóna fölött lebeg.
   és tónusa; kapunál kezdő/záró), 44 px-es kör 56 px-es érintési céllal, mindig a képernyő felé
   fordulva. Koppintásra kis kártya a HUD fölött: típus, „12 perce”, **Megerősítés** / **Nincs ott**
   (60 px magas gombok, a saját bejelentésnél „Saját bejelentésed”). A térkép üres részére
-  koppintva bezárul. Lekérés a látható terület szerint, csempe-rácsra kerekítve, 60 s-enként.
+  koppintva bezárul; mérés közben 3 s után magától is, mérésen kívül nyitva marad bezárásig.
+  Dőlés-gesztus (két ujjas pitch) nincs. Lekérés a látható terület szerint, csempe-rácsra kerekítve, 60 s-enként.
 - **Szabad térkép (A5):** húzás, csípés, forgatás. Mozdításkor a követés kikapcsol, és a gombsor
   fölött megjelenik a **„Vissza a helyemre”** (64 px, célkereszt, accent); rá a követő kamera
   animálva (900 ms) áll vissza. Mérés közben 5 s tétlenség után magától is; mérésen kívül csak a
   gombra. Mérés közben a gomb a „Lassíts” sáv helye fölött ül.
 - **Mapbox-attribúció (A5):** logó a bal, kompakt „i” a jobb felső sarokban, alapméretben, a
   biztonsági zóna alatt 4 px-re; kinyitva az attribúció több sorba tördel, nem takarja a logót.
-  Az állapot-pillek ez alatt, egy sorral lejjebb kezdődnek.
+  Az állapot-pillek közvetlenül a logó sora alatt (az A4-es helyükön).
 
 ## Állapotok
 

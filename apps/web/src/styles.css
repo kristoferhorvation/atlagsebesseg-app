@@ -106,8 +106,7 @@ select:focus-visible {
 /*
  * Mapbox-logó (bal felső) és kompakt „i” attribúció (jobb felső): kötelezőek, nem rejthetők el.
  * Alapméretben, a lehető legfeljebb – a felső sötétített sávban, közvetlenül a biztonsági zóna
- * alatt, minimális margóval. A pillek egy sorral lejjebb kezdődnek, hogy (a kinyitott
- * attribúciót sem) takarják.
+ * alatt, minimális margóval; a pillek közvetlenül ez alatt.
  */
 .mapboxgl-ctrl-top-left,
 .mapboxgl-ctrl-top-right {
@@ -679,8 +678,8 @@ select:focus-visible {
 
 .pills {
   position: absolute;
-  /* a Mapbox-logó és az „i” sora alatt, egy sorral lejjebb */
-  top: calc(env(safe-area-inset-top) + 72px);
+  /* közvetlenül a Mapbox-logó és az „i” sora alatt */
+  top: calc(env(safe-area-inset-top) + 40px);
   left: max(12px, env(safe-area-inset-left));
   right: max(12px, env(safe-area-inset-right));
   display: flex;
@@ -1030,7 +1029,7 @@ a.list-row {
 
 .toast {
   position: absolute;
-  top: calc(env(safe-area-inset-top) + 120px);
+  top: calc(env(safe-area-inset-top) + 88px);
   left: 50%;
   transform: translateX(-50%);
   max-width: calc(100% - 32px);
@@ -1084,7 +1083,7 @@ a.list-row {
 
 .sim {
   position: absolute;
-  top: calc(env(safe-area-inset-top) + 120px);
+  top: calc(env(safe-area-inset-top) + 88px);
   right: 12px;
   width: min(340px, calc(100% - 24px));
   border-radius: var(--radius-tile);
