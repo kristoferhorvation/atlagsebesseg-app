@@ -1,27 +1,22 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { DEFAULT_SETTINGS, parseSettings, SETTINGS_KEY, type Settings } from '@atlagsebesseg/app-logic';
 import { useCallback, useEffect, useState } from 'react';
 
-export interface Settings {
-  /** A kijelző a határ + hatósági tűrést is mutatja (a számítás mindig a szigorú határhoz). */
-  hatosagi_tures_megjelenitese: boolean;
-}
-
-const DEFAULTS: Settings = { hatosagi_tures_megjelenitese: false };
-const KEY = 'settings:v1';
+export type { Settings };
 
 export function useSettings() {
-  const [settings, setSettings] = useState<Settings>(DEFAULTS);
+  const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS);
 
   useEffect(() => {
-    AsyncStorage.getItem(KEY)
-      .then((raw) => raw && setSettings({ ...DEFAULTS, ...(JSON.parse(raw) as Partial<Settings>) }))
+    AsyncStorage.getItem(SETTINGS_KEY)
+      .then((raw) => raw && setSettings(parseSettings(raw)))
       .catch(() => undefined);
   }, []);
 
   const update = useCallback((patch: Partial<Settings>) => {
     setSettings((prev) => {
       const next = { ...prev, ...patch };
-      AsyncStorage.setItem(KEY, JSON.stringify(next)).catch(() => undefined);
+      AsyncStorage.setItem(SETTINGS_KEY, JSON.stringify(next)).catch(() => undefined);
       return next;
     });
   }, []);

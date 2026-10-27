@@ -1,8 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useColorScheme } from 'react-native';
+import { chooseLightPreset, type LightPreset } from '@atlagsebesseg/app-logic';
 import { sunPhase, type GpsFix } from '@atlagsebesseg/core';
-import { chooseLightPreset } from '../logic/lightPreset';
-import type { LightPreset } from './MapAdapter';
 
 /** Térkép-előbeállítás a rendszer világos/sötét módjából és a helyi napállásból (percenként frissül). */
 export function useAutoLightPreset(lastFix: GpsFix | null): LightPreset {

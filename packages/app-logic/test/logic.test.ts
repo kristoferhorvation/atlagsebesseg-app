@@ -1,8 +1,8 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { ManualResult, Section } from '@atlagsebesseg/core';
-import { gateReportsFromManual } from './gateReports';
-import { chooseLightPreset } from './lightPreset';
-import { mergeById, SectionCache, tileBBox, tileKey, tilesAround, type KeyValueStore } from './sectionCache';
+import { gateReportsFromManual } from '../src/gateReports';
+import { chooseLightPreset } from '../src/lightPreset';
+import { mergeById, SectionCache, tileBBox, tileKey, tilesAround, type KeyValueStore } from '../src/sectionCache';
 
 const sec = (id: string, lat = 46, lon = 11): Section => ({
   id,

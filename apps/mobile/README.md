@@ -42,20 +42,23 @@ a natív beállítás az `app.config.ts`-ben és a config pluginokban van.
 - **Beállítás:** `hatosagi_tures_megjelenitese` (alapból ki) – ha be, a kijelző a határ + tűrést
   is mutatja (5% vagy 5 km/h, a nagyobb); a megengedett sebesség mindig a szigorú határhoz számol.
 - **Térkép világítása:** a rendszer világos/sötét módja és a helyi napállás alapján percenként
-  (`src/logic/lightPreset.ts`): világos módban nappal `day`, hajnalban `dawn`, alkonyatkor `dusk`,
+  (`chooseLightPreset`, `packages/app-logic`): világos módban nappal `day`, hajnalban `dawn`, alkonyatkor `dusk`,
   éjjel `night`; sötét módban nappal `dusk`, egyébként `night`.
 
 ## Térkép-adapter
 
-`src/map/MapAdapter.ts` – az interfész (`showSections`, `followUser`, `setLightPreset`, `MapView`).
+`src/map/MapAdapter.ts` – az interfész: a közös `MapController` (`showSections`, `followUser`,
+`setLightPreset`, `packages/app-logic`) + a natív `MapView`.
 `src/map/MapboxAdapter.tsx` – az egyetlen Mapbox-függő fájl. Az app többi része a `useMap()`
 hookon át csak az interfészt látja; MapLibre-re váltáskor a `createMapAdapter` (`src/map/index.ts`)
 adjon vissza másik implementációt.
 
 ## Ellenőrzés
 
+A React Native-mentes logika (szakasz-cache, napszak → lightPreset, kapu-bejelentés, Supabase-hívások)
+a webbel közös `packages/app-logic` csomagban van, a tesztjei is ott futnak.
+
 ```bash
-npm test                             # a React Native-mentes logika (src/logic) vitesttel
 npm run typecheck
 npx expo export --platform android   # JS-bundle fordítása natív build nélkül
 ```

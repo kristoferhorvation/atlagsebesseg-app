@@ -1,0 +1,27 @@
+{
+  "name": "@atlagsebesseg/app-logic",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "A web és a mobil app közös, platformfüggetlen logikája: szakasz-cache, mérés-munkamenet, bejelentések, Supabase-kliens, térkép-állapot.",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "sideEffects": false,
+  "exports": {
+    ".": "./src/index.ts",
+    "./bundled-sections": "./src/bundledSections.ts"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@atlagsebesseg/core": "*",
+    "@atlagsebesseg/data": "*",
+    "@supabase/supabase-js": "^2.118.0"
+  },
+  "devDependencies": {
+    "typescript": "~6.0.3",
+    "vitest": "^4.0.0"
+  }
+}

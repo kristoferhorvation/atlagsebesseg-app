@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
+import { mergeById, tileKey } from '@atlagsebesseg/app-logic';
+import { BUNDLED_SECTIONS } from '@atlagsebesseg/app-logic/bundled-sections';
 import type { GpsFix, Section } from '@atlagsebesseg/core';
 import { sectionCache } from '../backend/sectionsRepo';
 import { supabase } from '../backend/supabase';
-import { BUNDLED_SECTIONS } from '../data/sections';
-import { mergeById, tileKey } from '../logic/sectionCache';
 
 export type SectionsStatus = 'csomagolt' | 'betoltes' | 'szerver' | 'offline_cache' | 'offline';
 

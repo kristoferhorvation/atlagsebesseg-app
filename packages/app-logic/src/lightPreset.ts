@@ -1,7 +1,7 @@
-import type { SunPhase } from '@atlagsebesseg/core';
-import type { LightPreset } from '../map/MapAdapter';
+import { sunPhase, type SunPhase } from '@atlagsebesseg/core';
 
-export type { LightPreset };
+/** A Mapbox Standard stílus fény-előbeállítása. */
+export type LightPreset = 'dawn' | 'day' | 'dusk' | 'night';
 export type ColorScheme = 'light' | 'dark' | null | undefined;
 
 /**
@@ -15,4 +15,9 @@ export function chooseLightPreset(phase: SunPhase | null, scheme: ColorScheme): 
   if (!phase) return dark ? 'night' : 'day';
   if (dark) return phase === 'nappal' ? 'dusk' : 'night';
   return ({ nappal: 'day', hajnal: 'dawn', alkony: 'dusk', ejszaka: 'night' } as const)[phase];
+}
+
+/** Előbeállítás egy időpontra és helyre (helyzet nélkül csak a rendszer módja számít). */
+export function lightPresetAt(nowMs: number, pos: { lat: number; lon: number } | null, scheme: ColorScheme): LightPreset {
+  return chooseLightPreset(pos ? sunPhase(nowMs, pos.lat, pos.lon) : null, scheme);
 }

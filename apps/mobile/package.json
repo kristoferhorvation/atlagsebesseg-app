@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "main": "index.ts",
   "dependencies": {
+    "@atlagsebesseg/app-logic": "*",
     "@atlagsebesseg/core": "*",
     "@atlagsebesseg/data": "*",
     "@react-native-async-storage/async-storage": "2.2.0",
@@ -19,15 +20,13 @@
   },
   "devDependencies": {
     "@types/react": "~19.3.0",
-    "typescript": "~6.0.3",
-    "vitest": "^4.0.0"
+    "typescript": "~6.0.3"
   },
   "scripts": {
     "start": "expo start",
     "android": "expo run:android",
     "ios": "expo run:ios",
-    "typecheck": "tsc --noEmit",
-    "test": "vitest run"
+    "typecheck": "tsc --noEmit"
   },
   "private": true
 }
