@@ -20,8 +20,13 @@ end $$;
 create function pg_temp.as_user(u text) returns void language plpgsql as $$
 begin
   perform set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-0000000000' || u, true);
+  perform set_config('request.jwt.claims',
+    json_build_object('sub', '00000000-0000-0000-0000-0000000000' || u, 'role', 'authenticated')::text, true);
 end $$;
-create function pg_temp.ready() returns bigint language sql as $$ select count(*) from public.temp_gate_ready_pairs() $$;
+-- Csak a teszt saját kapuiból képzett párok számítanak (élőben más, valódi párok is lehetnek).
+create function pg_temp.ready() returns bigint language sql as $$
+  select count(*) from public.temp_gate_ready_pairs() where start_report_id::text like 'aaaaaaaa-%'
+$$;
 grant execute on all functions in schema pg_temp to anon, authenticated, service_role;
 
 -- 46.0 N, 11.0 E környékén; 0,09° szélesség ≈ 10 km észak felé
@@ -79,7 +84,8 @@ reset role;
 set role service_role;
 select pg_temp.expect(pg_temp.ready() = 1, '3 független megerősítés: pontosan egy kész pár');
 select pg_temp.expect((select end_report_id = 'aaaaaaaa-0000-0000-0000-000000000002' and independent_confirms = 3
-                         and distance_m between 9900 and 10100 from public.temp_gate_ready_pairs()),
+                         and distance_m between 9900 and 10100 from public.temp_gate_ready_pairs()
+                         where start_report_id = 'aaaaaaaa-0000-0000-0000-000000000001'),
                       'a pár a helyes zárókapu (nem az ellenirányú, a mögötte lévő, a másik úton lévő vagy a túl közeli)');
 reset role;
 
@@ -103,7 +109,8 @@ set role service_role;
 select public.temp_gate_mark_failed('aaaaaaaa-0000-0000-0000-000000000001', 'aaaaaaaa-0000-0000-0000-000000000002', 'teszt: nincs útvonal');
 select pg_temp.expect(pg_temp.ready() = 0, 'sikertelen kísérlet után 1 óráig nem kész');
 reset role;
-update public.temp_gate_sections set created_at = now() - interval '2 hours' where section_id is null;
+update public.temp_gate_sections set created_at = now() - interval '2 hours'
+  where section_id is null and start_report_id = 'aaaaaaaa-0000-0000-0000-000000000001';
 
 -- szakasz létrehozása (az edge function ezt hívja service_role-lal)
 set role service_role;
@@ -124,8 +131,8 @@ select pg_temp.expect((select source = 'kozosseg' and not verified and speed_lim
                       'közösségi, nem ellenőrzött, a bejelentett (szigorúbb) határral, 30 napos lejárattal');
 
 set role anon;
-select pg_temp.expect((select count(*) from public.sections_in_bbox(45.9, 10.9, 46.2, 11.1)) = 1, 'anon látja a bbox-ban');
-select pg_temp.expect((select count(*) from public.sections_in_bbox(47, 12, 48, 13)) = 0, 'a bbox-on kívül nem');
+select pg_temp.expect((select count(*) from public.sections_in_bbox(45.9, 10.9, 46.2, 11.1) where id = 'kozosseg-tg-aaaaaaaa0000') = 1, 'anon látja a bbox-ban');
+select pg_temp.expect((select count(*) from public.sections_in_bbox(47, 12, 48, 13) where id = 'kozosseg-tg-aaaaaaaa0000') = 0, 'a bbox-on kívül nem');
 reset role;
 
 -- lejárat és meghosszabbítás

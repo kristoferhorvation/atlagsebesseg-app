@@ -78,6 +78,11 @@ ez a kulcs soha nem kerül az appba vagy a repóba.
 `auth.uid()` függvényt. Tesztek: `tests/rls_test.sql` (18 ellenőrzés) és
 `tests/temp_gate_test.sql` (26 ellenőrzés), mindkettő tranzakcióban, ROLLBACK-kel.
 
+A tesztek helyben és élőben is futnak: az `auth.users`-be oszlopnévvel (`(id)`) szúrnak be (az élő
+táblában az első oszlop az `instance_id`), a felhasználót a `pg_temp.as_user()` szimulálja
+(`request.jwt.claim.sub` és `request.jwt.claims` is, ahogy az élő `auth.uid()` olvassa), és minden
+ellenőrzés a teszt saját soraira szűr – élőben a valódi szakaszok és bejelentések nem zavarnak.
+
 ```bash
 PGHOST=localhost PGUSER=postgres supabase/tests/run-local.sh
 ```
