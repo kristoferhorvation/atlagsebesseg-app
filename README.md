@@ -98,12 +98,11 @@ gyökérben van (npm 11-es install, `apps/web` build, `apps/web/dist` kimenet, S
 
 A web a `VITE_MAPBOX_TOKEN` nyilvános (pk.) tokent használja, Mapbox Standard stílussal.
 
-**Teendő (Kristof dönt):** URL-korlátozás a tokenre a Mapbox-fiókban (Account → Tokens → a token →
-URL restrictions). Javasolt lista:
-- `https://atlagsebesseg.vercel.app` – az élő domain
-- `http://localhost:5173`, `https://<helyi IP>:5173` – helyi fejlesztéshez (iPhone HTTPS-teszt)
+**Döntés (2026-10-27, Kristof): a tokent nem korlátozzuk URL-re.** Ha később mégis kell:
+Mapbox-fiók → Account → Tokens → a token → URL restrictions; lista: `https://atlagsebesseg.vercel.app`,
+`http://localhost:5173`, `https://<helyi IP>:5173`.
 
-Korlátozás nélkül a token bárki által kimásolható a kliens-kódból, és más oldalon is használható
+A vállalt kockázat: korlátozás nélkül a token bárki által kimásolható a kliens-kódból, és más oldalon is használható
 (a forgalmat a fiók fizeti). Korlátozás után a nem listázott domainen a térkép nem tölt be.
 
 ## Szakaszadatok – licenc
