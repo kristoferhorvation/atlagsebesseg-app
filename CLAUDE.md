@@ -56,22 +56,24 @@ Gyökér: `npm test` és `npm run typecheck` minden csomagra; `npm run test:all`
 
 ## Mac-specifikus
 Hosszú futás alatt a gép ne aludjon: ezt a **globális** `~/.claude/settings.json`
-SessionStart/SessionEnd hookja intézi (`caffeinate -dims`, macOS-ellenőrzéssel, PID:
-`/tmp/claude-caffeinate.pid`). A SessionStart indítja (ha már fut, nem indít másikat), a
-SessionEnd leállítja.
+SessionStart/SessionEnd hookja intézi (`caffeinate -dims -w <claude PID>`, macOS-ellenőrzéssel).
+A PID-fájl sessionönkénti: `/tmp/claude-caffeinate-<session_id>.pid` (a `session_id` a hook
+stdin-JSON-jából). A SessionStart indítja (ha a sessionnek már fut, nem indít másikat), a
+SessionEnd csak a saját session caffeinate-jét állítja le. A `-w` miatt a caffeinate akkor is kilép, ha a
+session SessionEnd nélkül hal meg (ilyenkor csak egy ártalmatlan, elárvult PID-fájl marad).
 
 - A hook globális, ezért **minden sessionben fut, bármelyik mappából indul** (ez a projekt, a
   saját mappa, BookMatch stb.). A projektnek nincs saját `.claude/settings.json`-ja, hogy a
   `caffeinate` ne induljon kétszer. A hook-beállítás változása új sessiontől érvényes.
-- Több párhuzamos session egy PID-fájlon osztozik: az elsőként záruló session SessionEnd-je a
-  többinek is leállítja – ezért kell az ellenőrzés.
+- Párhuzamos sessionök nem állítják le egymás caffeinate-jét (mindegyiknek saját példánya és
+  PID-fájlja van; két sessionnel tesztelve).
 - **Ellenőrzés** minden hosszú feladat elején: `pgrep -l caffeinate`.
-- **Tartalék**, ha üres (a hook nem futott, vagy egy másik session vége leállította): a Claude
-  Code maga indítja háttérben, és a feladat végén leállítja:
+- **Tartalék**, ha üres (a hook nem futott): a Claude Code maga indítja háttérben, és a feladat
+  végén leállítja:
   ```bash
-  nohup caffeinate -dims >/dev/null 2>&1 </dev/null & echo $! > /tmp/claude-caffeinate.pid
+  nohup caffeinate -dims >/dev/null 2>&1 </dev/null & echo $! > /tmp/claude-caffeinate-manual.pid
   # a végén:
-  kill "$(cat /tmp/claude-caffeinate.pid)" && rm -f /tmp/claude-caffeinate.pid
+  kill "$(cat /tmp/claude-caffeinate-manual.pid)" && rm -f /tmp/claude-caffeinate-manual.pid
   ```
   Ha már fut egy `caffeinate`, nem indít másikat.
 
