@@ -28,7 +28,7 @@ describe('szimulátor', () => {
   it('tesztpálya, túl gyors: mérés, majd befejezve „túl”', () => {
     const { phases, end } = play(0, 'tul');
     expect([...phases]).toEqual(expect.arrayContaining(['kozeledik', 'meres', 'befejezve']));
-    expect(end.status).toBe('tul');
+    expect(end.status).toBe('tul_gyors');
   });
 
   it('valódi (beépített) szakasz, jó ütem: befejezve „jó”', () => {
@@ -37,6 +37,22 @@ describe('szimulátor', () => {
     expect(end.phase).toBe('befejezve');
     expect(end.result!.sectionId).toBe(route.id);
     expect(end.status).toBe('jo');
+  });
+
+  it('„gyors, majd lassít”: mind a 3 állapot látszik, ebben a sorrendben', () => {
+    for (const routeIdx of [0, 1]) {
+      const route = simRoutes(BUNDLED_SECTIONS)[routeIdx]!;
+      const sim = buildSimulation(route, 'lassit', 1_700_000_000_000);
+      let t = sim.samples[0]!.t;
+      const session = new TrackingSession([...BUNDLED_SECTIONS, route.section], { now: () => t });
+      const order: string[] = [];
+      sim.samples.forEach((s) => {
+        t = s.t;
+        const v = s.dropped ? session.tick() : session.onFix(s.fix);
+        if (v.phase === 'meres' && v.status && order[order.length - 1] !== v.status) order.push(v.status);
+      });
+      expect(order).toEqual(['tul_gyors', 'lassits', 'jo']);
+    }
   });
 
   it('alagút: kiesés alatt becsült, a végén van eredmény', () => {

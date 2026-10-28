@@ -9,7 +9,7 @@ import {
   type Settings,
   type SpeedStatus,
 } from '@atlagsebesseg/app-logic';
-import { limitWithToleranceKmh, type Section } from '@atlagsebesseg/core';
+import { meterBar, type MeterBar, type Section } from '@atlagsebesseg/core';
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { Icon, type IconName } from './Icon';
 import { LimitSign } from './LimitSign';
@@ -31,8 +31,8 @@ export interface HudProps {
 
 export const STATUS_META: Record<SpeedStatus, { icon: IconName; label: string }> = {
   jo: { icon: 'check', label: 'Jó ütem' },
-  hataron: { icon: 'approx', label: 'Határon' },
-  tul: { icon: 'arrowUp', label: 'Határ felett' },
+  lassits: { icon: 'arrowDown', label: 'Lassíts' },
+  tul_gyors: { icon: 'arrowUp', label: 'Túl gyors' },
 };
 
 const INTERRUPT_TEXT: Record<InterruptReason, string> = {
@@ -93,19 +93,13 @@ export function Hud(p: HudProps) {
       const s = view.section!;
       const live = view.live!;
       const meta = view.status ? STATUS_META[view.status] : null;
-      const req = live.required;
-      const chip: ReactNode =
-        req.kind === 'nem_lehetseges' ? (
-          <span className="chip" data-tone="tul">
-            <Icon name="arrowUp" /> Már nem hozható be
-          </span>
-        ) : meta ? (
-          <span className="chip">
-            <Icon name={meta.icon} /> {meta.label}
-          </span>
-        ) : (
-          <span className="chip neutral">Mérés indul…</span>
-        );
+      const chip: ReactNode = meta ? (
+        <span className="chip">
+          <Icon name={meta.icon} /> {meta.label}
+        </span>
+      ) : (
+        <span className="chip neutral">Mérés indul…</span>
+      );
       return (
         <Card tone={tone} label="Mérés">
           <div className="row">
@@ -117,18 +111,19 @@ export function Hud(p: HudProps) {
             )}
           </div>
           <Hero value={speedIn(live.averageKmh, unit)} />
-          <div className="row" style={{ justifyContent: 'flex-start' }}>
+          <div className="body muted hero-unit">{u} átlag</div>
+          <div className="meter-line">
             <LimitSign kmh={s.speedLimitKmh} unit={unit} small />
-            <div>
-              <div className="body muted">{u} átlag</div>
-              {live.projectedKmh !== null && (
-                <div className="body muted">
-                  várható <span className="num strong">{speedIn(live.projectedKmh, unit)}</span>
-                </div>
-              )}
-              {settings.hatosagi_tures_megjelenitese && (
-                <div className="tolerance num">tűréssel {speedIn(limitWithToleranceKmh(s.speedLimitKmh), unit)}</div>
-              )}
+            <div className="meter-fig">
+              <span className="body muted">most</span>
+              <b className="meter-num num">{speedIn(view.currentKmh, unit) ?? '–'}</b>
+            </div>
+            <span className="meter-sep" aria-hidden="true">
+              ·
+            </span>
+            <div className="meter-fig">
+              <span className="body muted">várható</span>
+              <b className="meter-num num">{speedIn(live.projectedKmh, unit) ?? '–'}</b>
             </div>
           </div>
           <Progress value={view.progress ?? 0} label={dist(live.remainingM, unit)} />
@@ -334,18 +329,28 @@ function useSteady(value: boolean, onMs: number, offMs: number): boolean {
  */
 export function SlowDown({ view, unit }: { view: SessionView; unit: Settings['egyseg'] }) {
   const live = view.phase === 'meres' ? view.live : null;
-  const req = live?.required;
-  const need = req?.kind === 'ok' && (live?.slowDownKmh ?? 0) >= 1;
-  const show = useSteady(need, 1500, 3000);
-  const last = useRef<number | null>(null);
-  if (need && req?.kind === 'ok') last.current = speedIn(req.maxKmh, unit);
+  const bar = live ? meterBar(view.status, live.required) : null;
+  const show = useSteady(bar !== null, 1500, 3000);
+  // eltűnéskor az utolsó tartalom (és színe) marad, hogy ne ugorjon a kifutó animáció alatt
+  const last = useRef<{ bar: MeterBar; tone: string } | null>(null);
+  if (bar) last.current = { bar, tone: view.status ?? 'tul_gyors' };
+  const shown = last.current;
   return (
-    <div className="slowdown glass" data-tone={view.status ?? 'tul'} data-show={show && last.current !== null} aria-hidden={!show} role="status">
-      <Icon name="arrowDown" size={30} />
-      <span className="slowdown-label">Lassíts</span>
-      <span className="slowdown-max">
-        max <b className="num">{last.current ?? ''}</b>
-      </span>
+    <div className="slowdown glass" data-tone={shown?.tone ?? 'tul_gyors'} data-show={show && shown !== null} aria-hidden={!show} role="status">
+      {shown?.bar.kind === 'nem_hozhato' ? (
+        <>
+          <Icon name="arrowUp" size={30} />
+          <span className="slowdown-label">Nem hozható be</span>
+        </>
+      ) : (
+        <>
+          <Icon name="arrowDown" size={30} />
+          <span className="slowdown-label">Lassíts</span>
+          <span className="slowdown-max">
+            max <b className="num">{shown ? speedIn(shown.bar.maxKmh, unit) : ''}</b>
+          </span>
+        </>
+      )}
     </div>
   );
 }

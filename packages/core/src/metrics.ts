@@ -74,6 +74,33 @@ export function projectedAverageKmh(input: ProjectedAverageInput): number | null
   return mpsToKmh(lengthM / totalS);
 }
 
+/**
+ * A mérőkártya egyetlen állapota (nagy szám, chip, sáv és háttér-árnyalat ebből színeződik):
+ * - `jo`: az átlag ≤ határ
+ * - `lassits`: az átlag a határ felett, de a várható végső ≤ határ (lassítással/tartással megvan)
+ * - `tul_gyors`: a várható végső a határ felett
+ * Átlag nélkül `null`. Ha nincs várható végső (álló helyzet), a pillanatnyi átlag a tartalék.
+ */
+export type MeterState = 'jo' | 'lassits' | 'tul_gyors';
+
+export function meterState(input: { averageKmh: number | null; projectedKmh: number | null; speedLimitKmh: number }): MeterState | null {
+  const { averageKmh, projectedKmh, speedLimitKmh } = input;
+  if (averageKmh === null) return null;
+  if (averageKmh <= speedLimitKmh) return 'jo';
+  return (projectedKmh ?? averageKmh) <= speedLimitKmh ? 'lassits' : 'tul_gyors';
+}
+
+/** A „Lassíts” sáv tartalma: `max` = ennyivel haladj legfeljebb; `nem_hozhato` = már nem reális. */
+export type MeterBar = { kind: 'max'; maxKmh: number } | { kind: 'nem_hozhato' };
+
+/** Sáv csak `lassits` / `tul_gyors` állapotban van (és ha a hátralévő útra van értelmes korlát). */
+export function meterBar(state: MeterState | null, required: RequiredSpeed): MeterBar | null {
+  if (state === null || state === 'jo') return null;
+  if (required.kind === 'ok') return { kind: 'max', maxKmh: required.maxKmh };
+  if (required.kind === 'nem_lehetseges') return { kind: 'nem_hozhato' };
+  return null;
+}
+
 /** Mennyivel kell lassítani a jelenlegi sebességhez képest (km/h, ≥ 0). */
 export function slowDownByKmh(currentKmh: number | null, req: RequiredSpeed): number | null {
   if (currentKmh === null) return null;

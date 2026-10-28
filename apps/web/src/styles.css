@@ -155,6 +155,12 @@ select:focus-visible {
 [data-tone='jo'] {
   --tone: var(--status-jo);
 }
+[data-tone='lassits'] {
+  --tone: var(--status-lassits);
+}
+[data-tone='tul_gyors'] {
+  --tone: var(--status-tul_gyors);
+}
 [data-tone='hataron'] {
   --tone: var(--status-hataron);
 }
@@ -345,6 +351,12 @@ select:focus-visible {
   pointer-events: none;
 }
 
+.card[data-tone='lassits'],
+.card[data-tone='tul_gyors'],
+.card[data-tone='jo'] {
+  background-image: linear-gradient(color-mix(in srgb, var(--tone) 9%, transparent), color-mix(in srgb, var(--tone) 9%, transparent));
+}
+
 .card::after {
   content: '';
   position: absolute;
@@ -437,6 +449,44 @@ select:focus-visible {
   color: var(--tone);
   margin: 2px 0 0 -0.045em;
   text-shadow: 0 0 40px color-mix(in srgb, var(--tone) 35%, transparent);
+}
+
+/* „km/h átlag” a nagy szám alatt, szorosan */
+.hero-unit {
+  margin-top: -6px;
+}
+
+/* [határ-tábla] most 144 · várható 122 – tabular számok, 1,5 m-ről olvasható */
+.meter-line {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.meter-fig {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.meter-fig .body {
+  line-height: 1.1;
+}
+
+.meter-num {
+  font-size: 44px;
+  font-weight: 700;
+  line-height: 1.05;
+  letter-spacing: -0.03em;
+  color: var(--color-text);
+}
+
+.meter-sep {
+  align-self: flex-end;
+  padding-bottom: 6px;
+  font-size: 32px;
+  font-weight: 600;
+  color: var(--color-text-faint);
 }
 
 .display {
@@ -532,12 +582,6 @@ select:focus-visible {
   gap: 4px;
   color: var(--color-ok);
   font-weight: 640;
-}
-
-.tolerance {
-  font-size: var(--type-body-size);
-  font-weight: 600;
-  color: var(--color-text-muted);
 }
 
 .progress-row {

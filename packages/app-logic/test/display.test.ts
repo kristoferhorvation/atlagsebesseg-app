@@ -5,13 +5,14 @@ import { reportFromFix } from '../src/reports';
 import { MapStore } from '../src/mapState';
 
 describe('speedStatus', () => {
-  it('jó / határon / túl', () => {
-    expect(speedStatus(120, 130)).toBe('jo');
-    expect(speedStatus(126.5, 130)).toBe('hataron'); // 3% = 3,9
-    expect(speedStatus(130, 130)).toBe('hataron');
-    expect(speedStatus(130.4, 130)).toBe('tul');
-    expect(speedStatus(48, 50)).toBe('hataron'); // min. 3 km/h
-    expect(speedStatus(null, 130)).toBeNull();
+  it('jó / lassíts / túl gyors – a „határon” sáv megszűnt', () => {
+    expect(speedStatus(120, 125, 130)).toBe('jo');
+    expect(speedStatus(129.9, 140, 130)).toBe('jo'); // az átlag ≤ határ: zöld
+    expect(speedStatus(130.4, 129, 130)).toBe('lassits');
+    expect(speedStatus(138, 120, 130)).toBe('lassits');
+    expect(speedStatus(138, 131, 130)).toBe('tul_gyors');
+    expect(speedStatus(48, 49, 50)).toBe('jo'); // nincs 3%-os sáv
+    expect(speedStatus(null, 120, 130)).toBeNull();
   });
 });
 

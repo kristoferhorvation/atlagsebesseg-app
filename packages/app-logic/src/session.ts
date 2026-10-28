@@ -26,8 +26,9 @@ export interface SessionView {
   section: Section | null;
   live: LiveMetrics | null;
   /**
-   * Színkód: mérés közben a VÁRHATÓ VÉGSŐ átlagból (a hátralévő út a jelenlegi sebességgel),
-   * befejezve a tényleges végső átlagból. A nagy szám ettől függetlenül a pillanatnyi átlag.
+   * Az egyetlen állapot (jo / lassits / tul_gyors): mérés közben az átlagból és a VÁRHATÓ VÉGSŐ
+   * átlagból (a hátralévő út a jelenlegi sebességgel), befejezve a tényleges végső átlagból.
+   * A szám, a chip, a sáv és a háttér-árnyalat mind ebből színeződik.
    */
   status: SpeedStatus | null;
   /** Megtett hányad 0…1 (mérés közben). */
@@ -176,7 +177,7 @@ export class TrackingSession {
         phase: 'meres',
         section: s.section,
         live: s.live,
-        status: speedStatus(s.live.projectedKmh ?? s.live.averageKmh, s.section.speedLimitKmh),
+        status: speedStatus(s.live.averageKmh, s.live.projectedKmh, s.section.speedLimitKmh),
         progress: progressOf(s.live.distanceM, s.section.lengthM),
       };
     }
@@ -194,7 +195,7 @@ export class TrackingSession {
         phase: 'befejezve',
         section: s.section,
         result: s.lastResult,
-        status: speedStatus(s.lastResult.averageKmh, s.lastResult.speedLimitKmh),
+        status: speedStatus(s.lastResult.averageKmh, s.lastResult.averageKmh, s.lastResult.speedLimitKmh),
       };
     }
     if (s.state === 'kozeledik' && s.section) {

@@ -3,11 +3,10 @@ import { bearingDeg, LocalProjection, polylineLengthM, type LatLon, type Section
 // A core tesztjeinek vezetés-generátora (Route menti mozgás, zaj, alagút) – ugyanaz, amin a core tesztel.
 import { drive, testCourse, toLatLon, type DriveSample } from '@atlagsebesseg/core/test/helpers/trace';
 
-export type SimScenario = 'jo' | 'hataron' | 'tul' | 'lassit' | 'alagut';
+export type SimScenario = 'jo' | 'tul' | 'lassit' | 'alagut';
 
 export const SCENARIOS: readonly { id: SimScenario; label: string }[] = [
   { id: 'jo', label: 'Jó ütem' },
-  { id: 'hataron', label: 'Határon' },
   { id: 'tul', label: 'Túl gyors' },
   { id: 'lassit', label: 'Gyors, majd lassít' },
   { id: 'alagut', label: 'Alagút' },
@@ -47,8 +46,6 @@ function profile(scenario: SimScenario, limit: number): (f: number) => number {
   switch (scenario) {
     case 'jo':
       return () => limit - 9;
-    case 'hataron':
-      return (f) => limit - 1.5 + Math.sin(f * 9) * 1.2;
     case 'tul':
       return () => limit + 14;
     case 'lassit':

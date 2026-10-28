@@ -19,14 +19,16 @@ npm run dev --workspace apps/web         # http://localhost:5173
 
 `http://localhost:5173/?sim` – a core tesztjeinek vezetés-generátorával (`drive()`, zaj, alagút)
 lejátszott útvonal: a core tesztpályája vagy a leghosszabb beépített szakaszok. A panelen:
-forgatókönyv (jó ütem / határon / túl gyors / gyors, majd lassít / alagút), 1×/4×/12×, „Háttérbe”
+forgatókönyv (jó ütem / túl gyors / gyors, majd lassít – ez mind a 3 állapotot végigjárja / alagút), 1×/4×/12×, „Háttérbe”
 (a megszakítás kipróbálása).
 
 Közvetlen ugrás egy állapotra (dizájn-iterációhoz):
 
 ```
 /?sim=jo&seek=0.15        közeledés
-/?sim=hataron&seek=0.5    mérés, határon (sárga)
+/?sim=lassit&seek=0.35    mérés, túl gyors (piros)
+/?sim=lassit&seek=0.50    mérés, lassíts (borostyán)
+/?sim=lassit&seek=0.80    mérés, jó ütem (zöld)
 /?sim=tul&seek=0.6        mérés, túl (piros)
 /?sim=jo&seek=0.97        befejezve (összegzés)
 /?sim=alagut&seek=0.45    alagút (becslés)

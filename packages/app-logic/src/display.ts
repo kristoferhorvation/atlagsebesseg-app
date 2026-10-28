@@ -1,27 +1,15 @@
-import type { Section } from '@atlagsebesseg/core';
+import { meterState, type MeterState, type Section } from '@atlagsebesseg/core';
 import type { SpeedUnit } from './settings';
 
-/** A szín-kód: jó / határon / túl (DESIGN.md). */
-export type SpeedStatus = 'jo' | 'hataron' | 'tul';
-
-export interface StatusMargin {
-  /** A határ ennyi százalékán belül „határon”. */
-  percent: number;
-  /** … de legalább ennyi km/h-n belül. */
-  minKmh: number;
-}
-
-export const DEFAULT_STATUS_MARGIN: StatusMargin = { percent: 3, minKmh: 3 };
+/** A mérőkártya állapota: jó / lassíts / túl gyors (DESIGN.md; a logika a core `meterState`-je). */
+export type SpeedStatus = MeterState;
 
 /**
- * Az átlag és a (szigorú) határ viszonya: a határ felett `tul`, az utolsó 3%-on (min. 3 km/h)
- * belül `hataron`, egyébként `jo`. Átlag nélkül `null`.
+ * Az állapot az átlagból és a várható végső átlagból; befejezve mindkettő a végső átlag.
+ * Átlag nélkül `null`.
  */
-export function speedStatus(averageKmh: number | null, limitKmh: number, m: StatusMargin = DEFAULT_STATUS_MARGIN): SpeedStatus | null {
-  if (averageKmh === null) return null;
-  if (averageKmh > limitKmh) return 'tul';
-  const margin = Math.max(m.minKmh, (limitKmh * m.percent) / 100);
-  return averageKmh > limitKmh - margin ? 'hataron' : 'jo';
+export function speedStatus(averageKmh: number | null, projectedKmh: number | null, limitKmh: number): SpeedStatus | null {
+  return meterState({ averageKmh, projectedKmh, speedLimitKmh: limitKmh });
 }
 
 export const KMH_PER_MPH = 1.609344;

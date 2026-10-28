@@ -28,6 +28,8 @@ export type ColorToken = keyof typeof color;
 /** Státusz → szín (a nagy szám, a progress és az aktív szakasz vonala). */
 export const statusColor = {
   jo: color.ok,
+  lassits: color.near,
+  tul_gyors: color.over,
   hataron: color.near,
   tul: color.over,
   semleges: color.idle,

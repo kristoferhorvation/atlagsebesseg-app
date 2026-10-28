@@ -24,19 +24,26 @@ változókká alakítja, a natív app közvetlenül importálja.
 | `stroke` | `rgba(255,255,255,0.08)` | 1 px-es élek |
 | `text` / `textMuted` / `textFaint` | `#F4F6FA` / 64% / 40% | szöveg |
 | `accent` | `#7A86FF` | márka, kézi mód, fókusz |
-| `ok` | `#2EE59D` | **jó** – a várható végső átlag ≥ 3% (min. 3 km/h) a határ alatt |
-| `near` | `#FFB224` | **határon** – a várható végső átlag az utolsó 3%-on belül |
-| `over` | `#FF4D61` | **túl** – a várható végső átlag a határ felett |
+| `ok` | `#2EE59D` | **Jó ütem** (`jo`) – az átlag ≤ határ |
+| `near` | `#FFB224` | **Lassíts** (`lassits`) – az átlag a határ felett, de a várható végső ≤ határ |
+| `over` | `#FF4D61` | **Túl gyors** (`tul_gyors`) – a várható végső a határ felett |
 | `idle` | `#8C93A3` | megszakadt / nincs adat |
 
-A státuszszín a nagy számot, a progress kitöltését, a kártya felső fényívét és a térképen az
-aktív szakasz vonalát színezi. Az állapot-ikonok: ✓ jó, ≈ határon, ↑ túl, ⏸ megszakadt.
+A státuszszín a nagy számot, a chipet, a „Lassíts” sávot, a progress kitöltését, a kártya háttér-
+árnyalatát és fényívét, valamint a térképen az aktív szakasz vonalát színezi – **mindig ugyanabból
+az egy állapotból**. Az állapot-ikonok: ✓ jó ütem, ↓ lassíts, ↑ túl gyors, ⏸ megszakadt.
 
-**Mi alapján színez (A4-döntés):** mérés közben a **várható végső átlag** szerint – a core
-becslése: a hátralévő utat a jelenlegi sebességgel megtéve mennyi lesz a szakasz átlaga
-(`projectedAverageKmh`). A **nagy szám marad a pillanatnyi átlag**; mellette kicsiben
-„várható 118”, hogy a szín érthető legyen. A „határon” sáv is a várható végsőre vonatkozik.
-Sebesség nélkül (álló helyzet) a pillanatnyi átlag a tartalék. Befejezve a tényleges végső átlag.
+**Az állapot (A7b; core `meterState`, app-logic `speedStatus`):**
+
+| állapot | feltétel | chip | sáv |
+|---|---|---|---|
+| `jo` (zöld) | átlag ≤ határ | „Jó ütem” | nincs |
+| `lassits` (borostyán) | átlag > határ, de várható végső ≤ határ | „Lassíts” | „Lassíts · max X” |
+| `tul_gyors` (piros) | várható végső > határ | „Túl gyors” | „Lassíts · max X”; ha X a „nem lehetséges” küszöb alatt (határ 60%-a): „Nem hozható be” |
+
+A régi „határon” (3%) sáv megszűnt. A **várható végső** a core becslése (`projectedAverageKmh`): a
+hátralévő utat a jelenlegi sebességgel megtéve mennyi lesz a szakasz átlaga. Sebesség nélkül (álló
+helyzet) a pillanatnyi átlag a tartalék. Befejezve a tényleges végső átlag: ≤ határ jó, felette túl gyors.
 
 ## Tipográfia
 
@@ -59,18 +66,19 @@ biztonsági zóna fölött lebeg.
 
 ## Komponensek
 
-- **HUD-kártya** (alul lebeg): progress (10 px, kerek), hero szám, egység, határ-tábla
-  (piros gyűrűs kör, benne a szám), opcionálisan „max 112” javaslat-pill.
-- **Határ-tábla**: KRESZ-tábla stílusú kör, `title` méret; tűrés bekapcsolva a tábla mellett
-  „+tűrés 137”.
+- **HUD-kártya, mérés közben** (alul lebeg, A7b): chip (állapot) → hero szám (a pillanatnyi
+  **átlag**) → alatta kicsiben „km/h átlag” → egy sor: **[határ-tábla] most 144 · várható 122**
+  (a „most” a pillanatnyi GPS-sebesség; mindkét szám 44 px, tabular, 1,5 m-ről olvasható) →
+  progress + hátralévő táv. Más szám nem kerül a kártyára (a tűrés-kijelzés ezért kikerült).
+- **Határ-tábla**: KRESZ-tábla stílusú kör, `title` méret.
 - **Állapot-pillek** (fent): GPS pontosság, kijelző ébren / elalhat, offline. Vezetés közben
   **csak ikonok** (szöveg nélkül). Koppinthatók, ha teendő van (pl. ébrentartás újrakérése).
 - **Ébrentartás (A4-döntés):** ha a Wake Lock nem sikerül, **egyszer**, induláskor egy csendes,
   semleges toast szól (5 s); utána csak a szürke kijelző-ikon jelzi – nem sárga, nem ismétlődik.
 - **„Lassíts · max X” (A4-döntés):** külön, nagy üvegpill középen a kártya fölött (76 px magas,
-  `title` címke + 44 px-es szám), **csak amikor kell**. Megjelenés/eltűnés `slow` (480 ms)
+  `title` címke + 44 px-es szám), **csak `lassits` / `tul_gyors` állapotban** (a színe az állapoté; „Nem hozható be” szöveggel, ha a „max” már nem reális). Megjelenés/eltűnés `slow` (480 ms)
   opacity + transform; hiszterézis: 1,5 s fennállás után jelenik meg, 3 s hiány után tűnik el,
-  így a határérték körüli ingadozás nem villog. A kártya chipje ilyenkor a státuszt mutatja.
+  így a határérték körüli ingadozás nem villog. 
 - **Kerek gombok** (64 px, üveg): bejelentés, kézi mérés, beállítások.
 - **Lap** (bottom sheet): bejelentés-rács (2 oszlop, 76 px-es csempék), beállítások.
 - **Ideiglenes szakasz (A4-döntés):** a bejelentés-rácsban **egy** teljes szélességű csempe,
@@ -99,7 +107,7 @@ biztonsági zóna fölött lebeg.
 |---|---|
 | **nincs szakasz** | **kompakt** (A5): egysoros kártya – pillanatnyi sebesség (`title`, félkövér) + „Nincs mérőszakasz a közelben”; az alsó sötétítés is kisebb, a térkép a képernyő ~80%-át látja. Közeledéskor / méréskor a nagy kártya; a váltásnál a gombsor és a kártya a régi helyéről csúszik (FLIP, `base`), az autó helye simán követi |
 | **közeledés** | kártya: út + irány, „múlva” távolság (`display`), határ-tábla; a szakasz vonala kiemelve |
-| **mérés** | HUD-kártya; a szín az átlag és a határ viszonyából; alagútban „becsült” jelzés |
+| **mérés** | HUD-kártya; a szín az egy állapotból (jo / lassits / tul_gyors); alagútban „becsült” jelzés |
 | **befejezve** | összegzés: végső átlag (hero, státuszszín), ítélet („határ alatt” / „+4 km/h”), hossz, idő, határ; 60 s után eltűnik |
 | **kézi mód** | HUD az `accent` színnel (nincs határ): átlag, megtett út, idő, nagy „Leállítás” gomb; utána összegzés (bejelentés nélkül) |
 | **ideiglenes szakasz** | mint a kézi mód, „Ideiglenes szakasz” chip és „Vége · záró kapu” gomb; az összegzés a kapuk küldésének állapotát mutatja (hiba esetén „Újraküldés”) |

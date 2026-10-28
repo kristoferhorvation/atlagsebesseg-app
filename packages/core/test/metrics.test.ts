@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { averageSpeedKmh, limitWithToleranceKmh, projectedAverageKmh, requiredSpeed, slowDownByKmh, toleranceKmh } from '../src/metrics';
+import { averageSpeedKmh, limitWithToleranceKmh, meterBar, meterState, projectedAverageKmh, requiredSpeed, slowDownByKmh, toleranceKmh } from '../src/metrics';
 
 describe('averageSpeedKmh', () => {
   it('10 km 5 perc alatt = 120 km/h', () => {
@@ -112,5 +112,36 @@ describe('projectedAverageKmh', () => {
     expect(projectedAverageKmh({ lengthM: L, distanceDoneM: 1000, elapsedMs: 30_000, currentKmh: null })).toBeNull();
     expect(projectedAverageKmh({ lengthM: L, distanceDoneM: 1000, elapsedMs: 30_000, currentKmh: 0.5 })).toBeNull();
     expect(projectedAverageKmh({ lengthM: L, distanceDoneM: L, elapsedMs: 300_000, currentKmh: 0 })).toBeCloseTo(120, 6);
+  });
+});
+
+describe('meterState / meterBar', () => {
+  const st = (averageKmh: number | null, projectedKmh: number | null) => meterState({ averageKmh, projectedKmh, speedLimitKmh: 130 });
+
+  it('jó: az átlag ≤ határ, a várható végsőtől függetlenül', () => {
+    expect(st(120, 100)).toBe('jo');
+    expect(st(130, 150)).toBe('jo');
+  });
+  it('lassíts: az átlag a határ felett, de a várható végső ≤ határ', () => {
+    expect(st(138, 120)).toBe('lassits');
+    expect(st(130.4, 130)).toBe('lassits');
+  });
+  it('túl gyors: a várható végső a határ felett', () => {
+    expect(st(138, 130.1)).toBe('tul_gyors');
+    expect(st(150, 160)).toBe('tul_gyors');
+  });
+  it('várható végső nélkül a pillanatnyi átlag a tartalék; átlag nélkül nincs állapot', () => {
+    expect(st(135, null)).toBe('tul_gyors');
+    expect(st(125, null)).toBe('jo');
+    expect(st(null, 120)).toBeNull();
+  });
+
+  it('sáv: jó állapotban nincs; különben max X, vagy „nem hozható be”', () => {
+    expect(meterBar('jo', { kind: 'ok', maxKmh: 120 })).toBeNull();
+    expect(meterBar(null, { kind: 'ok', maxKmh: 120 })).toBeNull();
+    expect(meterBar('lassits', { kind: 'ok', maxKmh: 118 })).toEqual({ kind: 'max', maxKmh: 118 });
+    expect(meterBar('tul_gyors', { kind: 'ok', maxKmh: 110 })).toEqual({ kind: 'max', maxKmh: 110 });
+    expect(meterBar('tul_gyors', { kind: 'nem_lehetseges', maxKmh: 60 })).toEqual({ kind: 'nem_hozhato' });
+    expect(meterBar('tul_gyors', { kind: 'nincs_korlat' })).toBeNull();
   });
 });

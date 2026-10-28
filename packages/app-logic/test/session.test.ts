@@ -47,7 +47,7 @@ describe('TrackingSession', () => {
     }
     expect(at60!.live!.averageKmh!).toBeGreaterThan(130);
     expect(at60!.live!.projectedKmh!).toBeLessThan(125);
-    expect(at60!.status).toBe('jo');
+    expect(at60!.status).toBe('lassits'); // átlag a határ felett, de a várható végső alatta
   });
 
   it('határ felett: tul', () => {
@@ -58,7 +58,7 @@ describe('TrackingSession', () => {
       t = f.timestamp;
       session.onFix(f);
     }
-    expect(session.view()).toMatchObject({ phase: 'befejezve', status: 'tul' });
+    expect(session.view()).toMatchObject({ phase: 'befejezve', status: 'tul_gyors' });
   });
 
   it('háttérbe kerülés mérés közben: megszakadt, nincs átlag, és nem folytatódik', () => {
