@@ -17,6 +17,8 @@ export interface BannerText {
   /** A Directions manőver-típusa (`turn`, `roundabout`, `arrive`…). */
   type: string;
   modifier: string | null;
+  /** A kijárat felirata a banner `exit` + `exit-number` komponenseiből („Kijárat 56”); a pajzs- és sáv-komponenseket nem tartalmazza. */
+  exit?: string | null;
 }
 
 export interface NavBanner {

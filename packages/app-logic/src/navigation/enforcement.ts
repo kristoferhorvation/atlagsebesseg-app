@@ -156,14 +156,14 @@ const SAME_MANEUVER_M = 35;
  * Az alternatíva lehajtója: az alternatíva első manővere, amely a jelenlegi útvonal lépései között
  * nincs (a helye alapján). `distanceM` az alternatíva mentén mért távolság a kezdőpontjától – az
  * alternatívát a jelenlegi pozícióról kérjük, tehát ez a pozíciótól számít; `name` a manőver
- * szalag-szövege (pl. a kijárat neve), ha van. `null`, ha nincs ilyen manőver.
+ * kijárat-felirata („Kijárat 56”), ennek hiányában a cél-neve (a banner másodlagos szövege); egyébként `null`. `null`, ha nincs ilyen manőver.
  */
 export function firstNewManeuver(current: NavRoute, alt: NavRoute): { distanceM: number; name: string | null } | null {
   for (const step of alt.steps) {
     const m = step.endManeuver;
     if (NOT_AN_EXIT.has(m.type)) continue;
     if (!m.location || current.steps.some((c) => c.endManeuver.location && haversineM(c.endManeuver.location, m.location) <= SAME_MANEUVER_M)) continue;
-    return { distanceM: step.startM + step.distanceM, name: step.banners[0]?.primary.text || null };
+    return { distanceM: step.startM + step.distanceM, name: step.banners[0]?.primary.exit || step.banners[0]?.secondary?.text || null };
   }
   return null;
 }

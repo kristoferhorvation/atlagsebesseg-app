@@ -41,8 +41,14 @@ const arr = (v: unknown): unknown[] => (Array.isArray(v) ? v : []);
 
 const bannerText = (v: unknown): BannerText | null => {
   if (!isObj(v) || typeof v.text !== 'string') return null;
-  return { text: v.text, type: typeof v.type === 'string' ? v.type : 'turn', modifier: typeof v.modifier === 'string' ? v.modifier : null };
+  return { text: v.text, type: typeof v.type === 'string' ? v.type : 'turn', modifier: typeof v.modifier === 'string' ? v.modifier : null, exit: exitOf(v.components) };
 };
+
+/** A kijárat felirata: csak az `exit` és `exit-number` komponens („Kijárat 56”), a pajzs/sáv/egyéb nem. */
+function exitOf(components: unknown): string | null {
+  const parts = arr(components).flatMap((c) => (isObj(c) && (c.type === 'exit' || c.type === 'exit-number') && typeof c.text === 'string' && c.text.trim() ? [c.text.trim()] : []));
+  return parts.length > 0 ? parts.join(' ') : null;
+}
 
 const KMH_PER_MPH = 1.609344;
 

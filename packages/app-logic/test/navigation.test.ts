@@ -428,7 +428,9 @@ describe('alternatíva-figyelés', () => {
     expect(exit).not.toBeNull();
     expect(exit!.distanceM).toBeGreaterThan(54_000);
     expect(exit!.distanceM).toBeLessThan(57_000);
-    expect(exit!.name).toBe('Kijárat 56 1');
+    // a sáv/pajzs-jelzés („1”) nem tapad a kijárat nevére
+    expect(exit!.name).toBe('Kijárat 56');
+    expect(alt.steps.some((s) => s.banners[0]?.primary.text === 'Kijárat 56 1')).toBe(true);
     // önmagával nincs eltérés
     expect(firstNewManeuver(main, main)).toBeNull();
   });
@@ -452,12 +454,25 @@ describe('alternatíva-figyelés', () => {
     expect(h.session.drainVoice().some((v) => v.kind === 'faster')).toBe(true);
   });
 
+  it('lehajtó-név: kijárat → cél-név → nincs', () => {
+    const { main, alt } = fixture();
+    const withBanner = (edit: (b: NavRoute['steps'][number]['banners'][number]) => void): NavRoute => {
+      const copy: NavRoute = structuredClone(alt);
+      const step = copy.steps.find((s) => s.banners[0]?.primary.exit === 'Kijárat 56')!;
+      edit(step.banners[0]!);
+      return copy;
+    };
+    expect(firstNewManeuver(main, alt)!.name).toBe('Kijárat 56');
+    expect(firstNewManeuver(main, withBanner((b) => (b.primary.exit = null)))!.name).toBe('Tatabánya-Óváros');
+    expect(firstNewManeuver(main, withBanner((b) => ((b.primary.exit = null), (b.secondary = null))))!.name).toBeNull();
+  });
+
   it('mérés közben: a lehajtó a szakasz vége előtt → azonnal, kompakt ajánlat a lehajtó nevével és távolságával', async () => {
     const { h } = await measuringOn(60_000);
     const offer = h.session.view().offer;
     expect(offer).not.toBeNull();
     expect(offer!.compact).toBe(true);
-    expect(offer!.exitName).toBe('Kijárat 56 1');
+    expect(offer!.exitName).toBe('Kijárat 56');
     expect(offer!.exitInM).toBeGreaterThan(54_000);
     expect(offer!.expiresAt).toBe(T0 + 120_000 + NAV_CONFIG.offerTtlMs);
     const voice = h.session.drainVoice().filter((v) => v.kind === 'faster');

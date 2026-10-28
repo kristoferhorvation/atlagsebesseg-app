@@ -143,7 +143,7 @@ function withExit(steps: NavStep[], route: Route, exitM: number): NavStep[] {
     distanceM: cut,
     durationS: target.durationS * (cut / target.distanceM),
     endManeuver: { type: 'off ramp', modifier: 'right', instruction: 'Hajtson le a lehajtón', location: route.pointAt(exitM) },
-    banners: [{ distanceAlongM: cut, primary: { text: 'Kijárat 56', type: 'off ramp', modifier: 'right' }, secondary: null, sub: null }],
+    banners: [{ distanceAlongM: cut, primary: { text: 'Kijárat 56', type: 'off ramp', modifier: 'right', exit: 'Kijárat 56' }, secondary: null, sub: null }],
     voice: [{ distanceAlongM: cut, text: 'Hajtson le a lehajtón' }],
   };
   const rest: NavStep = { ...target, startM: exitM, distanceM: target.distanceM - cut, durationS: target.durationS * (1 - cut / target.distanceM) };
