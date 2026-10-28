@@ -55,21 +55,23 @@ Gyökér: `npm test` és `npm run typecheck` minden csomagra; `npm run test:all`
 - `packages/data/README.md` – adatforrások, ODbL
 
 ## Mac-specifikus
-Hosszú futás alatt a gép ne aludjon: ezt a `.claude/settings.json` SessionStart/SessionEnd
-hookja intézi (`caffeinate -dims`, PID: `/tmp/atlagsebesseg-caffeinate.pid`).
+Hosszú futás alatt a gép ne aludjon: ezt a **globális** `~/.claude/settings.json`
+SessionStart/SessionEnd hookja intézi (`caffeinate -dims`, macOS-ellenőrzéssel, PID:
+`/tmp/claude-caffeinate.pid`). A SessionStart indítja (ha már fut, nem indít másikat), a
+SessionEnd leállítja.
 
-- A projekt-hook **csak akkor töltődik be, ha a session ebben a mappában indul** (CLI: `cd` ide,
-  majd `claude`; VS Code: ezt a mappát nyisd meg munkaterületként, ne a saját mappádat). A VS
-  Code-kiegészítő ugyanazokat a settings-fájlokat és hookokat olvassa, mint a CLI; a 2026-10-27-i
-  kimaradás oka az volt, hogy a session a `/Users/kristofhorvath` mappában indult, így a projekt
-  `.claude/settings.json`-ja be sem töltődött. A hook-beállítás változása új sessiontől érvényes.
+- A hook globális, ezért **minden sessionben fut, bármelyik mappából indul** (ez a projekt, a
+  saját mappa, BookMatch stb.). A projektnek nincs saját `.claude/settings.json`-ja, hogy a
+  `caffeinate` ne induljon kétszer. A hook-beállítás változása új sessiontől érvényes.
+- Több párhuzamos session egy PID-fájlon osztozik: az elsőként záruló session SessionEnd-je a
+  többinek is leállítja – ezért kell az ellenőrzés.
 - **Ellenőrzés** minden hosszú feladat elején: `pgrep -l caffeinate`.
-- **Tartalék**, ha üres (rossz munkaterület, vagy a hook nem futott): a Claude Code maga indítja
-  háttérben, és a feladat végén leállítja:
+- **Tartalék**, ha üres (a hook nem futott, vagy egy másik session vége leállította): a Claude
+  Code maga indítja háttérben, és a feladat végén leállítja:
   ```bash
-  nohup caffeinate -dims >/dev/null 2>&1 </dev/null & echo $! > /tmp/atlagsebesseg-caffeinate.pid
+  nohup caffeinate -dims >/dev/null 2>&1 </dev/null & echo $! > /tmp/claude-caffeinate.pid
   # a végén:
-  kill "$(cat /tmp/atlagsebesseg-caffeinate.pid)" && rm -f /tmp/atlagsebesseg-caffeinate.pid
+  kill "$(cat /tmp/claude-caffeinate.pid)" && rm -f /tmp/claude-caffeinate.pid
   ```
   Ha már fut egy `caffeinate`, nem indít másikat.
 
