@@ -1,0 +1,24 @@
+{
+  "name": "@atlagsebesseg/ios",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Natív iOS-app (SwiftUI, A9) – ez a csomag csak a generátorokat (tokenek, String Catalog, szimulátor-fixtúrák) és azok frissesség-tesztjét tartalmazza; az app XcodeGen-nel épül.",
+  "scripts": {
+    "generate": "tsx scripts/generate.ts",
+    "secrets": "sh scripts/secrets-from-web-env.sh",
+    "project": "xcodegen generate",
+    "test": "vitest run",
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "devDependencies": {
+    "@atlagsebesseg/app-logic": "*",
+    "@atlagsebesseg/core": "*",
+    "@atlagsebesseg/design-tokens": "*",
+    "@atlagsebesseg/web": "*",
+    "@types/node": "^22.20.5",
+    "tsx": "^4.20.0",
+    "typescript": "~6.0.3",
+    "vitest": "^4.0.0"
+  }
+}

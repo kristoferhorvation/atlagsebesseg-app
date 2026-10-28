@@ -9,11 +9,13 @@
   "sideEffects": false,
   "scripts": {
     "test": "vitest run",
-    "typecheck": "tsc -p tsconfig.json && tsc -p tsconfig.test.json"
+    "typecheck": "tsc -p tsconfig.json && tsc -p tsconfig.test.json",
+    "fixtures": "tsx scripts/export-fixtures.ts"
   },
   "devDependencies": {
     "@types/node": "^22.20.5",
     "typescript": "~6.0.3",
-    "vitest": "^4.0.0"
+    "vitest": "^4.0.0",
+    "tsx": "^4.20.0"
   }
 }

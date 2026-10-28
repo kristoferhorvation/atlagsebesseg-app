@@ -268,5 +268,8 @@
   "nav.offer.exit": "Lehajtó {km} km-nél · {n} perc megtakarítás",
   "nav.voice.fasterExit": "Gyorsabb út, lehajtó {km} kilométernél",
   "nav.offer.exitNamed": "Lehajtó: {name} · {km} km · {n} perc megtakarítás",
-  "nav.voice.fasterExit500": "Gyorsabb út, lehajtó 500 méternél"
+  "nav.voice.fasterExit500": "Gyorsabb út, lehajtó 500 méternél",
+  "ios.locationUsage": "A mérőszakaszok felismeréséhez és az átlagsebesség méréséhez kell a helyzeted – zárolt képernyővel is, amíg az app mér.",
+  "ios.geo.denied": "tiltva (Beállítások → Adatvédelem → Helymeghatározás)",
+  "ios.start.tip.background": "Zárolt képernyővel is mér – a kijelző mérés közben ébren marad"
 }

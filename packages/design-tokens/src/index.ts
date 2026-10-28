@@ -116,3 +116,85 @@ export function toCssVariables(): string {
   lines.push(`--motion-ease: ${motion.ease};`);
   return lines.join('\n');
 }
+
+// ---------------------------------------------------------------------------
+// Swift (iOS-app, A9)
+// ---------------------------------------------------------------------------
+
+/** `#RRGGBB` / `rgba(r,g,b,a)` → [r, g, b, a] (0…1). */
+export function parseColor(v: string): [number, number, number, number] {
+  const hex = /^#([0-9a-f]{6})$/i.exec(v);
+  if (hex) {
+    const n = parseInt(hex[1]!, 16);
+    return [(n >> 16) / 255, ((n >> 8) & 255) / 255, (n & 255) / 255, 1];
+  }
+  const rgba = /^rgba\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*,\s*([\d.]+)\s*\)$/.exec(v);
+  if (rgba) return [Number(rgba[1]) / 255, Number(rgba[2]) / 255, Number(rgba[3]) / 255, Number(rgba[4])];
+  throw new Error(`ismeretlen színformátum: ${v}`);
+}
+
+/** `0 24px 60px -12px rgba(…)` → x, y, elmosás, szórás, szín (a CSS-árnyék rétegei). */
+function parseShadow(v: string): { x: number; y: number; blur: number; spread: number; color: string }[] {
+  return v.split(/,(?![^(]*\))/).map((layer) => {
+    const m = /^\s*(-?\d+)(?:px)?\s+(-?\d+)(?:px)?\s+(-?\d+)(?:px)?(?:\s+(-?\d+)(?:px)?)?\s+(rgba\([^)]*\)|#[0-9a-f]{6})\s*$/i.exec(layer);
+    if (!m) throw new Error(`ismeretlen árnyék: ${layer}`);
+    return { x: Number(m[1]), y: Number(m[2]), blur: Number(m[3]), spread: Number(m[4] ?? 0), color: m[5]! };
+  });
+}
+
+const num = (n: number) => (Number.isInteger(n) ? `${n}` : `${Number(n.toFixed(6))}`);
+const swiftColor = (v: string) => {
+  const [r, g, b, a] = parseColor(v).map((x) => num(Number(x.toFixed(6))));
+  return `Color(.sRGB, red: ${r}, green: ${g}, blue: ${b}, opacity: ${a})`;
+};
+const swiftName = (k: string) => (/^\d/.test(k) ? `s${k}` : k);
+
+/**
+ * Swift-forrás az iOS-apphoz (`apps/ios/Atlagsebesseg/Generated/DesignTokens.swift`): ugyanazok az
+ * értékek, mint a CSS-változókban. Generálja: `npm run generate -w @atlagsebesseg/ios`.
+ */
+export function toSwift(): string {
+  const colorKey = (v: string) => Object.entries(color).find(([, c]) => c === v)?.[0];
+  const L: string[] = [
+    '// GENERÁLT FÁJL – kézzel ne szerkeszd.',
+    '// Forrás: packages/design-tokens/src/index.ts; újragenerálás: npm run generate -w @atlagsebesseg/ios',
+    '',
+    'import SwiftUI',
+    '',
+    '/// Dizájn-tokenek (DESIGN.md) – a webes CSS-változók Swift-megfelelője.',
+    'enum Tokens {',
+    '    enum Colors {',
+  ];
+  for (const [k, v] of Object.entries(color)) L.push(`        /// \`${v}\``, `        static let ${k} = ${swiftColor(v)}`);
+  L.push('    }', '', '    /// Státusz → szín (a nagy szám, a progress és az aktív szakasz vonala).', '    enum StatusColors {');
+  for (const [k, v] of Object.entries(statusColor)) {
+    const ref = colorKey(v);
+    L.push(`        static let ${swiftName(k)} = ${ref ? `Colors.${ref}` : swiftColor(v)}`);
+  }
+  L.push('    }', '', '    enum Typography {');
+  for (const [k, v] of Object.entries(type)) {
+    if (typeof v === 'number') L.push(`        static let ${k}: CGFloat = ${num(v)}`);
+    else L.push(`        static let ${k} = TypeStyle(size: ${num(v.size)}, weight: ${num(v.weight)}, lineHeight: ${num(v.lineHeight)}, tracking: ${num(v.tracking)})`);
+  }
+  L.push('    }', '', '    enum Space {');
+  for (const [k, v] of Object.entries(space)) L.push(`        static let ${swiftName(k)}: CGFloat = ${num(v)}`);
+  L.push('    }', '', '    enum Radius {');
+  for (const [k, v] of Object.entries(radius)) L.push(`        static let ${k}: CGFloat = ${num(v)}`);
+  L.push('    }', '', '    enum Size {');
+  for (const [k, v] of Object.entries(size)) L.push(`        static let ${k}: CGFloat = ${num(v)}`);
+  L.push('    }', '', '    enum Blur {');
+  for (const [k, v] of Object.entries(blur)) L.push(`        static let ${k}: CGFloat = ${num(v)}`);
+  L.push('    }', '', '    enum Shadow {');
+  for (const [k, v] of Object.entries(shadow)) {
+    const layers = parseShadow(v).map((s) => `ShadowLayer(x: ${s.x}, y: ${s.y}, blur: ${s.blur}, spread: ${s.spread}, color: ${swiftColor(s.color)})`);
+    L.push(`        static let ${k}: [ShadowLayer] = [`, ...layers.map((l) => `            ${l},`), '        ]');
+  }
+  L.push('    }', '', '    /// Másodpercben (a token ms-ben van).', '    enum Motion {');
+  for (const k of ['fast', 'base', 'slow', 'data'] as const) L.push(`        static let ${k}: Double = ${num(motion[k] / 1000)}`);
+  L.push(`        static let easePoints: (Double, Double, Double, Double) = (${motion.easePoints.map(num).join(', ')})`);
+  L.push('    }', '}', '', '/// Egy típus-lépcső: méret (pt), súly (100–900), sormagasság (szorzó), betűköz (em).');
+  L.push('struct TypeStyle {', '    let size: CGFloat', '    let weight: CGFloat', '    let lineHeight: CGFloat', '    let tracking: CGFloat', '}', '');
+  L.push('/// A CSS `box-shadow` egy rétege (`spread` SwiftUI-ban nem jeleníthető meg, csak tájékoztató).');
+  L.push('struct ShadowLayer {', '    let x: CGFloat', '    let y: CGFloat', '    let blur: CGFloat', '    let spread: CGFloat', '    let color: Color', '}', '');
+  return L.join('\n');
+}

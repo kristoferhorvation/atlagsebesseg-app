@@ -268,5 +268,8 @@
   "nav.offer.exit": "Abfahrt in {km} km · spart {n} Min.",
   "nav.voice.fasterExit": "Schnellere Route, Abfahrt in {km} Kilometern",
   "nav.offer.exitNamed": "Abfahrt: {name} · {km} km · spart {n} Min.",
-  "nav.voice.fasterExit500": "Schnellere Route, Abfahrt in 500 Metern"
+  "nav.voice.fasterExit500": "Schnellere Route, Abfahrt in 500 Metern",
+  "ios.locationUsage": "Dein Standort wird gebraucht, um Messabschnitte zu erkennen und deine Durchschnittsgeschwindigkeit zu messen – auch bei gesperrtem Bildschirm, solange die App misst.",
+  "ios.geo.denied": "verweigert (Einstellungen → Datenschutz → Ortungsdienste)",
+  "ios.start.tip.background": "Misst auch bei gesperrtem Bildschirm – während der Messung bleibt die Anzeige an"
 }

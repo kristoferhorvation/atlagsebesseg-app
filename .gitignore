@@ -27,3 +27,10 @@ supabase/.temp/
 
 # Hivatalos importok letöltési gyorsítótára (nyers források, Overpass-válaszok)
 packages/data/cache/
+
+# iOS-app (A9): a titkok és a generált Xcode-projekt nincs a repóban
+apps/ios/Secrets.xcconfig
+apps/ios/*.xcodeproj/
+apps/ios/build/
+apps/ios/DerivedData/
+xcuserdata/

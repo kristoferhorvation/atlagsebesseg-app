@@ -114,4 +114,6 @@ writeFileSync(new URL('icons/icon-maskable-512.png', out), png(512, icon({ maska
 // iOS maga kerekít: teljes kitöltésű háttér
 writeFileSync(new URL('apple-touch-icon.png', out), png(180, icon({ rounded: false })));
 writeFileSync(new URL('icons/favicon-32.png', out), png(32, icon()));
+// iOS-app (A9): 1024 px, teljes kitöltésű négyzet (az iOS maga kerekít)
+writeFileSync(new URL('../../ios/Atlagsebesseg/Resources/Assets.xcassets/AppIcon.appiconset/icon-1024.png', out), png(1024, icon({ rounded: false })));
 console.log('ikonok kész');

@@ -1,0 +1,88 @@
+{
+  "sourceLanguage" : "en",
+  "strings" : {
+    "CFBundleDisplayName" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Průměrná rychlost"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Durchschnittstempo"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Average Speed"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Átlagsebesség"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Średnia prędkość"
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Priemerná rýchlosť"
+          }
+        }
+      }
+    },
+    "NSLocationWhenInUseUsageDescription" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tvoje poloha je potřeba k rozpoznání úseků a měření průměrné rychlosti – i při zamčené obrazovce, dokud aplikace měří."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dein Standort wird gebraucht, um Messabschnitte zu erkennen und deine Durchschnittsgeschwindigkeit zu messen – auch bei gesperrtem Bildschirm, solange die App misst."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your location is needed to detect sections and measure your average speed – also with the screen locked while the app is measuring."
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A mérőszakaszok felismeréséhez és az átlagsebesség méréséhez kell a helyzeted – zárolt képernyővel is, amíg az app mér."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Twoja lokalizacja jest potrzebna do rozpoznawania odcinków i mierzenia średniej prędkości – także przy zablokowanym ekranie, dopóki aplikacja mierzy."
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tvoja poloha je potrebná na rozpoznanie úsekov a meranie priemernej rýchlosti – aj pri zamknutej obrazovke, kým appka meria."
+          }
+        }
+      }
+    }
+  },
+  "version" : "1.0"
+}

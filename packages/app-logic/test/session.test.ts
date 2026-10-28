@@ -1,12 +1,15 @@
 import { describe, expect, it } from 'vitest';
-import { drive, fixes, testCourse, toLatLon } from '@atlagsebesseg/core/test/helpers/trace';
+import { loadDrive, loadSections } from '@atlagsebesseg/core/test/helpers/fixtures';
+import { fixes } from '@atlagsebesseg/core/test/helpers/trace';
 import { TrackingSession, type SessionPhase } from '../src/session';
 
-/** Végigvezet a tesztpályán (rávezető + 10 km-es szakasz + kivezető) állandó sebességgel. */
-function run(speedKmh: number) {
-  const course = testCourse();
-  const samples = fixes(drive({ path: toLatLon(course.fullXY), speedKmh: () => speedKmh }));
-  return { course, samples };
+/** A tesztpálya (rávezető + 10 km-es szakasz + kivezető) a közös fixtúrákból – a Swift-app tesztjei is ezt futtatják. */
+const fx = loadSections();
+const testCourse = () => ({ section: fx.course, leadInM: fx.leadInM });
+
+/** Végigvezet a tesztpályán állandó sebességgel (`clean-<v>` fixtúra). */
+function run(speedKmh: 90 | 110 | 120 | 140) {
+  return { course: testCourse(), samples: fixes(loadDrive(`clean-${speedKmh}`)) };
 }
 
 describe('TrackingSession', () => {
@@ -34,9 +37,7 @@ describe('TrackingSession', () => {
   it('a színkód a várható végső átlagból jön, nem a pillanatnyiból', () => {
     // 5 km 150-nel, aztán 100-zal (határ 130): 6 km-nél a pillanatnyi átlag ~138, a várható végső ~120
     const course = testCourse();
-    const L = course.section.lengthM;
-    const speed = (s: number) => (s < course.leadInM + L / 2 ? 150 : 100);
-    const samples = fixes(drive({ path: toLatLon(course.fullXY), speedKmh: speed }));
+    const samples = fixes(loadDrive('split-150-100'));
     let t = 0;
     const session = new TrackingSession([course.section], { now: () => t });
     let at60 = null as ReturnType<TrackingSession['view']> | null;

@@ -1,20 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import { SectionTracker, type TrackerSnapshot, type TrackerState } from '../src/tracker';
 import type { GpsFix, Section } from '../src/types';
-import {
-  concat,
-  drive,
-  fixes,
-  line,
-  offset,
-  reverseXY,
-  testCourse,
-  toLatLon,
-  trueTimeAt,
-  type DriveSample,
-} from './helpers/trace';
+import { loadDrive, loadSections } from './helpers/fixtures';
+import { fixes, trueTimeAt, type DriveSample } from './helpers/trace';
 
-const course = testCourse();
+// A pálya, a szakaszok és a vezetések a közös fixtúrákból (packages/core/fixtures) – a Swift-port is ezeket futtatja.
+const fx = loadSections();
+const course = { section: fx.course, leadInM: fx.leadInM };
 const L = course.section.lengthM;
 const IN = course.leadInM;
 
@@ -36,7 +28,7 @@ function snapAt(samples: DriveSample[], snaps: TrackerSnapshot[], s: number): Tr
 }
 
 describe('SectionTracker – normál áthaladás', () => {
-  const samples = drive({ path: toLatLon(course.fullXY), speedKmh: () => 120, noiseM: 4, seed: 7 });
+  const samples = loadDrive('normal-120');
   const { states, last, snaps } = run([course.section], fixes(samples));
 
   it('állapotok: kozeledik → szakaszon → kesz', () => {
@@ -88,10 +80,7 @@ describe('SectionTracker – normál áthaladás', () => {
 
 describe('SectionTracker – gyorsítás a végén', () => {
   // 8 km 125 km/h, majd az utolsó 2 km 160 km/h → átlag ≈ 130,72 km/h
-  const samples = drive({
-    path: toLatLon(course.fullXY),
-    speedKmh: (s) => (s < IN + 8000 ? 125 : 160),
-  });
+  const samples = loadDrive('accel-125-160');
   const { last, snaps } = run([course.section], fixes(samples));
 
   it('a végeredmény határ feletti', () => {
@@ -110,7 +99,7 @@ describe('SectionTracker – gyorsítás a végén', () => {
   });
 
   it('végig 160 km/h-val a végén "nem lehetséges"', () => {
-    const fast = drive({ path: toLatLon(course.fullXY), speedKmh: () => 160 });
+    const fast = loadDrive('const-160');
     const r = run([course.section], fixes(fast));
     const snap = snapAt(fast, r.snaps, IN + 9300);
     expect(snap.live!.required.kind).toBe('nem_lehetseges');
@@ -119,7 +108,7 @@ describe('SectionTracker – gyorsítás a végén', () => {
 
   it('a "nem lehetséges" küszöb a határ 60%-a (130 → 78 km/h), és konfigurálható', () => {
     // 160 km/h mellett a megengedett sebesség ≈ 7,8 km-nél esik 78 km/h alá (60 km/h alá csak ≈ 8,6 km-nél)
-    const fast = drive({ path: toLatLon(course.fullXY), speedKmh: () => 160 });
+    const fast = loadDrive('const-160');
     const def = run([course.section], fixes(fast));
     expect(snapAt(fast, def.snaps, IN + 7600).live!.required.kind).toBe('ok');
     expect(snapAt(fast, def.snaps, IN + 8200).live!.required.kind).toBe('nem_lehetseges');
@@ -131,14 +120,7 @@ describe('SectionTracker – gyorsítás a végén', () => {
 
 describe('SectionTracker – alagút és GPS-ugrás', () => {
   // 2 km kiesés a kanyar közepén (az egyenes húr itt alábecsülné az utat)
-  const samples = drive({
-    path: toLatLon(course.fullXY),
-    speedKmh: () => 120,
-    noiseM: 4,
-    seed: 3,
-    dropRanges: [[IN + 5000, IN + 7000]],
-    jumpAt: [200, 201, 330],
-  });
+  const samples = loadDrive('tunnel-120');
   const fs = fixes(samples);
   const { states, last, tracker } = run([course.section], fs);
 
@@ -185,22 +167,20 @@ describe('SectionTracker – alagút és GPS-ugrás', () => {
 describe('SectionTracker – ellenirány', () => {
   it('az ellenirányú pályán (25 m-re) nem lép be', () => {
     // A másik pálya: a teljes útvonal megfordítva, a menetiránytól jobbra 25 m-rel
-    const opposite = offset(reverseXY(course.fullXY), 25);
-    const samples = drive({ path: toLatLon(opposite), speedKmh: () => 120, noiseM: 3 });
+    const samples = loadDrive('opposite-25m-noise3');
     const { states, snaps } = run([course.section], fixes(samples));
     expect(states).toEqual([]);
     expect(snaps.every((s) => s.state === 'nincs_szakasz')).toBe(true);
   });
 
   it('irányszög nélkül is (csak a pozíciókból) kiszűri', () => {
-    const opposite = offset(reverseXY(course.fullXY), 25);
-    const samples = drive({ path: toLatLon(opposite), speedKmh: () => 120 });
+    const samples = loadDrive('opposite-25m');
     const fs = fixes(samples).map((f) => ({ ...f, heading: null, speed: null }));
     expect(run([course.section], fs).states).toEqual([]);
   });
 
   it('irányszög nélkül a helyes irányban belép', () => {
-    const samples = drive({ path: toLatLon(course.fullXY), speedKmh: () => 120 });
+    const samples = loadDrive('clean-120');
     const fs = fixes(samples).map((f) => ({ ...f, heading: null, speed: null }));
     const r = run([course.section], fs);
     expect(r.states).toEqual(['kozeledik', 'szakaszon', 'kesz']);
@@ -210,16 +190,14 @@ describe('SectionTracker – ellenirány', () => {
 
 describe('SectionTracker – párhuzamos út és letérés', () => {
   it('a 150 m-re futó párhuzamos úton nem lép be', () => {
-    const parallel = offset(course.fullXY, 150);
-    const samples = drive({ path: toLatLon(parallel), speedKmh: () => 90, noiseM: 4 });
+    const samples = loadDrive('parallel-150m');
     const { states } = run([course.section], fixes(samples));
     expect(states).not.toContain('szakaszon');
     expect(states).toEqual([]);
   });
 
   it('a 60 m-re futó szervizúton közeledést jelezhet, de nem lép be', () => {
-    const parallel = offset(course.fullXY, 60);
-    const samples = drive({ path: toLatLon(parallel), speedKmh: () => 90 });
+    const samples = loadDrive('parallel-60m');
     const { states, last } = run([course.section], fixes(samples));
     expect(states).not.toContain('szakaszon');
     expect(last.state).toBe('nincs_szakasz');
@@ -227,8 +205,7 @@ describe('SectionTracker – párhuzamos út és letérés', () => {
 
   it('letérés a szakasz közepén → megszakadt (letert)', () => {
     // 4 km után kihajt kelet felé
-    const exitPath = concat(course.leadIn, line({ x: 0, y: 0 }, { x: 0, y: 4000 }), line({ x: 0, y: 4000 }, { x: 150, y: 4300 }), line({ x: 150, y: 4300 }, { x: 2000, y: 4400 }));
-    const samples = drive({ path: toLatLon(exitPath), speedKmh: () => 100, noiseM: 3 });
+    const samples = loadDrive('exit-at-4km');
     const { states, last } = run([course.section], fixes(samples));
     // a megszakadt állapot 60 s-ig látszik, utána nincs_szakasz
     expect(states).toEqual(['kozeledik', 'szakaszon', 'megszakadt', 'nincs_szakasz']);
@@ -239,36 +216,17 @@ describe('SectionTracker – párhuzamos út és letérés', () => {
 
 describe('SectionTracker – speciális esetek', () => {
   it('egymás utáni szakaszok: kesz után azonnal szakaszon', () => {
-    const R = 3000;
     const first = course.section;
-    const endXY = course.sectionXY[course.sectionXY.length - 1]!;
-    const nextXY = line(endXY, { x: endXY.x + 5000, y: endXY.y });
-    const nextPts = toLatLon(nextXY);
-    const second: Section = {
-      ...first,
-      id: 'TEST-2',
-      start: nextPts[0]!,
-      end: nextPts[nextPts.length - 1]!,
-      lengthM: 5000,
-      geometry: nextPts,
-    };
-    const path = toLatLon(concat(course.leadIn, course.sectionXY, nextXY, line({ x: endXY.x + 5000, y: endXY.y }, { x: endXY.x + 6000, y: endXY.y })));
-    const samples = drive({ path, speedKmh: () => 110 });
+    const second: Section = fx.second;
+    const samples = loadDrive('consecutive-110');
     const { states, last } = run([first, second], fixes(samples));
     expect(states).toEqual(['kozeledik', 'szakaszon', 'kesz', 'szakaszon', 'kesz']);
     expect(last.lastResult!.sectionId).toBe('TEST-2');
     expect(last.lastResult!.averageKmh).toBeCloseTo(110, 0);
-    void R;
   });
 
   it('dugó: 2 perc állás a szakaszon (zajos fixekkel) nem szakítja meg', () => {
-    const samples = drive({
-      path: toLatLon(course.fullXY),
-      speedKmh: () => 100,
-      pauses: [{ atS: IN + 3000, durationMs: 120_000 }],
-      noiseM: 6,
-      seed: 11,
-    });
+    const samples = loadDrive('jam-100');
     const { states, last } = run([course.section], fixes(samples));
     expect(states.slice(0, 3)).toEqual(['kozeledik', 'szakaszon', 'kesz']);
     const r = last.lastResult!;
@@ -278,7 +236,7 @@ describe('SectionTracker – speciális esetek', () => {
   });
 
   it('az app a kapuzónán belül indul: belép, a belépési idő visszaszámolt', () => {
-    const samples = drive({ path: toLatLon(course.fullXY), speedKmh: () => 120 });
+    const samples = loadDrive('clean-120');
     const fs = fixes(samples).filter((_, i) => samples[i]!.s >= IN + 50);
     const { states, last } = run([course.section], fs);
     expect(states[0]).toBe('szakaszon');
@@ -286,22 +244,20 @@ describe('SectionTracker – speciális esetek', () => {
   });
 
   it('kapuzónán túl indulva nem lép be (nincs megbízható kezdés)', () => {
-    const samples = drive({ path: toLatLon(course.fullXY), speedKmh: () => 120 });
+    const samples = loadDrive('clean-120');
     const fs = fixes(samples).filter((_, i) => samples[i]!.s >= IN + 1000);
     expect(run([course.section], fs).states).toEqual([]);
   });
 
   it('geometria nélküli (egyenes) szakasz is működik', () => {
-    const pts = toLatLon(line({ x: 0, y: 0 }, { x: 0, y: 6000 }));
-    const straight: Section = { ...course.section, id: 'S', geometry: undefined, start: pts[0]!, end: pts[pts.length - 1]!, lengthM: 6000 };
-    const path = toLatLon(line({ x: 0, y: -2500 }, { x: 0, y: 7000 }));
-    const samples = drive({ path, speedKmh: () => 130 });
+    const straight: Section = fx.straight;
+    const samples = loadDrive('straight-130');
     const { last } = run([straight], fixes(samples));
     expect(last.lastResult!.averageKmh).toBeCloseTo(130, 0);
   });
 
   it('setSections menet közben: a futó mérés megmarad, az új szakaszok felismerhetők', () => {
-    const samples = drive({ path: toLatLon(course.fullXY), speedKmh: () => 120 });
+    const samples = loadDrive('clean-120');
     const fs = fixes(samples);
     const t = new SectionTracker([]);
     const half = Math.floor(fs.length / 2);
@@ -311,7 +267,7 @@ describe('SectionTracker – speciális esetek', () => {
     for (const f of fs.slice(50, half)) t.update(f);
     expect(t.currentState).toBe('szakaszon');
     // újabb frissítés (új objektumok, plusz egy másik szakasz) – nem szakíthatja meg
-    t.setSections([{ ...course.section }, { ...course.section, id: 'MASIK', start: toLatLon([{ x: 50_000, y: 0 }])[0]! }]);
+    t.setSections([{ ...course.section }, { ...course.section, id: 'MASIK', start: fx.farStart }]);
     let last = t.snapshot(0);
     for (const f of fs.slice(half)) last = t.update(f);
     expect(last.lastResult?.sectionId).toBe('TEST-1');
@@ -320,7 +276,7 @@ describe('SectionTracker – speciális esetek', () => {
 
   it('reset után tiszta állapot', () => {
     const t = new SectionTracker([course.section]);
-    for (const f of fixes(drive({ path: toLatLon(course.fullXY), speedKmh: () => 120 })).slice(0, 150)) t.update(f);
+    for (const f of fixes(loadDrive('clean-120')).slice(0, 150)) t.update(f);
     expect(t.currentState).toBe('szakaszon');
     t.reset();
     expect(t.snapshot(0)).toMatchObject({ state: 'nincs_szakasz', section: null, live: null, lastResult: null });
@@ -329,7 +285,7 @@ describe('SectionTracker – speciális esetek', () => {
 
 describe('SectionTracker – robusztusság', () => {
   it.each(Array.from({ length: 20 }, (_, i) => i + 1))('8 m GPS-zaj, seed %i: kész, átlag ±0,5 km/h', (seed) => {
-    const samples = drive({ path: toLatLon(course.fullXY), speedKmh: (s) => 110 + 15 * Math.sin(s / 700), noiseM: 8, accuracy: 10, seed });
+    const samples = loadDrive(`robust-seed-${String(seed).padStart(2, '0')}`);
     const { last } = run([course.section], fixes(samples));
     expect(last.lastResult).not.toBeNull();
     const expected = (L / ((trueTimeAt(samples, IN + L) - trueTimeAt(samples, IN)) / 1000)) * 3.6;

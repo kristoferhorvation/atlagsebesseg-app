@@ -268,5 +268,8 @@
   "nav.offer.exit": "Zjazd o {km} km · úspora {n} min",
   "nav.voice.fasterExit": "Rýchlejšia trasa, zjazd o {km} kilometrov",
   "nav.offer.exitNamed": "Zjazd: {name} · {km} km · úspora {n} min",
-  "nav.voice.fasterExit500": "Rýchlejšia trasa, zjazd o 500 metrov"
+  "nav.voice.fasterExit500": "Rýchlejšia trasa, zjazd o 500 metrov",
+  "ios.locationUsage": "Tvoja poloha je potrebná na rozpoznanie úsekov a meranie priemernej rýchlosti – aj pri zamknutej obrazovke, kým appka meria.",
+  "ios.geo.denied": "zamietnuté (Nastavenia → Súkromie → Polohové služby)",
+  "ios.start.tip.background": "Meria aj pri zamknutej obrazovke – počas merania displej nezhasne"
 }

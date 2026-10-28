@@ -1,5 +1,5 @@
 /** Egységes, 24 × 24-es vonalikonok (stroke 2, kerek végek). */
-const PATHS = {
+export const PATHS = {
   report: ['M12 3.5 2.8 19.5h18.4L12 3.5z', 'M12 10v4', 'M12 17v.01'],
   stopwatch: ['M12 21a8 8 0 1 0 0-16 8 8 0 0 0 0 16z', 'M12 9v4l2.5 2', 'M9.5 2.5h5', 'M19 6.5l1.5-1.5'],
   sliders: ['M4 7h9', 'M19 7h1', 'M16 9.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5z', 'M4 17h3', 'M13 17h7', 'M10 19.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5z'],

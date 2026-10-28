@@ -1,18 +1,22 @@
 # Átlagsebesség-app – Claude Code útmutató
 
 ## Mi ez
-Szekciókontroll-(átlagsebesség-)mérő app, Kristof és apja ötlete. Először web PWA, később natív
-(Expo). Az app méri az átlagsebességet a szakaszokon, és jelzi a határhoz képesti helyzetet.
+Szekciókontroll-(átlagsebesség-)mérő app, Kristof és apja ötlete. Először web PWA, A9-től natív
+**SwiftUI iPhone-app** (Androidot nem célzunk). Az app méri az átlagsebességet a szakaszokon, és
+jelzi a határhoz képesti helyzetet. **Új funkció innentől a Swift-appba megy**; a web (`apps/web`)
+hibajavítás szintjén marad.
 
 ## Monorepo-térkép
 | Mappa | Szerep | Fő parancs |
 |---|---|---|
-| `packages/core` | Függőségmentes mérőmotor (szakasz-felismerés, átlag, tűrés, napállás) | `npm test -w @atlagsebesseg/core` |
+| `packages/core` | Függőségmentes mérőmotor (szakasz-felismerés, átlag, tűrés, napállás) | `npm test -w @atlagsebesseg/core`, `npm run fixtures -w @atlagsebesseg/core` |
+| `packages/core-swift` | A core 1:1 Swift-portja (`AtlagsebessegCore`), közös fixtúrákkal | `swift test` (a mappában) |
 | `packages/data` | OSM-import, HU kézi lista, kamerák, tervezett mérések, edge-bundle, feltöltő | `npm run import:sections`, `npm run import:cameras`, `npm run planned:fetch`, `npm run build:edge` |
 | `packages/app-logic` | Közös app-logika (cache, kapuk, Supabase, mérés-munkamenet) | `npm test -w @atlagsebesseg/app-logic` |
 | `packages/design-tokens` | Platformfüggetlen dizájn-tokenek, CSS-változók | `npm test -w @atlagsebesseg/design-tokens` |
-| `apps/web` | Web PWA (Vite + React, mapbox-gl) | `npm run dev -w @atlagsebesseg/web` |
-| `apps/mobile` | Expo-váz, **parkoltatva** | `npm run typecheck -w @atlagsebesseg/mobile` |
+| `apps/ios` | Natív iPhone-app (SwiftUI, XcodeGen, Mapbox, supabase-swift) | lásd lent: **iOS** |
+| `apps/web` | Web PWA (Vite + React, mapbox-gl) – csak hibajavítás | `npm run dev -w @atlagsebesseg/web` |
+| `apps/mobile` | Expo-váz, **parkoltatva** (az A9 óta a SwiftUI-app a natív irány) | `npm run typecheck -w @atlagsebesseg/mobile` |
 | `supabase/` | Migrációk, edge function, SQL-tesztek | `npm run db:test:local`, `npm run test:edge` |
 
 Gyökér: `npm test` és `npm run typecheck` minden csomagra; `npm run test:all` a teljes lánc
@@ -34,6 +38,28 @@ Gyökér: `npm test` és `npm run typecheck` minden csomagra; `npm run test:all`
   `packages/app-logic/src/i18n/<nyelv>.json` szótárba kerül, **mind a 6 nyelven** (hu, en, de, sk, cs, pl),
   és `t('kulcs', {param})`-mal kérjük. A teszt bukik, ha egy kulcs bárhonnan hiányzik, és a webes őr
   (`apps/web/test/i18n-guard.test.ts`) ékezetes magyar szöveget keres a kódban.
+
+## iOS (A9)
+- **XcodeGen**: a projekt forrása az `apps/ios/project.yml`; az `Atlagsebesseg.xcodeproj` generált és
+  gitignore-olt (`cd apps/ios && xcodegen generate`). Kézzel az Xcode-ban ne állíts projektbeállítást –
+  a `project.yml`-be kerül, különben a következő generálás felülírja.
+- **Titkok xcconfig-ból**: `apps/ios/Secrets.xcconfig` (gitignore; minta: `Secrets.example.xcconfig`;
+  kitöltés az `apps/web/.env` nyilvános kulcsaiból: `npm run secrets -w @atlagsebesseg/ios`, értéket nem
+  ír ki). Csak nyilvános kulcs (Mapbox `pk.`, Supabase anon) kerülhet bele, service_role soha.
+  xcconfig-ban a `//` megjegyzés: URL-ben `https:/$()/…`.
+- **Generált fájlok** (`npm run generate -w @atlagsebesseg/ios`, a `npm test` ellenőrzi a frissességet):
+  `DesignTokens.swift` (packages/design-tokens), `Localizable.xcstrings` + `InfoPlist.xcstrings` +
+  `L10nKey.swift` (a 6 nyelvű szótár), `Icons.swift` (a webes Icon.tsx), `Resources/Sim/*.json` (a webes
+  szimulátor). Kézzel nem szerkesztjük őket; szótár- vagy tokenváltozás után újra kell generálni.
+- **Felirat az iOS-en is csak a szótárba**: a nézetekben `t(.kulcs, ["x": …])`; az AppTests őre bukik,
+  ha ékezetes szöveg vagy `Text("…")`-szerű literál van a kódban (a `Sim/` kivétel).
+- **core-swift paritási szabály**: core-változás **mindkét nyelvben** (TS + Swift) ugyanabban a körben,
+  és a tesztje a **közös fixtúrán** (`packages/core/fixtures`, leírás: `test/helpers/fixtureSpecs.ts`,
+  kiírás: `npm run fixtures -w @atlagsebesseg/core`). Egy TS `it` = egy Swift `@Test`, azonos névvel.
+- Ellenőrzés commit előtt (iOS-t érintő változásnál): `xcodebuild test` (AppTests + core-swift a sémában)
+  szimulátoron, és `xcodebuild build -destination 'generic/platform=iOS' CODE_SIGNING_ALLOWED=NO`.
+- Szimulátor: a gépen az iOS 27.1 runtime csak az „iPhone Duo”-t támogatja (szabványos iPhone-hoz
+  külön runtime-letöltés kellene); a tesztek és a képernyőképek ezen futnak.
 
 ## Kör-rendszer
 - Minden prompt „A<n> kör”-rel kezdődik; minden commit-üzenet `A<n>: ...` prefixű.

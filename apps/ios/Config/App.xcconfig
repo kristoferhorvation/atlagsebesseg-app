@@ -1,0 +1,7 @@
+// Közös beállítások (A9). A titkok a gitignore-olt Secrets.xcconfig-ban vannak – minta: Secrets.example.xcconfig.
+// Ha hiányzik, az app térkép és szerver nélkül, a beépített adattal fut.
+MAPBOX_ACCESS_TOKEN =
+SUPABASE_URL =
+SUPABASE_ANON_KEY =
+
+#include? "../Secrets.xcconfig"
