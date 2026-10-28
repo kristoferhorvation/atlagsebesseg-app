@@ -264,5 +264,7 @@
   "nav.voice.sectionAhead": "Szakaszellenőrzés kezdődik, maximum {x}",
   "nav.voice.tooFast": "Túl gyors vagy, lassíts",
   "nav.voice.rerouting": "Újratervezés",
-  "nav.voice.faster": "Gyorsabb út, {n} perc megtakarítás"
+  "nav.voice.faster": "Gyorsabb út, {n} perc megtakarítás",
+  "nav.offer.exit": "Lehajtó {km} km-nél · {n} perc megtakarítás",
+  "nav.voice.fasterExit": "Gyorsabb út, lehajtó {km} kilométernél"
 }

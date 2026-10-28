@@ -264,5 +264,7 @@
   "nav.voice.sectionAhead": "Abschnittskontrolle beginnt, maximal {x}",
   "nav.voice.tooFast": "Zu schnell, bitte langsamer",
   "nav.voice.rerouting": "Neuberechnung",
-  "nav.voice.faster": "Schnellere Route, spart {n} Min."
+  "nav.voice.faster": "Schnellere Route, spart {n} Min.",
+  "nav.offer.exit": "Abfahrt in {km} km · spart {n} Min.",
+  "nav.voice.fasterExit": "Schnellere Route, Abfahrt in {km} Kilometern"
 }

@@ -1,4 +1,4 @@
-import { angleDiffDeg, Route, type LatLon, type Section } from '@atlagsebesseg/core';
+import { angleDiffDeg, haversineM, Route, type LatLon, type Section } from '@atlagsebesseg/core';
 import { cameraVisibility, type FixedCamera } from '../cameras';
 import { onPlannedCheck, plannedCheckActive, type PlannedCheck } from '../plannedChecks';
 import { NAV_CONFIG } from './config';
@@ -145,3 +145,24 @@ export function routeOverlap(a: NavRoute, b: NavRoute, bandM = 60): number {
   return n ? hit / n : 0;
 }
 
+
+/**
+ * Az alternatíva leágazási pontja: az első pontja, amely a jelenlegi útvonaltól `thresholdM`-nél
+ * távolabb esik. Visszaadja az alternatíva mentén mért távolságot a kezdőpontjától (az alternatívát
+ * a jelenlegi pozícióról kérjük, tehát ez a távolság a pozíciótól számít); `null`, ha végig egyezik.
+ */
+export function divergenceM(current: Route, alt: NavRoute, thresholdM = 30, stepM = 40): number | null {
+  let acc = 0;
+  let since = stepM;
+  for (let i = 0; i < alt.points.length; i++) {
+    if (i > 0) {
+      const seg = haversineM(alt.points[i - 1]!, alt.points[i]!);
+      acc += seg;
+      since += seg;
+    }
+    if (since < stepM) continue;
+    since = 0;
+    if (current.project(alt.points[i]!).crossM > thresholdM) return acc;
+  }
+  return null;
+}

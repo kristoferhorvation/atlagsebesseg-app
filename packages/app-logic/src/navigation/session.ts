@@ -1,11 +1,11 @@
 import { Route, type GpsFix, type LatLon } from '@atlagsebesseg/core';
 import { speedIn, type SpeedStatus } from '../display';
-import { t } from '../i18n';
+import { formatNumber, t } from '../i18n';
 import type { SpeedUnit } from '../settings';
 import type { RouteFetcher } from './client';
 import { NAV_CONFIG, type NavConfig } from './config';
 import { limitAt } from './directions';
-import { adjustedDurations, cumulative, NO_ENFORCEMENT_DATA, remainingSeconds, routeEnforcement, routeOverlap, type EnforcementData } from './enforcement';
+import { adjustedDurations, cumulative, divergenceM, NO_ENFORCEMENT_DATA, remainingSeconds, routeEnforcement, routeOverlap, type EnforcementData } from './enforcement';
 import { maneuverIcon, type ManeuverIcon } from './maneuver';
 import type { EnforcementItem, NavDestination, NavRoute, NavStep } from './types';
 
@@ -34,6 +34,14 @@ export interface AlternativeOffer {
   /** Nyereség a jelenlegi útvonalhoz képest (s). */
   gainS: number;
   expiresAt: number;
+  /** A leágazás helye az aktuális útvonal mentén (m). */
+  exitAlongM: number;
+  /** A leágazásig hátralévő távolság (m) – a nézetben élőben számolva. */
+  exitInM: number;
+  /** Ugyanez km-ben, a nyelv tizedesjelével (a feliratokhoz). */
+  exitKm: string;
+  /** Mérés közben megjelenő, kompakt forma. */
+  compact: boolean;
 }
 
 export interface NavView {
@@ -111,7 +119,7 @@ export class NavigationSession {
   private altPending = false;
   private offer: AlternativeOffer | null = null;
   /** Mérés közben visszatartott ajánlat: a mérés végén jelenik meg, friss lejárati idővel. */
-  private held: { route: NavRoute; gainS: number } | null = null;
+  private held: { route: NavRoute; gainS: number; exitAlongM: number } | null = null;
   private measuring = false;
   private readonly declined = new Set<string>();
 
@@ -179,8 +187,8 @@ export class NavigationSession {
   setMeasuring(measuring: boolean): void {
     if (measuring === this.measuring) return;
     this.measuring = measuring;
-    if (measuring && this.offer) {
-      this.held = { route: this.offer.route, gainS: this.offer.gainS };
+    if (measuring && this.offer && !this.exitBeforeSectionEnd(this.offer.exitAlongM)) {
+      this.held = { route: this.offer.route, gainS: this.offer.gainS, exitAlongM: this.offer.exitAlongM };
       this.offer = null;
     } else if (!measuring && this.held) {
       const h = this.held;
@@ -248,6 +256,9 @@ export class NavigationSession {
     }
 
     if (this.offer && t0 >= this.offer.expiresAt) this.declineOffer();
+    // a leágazást elhagytuk: az ajánlat érvénytelen
+    if (this.offer && this.along > this.offer.exitAlongM + 50) this.offer = null;
+    if (this.held && this.along > this.held.exitAlongM + 50) this.held = null;
 
     // alternatíva-figyelés: 2 percenként, ha minden rendben
     if (
@@ -256,7 +267,7 @@ export class NavigationSession {
       !this.altPending &&
       this.offSince === null &&
       this.offer === null &&
-      this.held === null &&
+      (this.held === null || this.measuring) &&
       t0 - this.lastAltAt >= this.cfg.altCheckEveryMs &&
       this.canRoute(t0, this.lastCallAt, this.cfg.directionsMinGapMs)
     ) {
@@ -342,17 +353,34 @@ export class NavigationSession {
       }
     }
     if (!best) return;
-    this.present(best);
+    const d = divergenceM(this.core, best.route) ?? 0;
+    this.present({ ...best, exitAlongM: this.along + d });
+  }
+
+  /** A mérés alatt álló szakasz végkapuja előtt van-e a leágazás (kézi mérésnél nincs végkapu → nem). */
+  private exitBeforeSectionEnd(exitAlongM: number): boolean {
+    const sec = this.items.find((i) => i.kind === 'section' && i.startM <= this.along && this.along <= i.endM);
+    return sec !== undefined && exitAlongM < sec.endM;
   }
 
   /** Az ajánlat megjelenítése (és bemondása); mérés közben visszatartjuk. */
-  private present(best: { route: NavRoute; gainS: number }): void {
-    if (this.measuring) {
+  private present(best: { route: NavRoute; gainS: number; exitAlongM: number }): void {
+    if (this.measuring && !this.exitBeforeSectionEnd(best.exitAlongM)) {
       this.held = best;
       return;
     }
-    this.offer = { id: `offer-${++this.voiceSeq}`, route: best.route, gainS: best.gainS, expiresAt: this.clock() + this.cfg.offerTtlMs };
-    this.say('faster', t('nav.voice.faster', { n: Math.max(1, Math.round(best.gainS / 60)) }));
+    this.offer = { id: `offer-${++this.voiceSeq}`, route: best.route, gainS: best.gainS, exitAlongM: best.exitAlongM, exitInM: 0, exitKm: '', compact: false, expiresAt: this.clock() + this.cfg.offerTtlMs };
+    if (this.measuring) this.say('faster', t('nav.voice.fasterExit', { km: this.exitKm(best.exitAlongM - this.along) }));
+    else this.say('faster', t('nav.voice.faster', { n: Math.max(1, Math.round(best.gainS / 60)) }));
+  }
+
+  private offerView(o: AlternativeOffer): AlternativeOffer {
+    const exitInM = Math.max(0, o.exitAlongM - this.along);
+    return { ...o, exitInM, exitKm: this.exitKm(exitInM), compact: this.measuring };
+  }
+
+  private exitKm(m: number): string {
+    return formatNumber(Math.max(0, m) / 1000, { minimumFractionDigits: 1, maximumFractionDigits: 1, useGrouping: false });
   }
 
   acceptOffer(): void {
@@ -495,7 +523,7 @@ export class NavigationSession {
       enforcement: this.items,
       offRoute: this.offSince !== null && this.cross > this.cfg.offRouteM,
       rerouting: this.rerouting,
-      offer: this.offer,
+      offer: this.offer ? this.offerView(this.offer) : null,
       rerouteFailed: this.rerouteFailed,
     };
     return this.cached;

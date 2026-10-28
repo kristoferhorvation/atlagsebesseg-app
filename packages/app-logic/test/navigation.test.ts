@@ -396,11 +396,16 @@ describe('alternatíva-figyelés', () => {
     expect(offer).not.toBeNull();
   });
 
-  it('mérés közben nincs ajánlat; a mérés végén jelenik meg, onnan 45 mp', async () => {
+  /** Az alternatíva az `k`-adik 100 m-es ponttól tér le az útvonalról. */
+  const branching = (k: number): NavRoute => {
+    const alt = scaleDurations(lineRoute({ lengthM: 42_000, durationS: 1800, id: 'alt' }), 1200, 'alt');
+    return { ...alt, points: alt.points.map((p, i) => (i >= k ? { lat: p.lat + 0.003, lon: p.lon } : p)) };
+  };
+
+  it('kézi mérés közben nincs ajánlat; a mérés végén jelenik meg, onnan 45 mp', async () => {
     const route = lineRoute({ lengthM: 40_000, durationS: 1800 });
-    const alt = scaleDurations(lineRoute({ lengthM: 42_000, durationS: 1800, id: 'alt' }), 1200, 'alt', 0.003);
     const h = harness(route);
-    h.respond([route, alt]);
+    h.respond([route, branching(30)]);
     h.session.setMeasuring(true);
     feed(h, at(route, 500, 0, T0 + 120_000));
     await flush();
@@ -414,6 +419,46 @@ describe('alternatíva-figyelés', () => {
     expect(offer).not.toBeNull();
     expect(offer!.expiresAt).toBe(T0 + 400_000 + NAV_CONFIG.offerTtlMs);
     expect(h.session.drainVoice().some((v) => v.kind === 'faster')).toBe(true);
+  });
+
+  async function measuringWith(sectionToM: number, branchK: number) {
+    const route = lineRoute({ lengthM: 40_000, durationS: 1800 });
+    const h = harness(route);
+    h.session.setData({ sections: [makeSection(route, 400, sectionToM)], cameras: [], planned: [] });
+    h.respond([route, branching(branchK)]);
+    h.session.setMeasuring(true);
+    feed(h, at(route, 500, 0, T0 + 120_000));
+    await flush();
+    return h;
+  }
+
+  it('mérés közben: a leágazás a szakasz vége előtt → azonnal, kompakt ajánlat lehajtó-távolsággal', async () => {
+    const h = await measuringWith(3000, 10);
+    const offer = h.session.view().offer;
+    expect(offer).not.toBeNull();
+    expect(offer!.compact).toBe(true);
+    expect(offer!.exitInM).toBeGreaterThan(500);
+    expect(offer!.exitInM).toBeLessThan(1500);
+    expect(offer!.expiresAt).toBe(T0 + 120_000 + NAV_CONFIG.offerTtlMs);
+    const voice = h.session.drainVoice().filter((v) => v.kind === 'faster');
+    expect(voice).toHaveLength(1);
+    expect(voice[0]!.text).toContain(offer!.exitKm);
+    // a mérés végén a forma nem kompakt, az ajánlat marad
+    h.session.setMeasuring(false);
+    expect(h.session.view().offer!.compact).toBe(false);
+  });
+
+  it('mérés közben: a leágazás a szakasz vége után → visszatartva, a mérés végén jelenik meg', async () => {
+    const h = await measuringWith(800, 20);
+    expect(h.session.view().offer).toBeNull();
+    h.session.setMeasuring(false);
+    expect(h.session.view().offer).not.toBeNull();
+  });
+
+  it('a leágazást elhagyva az ajánlat eltűnik', async () => {
+    const h = await measuringWith(3000, 10);
+    feed(h, at(lineRoute({ lengthM: 40_000 }), 1900, 0, T0 + 130_000));
+    expect(h.session.view().offer).toBeNull();
   });
 
   it('elfogadás: az alternatíva veszi át; elvetés: ugyanaz nem jön vissza', async () => {

@@ -545,7 +545,7 @@ function Drive({ map }: { map: WebMapAdapter }) {
         {view.phase === 'meres' && <SlowDown view={view} unit={settings.egyseg} />}
         {/* a HUD fölött lebeg (nem változtat a magasságán → a kamera nem ugrik); mérésnél a Lassíts-sáv fölött */}
         <div className="hud-float" data-raised={view.phase === 'meres'}>
-          {nav.view?.offer && !measuring && <OfferCard offer={nav.view.offer} onAccept={() => nav.session?.acceptOffer()} onDecline={() => nav.session?.declineOffer()} />}
+          {nav.view?.offer && <OfferCard offer={nav.view.offer} onAccept={() => nav.session?.acceptOffer()} onDecline={() => nav.session?.declineOffer()} />}
           {selected && (
             <ReportCard
               key={selected.id}

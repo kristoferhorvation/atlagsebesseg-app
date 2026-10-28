@@ -264,5 +264,7 @@
   "nav.voice.sectionAhead": "Začína úseková kontrola, maximum {x}",
   "nav.voice.tooFast": "Ideš príliš rýchlo, spomaľ",
   "nav.voice.rerouting": "Prepočítavam trasu",
-  "nav.voice.faster": "Rýchlejšia trasa, úspora {n} min"
+  "nav.voice.faster": "Rýchlejšia trasa, úspora {n} min",
+  "nav.offer.exit": "Zjazd o {km} km · úspora {n} min",
+  "nav.voice.fasterExit": "Rýchlejšia trasa, zjazd o {km} kilometrov"
 }

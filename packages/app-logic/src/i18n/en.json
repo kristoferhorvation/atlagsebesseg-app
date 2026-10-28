@@ -264,5 +264,7 @@
   "nav.voice.sectionAhead": "Section control ahead, maximum {x}",
   "nav.voice.tooFast": "Too fast, slow down",
   "nav.voice.rerouting": "Rerouting",
-  "nav.voice.faster": "Faster route, saves {n} min"
+  "nav.voice.faster": "Faster route, saves {n} min",
+  "nav.offer.exit": "Exit in {km} km · saves {n} min",
+  "nav.voice.fasterExit": "Faster route, exit in {km} kilometres"
 }

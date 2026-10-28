@@ -264,5 +264,7 @@
   "nav.voice.sectionAhead": "Zaczyna się odcinkowy pomiar, maksimum {x}",
   "nav.voice.tooFast": "Jedziesz za szybko, zwolnij",
   "nav.voice.rerouting": "Przeliczam trasę",
-  "nav.voice.faster": "Szybsza trasa, oszczędność {n} min"
+  "nav.voice.faster": "Szybsza trasa, oszczędność {n} min",
+  "nav.offer.exit": "Zjazd za {km} km · oszczędność {n} min",
+  "nav.voice.fasterExit": "Szybsza trasa, zjazd za {km} kilometrów"
 }

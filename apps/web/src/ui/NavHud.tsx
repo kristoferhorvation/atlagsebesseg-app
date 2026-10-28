@@ -99,6 +99,21 @@ export function NavBottom({ view, unit, currentKmh, onEnd }: { view: NavView; un
 
 /** Felugró ajánlat: „Gyorsabb út: −7 perc” – Elfogad / Elvet (56 px-es gombok). */
 export function OfferCard({ offer, onAccept, onDecline }: { offer: AlternativeOffer; onAccept: () => void; onDecline: () => void }) {
+  if (offer.compact) {
+    // mérés közben: egysoros, a mérőkártya (státusz) fölött
+    const title = t('nav.offer.exit', { km: offer.exitKm, n: Math.max(1, Math.round(offer.gainS / 60)) });
+    return (
+      <section className="nav-offer nav-offer-compact glass" role="alertdialog" aria-label={title}>
+        <div className="title nav-offer-title">{title}</div>
+        <button className="btn" onClick={onDecline}>
+          {t('nav.offer.decline')}
+        </button>
+        <button className="btn primary" onClick={onAccept}>
+          {t('nav.offer.accept')}
+        </button>
+      </section>
+    );
+  }
   return (
     <section className="nav-offer glass" role="alertdialog" aria-label={t('nav.offer.title', { n: Math.max(1, Math.round(offer.gainS / 60)) })}>
       <div className="title nav-offer-title">{t('nav.offer.title', { n: Math.max(1, Math.round(offer.gainS / 60)) })}</div>

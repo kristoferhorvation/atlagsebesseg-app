@@ -1959,6 +1959,24 @@ a.list-row {
   color: var(--color-ok);
 }
 
+.nav-offer-compact {
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px 8px 16px;
+  border-radius: 22px;
+}
+
+.nav-offer-compact .nav-offer-title {
+  flex: 1;
+  min-width: 0;
+  font-size: 15px;
+}
+
+.nav-offer-compact .btn {
+  padding: 0 14px;
+}
+
 .nav-offer .btn {
   height: 56px;
   min-height: 56px;
