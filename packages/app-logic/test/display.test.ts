@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { formatDistance, formatDuration, progressOf, speedIn, speedStatus } from '../src/display';
+import { formatDistance, formatDuration, progressOf, sectionSourceLabel, speedIn, speedStatus } from '../src/display';
 import { parseSettings, DEFAULT_SETTINGS } from '../src/settings';
 import { reportFromFix } from '../src/reports';
 import { MapStore } from '../src/mapState';
@@ -68,5 +68,14 @@ describe('MapStore', () => {
     store.set({ follow: true });
     store.set({ lightPreset: 'night' });
     expect(n).toBe(1);
+  });
+});
+
+describe('sectionSourceLabel', () => {
+  it('hivatalos forrás névvel és dátummal; különben a forrás típusa', () => {
+    const provenance = { name: 'Polizia di Stato', url: 'https://www.poliziadistato.it/', date: '2026-08', locatedBy: 'km_szelveny' } as const;
+    expect(sectionSourceLabel({ source: 'hivatalos', provenance })).toBe('Forrás: Polizia di Stato, 2026-08');
+    expect(sectionSourceLabel({ source: 'osm' })).toBe('Forrás: OpenStreetMap');
+    expect(sectionSourceLabel({ source: 'kozosseg' })).toBe('Forrás: közösségi (ideiglenes kapuk)');
   });
 });

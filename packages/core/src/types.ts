@@ -7,6 +7,19 @@ export interface LatLon {
 /** Az adat eredete: OSM-import, hivatalos lista vagy közösségi bejelentés. */
 export type SectionSource = 'osm' | 'hivatalos' | 'kozosseg';
 
+/** Hogyan állapítottuk meg a kapuk helyét a forrásból. */
+export type SectionLocatedBy = 'koordinata' | 'km_szelveny' | 'telepules';
+
+/** Egy szakasz forrása: ki adta ki, hol, mikor, és hogyan lett belőle hely. */
+export interface SectionProvenance {
+  /** A forrás (hivatalos szerv) neve, pl. "Polizia di Stato"; OSM-nél "OpenStreetMap". */
+  name: string;
+  url: string;
+  /** A forrás dátuma: "2026-08" vagy "2026-08-14". */
+  date: string;
+  locatedBy: SectionLocatedBy;
+}
+
 /**
  * Egy irányú átlagsebesség-mérő szakasz.
  * Egy útszakasz két irányát két külön `Section` írja le.
@@ -36,6 +49,8 @@ export interface Section {
    * ami kanyargós szakaszon pontatlan (és letérés-észlelésre alkalmatlan).
    */
   geometry?: LatLon[];
+  /** A forrás (hivatalos importnál mindig kitöltve). */
+  provenance?: SectionProvenance;
 }
 
 /** Egy GPS-mérés. Az ismeretlen értékek `null`-ok. */

@@ -5,6 +5,10 @@
  *
  *   npm run upload:sections                     # minden output/sections.*.json
  *   npm run upload:sections -- --country IT --dry-run
+ *
+ * Nem töröl, csak upsert – kivéve a fájl `official.osmDuplicates` listáját: azok az OSM-sorok,
+ * amelyeknek hivatalos duplikátuma van (azonos út és irány, ≥ 70% átfedés), és a szabály szerint
+ * csak a hivatalos marad (CLAUDE.md). Minden más sor (OSM, közösségi) érintetlen.
  */
 import { existsSync, readdirSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
@@ -47,6 +51,12 @@ for (const f of files) {
     if (db) await db.upsert('sections', rows.slice(i, i + 200), 'id');
   }
   total += rows.length;
-  console.log(`${f}: ${rows.length} szakasz ${dryRun ? '(dry-run, nem töltötte fel)' : 'feltöltve'}`);
+  const dups = file.official?.osmDuplicates.map((d) => d.osm) ?? [];
+  let removed = 0;
+  if (db && dups.length) {
+    const list = dups.map((id) => `"${id.replace(/"/g, '')}"`).join(',');
+    removed = await db.delete('sections', `country=eq.${file.country}&source=eq.osm&id=in.(${list})`);
+  }
+  console.log(`${f}: ${rows.length} szakasz ${dryRun ? `(dry-run; ${dups.length} OSM-duplikátum törlődne)` : `feltöltve, ${removed} OSM-duplikátum törölve`}`);
 }
 console.log(`Összesen: ${total}`);

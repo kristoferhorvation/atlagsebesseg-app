@@ -1,3 +1,4 @@
+import type { Section } from '@atlagsebesseg/core';
 import type { SpeedUnit } from './settings';
 
 /** A szín-kód: jó / határon / túl (DESIGN.md). */
@@ -61,4 +62,10 @@ export function timeAgo(ms: number): string {
   if (min < 1) return 'most';
   if (min < 60) return `${min} perce`;
   return `${Math.floor(min / 60)} órája`;
+}
+
+/** „Forrás: Polizia di Stato, 2026-08” – a szakasz-kártyára. */
+export function sectionSourceLabel(s: Pick<Section, 'source' | 'provenance'>): string {
+  if (s.provenance) return `Forrás: ${s.provenance.name}, ${s.provenance.date}`;
+  return { osm: 'Forrás: OpenStreetMap', hivatalos: 'Forrás: hivatalos lista', kozosseg: 'Forrás: közösségi (ideiglenes kapuk)' }[s.source];
 }

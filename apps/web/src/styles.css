@@ -514,6 +514,26 @@ select:focus-visible {
   gap: 8px;
 }
 
+/* szakasz forrása: „Ellenőrzött” + „Forrás: Polizia di Stato, 2026-08” (közeledő és összegző kártya) */
+.source-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 12px;
+  /* vezetés közben is látszik: nem kisebb a body-nál (DESIGN.md 1. elv) */
+  font-size: var(--type-body-size);
+  font-weight: 540;
+  line-height: 1.25;
+}
+
+.source-line .verified {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--color-ok);
+  font-weight: 640;
+}
+
 .tolerance {
   font-size: var(--type-body-size);
   font-weight: 600;

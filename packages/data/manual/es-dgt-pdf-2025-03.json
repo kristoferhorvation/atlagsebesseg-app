@@ -1,0 +1,476 @@
+{
+  "description": "DGT „Listado de cinemómetros” PDF (2025-03-21) „Radar Tramo” sorai, összevetve a DGT NAP DATEX II (radares/content.xml) 47 szakaszradarjával (azonos út, a PDF km-e ≤ 300 m-re a DATEX fin km-étől, hossz ±10%). pdf_csak: a PDF-ben szereplő, de a DATEX-ben nem szereplő tramók – koordináta nélkül, ezért nem importálhatók. ellentmondasos: DATEX-tramók, amelyeknél a két hivatalos lista hossza eltér – kimaradnak. Összevetés: 2026-10-27.",
+  "pdf": "https://www.dgt.es/export/sites/web-DGT/.galleries/downloads/conoce-el-estado-del-trafico/informacion-e-incidencias-de-trafico/INFORME_CINEMOMETROS_WEB_OK_20250321_extra.pdf",
+  "pdf_total": 108,
+  "pdf_csak": [
+    {
+      "provincia": "Albacete",
+      "carretera": "N-430",
+      "pk_km": "486.58",
+      "sentido": "Decreciente",
+      "longitud_m": 16387
+    },
+    {
+      "provincia": "Albacete",
+      "carretera": "N-430",
+      "pk_km": "502.945",
+      "sentido": "Creciente",
+      "longitud_m": 16387
+    },
+    {
+      "provincia": "Almería",
+      "carretera": "A-370",
+      "pk_km": "8.4",
+      "sentido": "Decreciente",
+      "longitud_m": 1071
+    },
+    {
+      "provincia": "Almería",
+      "carretera": "A-370",
+      "pk_km": "9.4",
+      "sentido": "Creciente",
+      "longitud_m": 1071
+    },
+    {
+      "provincia": "Asturias",
+      "carretera": "AS-112",
+      "pk_km": "0.85",
+      "sentido": "Decreciente",
+      "longitud_m": 1421
+    },
+    {
+      "provincia": "Ávila",
+      "carretera": "N-403",
+      "pk_km": "113.16",
+      "sentido": "Decreciente",
+      "longitud_m": 4469
+    },
+    {
+      "provincia": "Ávila",
+      "carretera": "N-403",
+      "pk_km": "118.05",
+      "sentido": "Creciente",
+      "longitud_m": 4472
+    },
+    {
+      "provincia": "Badajoz",
+      "carretera": "N-432",
+      "pk_km": "80.98",
+      "sentido": "Decreciente",
+      "longitud_m": 14708
+    },
+    {
+      "provincia": "Badajoz",
+      "carretera": "N-432",
+      "pk_km": "95.49",
+      "sentido": "Creciente",
+      "longitud_m": 14708
+    },
+    {
+      "provincia": "Cádiz",
+      "carretera": "CA-35",
+      "pk_km": "2.737",
+      "sentido": "Decreciente",
+      "longitud_m": 4243
+    },
+    {
+      "provincia": "Cádiz",
+      "carretera": "CA-35",
+      "pk_km": "7.02",
+      "sentido": "Creciente",
+      "longitud_m": 4249
+    },
+    {
+      "provincia": "Castellón",
+      "carretera": "N-340",
+      "pk_km": "1033.05",
+      "sentido": "Decreciente",
+      "longitud_m": 2878
+    },
+    {
+      "provincia": "Castellón",
+      "carretera": "N-340",
+      "pk_km": "1035.8",
+      "sentido": "Creciente",
+      "longitud_m": 2879
+    },
+    {
+      "provincia": "Castellón",
+      "carretera": "N-340",
+      "pk_km": "960.05",
+      "sentido": "Decreciente",
+      "longitud_m": 964
+    },
+    {
+      "provincia": "Castellón",
+      "carretera": "N-340",
+      "pk_km": "961",
+      "sentido": "Creciente",
+      "longitud_m": 973
+    },
+    {
+      "provincia": "Coruña, A",
+      "carretera": "AC-552",
+      "pk_km": "26.275",
+      "sentido": "Decreciente",
+      "longitud_m": 1014
+    },
+    {
+      "provincia": "Coruña, A",
+      "carretera": "AC-552",
+      "pk_km": "27.3",
+      "sentido": "Creciente",
+      "longitud_m": 1018
+    },
+    {
+      "provincia": "Guadalajara",
+      "carretera": "N-320",
+      "pk_km": "259.16",
+      "sentido": "Decreciente",
+      "longitud_m": 4773
+    },
+    {
+      "provincia": "Guadalajara",
+      "carretera": "N-320",
+      "pk_km": "264.11",
+      "sentido": "Creciente",
+      "longitud_m": 4778
+    },
+    {
+      "provincia": "Guadalajara",
+      "carretera": "N-320",
+      "pk_km": "298.13",
+      "sentido": "Decreciente",
+      "longitud_m": 2438
+    },
+    {
+      "provincia": "Guadalajara",
+      "carretera": "N-320",
+      "pk_km": "300.5",
+      "sentido": "Creciente",
+      "longitud_m": 2439
+    },
+    {
+      "provincia": "Huelva",
+      "carretera": "N-433",
+      "pk_km": "118.332",
+      "sentido": "Decreciente",
+      "longitud_m": 4620
+    },
+    {
+      "provincia": "Huelva",
+      "carretera": "N-433",
+      "pk_km": "122.961",
+      "sentido": "Creciente",
+      "longitud_m": 4615
+    },
+    {
+      "provincia": "Madrid",
+      "carretera": "A-4",
+      "pk_km": "46.993",
+      "sentido": "Decreciente",
+      "longitud_m": 4050
+    },
+    {
+      "provincia": "Madrid",
+      "carretera": "M-521",
+      "pk_km": "26.915",
+      "sentido": "Decreciente",
+      "longitud_m": 970
+    },
+    {
+      "provincia": "Madrid",
+      "carretera": "M-521",
+      "pk_km": "27.885",
+      "sentido": "Creciente",
+      "longitud_m": 970
+    },
+    {
+      "provincia": "Madrid",
+      "carretera": "N-320",
+      "pk_km": "318.005",
+      "sentido": "Decreciente",
+      "longitud_m": 11823
+    },
+    {
+      "provincia": "Madrid",
+      "carretera": "N-320",
+      "pk_km": "329.97",
+      "sentido": "Creciente",
+      "longitud_m": 11822
+    },
+    {
+      "provincia": "Málaga",
+      "carretera": "MA-20",
+      "pk_km": "10.3",
+      "sentido": "Creciente",
+      "longitud_m": 994
+    },
+    {
+      "provincia": "Ourense",
+      "carretera": "OU-536",
+      "pk_km": "28.04",
+      "sentido": "Creciente",
+      "longitud_m": 2176
+    },
+    {
+      "provincia": "Palmas, Las",
+      "carretera": "LZ-67",
+      "pk_km": "13.495",
+      "sentido": "Creciente",
+      "longitud_m": 5490
+    },
+    {
+      "provincia": "Palmas, Las",
+      "carretera": "LZ-67",
+      "pk_km": "16.22",
+      "sentido": "Decreciente",
+      "longitud_m": 5504
+    },
+    {
+      "provincia": "Palmas, Las",
+      "carretera": "LZ-67",
+      "pk_km": "20.16",
+      "sentido": "Creciente",
+      "longitud_m": 12027
+    },
+    {
+      "provincia": "Palmas, Las",
+      "carretera": "LZ-67",
+      "pk_km": "20.16",
+      "sentido": "Creciente",
+      "longitud_m": 5490
+    },
+    {
+      "provincia": "Palmas, Las",
+      "carretera": "LZ-67",
+      "pk_km": "7.925",
+      "sentido": "Decreciente",
+      "longitud_m": 12022
+    },
+    {
+      "provincia": "Palmas, Las",
+      "carretera": "LZ-67",
+      "pk_km": "7.925",
+      "sentido": "Decreciente",
+      "longitud_m": 5504
+    },
+    {
+      "provincia": "Palmas, Las",
+      "carretera": "LZ-701",
+      "pk_km": "0.26",
+      "sentido": "Decreciente",
+      "longitud_m": 3356
+    },
+    {
+      "provincia": "Palmas, Las",
+      "carretera": "LZ-701",
+      "pk_km": "10.685",
+      "sentido": "Creciente",
+      "longitud_m": 6495
+    },
+    {
+      "provincia": "Palmas, Las",
+      "carretera": "LZ-701",
+      "pk_km": "3.645",
+      "sentido": "Creciente",
+      "longitud_m": 3362
+    },
+    {
+      "provincia": "Palmas, Las",
+      "carretera": "LZ-701",
+      "pk_km": "4.145",
+      "sentido": "Decreciente",
+      "longitud_m": 6482
+    },
+    {
+      "provincia": "Pontevedra",
+      "carretera": "PO-340",
+      "pk_km": "4.3",
+      "sentido": "Decreciente",
+      "longitud_m": 1980
+    },
+    {
+      "provincia": "Pontevedra",
+      "carretera": "PO-340",
+      "pk_km": "6.28",
+      "sentido": "Creciente",
+      "longitud_m": 1980
+    },
+    {
+      "provincia": "Salamanca",
+      "carretera": "CL-517",
+      "pk_km": "16.35",
+      "sentido": "Creciente",
+      "longitud_m": 11937
+    },
+    {
+      "provincia": "Salamanca",
+      "carretera": "CL-517",
+      "pk_km": "4.38",
+      "sentido": "Decreciente",
+      "longitud_m": 11931
+    },
+    {
+      "provincia": "Salamanca",
+      "carretera": "SA-20",
+      "pk_km": "92.436",
+      "sentido": "Creciente",
+      "longitud_m": 475
+    },
+    {
+      "provincia": "Santa Cruz de Tenerife",
+      "carretera": "TF-655",
+      "pk_km": "2.165",
+      "sentido": "Decreciente",
+      "longitud_m": 958
+    },
+    {
+      "provincia": "Santa Cruz de Tenerife",
+      "carretera": "TF-655",
+      "pk_km": "3.132",
+      "sentido": "Creciente",
+      "longitud_m": 957
+    },
+    {
+      "provincia": "Sevilla",
+      "carretera": "N-IV",
+      "pk_km": "573.367",
+      "sentido": "Decreciente",
+      "longitud_m": 4442
+    },
+    {
+      "provincia": "Sevilla",
+      "carretera": "N-IV",
+      "pk_km": "577.809",
+      "sentido": "Creciente",
+      "longitud_m": 4442
+    },
+    {
+      "provincia": "Soria",
+      "carretera": "N-234",
+      "pk_km": "337.565",
+      "sentido": "Decreciente",
+      "longitud_m": 2815
+    },
+    {
+      "provincia": "Soria",
+      "carretera": "N-234",
+      "pk_km": "340.39",
+      "sentido": "Creciente",
+      "longitud_m": 2815
+    },
+    {
+      "provincia": "Toledo",
+      "carretera": "N-301",
+      "pk_km": "70.765",
+      "sentido": "Decreciente",
+      "longitud_m": 6387
+    },
+    {
+      "provincia": "Toledo",
+      "carretera": "N-301",
+      "pk_km": "77.08",
+      "sentido": "Creciente",
+      "longitud_m": 6395
+    },
+    {
+      "provincia": "Valencia",
+      "carretera": "A-3",
+      "pk_km": "349.15",
+      "sentido": "Creciente",
+      "longitud_m": 2046
+    },
+    {
+      "provincia": "Valencia",
+      "carretera": "CV-35",
+      "pk_km": "3.72",
+      "sentido": "Decreciente",
+      "longitud_m": 1882
+    },
+    {
+      "provincia": "Valencia",
+      "carretera": "CV-500",
+      "pk_km": "14.63",
+      "sentido": "Creciente",
+      "longitud_m": 5440
+    },
+    {
+      "provincia": "Valencia",
+      "carretera": "CV-500",
+      "pk_km": "9.088",
+      "sentido": "Decreciente",
+      "longitud_m": 5440
+    },
+    {
+      "provincia": "Valencia",
+      "carretera": "CV-60",
+      "pk_km": "16.825",
+      "sentido": "Decreciente",
+      "longitud_m": 5989
+    },
+    {
+      "provincia": "Valencia",
+      "carretera": "CV-60",
+      "pk_km": "22.8",
+      "sentido": "Creciente",
+      "longitud_m": 5987
+    },
+    {
+      "provincia": "Valencia",
+      "carretera": "V-23",
+      "pk_km": "1.6",
+      "sentido": "Decreciente",
+      "longitud_m": 1706
+    },
+    {
+      "provincia": "Valencia",
+      "carretera": "V-31",
+      "pk_km": "6.35",
+      "sentido": "Creciente",
+      "longitud_m": 3870
+    },
+    {
+      "provincia": "Zamora",
+      "carretera": "N-122",
+      "pk_km": "474.725",
+      "sentido": "Decreciente",
+      "longitud_m": 5263
+    },
+    {
+      "provincia": "Zamora",
+      "carretera": "N-122",
+      "pk_km": "479.99",
+      "sentido": "Creciente",
+      "longitud_m": 5259
+    },
+    {
+      "provincia": "Zaragoza",
+      "carretera": "N-125",
+      "pk_km": "5.7",
+      "sentido": "Decreciente",
+      "longitud_m": 2071
+    },
+    {
+      "provincia": "Zaragoza",
+      "carretera": "N-125",
+      "pk_km": "7.8",
+      "sentido": "Creciente",
+      "longitud_m": 2071
+    }
+  ],
+  "ellentmondasos": [
+    {
+      "cvm": "GUID_CVM_165285",
+      "reason": "a DGT két listája ellentmond: hossz a PDF-ben 2560 m (N-629 pk 81,15), a DATEX-ben 2220 m (+15%)"
+    },
+    {
+      "cvm": "GUID_CVM_165289",
+      "reason": "a DGT két listája ellentmond: hossz a PDF-ben 1933 m (N-629 pk 83,37), a DATEX-ben 1670 m (+16%)"
+    },
+    {
+      "cvm": "GUID_CVM_161489",
+      "reason": "a DGT két listája ellentmond: hossz a PDF-ben 1839 m (AP-66 pk 101,5), a DATEX-ben 2350 m (−22%)"
+    }
+  ]
+}

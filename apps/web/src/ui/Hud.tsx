@@ -1,5 +1,6 @@
 import {
   formatDistance,
+  sectionSourceLabel,
   formatDuration,
   speedIn,
   unitLabel,
@@ -8,7 +9,7 @@ import {
   type Settings,
   type SpeedStatus,
 } from '@atlagsebesseg/app-logic';
-import { limitWithToleranceKmh } from '@atlagsebesseg/core';
+import { limitWithToleranceKmh, type Section } from '@atlagsebesseg/core';
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { Icon, type IconName } from './Icon';
 import { LimitSign } from './LimitSign';
@@ -156,6 +157,7 @@ export function Hud(p: HudProps) {
             </div>
             <LimitSign kmh={s.speedLimitKmh} unit={unit} />
           </div>
+          <SourceLine section={s} />
         </Card>
       );
     }
@@ -186,6 +188,7 @@ export function Hud(p: HudProps) {
               <span>menetidő</span>
             </div>
           </div>
+          {view.section && <SourceLine section={view.section} />}
           <button className="btn" onClick={p.onDismiss}>
             Kész
           </button>
@@ -295,6 +298,20 @@ export function Hud(p: HudProps) {
         </Card>
       );
   }
+}
+
+/** A szakasz forrása és (ha hivatalos listán ellenőrzött) a jelölés. */
+function SourceLine({ section }: { section: Section }) {
+  return (
+    <div className="source-line">
+      {section.verified && (
+        <span className="verified">
+          <Icon name="check" size={18} /> Ellenőrzött
+        </span>
+      )}
+      <span className="muted">{sectionSourceLabel(section)}</span>
+    </div>
+  );
 }
 
 /**

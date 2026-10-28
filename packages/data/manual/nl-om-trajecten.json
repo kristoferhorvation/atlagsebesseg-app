@@ -1,0 +1,677 @@
+{
+  "description": "Openbaar Ministerie: trajectcontroles (lijst, laatst gewijzigd 2026-06-18) – irányonként. Az irány a „Instroom WAHV 2024 trajectcontrolesystemen” PDF-ből (2025-02-05), a hectometer és a határ az OM-hírekből (bron); ahol a hivatalos forrás nem adja, üres. Összeállítva 2026-10-27, szó szerint a forrásokból.",
+  "lijst": "https://www.om.nl/onderwerpen/v/verkeer/handhaving/snelheid-en-te-hard-rijden/trajectcontroles",
+  "lijst_datum": "2026-06-18",
+  "trajecten": [
+    {
+      "weg": "A12",
+      "omschrijving": "A12 tussen Zoetermeer en Nootdorp (in één rijrichting)",
+      "richting": "van Zoetermeer richting Nootdorp",
+      "hm_van": 11.3,
+      "hm_tot": 8.9,
+      "max_kmh": null,
+      "bron": "https://www.om.nl/actueel/nieuws/2026/01/12/nieuwe-trajectcontrole-op-a12-tussen-zoetermeer-en-nootdorp",
+      "opmerking": "aan sinds 13-01-2026; andere richting 'in de loop van 2026' (niet bevestigd aan)"
+    },
+    {
+      "weg": "A2",
+      "omschrijving": "A2 tussen knooppunt Holendrecht en Maarssen",
+      "richting": "A2 (Utrecht - Amsterdam links)",
+      "hm_van": null,
+      "hm_tot": null,
+      "max_kmh": null,
+      "bron": "https://www.om.nl/site/binaries/site-content/collections/documents/verkeer/verkeer/wahv-jaarbericht-2024/instroom-wahv-2024-trajectcontrolesystemen/Trajectcontroles_2024_v1.pdf",
+      "opmerking": ""
+    },
+    {
+      "weg": "A2",
+      "omschrijving": "A2 tussen knooppunt Holendrecht en Maarssen",
+      "richting": "A2 (Amsterdam - Utrecht rechts)",
+      "hm_van": null,
+      "hm_tot": null,
+      "max_kmh": null,
+      "bron": "https://www.om.nl/site/binaries/site-content/collections/documents/verkeer/verkeer/wahv-jaarbericht-2024/instroom-wahv-2024-trajectcontrolesystemen/Trajectcontroles_2024_v1.pdf",
+      "opmerking": ""
+    },
+    {
+      "weg": "A2",
+      "omschrijving": "A2/N2 tunnel Maastricht",
+      "richting": "A2 (Maastricht A2 en N2 rechts)",
+      "hm_van": null,
+      "hm_tot": null,
+      "max_kmh": null,
+      "bron": "https://www.om.nl/site/binaries/site-content/collections/documents/verkeer/verkeer/wahv-jaarbericht-2024/instroom-wahv-2024-trajectcontrolesystemen/Trajectcontroles_2024_v1.pdf",
+      "opmerking": ""
+    },
+    {
+      "weg": "A2",
+      "omschrijving": "A2/N2 tunnel Maastricht",
+      "richting": "A2 (Maastricht A2 en N2 links)",
+      "hm_van": null,
+      "hm_tot": null,
+      "max_kmh": null,
+      "bron": "https://www.om.nl/site/binaries/site-content/collections/documents/verkeer/verkeer/wahv-jaarbericht-2024/instroom-wahv-2024-trajectcontrolesystemen/Trajectcontroles_2024_v1.pdf",
+      "opmerking": ""
+    },
+    {
+      "weg": "A4",
+      "omschrijving": "A4 tussen Leidschendam en Zoeterwoude",
+      "richting": "A4 (Den Haag - Amsterdam) Leidschendam li",
+      "hm_van": null,
+      "hm_tot": null,
+      "max_kmh": null,
+      "bron": "https://www.om.nl/site/binaries/site-content/collections/documents/verkeer/verkeer/wahv-jaarbericht-2024/instroom-wahv-2024-trajectcontrolesystemen/Trajectcontroles_2024_v1.pdf",
+      "opmerking": "WAHV-tekst afgekapt in bron ('li')"
+    },
+    {
+      "weg": "A4",
+      "omschrijving": "A4 tussen Leidschendam en Zoeterwoude",
+      "richting": "A4 (Amsterdam - Den Haag) Leidschedam re",
+      "hm_van": null,
+      "hm_tot": null,
+      "max_kmh": null,
+      "bron": "https://www.om.nl/site/binaries/site-content/collections/documents/verkeer/verkeer/wahv-jaarbericht-2024/instroom-wahv-2024-trajectcontrolesystemen/Trajectcontroles_2024_v1.pdf",
+      "opmerking": "WAHV-tekst afgekapt/typo in bron ('Leidschedam re')"
+    },
+    {
+      "weg": "A4",
+      "omschrijving": "A4 tussen Hoofddorp en Nieuw Vennep",
+      "richting": "A4 (Hoofddorp rechts)",
+      "hm_van": null,
+      "hm_tot": null,
+      "max_kmh": null,
+      "bron": "https://www.om.nl/site/binaries/site-content/collections/documents/verkeer/verkeer/wahv-jaarbericht-2024/instroom-wahv-2024-trajectcontrolesystemen/Trajectcontroles_2024_v1.pdf",
+      "opmerking": ""
+    },
+    {
+      "weg": "A4",
+      "omschrijving": "A4 tussen Hoofddorp en Nieuw Vennep",
+      "richting": "A4 (Hoofddorp links)",
+      "hm_van": null,
+      "hm_tot": null,
+      "max_kmh": null,
+      "bron": "https://www.om.nl/site/binaries/site-content/collections/documents/verkeer/verkeer/wahv-jaarbericht-2024/instroom-wahv-2024-trajectcontrolesystemen/Trajectcontroles_2024_v1.pdf",
+      "opmerking": ""
+    },
+    {
+      "weg": "A7",
+      "omschrijving": "A7 tussen Hoorn en Purmerend",
+      "richting": "van Hoorn naar Purmerend",
+      "hm_van": 28.1,
+      "hm_tot": 19.0,
+      "max_kmh": null,
+      "bron": "https://www.om.nl/actueel/nieuws/2026/01/19/nieuwe-trajectcontrole-op-a7-tussen-hoorn-en-purmerend-gaat-aan",
+      "opmerking": "aan sinds 20-01-2026"
+    },
+    {
+      "weg": "A7",
+      "omschrijving": "A7 tussen Hoorn en Purmerend",
+      "richting": "van Purmerend naar Hoorn",
+      "hm_van": 17.7,
+      "hm_tot": 27.5,
+      "max_kmh": null,
+      "bron": "https://www.om.nl/actueel/nieuws/2026/06/10/vanaf-nu-trajectcontrole-op-a7-tussen-purmerend-en-hoorn-in-beide-richtingen",
+      "opmerking": "aan sinds 10-06-2026"
+    },
+    {
+      "weg": "A10",
+      "omschrijving": "A10 tussen Nieuwe Meer en Coentunnel",
+      "richting": "A10 (West rechts richting Zaandam)",
+      "hm_van": null,
+      "hm_tot": null,
+      "max_kmh": null,
+      "bron": "https://www.om.nl/site/binaries/site-content/collections/documents/verkeer/verkeer/wahv-jaarbericht-2024/instroom-wahv-2024-trajectcontrolesystemen/Trajectcontroles_2024_v1.pdf",
+      "opmerking": ""
+    },
+    {
+      "weg": "A10",
+      "omschrijving": "A10 tussen Nieuwe Meer en Coentunnel",
+      "richting": "A10 (West links richting Amstelveen)",
+      "hm_van": null,
+      "hm_tot": null,
+      "max_kmh": null,
+      "bron": "https://www.om.nl/site/binaries/site-content/collections/documents/verkeer/verkeer/wahv-jaarbericht-2024/instroom-wahv-2024-trajectcontrolesystemen/Trajectcontroles_2024_v1.pdf",
+      "opmerking": ""
+    },
+    {
+      "weg": "A12",
+      "omschrijving": "A12 Utrecht, hoofdrijbaan en parallelrijbaan ter hoogte van Galecopperbrug",
+      "richting": "A12 (Utrecht hoofdrijbaan links)",
+      "hm_van": null,
+      "hm_tot": null,
+      "max_kmh": null,
+      "bron": "https://www.om.nl/site/binaries/site-content/collections/documents/verkeer/verkeer/wahv-jaarbericht-2024/instroom-wahv-2024-trajectcontrolesystemen/Trajectcontroles_2024_v1.pdf",
+      "opmerking": "OM-nieuws 08-06-2022: parallelbaan richting Arnhem tijdelijk 70 km/u tijdens werk 'tot begin 2024' - actuele limiet niet in bron"
+    },
+    {
+      "weg": "A12",
+      "omschrijving": "A12 Utrecht, hoofdrijbaan en parallelrijbaan ter hoogte van Galecopperbrug",
+      "richting": "A12 (Utrecht hoofdrijbaan rechts)",
+      "hm_van": null,
+      "hm_tot": null,
+      "max_kmh": null,
+      "bron": "https://www.om.nl/site/binaries/site-content/collections/documents/verkeer/verkeer/wahv-jaarbericht-2024/instroom-wahv-2024-trajectcontrolesystemen/Trajectcontroles_2024_v1.pdf",
+      "opmerking": "OM-nieuws 08-06-2022: parallelbaan richting Arnhem tijdelijk 70 km/u tijdens werk 'tot begin 2024' - actuele limiet niet in bron"
+    },
+    {
+      "weg": "A12",
+      "omschrijving": "A12 Utrecht, hoofdrijbaan en parallelrijbaan ter hoogte van Galecopperbrug",
+      "richting": "A12 (Utrecht parallelrijbaan links)",
+      "hm_van": null,
+      "hm_tot": null,
+      "max_kmh": null,
+      "bron": "https://www.om.nl/site/binaries/site-content/collections/documents/verkeer/verkeer/wahv-jaarbericht-2024/instroom-wahv-2024-trajectcontrolesystemen/Trajectcontroles_2024_v1.pdf",
+      "opmerking": "OM-nieuws 08-06-2022: parallelbaan richting Arnhem tijdelijk 70 km/u tijdens werk 'tot begin 2024' - actuele limiet niet in bron"
+    },
+    {
+      "weg": "A12",
+      "omschrijving": "A12 Utrecht, hoofdrijbaan en parallelrijbaan ter hoogte van Galecopperbrug",
+      "richting": "A12 (Utrecht parallelrijbaan rechts)",
+      "hm_van": null,
+      "hm_tot": null,
+      "max_kmh": null,
+      "bron": "https://www.om.nl/site/binaries/site-content/collections/documents/verkeer/verkeer/wahv-jaarbericht-2024/instroom-wahv-2024-trajectcontrolesystemen/Trajectcontroles_2024_v1.pdf",
+      "opmerking": "OM-nieuws 08-06-2022: parallelbaan richting Arnhem tijdelijk 70 km/u tijdens werk 'tot begin 2024' - actuele limiet niet in bron"
+    },
+    {
+      "weg": "A13",
+      "omschrijving": "A13 Overschie, tussen Berkel en Rodenrijs en Kleinpolderplein",
+      "richting": "A13 (Rotterdam links)",
+      "hm_van": null,
+      "hm_tot": null,
+      "max_kmh": null,
+      "bron": "https://www.om.nl/site/binaries/site-content/collections/documents/verkeer/verkeer/wahv-jaarbericht-2024/instroom-wahv-2024-trajectcontrolesystemen/Trajectcontroles_2024_v1.pdf",
+      "opmerking": ""
+    },
+    {
+      "weg": "A13",
+      "omschrijving": "A13 Overschie, tussen Berkel en Rodenrijs en Kleinpolderplein",
+      "richting": "A13 (Rotterdam rechts)",
+      "hm_van": null,
+      "hm_tot": null,
+      "max_kmh": null,
+      "bron": "https://www.om.nl/site/binaries/site-content/collections/documents/verkeer/verkeer/wahv-jaarbericht-2024/instroom-wahv-2024-trajectcontrolesystemen/Trajectcontroles_2024_v1.pdf",
+      "opmerking": ""
+    },
+    {
+      "weg": "A20",
+      "omschrijving": "A20 Rotterdam, tussen het Kleinpolderplein en het Terbregseplein",
+      "richting": "A20 (Rotterdam links)",
+      "hm_van": null,
+      "hm_tot": null,
+      "max_kmh": null,
+      "bron": "https://www.om.nl/site/binaries/site-content/collections/documents/verkeer/verkeer/wahv-jaarbericht-2024/instroom-wahv-2024-trajectcontrolesystemen/Trajectcontroles_2024_v1.pdf",
+      "opmerking": ""
+    },
+    {
+      "weg": "A20",
+      "omschrijving": "A20 Rotterdam, tussen het Kleinpolderplein en het Terbregseplein",
+      "richting": "A20 (Rotterdam rechts)",
+      "hm_van": null,
+      "hm_tot": null,
+      "max_kmh": null,
+      "bron": "https://www.om.nl/site/binaries/site-content/collections/documents/verkeer/verkeer/wahv-jaarbericht-2024/instroom-wahv-2024-trajectcontrolesystemen/Trajectcontroles_2024_v1.pdf",
+      "opmerking": ""
+    },
+    {
+      "weg": "N62",
+      "omschrijving": "N62 de Westerscheldetunnel",
+      "richting": "Zeeland: Westerscheldetunnel westbuis",
+      "hm_van": null,
+      "hm_tot": null,
+      "max_kmh": null,
+      "bron": "https://www.om.nl/site/binaries/site-content/collections/documents/verkeer/verkeer/wahv-jaarbericht-2024/instroom-wahv-2024-trajectcontrolesystemen/Trajectcontroles_2024_v1.pdf",
+      "opmerking": ""
+    },
+    {
+      "weg": "N62",
+      "omschrijving": "N62 de Westerscheldetunnel",
+      "richting": "Zeeland: Westerscheldetunnel oostbuis",
+      "hm_van": null,
+      "hm_tot": null,
+      "max_kmh": null,
+      "bron": "https://www.om.nl/site/binaries/site-content/collections/documents/verkeer/verkeer/wahv-jaarbericht-2024/instroom-wahv-2024-trajectcontrolesystemen/Trajectcontroles_2024_v1.pdf",
+      "opmerking": ""
+    },
+    {
+      "weg": "N706",
+      "omschrijving": "N706, Vogelweg, tussen de A27 en Lelystad Airport",
+      "richting": "N706 Rechts: Almere Hout - N302",
+      "hm_van": null,
+      "hm_tot": null,
+      "max_kmh": null,
+      "bron": "https://www.om.nl/site/binaries/site-content/collections/documents/verkeer/verkeer/wahv-jaarbericht-2024/instroom-wahv-2024-trajectcontrolesystemen/Trajectcontroles_2024_v1.pdf",
+      "opmerking": "ELLENTMONDAS: OM-lijst 'A27 - Lelystad Airport' vs WAHV 'Almere Hout - N302'; geen OM-startbericht gevonden"
+    },
+    {
+      "weg": "N706",
+      "omschrijving": "N706, Vogelweg, tussen de A27 en Lelystad Airport",
+      "richting": "N706 Links: N302 - Almere Hout",
+      "hm_van": null,
+      "hm_tot": null,
+      "max_kmh": null,
+      "bron": "https://www.om.nl/site/binaries/site-content/collections/documents/verkeer/verkeer/wahv-jaarbericht-2024/instroom-wahv-2024-trajectcontrolesystemen/Trajectcontroles_2024_v1.pdf",
+      "opmerking": "ELLENTMONDAS: OM-lijst 'A27 - Lelystad Airport' vs WAHV 'Almere Hout - N302'; geen OM-startbericht gevonden"
+    },
+    {
+      "weg": "N351",
+      "omschrijving": "N351, tussen Wolvega en Oosterwolde",
+      "richting": "N351 Rechts: Oldeberkoop - Nijeholtpade",
+      "hm_van": null,
+      "hm_tot": null,
+      "max_kmh": 80,
+      "bron": "https://www.om.nl/actueel/nieuws/2020/08/10/trajectcontrolesysteem-tussen-wolvega-en-oosterwolde-17-augustus-actief",
+      "opmerking": "bericht: 'loopt van Oldeberkoop tot Nijeholtpade'"
+    },
+    {
+      "weg": "N351",
+      "omschrijving": "N351, tussen Wolvega en Oosterwolde",
+      "richting": "N351 Links: Nijeholtpade - Oldeberkoop",
+      "hm_van": null,
+      "hm_tot": null,
+      "max_kmh": 80,
+      "bron": "https://www.om.nl/actueel/nieuws/2020/08/10/trajectcontrolesysteem-tussen-wolvega-en-oosterwolde-17-augustus-actief",
+      "opmerking": "bericht: 'loopt van Oldeberkoop tot Nijeholtpade'"
+    },
+    {
+      "weg": "N381",
+      "omschrijving": "N381, tussen Drachten en Donkerbroek",
+      "richting": "N381 Rechts: Drachten - Donkerbroek",
+      "hm_van": null,
+      "hm_tot": null,
+      "max_kmh": 100,
+      "bron": "https://www.om.nl/actueel/nieuws/2020/11/30/trajectcontrole-op-n381-van-start",
+      "opmerking": ""
+    },
+    {
+      "weg": "N381",
+      "omschrijving": "N381, tussen Drachten en Donkerbroek",
+      "richting": "N381 Links: Donkerbroek - Drachten",
+      "hm_van": null,
+      "hm_tot": null,
+      "max_kmh": 100,
+      "bron": "https://www.om.nl/actueel/nieuws/2020/11/30/trajectcontrole-op-n381-van-start",
+      "opmerking": ""
+    },
+    {
+      "weg": "N325",
+      "omschrijving": "N325, Arnhem (Pleyroute)",
+      "richting": "N325 Rechts: Westervoortsedijk - Huissen",
+      "hm_van": null,
+      "hm_tot": null,
+      "max_kmh": 80,
+      "bron": "https://www.om.nl/actueel/nieuws/2020/11/09/trajectcontrole-op-n325-van-start",
+      "opmerking": ""
+    },
+    {
+      "weg": "N325",
+      "omschrijving": "N325, Arnhem (Pleyroute)",
+      "richting": "N325 Links: Huissen - Westervoortsedijk",
+      "hm_van": null,
+      "hm_tot": null,
+      "max_kmh": 80,
+      "bron": "https://www.om.nl/actueel/nieuws/2020/11/09/trajectcontrole-op-n325-van-start",
+      "opmerking": ""
+    },
+    {
+      "weg": "N787",
+      "omschrijving": "N787, tussen Brummen en Eerbeek",
+      "richting": "N787 Rechts: Eerbeek - Brummen",
+      "hm_van": null,
+      "hm_tot": null,
+      "max_kmh": 80,
+      "bron": "https://www.om.nl/actueel/nieuws/2020/06/12/handhaving-met-trajectcontrole-op-n787-start-17-juni",
+      "opmerking": ""
+    },
+    {
+      "weg": "N787",
+      "omschrijving": "N787, tussen Brummen en Eerbeek",
+      "richting": "N787 Links: Brummen - Eerbeek",
+      "hm_van": null,
+      "hm_tot": null,
+      "max_kmh": 80,
+      "bron": "https://www.om.nl/actueel/nieuws/2020/06/12/handhaving-met-trajectcontrole-op-n787-start-17-juni",
+      "opmerking": ""
+    },
+    {
+      "weg": "N275",
+      "omschrijving": "N275, tussen Blerick en Nederweert",
+      "richting": "N275 Rechts: Koningslust - Nederweert",
+      "hm_van": 12.9,
+      "hm_tot": 14.7,
+      "max_kmh": 80,
+      "bron": "https://www.om.nl/actueel/nieuws/2020/11/25/trajectcontrole-op-n275-van-start",
+      "opmerking": "2 secties; hm-volgorde per rijrichting niet in bron"
+    },
+    {
+      "weg": "N275",
+      "omschrijving": "N275, tussen Blerick en Nederweert",
+      "richting": "N275 Rechts: Koningslust - Nederweert",
+      "hm_van": 17.0,
+      "hm_tot": 19.4,
+      "max_kmh": 80,
+      "bron": "https://www.om.nl/actueel/nieuws/2020/11/25/trajectcontrole-op-n275-van-start",
+      "opmerking": "2 secties; hm-volgorde per rijrichting niet in bron"
+    },
+    {
+      "weg": "N275",
+      "omschrijving": "N275, tussen Blerick en Nederweert",
+      "richting": "N275 Links: Nederweert - Koningslust",
+      "hm_van": 12.9,
+      "hm_tot": 14.7,
+      "max_kmh": 80,
+      "bron": "https://www.om.nl/actueel/nieuws/2020/11/25/trajectcontrole-op-n275-van-start",
+      "opmerking": "2 secties; hm-volgorde per rijrichting niet in bron"
+    },
+    {
+      "weg": "N275",
+      "omschrijving": "N275, tussen Blerick en Nederweert",
+      "richting": "N275 Links: Nederweert - Koningslust",
+      "hm_van": 17.0,
+      "hm_tot": 19.4,
+      "max_kmh": 80,
+      "bron": "https://www.om.nl/actueel/nieuws/2020/11/25/trajectcontrole-op-n275-van-start",
+      "opmerking": "2 secties; hm-volgorde per rijrichting niet in bron"
+    },
+    {
+      "weg": "N564",
+      "omschrijving": "N564, tussen Weert en grens België",
+      "richting": "N564 Rechts: Kazerneweg - Havenweg",
+      "hm_van": null,
+      "hm_tot": null,
+      "max_kmh": 80,
+      "bron": "https://www.om.nl/actueel/nieuws/2020/11/16/trajectcontrole-op-n564-van-start",
+      "opmerking": "bericht: 'tussen de Kazernelaan en de Havenweg' (WAHV: Kazerneweg)"
+    },
+    {
+      "weg": "N564",
+      "omschrijving": "N564, tussen Weert en grens België",
+      "richting": "N564 Links: Havenweg - Kazerneweg",
+      "hm_van": null,
+      "hm_tot": null,
+      "max_kmh": 80,
+      "bron": "https://www.om.nl/actueel/nieuws/2020/11/16/trajectcontrole-op-n564-van-start",
+      "opmerking": "bericht: 'tussen de Kazernelaan en de Havenweg' (WAHV: Kazerneweg)"
+    },
+    {
+      "weg": "N277",
+      "omschrijving": "N277, tussen Ysselsteyn en Vreedepeel",
+      "richting": "N277 Rechts: Vredepeel - Ysselsteyn",
+      "hm_van": null,
+      "hm_tot": null,
+      "max_kmh": 80,
+      "bron": "https://www.om.nl/actueel/nieuws/2020/09/28/trajectcontrole-op-n277-van-start",
+      "opmerking": ""
+    },
+    {
+      "weg": "N277",
+      "omschrijving": "N277, tussen Ysselsteyn en Vreedepeel",
+      "richting": "N277 Links: Ysselsteyn - Vredepeel",
+      "hm_van": null,
+      "hm_tot": null,
+      "max_kmh": 80,
+      "bron": "https://www.om.nl/actueel/nieuws/2020/09/28/trajectcontrole-op-n277-van-start",
+      "opmerking": ""
+    },
+    {
+      "weg": "N270",
+      "omschrijving": "N270, tussen Venray en Ysselsteyn",
+      "richting": "N270 Rechts: Ysselsteyn - Venray",
+      "hm_van": null,
+      "hm_tot": null,
+      "max_kmh": 80,
+      "bron": "https://www.om.nl/actueel/nieuws/2020/09/21/trajectcontrole-op-n270-van-start",
+      "opmerking": ""
+    },
+    {
+      "weg": "N270",
+      "omschrijving": "N270, tussen Venray en Ysselsteyn",
+      "richting": "N270 Links: Venray - Ysselsteyn",
+      "hm_van": null,
+      "hm_tot": null,
+      "max_kmh": 80,
+      "bron": "https://www.om.nl/actueel/nieuws/2020/09/21/trajectcontrole-op-n270-van-start",
+      "opmerking": ""
+    },
+    {
+      "weg": "N201",
+      "omschrijving": "N201, Uithoorn",
+      "richting": "N201 Rechts: Legmeerdijk - Zijdelweg",
+      "hm_van": null,
+      "hm_tot": null,
+      "max_kmh": 80,
+      "bron": "https://www.om.nl/actueel/nieuws/2020/10/26/trajectcontrole-op-n201-van-start",
+      "opmerking": "bericht: 'tussen de kruisingen met de N231 (Legmeerdijk) en de N521 (Zijdelweg)'"
+    },
+    {
+      "weg": "N201",
+      "omschrijving": "N201, Uithoorn",
+      "richting": "N201 Links: Zijdelweg - Legmeerdijk",
+      "hm_van": null,
+      "hm_tot": null,
+      "max_kmh": 80,
+      "bron": "https://www.om.nl/actueel/nieuws/2020/10/26/trajectcontrole-op-n201-van-start",
+      "opmerking": "bericht: 'tussen de kruisingen met de N231 (Legmeerdijk) en de N521 (Zijdelweg)'"
+    },
+    {
+      "weg": "N205",
+      "omschrijving": "N205, tussen de N207 en de N232",
+      "richting": "N205 Rechts: Schipholweg - Kruisweg",
+      "hm_van": null,
+      "hm_tot": null,
+      "max_kmh": 100,
+      "bron": "https://www.om.nl/actueel/nieuws/2021/06/29/trajectcontrole-op-n205-van-start",
+      "opmerking": ""
+    },
+    {
+      "weg": "N205",
+      "omschrijving": "N205, tussen de N207 en de N232",
+      "richting": "N205 Links: Kruisweg - Schipholweg",
+      "hm_van": null,
+      "hm_tot": null,
+      "max_kmh": 100,
+      "bron": "https://www.om.nl/actueel/nieuws/2021/06/29/trajectcontrole-op-n205-van-start",
+      "opmerking": ""
+    },
+    {
+      "weg": "N9",
+      "omschrijving": "N9, tussen Burgervlotbrug en St. Maartensvlotbrug",
+      "richting": "N9 Rechts: Burgervlotbrug - St Maartensvlotbrug",
+      "hm_van": null,
+      "hm_tot": null,
+      "max_kmh": 80,
+      "bron": "https://www.om.nl/actueel/nieuws/2021/05/28/trajectcontrole-n9-van-start",
+      "opmerking": "NWB-wegnummer '009' (Rijksweg)"
+    },
+    {
+      "weg": "N9",
+      "omschrijving": "N9, tussen Burgervlotbrug en St. Maartensvlotbrug",
+      "richting": "N9 Links: St Maartensvlotbrug - Burgervlotbrug",
+      "hm_van": null,
+      "hm_tot": null,
+      "max_kmh": 80,
+      "bron": "https://www.om.nl/actueel/nieuws/2021/05/28/trajectcontrole-n9-van-start",
+      "opmerking": "NWB-wegnummer '009' (Rijksweg)"
+    },
+    {
+      "weg": "N260",
+      "omschrijving": "N260, Tilburg",
+      "richting": "N260 Rechts: Rugdijk - Stokhasseltlaan",
+      "hm_van": 31.9,
+      "hm_tot": 33.1,
+      "max_kmh": 80,
+      "bron": "https://www.om.nl/actueel/nieuws/2020/11/09/trajectcontrole-op-n260-tilburg-van-start",
+      "opmerking": "Burg. Letschertweg; hm-volgorde per rijrichting niet in bron"
+    },
+    {
+      "weg": "N260",
+      "omschrijving": "N260, Tilburg",
+      "richting": "N260 Links: Stokhasseltlaan - Rugdijk",
+      "hm_van": 31.9,
+      "hm_tot": 33.1,
+      "max_kmh": 80,
+      "bron": "https://www.om.nl/actueel/nieuws/2020/11/09/trajectcontrole-op-n260-tilburg-van-start",
+      "opmerking": "Burg. Letschertweg; hm-volgorde per rijrichting niet in bron"
+    },
+    {
+      "weg": "N639",
+      "omschrijving": "N639, tussen Chaam en Baarle-Nassau",
+      "richting": "N639 Rechts: Baarle-Nassau - Chaam",
+      "hm_van": 3.5,
+      "hm_tot": 8.5,
+      "max_kmh": 80,
+      "bron": "https://www.om.nl/actueel/nieuws/2020/07/02/handhaving-met-trajectcontrole-op-n639-start-7-juli",
+      "opmerking": "hm-volgorde per rijrichting niet in bron"
+    },
+    {
+      "weg": "N639",
+      "omschrijving": "N639, tussen Chaam en Baarle-Nassau",
+      "richting": "N639 Links: Chaam - Baarle-Nassau",
+      "hm_van": 3.5,
+      "hm_tot": 8.5,
+      "max_kmh": 80,
+      "bron": "https://www.om.nl/actueel/nieuws/2020/07/02/handhaving-met-trajectcontrole-op-n639-start-7-juli",
+      "opmerking": "hm-volgorde per rijrichting niet in bron"
+    },
+    {
+      "weg": "N333",
+      "omschrijving": "N333, tussen Steenwijk en Blokzijl",
+      "richting": "N333 Rechts: Blokzijl - Steenwijk",
+      "hm_van": null,
+      "hm_tot": null,
+      "max_kmh": 80,
+      "bron": "https://www.om.nl/actueel/nieuws/2020/09/08/trajectcontrole-op-n333-van-start",
+      "opmerking": ""
+    },
+    {
+      "weg": "N333",
+      "omschrijving": "N333, tussen Steenwijk en Blokzijl",
+      "richting": "N333 Links: Steenwijk - Blokzijl",
+      "hm_van": null,
+      "hm_tot": null,
+      "max_kmh": 80,
+      "bron": "https://www.om.nl/actueel/nieuws/2020/09/08/trajectcontrole-op-n333-van-start",
+      "opmerking": ""
+    },
+    {
+      "weg": "N230",
+      "omschrijving": "N230, Utrecht, provinciale deel van de Zuilense Ring",
+      "richting": "N230 Rechts: Lageweide - Overvecht",
+      "hm_van": null,
+      "hm_tot": null,
+      "max_kmh": null,
+      "bron": "https://www.om.nl/site/binaries/site-content/collections/documents/verkeer/verkeer/wahv-jaarbericht-2024/instroom-wahv-2024-trajectcontrolesystemen/Trajectcontroles_2024_v1.pdf",
+      "opmerking": "geen OM-startbericht gevonden; limiet onbekend"
+    },
+    {
+      "weg": "N230",
+      "omschrijving": "N230, Utrecht, provinciale deel van de Zuilense Ring",
+      "richting": "N230 Links: Overvecht - Lageweide",
+      "hm_van": null,
+      "hm_tot": null,
+      "max_kmh": null,
+      "bron": "https://www.om.nl/site/binaries/site-content/collections/documents/verkeer/verkeer/wahv-jaarbericht-2024/instroom-wahv-2024-trajectcontrolesystemen/Trajectcontroles_2024_v1.pdf",
+      "opmerking": "geen OM-startbericht gevonden; limiet onbekend"
+    },
+    {
+      "weg": "N414",
+      "omschrijving": "N414, tussen Eembrugge en Bunschoten",
+      "richting": "N414 Rechts: Eembrugge - Bunschoten",
+      "hm_van": null,
+      "hm_tot": null,
+      "max_kmh": null,
+      "bron": "https://www.om.nl/site/binaries/site-content/collections/documents/verkeer/verkeer/wahv-jaarbericht-2024/instroom-wahv-2024-trajectcontrolesystemen/Trajectcontroles_2024_v1.pdf",
+      "opmerking": "geen OM-startbericht gevonden; limiet onbekend"
+    },
+    {
+      "weg": "N414",
+      "omschrijving": "N414, tussen Eembrugge en Bunschoten",
+      "richting": "N414 Links: Bunschoten - Eembrugge",
+      "hm_van": null,
+      "hm_tot": null,
+      "max_kmh": null,
+      "bron": "https://www.om.nl/site/binaries/site-content/collections/documents/verkeer/verkeer/wahv-jaarbericht-2024/instroom-wahv-2024-trajectcontrolesystemen/Trajectcontroles_2024_v1.pdf",
+      "opmerking": "geen OM-startbericht gevonden; limiet onbekend"
+    },
+    {
+      "weg": "N253",
+      "omschrijving": "N253, Rondweg Sluis",
+      "richting": "N253 Rechts: St Anna ter Muiden - Heileweg",
+      "hm_van": null,
+      "hm_tot": null,
+      "max_kmh": 80,
+      "bron": "https://www.om.nl/actueel/nieuws/2020/11/02/trajectcontrole-n253-van-start",
+      "opmerking": ""
+    },
+    {
+      "weg": "N253",
+      "omschrijving": "N253, Rondweg Sluis",
+      "richting": "N253 Links: Heileweg - St Anna ter Muiden",
+      "hm_van": null,
+      "hm_tot": null,
+      "max_kmh": 80,
+      "bron": "https://www.om.nl/actueel/nieuws/2020/11/02/trajectcontrole-n253-van-start",
+      "opmerking": ""
+    },
+    {
+      "weg": "N256",
+      "omschrijving": "N256, Zeelandbrug",
+      "richting": "N256 Rechts: Colijnsplaat - Zierikzee",
+      "hm_van": null,
+      "hm_tot": null,
+      "max_kmh": 80,
+      "bron": "https://www.om.nl/actueel/nieuws/2020/09/14/trajectcontrole-op-n256-zeelandbrug-van-start",
+      "opmerking": ""
+    },
+    {
+      "weg": "N256",
+      "omschrijving": "N256, Zeelandbrug",
+      "richting": "N256 Links: Zierikzee - Colijnsplaat",
+      "hm_van": null,
+      "hm_tot": null,
+      "max_kmh": 80,
+      "bron": "https://www.om.nl/actueel/nieuws/2020/09/14/trajectcontrole-op-n256-zeelandbrug-van-start",
+      "opmerking": ""
+    },
+    {
+      "weg": "N11",
+      "omschrijving": "N11,  tussen Alphen a/d Rijn en Zoeterwoude-Rijndijk",
+      "richting": "N11 Rechts: Leiden - Alphen aan den Rijn",
+      "hm_van": 2.2,
+      "hm_tot": 5.4,
+      "max_kmh": 100,
+      "bron": "https://www.om.nl/actueel/nieuws/2020/11/02/trajectcontrole-n11-van-start",
+      "opmerking": "NWB-wegnummer '011' (Rijksweg); richting<->projectcode-koppeling: WAHV 'Rechts: Leiden - Alphen' = bericht 'van Leiden naar Alphen'"
+    },
+    {
+      "weg": "N11",
+      "omschrijving": "N11,  tussen Alphen a/d Rijn en Zoeterwoude-Rijndijk",
+      "richting": "N11 Rechts: Leiden - Alphen aan den Rijn",
+      "hm_van": 9.3,
+      "hm_tot": 11.1,
+      "max_kmh": 100,
+      "bron": "https://www.om.nl/actueel/nieuws/2020/11/02/trajectcontrole-n11-van-start",
+      "opmerking": "NWB-wegnummer '011' (Rijksweg); richting<->projectcode-koppeling: WAHV 'Rechts: Leiden - Alphen' = bericht 'van Leiden naar Alphen'"
+    },
+    {
+      "weg": "N11",
+      "omschrijving": "N11,  tussen Alphen a/d Rijn en Zoeterwoude-Rijndijk",
+      "richting": "N11 Links: Alphen aan den Rijn - Leiden",
+      "hm_van": 10.9,
+      "hm_tot": 9.2,
+      "max_kmh": 100,
+      "bron": "https://www.om.nl/actueel/nieuws/2020/11/02/trajectcontrole-n11-van-start",
+      "opmerking": "NWB-wegnummer '011' (Rijksweg); richting<->projectcode-koppeling: WAHV 'Rechts: Leiden - Alphen' = bericht 'van Leiden naar Alphen'"
+    },
+    {
+      "weg": "N11",
+      "omschrijving": "N11,  tussen Alphen a/d Rijn en Zoeterwoude-Rijndijk",
+      "richting": "N11 Links: Alphen aan den Rijn - Leiden",
+      "hm_van": 5.7,
+      "hm_tot": 2.2,
+      "max_kmh": 100,
+      "bron": "https://www.om.nl/actueel/nieuws/2020/11/02/trajectcontrole-n11-van-start",
+      "opmerking": "NWB-wegnummer '011' (Rijksweg); richting<->projectcode-koppeling: WAHV 'Rechts: Leiden - Alphen' = bericht 'van Leiden naar Alphen'"
+    }
+  ]
+}

@@ -54,11 +54,15 @@ export interface BBox {
   east: number;
 }
 
-/** A szakasz körüli autópálya/főút-hálózat geometriával (a pályatest kiválasztásához). */
-export function roadsQuery(b: BBox): string {
+/**
+ * A szakasz körüli autópálya/főút-hálózat geometriával (a pályatest kiválasztásához).
+ * `minor`: a mellékutak is (secondary/tertiary) – a hivatalos listák alsóbbrendű utakat is tartalmaznak.
+ */
+export function roadsQuery(b: BBox, opts: { minor?: boolean } = {}): string {
   const bbox = [b.south, b.west, b.north, b.east].map((x) => x.toFixed(6)).join(',');
+  const kinds = `motorway|motorway_link|trunk|trunk_link|primary|primary_link${opts.minor ? '|secondary|secondary_link|tertiary|tertiary_link' : ''}`;
   return `[out:json][timeout:120];
-way["highway"~"^(motorway|motorway_link|trunk|trunk_link|primary|primary_link)$"](${bbox});
+way["highway"~"^(${kinds})$"](${bbox});
 out body geom;`;
 }
 

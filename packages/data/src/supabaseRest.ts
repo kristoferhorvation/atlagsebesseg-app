@@ -53,4 +53,13 @@ export class SupabaseRest {
     });
     await this.check(res, `upsert ${table}`);
   }
+
+  /** Törlés PostgREST-szűrővel (pl. `country=eq.IT&source=in.(osm,hivatalos)`); a törölt sorok száma. */
+  async delete(table: string, query: string): Promise<number> {
+    const res = await this.f(`${this.cfg.url}/rest/v1/${table}?${query}`, {
+      method: 'DELETE',
+      headers: this.headers({ Prefer: 'return=representation' }),
+    });
+    return ((await (await this.check(res, `delete ${table}`)).json()) as unknown[]).length;
+  }
 }

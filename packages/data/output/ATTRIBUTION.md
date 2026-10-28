@@ -19,3 +19,20 @@ Ebből következik:
   OSM-adattal keverve a származtatott adatbázisra az ODbL vonatkozik.
 
 `sections.HU.json`: nem OSM-adat, egyelőre üres (TODO: a hivatalos lista).
+
+## Hivatalos források (A6)
+
+A `source: "hivatalos"` szakaszok kapuhelye és határa hivatalos listákból származik, a vonaluk
+(geometria) az OpenStreetMap úthálózatából – így a fájlokra az ODbL is vonatkozik. Források:
+
+| Ország | Forrás | Licenc / felhasználás |
+|---|---|---|
+| PL | GITD / CANARD eszköztérkép (canard.gitd.gov.pl) | közhiteles nyilvános adat; tényadat (helyszín, határ) |
+| IT | Polizia di Stato (Tutor-lista), Autostrade per l'Italia (km-szelvények) | tényadat, forrásmegjelöléssel |
+| FR | Ministère de l'Intérieur – data.gouv.fr „Liste des radars fixes en France”; radars.securite-routiere.gouv.fr | Licence Ouverte 2.0 (data.gouv); tényadat |
+| ES | DGT – Punto de Acceso Nacional (DATEX II), DGT „Listado de cinemómetros” | CC BY (NAP) |
+| NL | Openbaar Ministerie (trajectcontroles); Rijkswaterstaat NWB hectopunten | tényadat; NWB: CC-0 |
+| AT | ASFINAG; RIS – Section Control-Messstreckenverordnungen | jogszabály (közkincs) |
+
+A szakaszonkénti forrást (név, URL, dátum) a `provenance` mező, az app szakasz-kártyája pedig a
+„Forrás: …” sor mutatja.

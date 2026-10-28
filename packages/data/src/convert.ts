@@ -33,6 +33,11 @@ export function extractEndpoints(rel: OsmRelation, nodes: ReadonlyMap<number, Os
 }
 
 /** "130" → 130, "80 mph" → 128,7; egyéb (pl. "IT:motorway", "signals") → null. */
+/** Mérőeszköz-azonosító (nem útszám): pontot vagy legalább 5 egymás utáni számjegyet tartalmaz. */
+export function isDeviceCode(ref: string): boolean {
+  return /\./.test(ref) || /\d{5,}/.test(ref);
+}
+
 export function parseMaxspeed(v: string | undefined): number | null {
   if (!v) return null;
   const m = /^\s*(\d+(?:\.\d+)?)\s*(mph|km\/h|kmh)?\s*$/i.exec(v);
@@ -107,7 +112,10 @@ export function buildSection(
   if (speedLimitKmh < 20 || speedLimitKmh > 200) return skip(`irreális maxspeed: ${speedLimitKmh}`);
   if (lengthM < 300 || lengthM > 100_000) return skip(`irreális hossz: ${Math.round(lengthM)} m`);
 
-  const road = roadRef(tags.ref ?? mostCommon(wayTags.map((t) => t.ref)));
+  // a reláció ref-je több országban az eszköz kódja (PL „CAN.O.2.006”, NL „a0020001”) – akkor az útszám
+  // az útvonal útjaiból jön
+  const relRef = tags.ref && !isDeviceCode(tags.ref) ? tags.ref : undefined;
+  const road = roadRef(relRef ?? mostCommon(wayTags.map((t) => t.ref)));
   const named = tags.name ?? tags.description;
   const ends = [start.tags?.name, end.tags?.name].filter(Boolean);
   const destination = mostCommon(wayTags.map((t) => t.destination));

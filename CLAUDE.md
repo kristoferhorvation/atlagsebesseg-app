@@ -25,6 +25,9 @@ Gyökér: `npm test` és `npm run typecheck` minden csomagra; `npm run test:all`
 - RLS: kliensről csak `source = kozosseg` és `verified = false` szakasz írható; az
   OSM/hivatalos adatot csak a service_role tölti.
 - UI-ben a dizájn-tokenek a `DESIGN.md`-ből jönnek, nem ad hoc színek/méretek.
+- Szakaszadat: a hivatalos adat elsőbbséget élvez, de az OSM-szakasz nem ellenőrzöttként megmarad,
+  ha nincs hivatalos párja. Duplikátum = ugyanaz az út, ugyanaz az irány, és a geometria legalább
+  70%-ban átfed – ilyenkor csak a hivatalos marad. Minden más OSM-szakasz marad (élőben is csak a duplikátum törlődik).
 - Kód-kommentek és commit-üzenetek magyarul.
 
 ## Kör-rendszer
@@ -41,6 +44,10 @@ Gyökér: `npm test` és `npm run typecheck` minden csomagra; `npm run test:all`
 ## Tesztszabály
 - Commit előtt: `npm test` zöld minden csomagra, `npm run typecheck` tiszta.
 - Élő Supabase-teszt csak ROLLBACK-kel (`npm run db:live`).
+- Élő migrációt (`npm run db:live`) a Claude Code maga futtat, ha csak hozzáad (új tábla /
+  oszlop / nézet / függvény / feltétel); ha adatot vagy oszlopot töröl vagy átnevez, előbb megkérdez.
+- Feltöltés (`npm run upload:sections`) után az élő darabszámot ellenőrizni kell, és a
+  zárójelentésbe beírni.
 
 ## Hol vannak a döntések
 - `supabase/README.md` – séma, cron, RLS-indoklás

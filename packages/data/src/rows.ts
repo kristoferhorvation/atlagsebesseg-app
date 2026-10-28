@@ -1,4 +1,4 @@
-import type { LatLon, Section } from '@atlagsebesseg/core';
+import type { LatLon, Section, SectionLocatedBy } from '@atlagsebesseg/core';
 
 /** A `public.sections` tábla egy sora (lásd supabase/migrations). */
 export interface SectionRow {
@@ -17,6 +17,10 @@ export interface SectionRow {
   /** GeoJSON-sorrend: [[lon, lat], …] */
   geometry: [number, number][] | null;
   expires_at?: string | null;
+  source_name?: string | null;
+  source_url?: string | null;
+  source_date?: string | null;
+  located_by?: SectionLocatedBy | null;
 }
 
 export function sectionToRow(s: Section): SectionRow {
@@ -34,6 +38,10 @@ export function sectionToRow(s: Section): SectionRow {
     source: s.source,
     verified: s.verified,
     geometry: s.geometry?.length ? s.geometry.map((p) => [p.lon, p.lat]) : null,
+    source_name: s.provenance?.name ?? null,
+    source_url: s.provenance?.url ?? null,
+    source_date: s.provenance?.date ?? null,
+    located_by: s.provenance?.locatedBy ?? null,
   };
 }
 
@@ -53,5 +61,8 @@ export function rowToSection(r: SectionRow): Section {
     source: r.source,
     verified: r.verified,
     ...(geometry ? { geometry } : {}),
+    ...(r.source_name && r.source_url && r.source_date && r.located_by
+      ? { provenance: { name: r.source_name, url: r.source_url, date: r.source_date, locatedBy: r.located_by } }
+      : {}),
   };
 }

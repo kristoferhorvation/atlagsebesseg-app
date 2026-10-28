@@ -1,0 +1,137 @@
+{
+  "description": "Polizia di Stato, ELENCO TRATTI CONTROLLATI con il TUTOR (aggiornato al 27 maggio 2026): azok a tratták, amelyek NEM az Autostrade per l'Italia pályáin vannak, így az ASPI km-szelvény-táblájában sem szerepelnek. Kapuhely (km-szelvény vagy koordináta) nincs hozzájuk, ezért az import nem veszi fel őket; a lista a mérleghez és a kihagyás-jelentéshez kell. Szó szerint a PDF-ből (2026-10-27).",
+  "source": "https://www.poliziadistato.it/statics/19/elenco-tratti-controllati-con-il-tutor-maggio-2026.pdf",
+  "polizia_total": 204,
+  "tratte": [
+    {
+      "autostrada": "A4",
+      "da": "VILLESSE DIR OVEST",
+      "a": "PALMANOVA DIR OVEST"
+    },
+    {
+      "autostrada": "A4",
+      "da": "SAN GIORGIO DI NOGARO DIR OVEST",
+      "a": "LATISANA DIR OVEST"
+    },
+    {
+      "autostrada": "A4",
+      "da": "SAN STINO DIR OVEST",
+      "a": "SAN DONA' DIR OVEST"
+    },
+    {
+      "autostrada": "A4",
+      "da": "CESSALTO DIR EST",
+      "a": "SAN STINO DIR EST"
+    },
+    {
+      "autostrada": "A4",
+      "da": "SAN STINO DIR EST",
+      "a": "PORTOGRUARO DIR EST"
+    },
+    {
+      "autostrada": "A4",
+      "da": "LATISANA DIR EST",
+      "a": "SAN GIORGIO DI NOGARO DIR EST"
+    },
+    {
+      "autostrada": "A4",
+      "da": "SAN GIORGIO DI NOGARO DIR EST",
+      "a": "NODO A4/A23 DIR EST"
+    },
+    {
+      "autostrada": "A4",
+      "da": "VILLESSE DIR EST",
+      "a": "REDIPUGLIA DIR EST"
+    },
+    {
+      "autostrada": "A5",
+      "da": "TRAFORO MONTEBIANCO SUD",
+      "a": "TRAFORO MONTEBIANCO NORD"
+    },
+    {
+      "autostrada": "A5",
+      "da": "TRAFORO MONTEBIANCO NORD",
+      "a": "TRAFORO MONTEBIANCO SUD"
+    },
+    {
+      "autostrada": "A6",
+      "da": "PIONE DIR NORD",
+      "a": "CEVA NORD DIR NORD"
+    },
+    {
+      "autostrada": "A6",
+      "da": "ALTARE DIR SUD",
+      "a": "ZINOLA SUD DIR SUD"
+    },
+    {
+      "autostrada": "A7",
+      "da": "GROPELLO DIR NORD",
+      "a": "BEREGUARDO DIR NORD"
+    },
+    {
+      "autostrada": "A7",
+      "da": "CASEI DIR NORD",
+      "a": "GROPELLO DIR NORD"
+    },
+    {
+      "autostrada": "A7",
+      "da": "GROPELLO DIR SUD",
+      "a": "CASEI DIR SUD"
+    },
+    {
+      "autostrada": "A7",
+      "da": "CASEI DIR SUD",
+      "a": "CASTELNUOVO SCRIVIA DIR SUD"
+    },
+    {
+      "autostrada": "A23",
+      "da": "UDINE SUD DIR SUD",
+      "a": "NODO A23-A4 DIR SUD"
+    },
+    {
+      "autostrada": "A28",
+      "da": "AZZANO DECIMO DIR SUD",
+      "a": "VILLOTTA DIR SUD"
+    },
+    {
+      "autostrada": "A56",
+      "da": "VIADOTTO CORSO MALTA DIR OVEST",
+      "a": "CAPODIMONTE DIR OVEST"
+    },
+    {
+      "autostrada": "A56",
+      "da": "CAMALDOLI DIR OVEST",
+      "a": "VOMERO DIR OVEST"
+    },
+    {
+      "autostrada": "A56",
+      "da": "FUORIGROTTA DIR OVEST",
+      "a": "AGNANO DIR OVEST"
+    },
+    {
+      "autostrada": "A56",
+      "da": "SOLFATARE DIR OVEST",
+      "a": "ARCO FELICE DIR OVEST"
+    },
+    {
+      "autostrada": "A56",
+      "da": "ARCO FELICE DIR EST",
+      "a": "ASTRONI DIR EST"
+    },
+    {
+      "autostrada": "A56",
+      "da": "SOLFATARE DIR EST",
+      "a": "AGNANO DIR EST"
+    },
+    {
+      "autostrada": "A56",
+      "da": "AGNANO DIR EST",
+      "a": "FUORIGROTTA DIR EST"
+    },
+    {
+      "autostrada": "A56",
+      "da": "ARENELLA DIR EST",
+      "a": "CAPODIMONTE DIR EST"
+    }
+  ]
+}

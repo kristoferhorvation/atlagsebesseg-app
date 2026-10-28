@@ -1,8 +1,8 @@
 {
   "country": "AT",
-  "generatedAt": "2026-10-26T22:05:03.865Z",
-  "source": "OpenStreetMap, Overpass API: relation[type=enforcement][enforcement=average_speed]",
-  "attribution": "© OpenStreetMap contributors",
+  "generatedAt": "2026-10-28T06:47:01.207Z",
+  "source": "Hivatalos lista: ASFINAG, RIS – Section Control-Messstreckenverordnungen, OpenStreetMap; geometria: OpenStreetMap",
+  "attribution": "ASFINAG, RIS – Section Control-Messstreckenverordnungen, OpenStreetMap; © OpenStreetMap contributors",
   "license": "ODbL-1.0 (Open Database License) – https://opendatacommons.org/licenses/odbl/1-0/",
   "count": 10,
   "sections": [
@@ -84,7 +84,13 @@
           "lat": 48.2521419,
           "lon": 16.3734693
         }
-      ]
+      ],
+      "provenance": {
+        "name": "OpenStreetMap",
+        "url": "https://www.openstreetmap.org/relation/17820940",
+        "date": "2026-10-27",
+        "locatedBy": "koordinata"
+      }
     },
     {
       "id": "osm-17820941",
@@ -140,7 +146,13 @@
           "lat": 48.2557082,
           "lon": 16.3819837
         }
-      ]
+      ],
+      "provenance": {
+        "name": "OpenStreetMap",
+        "url": "https://www.openstreetmap.org/relation/17820941",
+        "date": "2026-10-27",
+        "locatedBy": "koordinata"
+      }
     },
     {
       "id": "osm-18087739",
@@ -324,7 +336,13 @@
           "lat": 47.0336617,
           "lon": 11.4809127
         }
-      ]
+      ],
+      "provenance": {
+        "name": "OpenStreetMap",
+        "url": "https://www.openstreetmap.org/relation/18087739",
+        "date": "2026-10-27",
+        "locatedBy": "koordinata"
+      }
     },
     {
       "id": "osm-18087740",
@@ -512,7 +530,13 @@
           "lat": 47.0191607,
           "lon": 11.505068
         }
-      ]
+      ],
+      "provenance": {
+        "name": "OpenStreetMap",
+        "url": "https://www.openstreetmap.org/relation/18087740",
+        "date": "2026-10-27",
+        "locatedBy": "koordinata"
+      }
     },
     {
       "id": "osm-19001458",
@@ -720,7 +744,13 @@
           "lat": 47.3239557,
           "lon": 13.1645028
         }
-      ]
+      ],
+      "provenance": {
+        "name": "OpenStreetMap",
+        "url": "https://www.openstreetmap.org/relation/19001458",
+        "date": "2026-10-27",
+        "locatedBy": "koordinata"
+      }
     },
     {
       "id": "osm-19001459",
@@ -928,7 +958,13 @@
           "lat": 47.3155585,
           "lon": 13.1314295
         }
-      ]
+      ],
+      "provenance": {
+        "name": "OpenStreetMap",
+        "url": "https://www.openstreetmap.org/relation/19001459",
+        "date": "2026-10-27",
+        "locatedBy": "koordinata"
+      }
     },
     {
       "id": "osm-20285904",
@@ -1416,7 +1452,13 @@
           "lat": 47.4881589,
           "lon": 9.7458285
         }
-      ]
+      ],
+      "provenance": {
+        "name": "OpenStreetMap",
+        "url": "https://www.openstreetmap.org/relation/20285904",
+        "date": "2026-10-27",
+        "locatedBy": "koordinata"
+      }
     },
     {
       "id": "osm-21048139",
@@ -1796,7 +1838,13 @@
           "lat": 48.1537882,
           "lon": 16.4802195
         }
-      ]
+      ],
+      "provenance": {
+        "name": "OpenStreetMap",
+        "url": "https://www.openstreetmap.org/relation/21048139",
+        "date": "2026-10-27",
+        "locatedBy": "koordinata"
+      }
     },
     {
       "id": "osm-276562",
@@ -2420,7 +2468,13 @@
           "lat": 48.4938919,
           "lon": 15.571023
         }
-      ]
+      ],
+      "provenance": {
+        "name": "OpenStreetMap",
+        "url": "https://www.openstreetmap.org/relation/276562",
+        "date": "2026-10-27",
+        "locatedBy": "koordinata"
+      }
     },
     {
       "id": "osm-3003021",
@@ -3044,8 +3098,93 @@
           "lat": 48.5063693,
           "lon": 15.5158784
         }
-      ]
+      ],
+      "provenance": {
+        "name": "OpenStreetMap",
+        "url": "https://www.openstreetmap.org/relation/3003021",
+        "date": "2026-10-27",
+        "locatedBy": "koordinata"
+      }
     }
   ],
-  "skipped": []
+  "skipped": [],
+  "official": {
+    "sources": [
+      {
+        "name": "ASFINAG",
+        "url": "https://blog.asfinag.at/auf-der-autobahn/section-control/",
+        "date": "2023-09-19",
+        "note": "6 fix Section Control (lista nélkül)"
+      },
+      {
+        "name": "RIS – Section Control-Messstreckenverordnungen",
+        "url": "https://www.ris.bka.gv.at/",
+        "date": "2026-10-27",
+        "note": "km-szelvények a hatályos rendeletekből"
+      },
+      {
+        "name": "OpenStreetMap",
+        "url": "https://www.openstreetmap.org/",
+        "date": "2026-10-27",
+        "note": "a meglévő 10 szakasz"
+      }
+    ],
+    "listed": 10,
+    "included": 0,
+    "skipped": [
+      {
+        "id": "at-asfinag-1-1",
+        "label": "A22 Kaisermühlentunnel – beide Richtungsfahrbahnen (km 1.53 → 3.84)",
+        "reason": "a rendeleti km nem köthető helyhez: nincs közrefogó, konzisztens km-kő a km 1.53 körül (OSM)"
+      },
+      {
+        "id": "at-asfinag-1-2",
+        "label": "A22 Kaisermühlentunnel – beide Richtungsfahrbahnen (km 1.53 → 3.84)",
+        "reason": "a rendeleti km nem köthető helyhez: nincs közrefogó, konzisztens km-kő a km 1.53 körül (OSM)"
+      },
+      {
+        "id": "at-asfinag-2",
+        "label": "A2 Wechselabschnitt – Richtungsfahrbahn Wien (km 73.05 → 67.09)",
+        "reason": "a rendeleti km nem köthető helyhez: nincs közrefogó, konzisztens km-kő a km 73.05 körül (OSM)"
+      },
+      {
+        "id": "at-asfinag-3-1",
+        "label": "A2 Ehrentalerbergtunnel – beide Richtungsfahrbahnen (km 317.14 → 320.6)",
+        "reason": "a rendeleti km nem köthető helyhez: nincs közrefogó, konzisztens km-kő a km 317.14 körül (OSM)"
+      },
+      {
+        "id": "at-asfinag-3-2",
+        "label": "A2 Ehrentalerbergtunnel – beide Richtungsfahrbahnen (km 317.14 → 320.6)",
+        "reason": "a rendeleti km nem köthető helyhez: nincs közrefogó, konzisztens km-kő a km 317.14 körül (OSM)"
+      },
+      {
+        "id": "at-asfinag-4-1",
+        "label": "A9 Plabutschtunnel – beide Richtungsfahrbahnen (km 174.6 → 184.89)",
+        "reason": "a rendeleti km nem köthető helyhez: nincs közrefogó, konzisztens km-kő a km 174.6 körül (OSM)"
+      },
+      {
+        "id": "at-asfinag-4-2",
+        "label": "A9 Plabutschtunnel – beide Richtungsfahrbahnen (km 174.6 → 184.89)",
+        "reason": "a rendeleti km nem köthető helyhez: nincs közrefogó, konzisztens km-kő a km 174.6 körül (OSM)"
+      },
+      {
+        "id": "at-asfinag-5",
+        "label": "A7 Hummelhof (Knoten Linz-Hummelhof; Tunnelkette Bindermichl/Niedernhart lt. Medien) – Richtungsfahrbahn A 1 West Autobahn (km 7 → 4.5)",
+        "reason": "a rendeleti km nem köthető helyhez: nincs közrefogó, konzisztens km-kő a km 7 körül (OSM)"
+      },
+      {
+        "id": "at-asfinag-6",
+        "label": "A7 Hummelhof (Knoten Linz-Hummelhof; Tunnelkette Bindermichl/Niedernhart lt. Medien) – Richtungsfahrbahn Unterweitersdorf (km 4.5 → 7)",
+        "reason": "a rendeleti km nem köthető helyhez: nincs közrefogó, konzisztens km-kő a km 4.5 körül (OSM)"
+      },
+      {
+        "id": "at-asfinag-7",
+        "label": "S16 Arlbergtunnel – irány ismeretlen",
+        "reason": "nincs hatályos mérőszakasz-rendelet / km-adat (NICHT GEFUNDEN)"
+      }
+    ],
+    "notes": [],
+    "osmKept": 10,
+    "osmDuplicates": []
+  }
 }

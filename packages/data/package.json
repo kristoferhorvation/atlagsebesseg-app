@@ -2,7 +2,7 @@
   "name": "@atlagsebesseg/data",
   "version": "0.1.0",
   "private": true,
-  "description": "Átlagsebesség-mérő szakaszok importja (OSM Overpass).",
+  "description": "Átlagsebesség-mérő szakaszok importja: hivatalos listák + OSM (Overpass).",
   "type": "module",
   "scripts": {
     "import": "tsx scripts/import-osm.ts",
@@ -10,7 +10,8 @@
     "test": "vitest run",
     "typecheck": "tsc -p tsconfig.json",
     "build:edge": "tsx scripts/build-edge.ts",
-    "upload": "tsx scripts/upload-sections.ts"
+    "upload": "tsx scripts/upload-sections.ts",
+    "import:official": "tsx scripts/import-official.ts"
   },
   "dependencies": {
     "@atlagsebesseg/core": "*"
@@ -18,6 +19,7 @@
   "devDependencies": {
     "@types/node": "^22.0.0",
     "esbuild": "^0.28.2",
+    "lz-string": "^1.5.0",
     "tsx": "^4.20.0",
     "typescript": "~6.0.3",
     "vitest": "^4.0.0"

@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { Route, SectionTracker, haversineM } from '@atlagsebesseg/core';
-import { buildSection, compass, extractEndpoints, parseMaxspeed } from '../src/convert';
+import { buildSection, compass, extractEndpoints, isDeviceCode, parseMaxspeed } from '../src/convert';
 import { onewayDirection } from '../src/graph';
 import { relationsQuery, roadsQuery, runOverpass, type OsmRelation } from '../src/overpass';
 import { at, graph, nodeAtY, north, P, primary, south, tagNodes } from './helpers/synthetic';
@@ -34,6 +34,20 @@ describe('buildSection', () => {
     const route = new Route(s.geometry!, s.lengthM);
     expect(route.project(at(15, 5000)).alongM).toBeCloseTo(5000, -1);
     expect(() => new SectionTracker([s])).not.toThrow();
+  });
+
+  it('eszközkód a reláció ref-jében (PL, NL): az útszám az útvonal útjaiból jön', () => {
+    expect([isDeviceCode('CAN.O.2.006'), isDeviceCode('a0020001'), isDeviceCode('N0620001'), isDeviceCode('S7'), isDeviceCode('N-121-A'), isDeviceCode('SP103')]).toEqual([true, true, true, false, false, false]);
+    const r = buildSection(
+      rel(11, [
+        { type: 'node', ref: 9001, role: 'from' },
+        { type: 'node', ref: 9002, role: 'to' },
+      ], { maxspeed: '130', ref: 'CAN.O.2.006' }),
+      tagNodes,
+      graph,
+      'IT',
+    );
+    expect(r.ok && r.section.road).toBe('A22');
   });
 
   it('csak device-ok, fordított sorrendben, egyirányú pályán: az irányt az úthálózat dönti el', () => {

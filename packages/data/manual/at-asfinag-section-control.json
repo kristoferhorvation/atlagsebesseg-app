@@ -1,0 +1,77 @@
+{
+  "description": "ASFINAG: 6 fix Section-Control-berendezés (blog.asfinag.at, 2023-09-19 – lista nélkül). A helyszínek km-adatai a hatályos szövetségi „Section Control-Messstreckenverordnung”-okból (RIS, konszolidált szöveg 2026-10-27), szó szerint. A rendeletek határt nem tartalmaznak. Arlbergtunnel: rendelet nem található.",
+  "asfinag": "https://blog.asfinag.at/auf-der-autobahn/section-control/",
+  "asfinag_datum": "2023-09-19",
+  "standorte": [
+    {
+      "standort": "Kaisermühlentunnel",
+      "strasse": "A 22 Donauufer Autobahn",
+      "richtung": "beide Richtungsfahrbahnen",
+      "km_von": 1.53,
+      "km_bis": 3.84,
+      "verordnung": "BGBl. II Nr. 168/2007 idF BGBl. II Nr. 32/2018",
+      "url": "https://www.ris.bka.gv.at/GeltendeFassung.wxe?Abfrage=Bundesnormen&Gesetzesnummer=20005387",
+      "anmerkung": "ursprünglich (2007) km 1,450 bis km 3,750"
+    },
+    {
+      "standort": "Wechselabschnitt",
+      "strasse": "A 2 Süd Autobahn",
+      "richtung": "Richtungsfahrbahn Wien",
+      "km_von": 73.05,
+      "km_bis": 67.09,
+      "verordnung": "BGBl. II Nr. 307/2015",
+      "url": "https://www.ris.bka.gv.at/GeltendeFassung.wxe?Abfrage=Bundesnormen&Gesetzesnummer=20009312",
+      "anmerkung": "nur eine Richtung; Medien nennen 'Krumbach–Grimmenstein'"
+    },
+    {
+      "standort": "Ehrentalerbergtunnel",
+      "strasse": "A 2 Süd Autobahn",
+      "richtung": "beide Richtungsfahrbahnen",
+      "km_von": 317.14,
+      "km_bis": 320.6,
+      "verordnung": "BGBl. II Nr. 339/2013",
+      "url": "https://www.ris.bka.gv.at/GeltendeFassung.wxe?Abfrage=Bundesnormen&Gesetzesnummer=20008634",
+      "anmerkung": "ersetzt BGBl. II Nr. 247/2009 (richtungsgetrennte km)"
+    },
+    {
+      "standort": "Plabutschtunnel",
+      "strasse": "A 9 Pyhrn Autobahn",
+      "richtung": "beide Richtungsfahrbahnen",
+      "km_von": 174.6,
+      "km_bis": 184.89,
+      "verordnung": "BGBl. II Nr. 321/2011",
+      "url": "https://www.ris.bka.gv.at/GeltendeFassung.wxe?Abfrage=Bundesnormen&Gesetzesnummer=20007475",
+      "anmerkung": ""
+    },
+    {
+      "standort": "Hummelhof (Knoten Linz-Hummelhof; Tunnelkette Bindermichl/Niedernhart lt. Medien)",
+      "strasse": "A 7 Mühlkreis Autobahn",
+      "richtung": "Richtungsfahrbahn A 1 West Autobahn",
+      "km_von": 7.0,
+      "km_bis": 4.5,
+      "verordnung": "BGBl. II Nr. 287/2014",
+      "url": "https://www.ris.bka.gv.at/GeltendeFassung.wxe?Abfrage=Bundesnormen&Gesetzesnummer=20008982",
+      "anmerkung": "Multi-Section: weitere Messstrecken mit Rampen-Ein/Ausfahrten (Wienerstraße, Linz Zentrum, Muldenstraße) siehe §1 Z1-3 im Volltext; Zuordnung zum Namen 'Bindermichl/Niedernhart' nicht aus Verordnung"
+    },
+    {
+      "standort": "Hummelhof (Knoten Linz-Hummelhof; Tunnelkette Bindermichl/Niedernhart lt. Medien)",
+      "strasse": "A 7 Mühlkreis Autobahn",
+      "richtung": "Richtungsfahrbahn Unterweitersdorf",
+      "km_von": 4.5,
+      "km_bis": 7.0,
+      "verordnung": "BGBl. II Nr. 287/2014",
+      "url": "https://www.ris.bka.gv.at/GeltendeFassung.wxe?Abfrage=Bundesnormen&Gesetzesnummer=20008982",
+      "anmerkung": "Multi-Section: weitere Messstrecken §2 Z1-3 im Volltext"
+    },
+    {
+      "standort": "Arlbergtunnel",
+      "strasse": "S 16 Arlberg Schnellstraße",
+      "richtung": "",
+      "km_von": null,
+      "km_bis": null,
+      "verordnung": "NICHT GEFUNDEN",
+      "url": null,
+      "anmerkung": "ASFINAG-Blog (2023) nennt 6 stationäre Anlagen ohne Liste; Arlberg nur aus Medien (vienna.at 2023). Keine Messstreckenverordnung im RIS (BgblAuth/BrKons) gefunden -> km unbekannt, Status unbestätigt"
+    }
+  ]
+}

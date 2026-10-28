@@ -24,3 +24,6 @@ supabase/.temp/
 
 # Vercel CLI helyi projekt-kötés
 .vercel/
+
+# Hivatalos importok letöltési gyorsítótára (nyers források, Overpass-válaszok)
+packages/data/cache/

@@ -34,6 +34,12 @@ end $$;
 
 grant execute on all functions in schema pg_temp to anon, authenticated;
 
+-- A6: hivatalos szakasz csak forrással (service_role-ként is)
+select pg_temp.expect_error($$insert into public.sections (id, country, start_lat, start_lon, end_lat, end_lon, length_m, speed_limit_kmh, source, verified) values ('test-hiv-1','IT',44.4,11.2,44.3,11.2,12000,130,'hivatalos',true)$$, 'hivatalos szakasz forrás nélkül nem írható');
+insert into public.sections (id, country, start_lat, start_lon, end_lat, end_lon, length_m, speed_limit_kmh, source, verified, source_name, source_url, source_date, located_by)
+values ('test-hiv-2', 'IT', 44.4, 11.2, 44.3, 11.2, 12000, 130, 'hivatalos', true, 'Polizia di Stato', 'https://www.poliziadistato.it/', '2026-08', 'km_szelveny');
+select pg_temp.expect((select source_name from public.sections_in_bbox(44, 11, 45, 12) where id = 'test-hiv-2') = 'Polizia di Stato', 'sections_in_bbox a forrást is adja');
+
 -- anon: olvashat, nem írhat
 set role anon;
 select pg_temp.expect((select count(*) from public.sections where id = 'test-rls-osm-1') = 1, 'anon olvassa a szakaszokat');
@@ -53,6 +59,7 @@ select pg_temp.expect_error($$insert into public.sections (id, country, start_la
 insert into public.sections (id, country, start_lat, start_lon, end_lat, end_lon, length_m, speed_limit_kmh, source)
 values ('kozosseg-1', 'HU', 47.5, 19.0, 47.4, 19.0, 5000, 110, 'kozosseg');
 select pg_temp.expect((select created_by from public.sections where id = 'kozosseg-1') = auth.uid(), 'közösségi szakasz beírható, szerző = auth.uid()');
+select pg_temp.expect_error($$insert into public.sections (id, country, start_lat, start_lon, end_lat, end_lon, length_m, speed_limit_kmh, source, source_name, source_url, source_date, located_by) values ('kozosseg-2','HU',47.5,19.0,47.4,19.0,5000,110,'kozosseg','Polizia di Stato','https://x.it','2026-08','koordinata')$$, 'közösségi szakasz nem hivatkozhat hivatalos forrásra');
 update public.sections set length_m = 1 where id = 'test-rls-osm-1';
 select pg_temp.expect((select length_m from public.sections where id = 'test-rls-osm-1') = 12000, 'OSM-szakasz nem módosítható');
 reset role;

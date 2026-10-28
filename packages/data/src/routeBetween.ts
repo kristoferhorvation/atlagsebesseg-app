@@ -1,4 +1,4 @@
-import { haversineM, type LatLon } from '@atlagsebesseg/core';
+import { haversineM, LocalProjection, type LatLon } from '@atlagsebesseg/core';
 import type { Anchor, Path, RoadGraph } from './graph';
 
 export interface Gate extends LatLon {
@@ -89,3 +89,36 @@ export const roundGeometry = (g: LatLon[]) => g.map((p) => ({ lat: round7(p.lat)
 
 /** Útszám a címkékből: "A22;E45" → "A22". */
 export const roadRef = (ref: string | undefined) => (ref ?? '').split(';')[0]!.trim();
+
+/**
+ * Douglas–Peucker egyszerűsítés: a vonaltól `toleranceM`-nél közelebbi közbülső pontok elhagyhatók
+ * (a beépített szakaszlista méretéhez); a két vég mindig marad.
+ */
+export function simplifyGeometry(g: readonly LatLon[], toleranceM = 3): LatLon[] {
+  if (g.length <= 2) return [...g];
+  const proj = new LocalProjection(g[0]!);
+  const xy = g.map((p) => proj.toXY(p));
+  const keep = new Uint8Array(g.length);
+  keep[0] = keep[g.length - 1] = 1;
+  const stack: [number, number][] = [[0, g.length - 1]];
+  while (stack.length) {
+    const [a, b] = stack.pop()!;
+    const A = xy[a]!;
+    const B = xy[b]!;
+    const dx = B.x - A.x;
+    const dy = B.y - A.y;
+    const len = Math.hypot(dx, dy);
+    let worst = -1;
+    let at = -1;
+    for (let i = a + 1; i < b; i++) {
+      const P = xy[i]!;
+      const d = len > 0 ? Math.abs(dy * (P.x - A.x) - dx * (P.y - A.y)) / len : Math.hypot(P.x - A.x, P.y - A.y);
+      if (d > worst) [worst, at] = [d, i];
+    }
+    if (worst > toleranceM) {
+      keep[at] = 1;
+      stack.push([a, at], [at, b]);
+    }
+  }
+  return g.filter((_, i) => keep[i]);
+}
