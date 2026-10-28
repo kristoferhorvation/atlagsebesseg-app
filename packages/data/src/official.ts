@@ -145,6 +145,7 @@ export function evaluateOfficial(item: OfficialItem, graph: RoadGraph, opts: { s
       verified: true,
       geometry: roundGeometry(simplifyGeometry(route.geometry)),
       provenance: item.provenance,
+      limitSource: item.speedLimitKmh === null ? 'osm' : 'hivatalos',
     },
   };
 }
@@ -214,7 +215,7 @@ export function mergeOfficialWithOsm(official: readonly Section[], osm: readonly
   for (const o of osm) {
     const twin = official.find((f) => isOsmDuplicate(o, f));
     if (twin) duplicates.push({ osm: o.id, official: twin.id });
-    else kept.push({ ...o, verified: false, ...(o.geometry ? { geometry: roundGeometry(simplifyGeometry(o.geometry)) } : {}) });
+    else kept.push({ ...o, verified: false, limitSource: 'osm', ...(o.geometry ? { geometry: roundGeometry(simplifyGeometry(o.geometry)) } : {}) });
   }
   return { sections: [...official, ...kept].sort((a, b) => a.id.localeCompare(b.id)), duplicates };
 }

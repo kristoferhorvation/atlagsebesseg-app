@@ -1,6 +1,6 @@
 {
   "country": "PL",
-  "generatedAt": "2026-10-28T06:46:59.937Z",
+  "generatedAt": "2026-10-28T07:06:28.406Z",
   "source": "Hivatalos lista: GITD (CANARD); geometria: OpenStreetMap",
   "attribution": "GITD (CANARD); © OpenStreetMap contributors",
   "license": "ODbL-1.0 (Open Database License) – https://opendatacommons.org/licenses/odbl/1-0/",
@@ -70,7 +70,8 @@
         "url": "https://www.openstreetmap.org/relation/13485967",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "osm"
     },
     {
       "id": "osm-13486243",
@@ -120,7 +121,8 @@
         "url": "https://www.openstreetmap.org/relation/13486243",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "osm"
     },
     {
       "id": "osm-17310141",
@@ -182,7 +184,8 @@
         "url": "https://www.openstreetmap.org/relation/17310141",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "osm"
     },
     {
       "id": "osm-17310142",
@@ -244,7 +247,8 @@
         "url": "https://www.openstreetmap.org/relation/17310142",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "osm"
     },
     {
       "id": "osm-17488185",
@@ -314,7 +318,8 @@
         "url": "https://www.openstreetmap.org/relation/17488185",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "osm"
     },
     {
       "id": "osm-17488186",
@@ -384,7 +389,8 @@
         "url": "https://www.openstreetmap.org/relation/17488186",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "osm"
     },
     {
       "id": "osm-18932146",
@@ -506,7 +512,8 @@
         "url": "https://www.openstreetmap.org/relation/18932146",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "osm"
     },
     {
       "id": "osm-18932147",
@@ -632,7 +639,8 @@
         "url": "https://www.openstreetmap.org/relation/18932147",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "osm"
     },
     {
       "id": "osm-20063908",
@@ -694,7 +702,8 @@
         "url": "https://www.openstreetmap.org/relation/20063908",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "osm"
     },
     {
       "id": "osm-20351870",
@@ -884,7 +893,8 @@
         "url": "https://www.openstreetmap.org/relation/20351870",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "osm"
     },
     {
       "id": "osm-20351871",
@@ -1078,7 +1088,8 @@
         "url": "https://www.openstreetmap.org/relation/20351871",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "osm"
     },
     {
       "id": "osm-20405932",
@@ -1264,7 +1275,8 @@
         "url": "https://www.openstreetmap.org/relation/20405932",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "osm"
     },
     {
       "id": "osm-20405933",
@@ -1454,7 +1466,8 @@
         "url": "https://www.openstreetmap.org/relation/20405933",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "osm"
     },
     {
       "id": "osm-20627104",
@@ -1648,7 +1661,8 @@
         "url": "https://www.openstreetmap.org/relation/20627104",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "osm"
     },
     {
       "id": "osm-20627105",
@@ -1846,7 +1860,8 @@
         "url": "https://www.openstreetmap.org/relation/20627105",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "osm"
     },
     {
       "id": "osm-20967015",
@@ -1996,7 +2011,8 @@
         "url": "https://www.openstreetmap.org/relation/20967015",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "osm"
     },
     {
       "id": "osm-20967016",
@@ -2138,7 +2154,8 @@
         "url": "https://www.openstreetmap.org/relation/20967016",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "osm"
     },
     {
       "id": "osm-21004528",
@@ -2228,7 +2245,8 @@
         "url": "https://www.openstreetmap.org/relation/21004528",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "osm"
     },
     {
       "id": "osm-21071491",
@@ -2406,7 +2424,8 @@
         "url": "https://www.openstreetmap.org/relation/21071491",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "osm"
     },
     {
       "id": "osm-21071492",
@@ -2584,7 +2603,8 @@
         "url": "https://www.openstreetmap.org/relation/21071492",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "osm"
     },
     {
       "id": "osm-6696774",
@@ -2630,7 +2650,8 @@
         "url": "https://www.openstreetmap.org/relation/6696774",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "osm"
     },
     {
       "id": "osm-6696775",
@@ -2676,7 +2697,8 @@
         "url": "https://www.openstreetmap.org/relation/6696775",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "osm"
     },
     {
       "id": "osm-6696787",
@@ -2726,7 +2748,8 @@
         "url": "https://www.openstreetmap.org/relation/6696787",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "osm"
     },
     {
       "id": "osm-6696788",
@@ -2776,7 +2799,8 @@
         "url": "https://www.openstreetmap.org/relation/6696788",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "osm"
     },
     {
       "id": "osm-6698981",
@@ -2838,7 +2862,8 @@
         "url": "https://www.openstreetmap.org/relation/6698981",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "osm"
     },
     {
       "id": "osm-6698982",
@@ -2900,7 +2925,8 @@
         "url": "https://www.openstreetmap.org/relation/6698982",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "osm"
     },
     {
       "id": "osm-6699086",
@@ -2998,7 +3024,8 @@
         "url": "https://www.openstreetmap.org/relation/6699086",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "osm"
     },
     {
       "id": "osm-6699087",
@@ -3096,7 +3123,8 @@
         "url": "https://www.openstreetmap.org/relation/6699087",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "osm"
     },
     {
       "id": "pl-gitd-10764316-ab",
@@ -3162,7 +3190,8 @@
         "url": "https://www.canard.gitd.gov.pl/cms/web/guest/o-nas/mapa-urzadzen",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "pl-gitd-10764316-ba",
@@ -3228,7 +3257,8 @@
         "url": "https://www.canard.gitd.gov.pl/cms/web/guest/o-nas/mapa-urzadzen",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "pl-gitd-110646597-110646872-ab",
@@ -3382,7 +3412,8 @@
         "url": "https://www.canard.gitd.gov.pl/cms/web/guest/o-nas/mapa-urzadzen",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "pl-gitd-110646597-110646872-ba",
@@ -3536,7 +3567,8 @@
         "url": "https://www.canard.gitd.gov.pl/cms/web/guest/o-nas/mapa-urzadzen",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "pl-gitd-110646878-ab",
@@ -3642,7 +3674,8 @@
         "url": "https://www.canard.gitd.gov.pl/cms/web/guest/o-nas/mapa-urzadzen",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "pl-gitd-110646878-ba",
@@ -3748,7 +3781,8 @@
         "url": "https://www.canard.gitd.gov.pl/cms/web/guest/o-nas/mapa-urzadzen",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "pl-gitd-110977275-ab",
@@ -3870,7 +3904,8 @@
         "url": "https://www.canard.gitd.gov.pl/cms/web/guest/o-nas/mapa-urzadzen",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "pl-gitd-110977275-ba",
@@ -3992,7 +4027,8 @@
         "url": "https://www.canard.gitd.gov.pl/cms/web/guest/o-nas/mapa-urzadzen",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "pl-gitd-112732201-ab",
@@ -4234,7 +4270,8 @@
         "url": "https://www.canard.gitd.gov.pl/cms/web/guest/o-nas/mapa-urzadzen",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "pl-gitd-112732201-ba",
@@ -4464,7 +4501,8 @@
         "url": "https://www.canard.gitd.gov.pl/cms/web/guest/o-nas/mapa-urzadzen",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "pl-gitd-11337015-ab",
@@ -4518,7 +4556,8 @@
         "url": "https://www.canard.gitd.gov.pl/cms/web/guest/o-nas/mapa-urzadzen",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "pl-gitd-11337015-ba",
@@ -4572,7 +4611,8 @@
         "url": "https://www.canard.gitd.gov.pl/cms/web/guest/o-nas/mapa-urzadzen",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "pl-gitd-113414005-113414032-ab",
@@ -4634,7 +4674,8 @@
         "url": "https://www.canard.gitd.gov.pl/cms/web/guest/o-nas/mapa-urzadzen",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "pl-gitd-113783521-113783510-ab",
@@ -4776,7 +4817,8 @@
         "url": "https://www.canard.gitd.gov.pl/cms/web/guest/o-nas/mapa-urzadzen",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "pl-gitd-113783521-113783510-ba",
@@ -4934,7 +4976,8 @@
         "url": "https://www.canard.gitd.gov.pl/cms/web/guest/o-nas/mapa-urzadzen",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "pl-gitd-113783529-ab",
@@ -5060,7 +5103,8 @@
         "url": "https://www.canard.gitd.gov.pl/cms/web/guest/o-nas/mapa-urzadzen",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "pl-gitd-113783529-ba",
@@ -5178,7 +5222,8 @@
         "url": "https://www.canard.gitd.gov.pl/cms/web/guest/o-nas/mapa-urzadzen",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "pl-gitd-113783542-113783570-ab",
@@ -5264,7 +5309,8 @@
         "url": "https://www.canard.gitd.gov.pl/cms/web/guest/o-nas/mapa-urzadzen",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "pl-gitd-113783542-113783570-ba",
@@ -5346,7 +5392,8 @@
         "url": "https://www.canard.gitd.gov.pl/cms/web/guest/o-nas/mapa-urzadzen",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "pl-gitd-113783591-ab",
@@ -5448,7 +5495,8 @@
         "url": "https://www.canard.gitd.gov.pl/cms/web/guest/o-nas/mapa-urzadzen",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "pl-gitd-113783591-ba",
@@ -5558,7 +5606,8 @@
         "url": "https://www.canard.gitd.gov.pl/cms/web/guest/o-nas/mapa-urzadzen",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "pl-gitd-113783617-113783631-ab",
@@ -5612,7 +5661,8 @@
         "url": "https://www.canard.gitd.gov.pl/cms/web/guest/o-nas/mapa-urzadzen",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "pl-gitd-113783617-113783631-ba",
@@ -5662,7 +5712,8 @@
         "url": "https://www.canard.gitd.gov.pl/cms/web/guest/o-nas/mapa-urzadzen",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "pl-gitd-113783639-ab",
@@ -5788,7 +5839,8 @@
         "url": "https://www.canard.gitd.gov.pl/cms/web/guest/o-nas/mapa-urzadzen",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "pl-gitd-113783639-ba",
@@ -5918,7 +5970,8 @@
         "url": "https://www.canard.gitd.gov.pl/cms/web/guest/o-nas/mapa-urzadzen",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "pl-gitd-113783649-ab",
@@ -6120,7 +6173,8 @@
         "url": "https://www.canard.gitd.gov.pl/cms/web/guest/o-nas/mapa-urzadzen",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "pl-gitd-113783649-ba",
@@ -6330,7 +6384,8 @@
         "url": "https://www.canard.gitd.gov.pl/cms/web/guest/o-nas/mapa-urzadzen",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "pl-gitd-113783659-ab",
@@ -6524,7 +6579,8 @@
         "url": "https://www.canard.gitd.gov.pl/cms/web/guest/o-nas/mapa-urzadzen",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "pl-gitd-113783659-ba",
@@ -6726,7 +6782,8 @@
         "url": "https://www.canard.gitd.gov.pl/cms/web/guest/o-nas/mapa-urzadzen",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "pl-gitd-113783667-113783675-ab",
@@ -6796,7 +6853,8 @@
         "url": "https://www.canard.gitd.gov.pl/cms/web/guest/o-nas/mapa-urzadzen",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "pl-gitd-113783667-113783675-ba",
@@ -6870,7 +6928,8 @@
         "url": "https://www.canard.gitd.gov.pl/cms/web/guest/o-nas/mapa-urzadzen",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "pl-gitd-113783685-ab",
@@ -6924,7 +6983,8 @@
         "url": "https://www.canard.gitd.gov.pl/cms/web/guest/o-nas/mapa-urzadzen",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "pl-gitd-113783685-ba",
@@ -6978,7 +7038,8 @@
         "url": "https://www.canard.gitd.gov.pl/cms/web/guest/o-nas/mapa-urzadzen",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "pl-gitd-113783705-ab",
@@ -7096,7 +7157,8 @@
         "url": "https://www.canard.gitd.gov.pl/cms/web/guest/o-nas/mapa-urzadzen",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "pl-gitd-113783705-ba",
@@ -7202,7 +7264,8 @@
         "url": "https://www.canard.gitd.gov.pl/cms/web/guest/o-nas/mapa-urzadzen",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "pl-gitd-115049968-115049948-ab",
@@ -7312,7 +7375,8 @@
         "url": "https://www.canard.gitd.gov.pl/cms/web/guest/o-nas/mapa-urzadzen",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "pl-gitd-115049968-115049948-ba",
@@ -7430,7 +7494,8 @@
         "url": "https://www.canard.gitd.gov.pl/cms/web/guest/o-nas/mapa-urzadzen",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "pl-gitd-116215931-ab",
@@ -7584,7 +7649,8 @@
         "url": "https://www.canard.gitd.gov.pl/cms/web/guest/o-nas/mapa-urzadzen",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "pl-gitd-116215931-ba",
@@ -7738,7 +7804,8 @@
         "url": "https://www.canard.gitd.gov.pl/cms/web/guest/o-nas/mapa-urzadzen",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "pl-gitd-116594573-116594469-ab",
@@ -7928,7 +7995,8 @@
         "url": "https://www.canard.gitd.gov.pl/cms/web/guest/o-nas/mapa-urzadzen",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "pl-gitd-116594573-116594469-ba",
@@ -8114,7 +8182,8 @@
         "url": "https://www.canard.gitd.gov.pl/cms/web/guest/o-nas/mapa-urzadzen",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "pl-gitd-116594787-ab",
@@ -8212,7 +8281,8 @@
         "url": "https://www.canard.gitd.gov.pl/cms/web/guest/o-nas/mapa-urzadzen",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "pl-gitd-116594787-ba",
@@ -8314,7 +8384,8 @@
         "url": "https://www.canard.gitd.gov.pl/cms/web/guest/o-nas/mapa-urzadzen",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "pl-gitd-116594860-116594833-ab",
@@ -8592,7 +8663,8 @@
         "url": "https://www.canard.gitd.gov.pl/cms/web/guest/o-nas/mapa-urzadzen",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "pl-gitd-116594860-116594833-ba",
@@ -8866,7 +8938,8 @@
         "url": "https://www.canard.gitd.gov.pl/cms/web/guest/o-nas/mapa-urzadzen",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "pl-gitd-117740692-ab",
@@ -8964,7 +9037,8 @@
         "url": "https://www.canard.gitd.gov.pl/cms/web/guest/o-nas/mapa-urzadzen",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "pl-gitd-117740692-ba",
@@ -9062,7 +9136,8 @@
         "url": "https://www.canard.gitd.gov.pl/cms/web/guest/o-nas/mapa-urzadzen",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "pl-gitd-117740698-ab",
@@ -9140,7 +9215,8 @@
         "url": "https://www.canard.gitd.gov.pl/cms/web/guest/o-nas/mapa-urzadzen",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "pl-gitd-117740698-ba",
@@ -9218,7 +9294,8 @@
         "url": "https://www.canard.gitd.gov.pl/cms/web/guest/o-nas/mapa-urzadzen",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "pl-gitd-117740707-117740716-ab",
@@ -9320,7 +9397,8 @@
         "url": "https://www.canard.gitd.gov.pl/cms/web/guest/o-nas/mapa-urzadzen",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "pl-gitd-117740707-117740716-ba",
@@ -9422,7 +9500,8 @@
         "url": "https://www.canard.gitd.gov.pl/cms/web/guest/o-nas/mapa-urzadzen",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "pl-gitd-117740738-ab",
@@ -9528,7 +9607,8 @@
         "url": "https://www.canard.gitd.gov.pl/cms/web/guest/o-nas/mapa-urzadzen",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "pl-gitd-117740738-ba",
@@ -9642,7 +9722,8 @@
         "url": "https://www.canard.gitd.gov.pl/cms/web/guest/o-nas/mapa-urzadzen",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "pl-gitd-117740855-ab",
@@ -9928,7 +10009,8 @@
         "url": "https://www.canard.gitd.gov.pl/cms/web/guest/o-nas/mapa-urzadzen",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "pl-gitd-117740855-ba",
@@ -10230,7 +10312,8 @@
         "url": "https://www.canard.gitd.gov.pl/cms/web/guest/o-nas/mapa-urzadzen",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "pl-gitd-117740867-ab",
@@ -10312,7 +10395,8 @@
         "url": "https://www.canard.gitd.gov.pl/cms/web/guest/o-nas/mapa-urzadzen",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "pl-gitd-117740867-ba",
@@ -10394,7 +10478,8 @@
         "url": "https://www.canard.gitd.gov.pl/cms/web/guest/o-nas/mapa-urzadzen",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "pl-gitd-118679746-118679732-ab",
@@ -10536,7 +10621,8 @@
         "url": "https://www.canard.gitd.gov.pl/cms/web/guest/o-nas/mapa-urzadzen",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "pl-gitd-118679746-118679732-ba",
@@ -10678,7 +10764,8 @@
         "url": "https://www.canard.gitd.gov.pl/cms/web/guest/o-nas/mapa-urzadzen",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "pl-gitd-118679763-ab",
@@ -10788,7 +10875,8 @@
         "url": "https://www.canard.gitd.gov.pl/cms/web/guest/o-nas/mapa-urzadzen",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "pl-gitd-118679763-ba",
@@ -10894,7 +10982,8 @@
         "url": "https://www.canard.gitd.gov.pl/cms/web/guest/o-nas/mapa-urzadzen",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "pl-gitd-118679774-118679783-ab",
@@ -10972,7 +11061,8 @@
         "url": "https://www.canard.gitd.gov.pl/cms/web/guest/o-nas/mapa-urzadzen",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "pl-gitd-118679774-118679783-ba",
@@ -11054,7 +11144,8 @@
         "url": "https://www.canard.gitd.gov.pl/cms/web/guest/o-nas/mapa-urzadzen",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "pl-gitd-118679807-118679818-ab",
@@ -11152,7 +11243,8 @@
         "url": "https://www.canard.gitd.gov.pl/cms/web/guest/o-nas/mapa-urzadzen",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "pl-gitd-118679807-118679818-ba",
@@ -11246,7 +11338,8 @@
         "url": "https://www.canard.gitd.gov.pl/cms/web/guest/o-nas/mapa-urzadzen",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "pl-gitd-118679827-ab",
@@ -11376,7 +11469,8 @@
         "url": "https://www.canard.gitd.gov.pl/cms/web/guest/o-nas/mapa-urzadzen",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "pl-gitd-118679827-ba",
@@ -11510,7 +11604,8 @@
         "url": "https://www.canard.gitd.gov.pl/cms/web/guest/o-nas/mapa-urzadzen",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "pl-gitd-118679857-ab",
@@ -11740,7 +11835,8 @@
         "url": "https://www.canard.gitd.gov.pl/cms/web/guest/o-nas/mapa-urzadzen",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "pl-gitd-118679857-ba",
@@ -11962,7 +12058,8 @@
         "url": "https://www.canard.gitd.gov.pl/cms/web/guest/o-nas/mapa-urzadzen",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "pl-gitd-118679898-ab",
@@ -12044,7 +12141,8 @@
         "url": "https://www.canard.gitd.gov.pl/cms/web/guest/o-nas/mapa-urzadzen",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "pl-gitd-118679898-ba",
@@ -12118,7 +12216,8 @@
         "url": "https://www.canard.gitd.gov.pl/cms/web/guest/o-nas/mapa-urzadzen",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "pl-gitd-118679915-118679980-ab",
@@ -12196,7 +12295,8 @@
         "url": "https://www.canard.gitd.gov.pl/cms/web/guest/o-nas/mapa-urzadzen",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "pl-gitd-118680037-ab",
@@ -12358,7 +12458,8 @@
         "url": "https://www.canard.gitd.gov.pl/cms/web/guest/o-nas/mapa-urzadzen",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "pl-gitd-118680037-ba",
@@ -12520,7 +12621,8 @@
         "url": "https://www.canard.gitd.gov.pl/cms/web/guest/o-nas/mapa-urzadzen",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "pl-gitd-118680069-118680098-ab",
@@ -12742,7 +12844,8 @@
         "url": "https://www.canard.gitd.gov.pl/cms/web/guest/o-nas/mapa-urzadzen",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "pl-gitd-118680069-118680098-ba",
@@ -12952,7 +13055,8 @@
         "url": "https://www.canard.gitd.gov.pl/cms/web/guest/o-nas/mapa-urzadzen",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "pl-gitd-118680199-ab",
@@ -13066,7 +13170,8 @@
         "url": "https://www.canard.gitd.gov.pl/cms/web/guest/o-nas/mapa-urzadzen",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "pl-gitd-118680199-ba",
@@ -13184,7 +13289,8 @@
         "url": "https://www.canard.gitd.gov.pl/cms/web/guest/o-nas/mapa-urzadzen",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "pl-gitd-118680228-ab",
@@ -13338,7 +13444,8 @@
         "url": "https://www.canard.gitd.gov.pl/cms/web/guest/o-nas/mapa-urzadzen",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "pl-gitd-118680228-ba",
@@ -13516,7 +13623,8 @@
         "url": "https://www.canard.gitd.gov.pl/cms/web/guest/o-nas/mapa-urzadzen",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "pl-gitd-118680294-118680302-ab",
@@ -13614,7 +13722,8 @@
         "url": "https://www.canard.gitd.gov.pl/cms/web/guest/o-nas/mapa-urzadzen",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "pl-gitd-118680294-118680302-ba",
@@ -13708,7 +13817,8 @@
         "url": "https://www.canard.gitd.gov.pl/cms/web/guest/o-nas/mapa-urzadzen",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "pl-gitd-12807853-ab",
@@ -13758,7 +13868,8 @@
         "url": "https://www.canard.gitd.gov.pl/cms/web/guest/o-nas/mapa-urzadzen",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "pl-gitd-12807853-ba",
@@ -13808,7 +13919,8 @@
         "url": "https://www.canard.gitd.gov.pl/cms/web/guest/o-nas/mapa-urzadzen",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "pl-gitd-12825204-12825787-ab",
@@ -13890,7 +14002,8 @@
         "url": "https://www.canard.gitd.gov.pl/cms/web/guest/o-nas/mapa-urzadzen",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "pl-gitd-12825204-12825787-ba",
@@ -13972,7 +14085,8 @@
         "url": "https://www.canard.gitd.gov.pl/cms/web/guest/o-nas/mapa-urzadzen",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "pl-gitd-12825830-ab",
@@ -14070,7 +14184,8 @@
         "url": "https://www.canard.gitd.gov.pl/cms/web/guest/o-nas/mapa-urzadzen",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "pl-gitd-12825830-ba",
@@ -14168,7 +14283,8 @@
         "url": "https://www.canard.gitd.gov.pl/cms/web/guest/o-nas/mapa-urzadzen",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "pl-gitd-12825846-ab",
@@ -14218,7 +14334,8 @@
         "url": "https://www.canard.gitd.gov.pl/cms/web/guest/o-nas/mapa-urzadzen",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "pl-gitd-12825846-ba",
@@ -14268,7 +14385,8 @@
         "url": "https://www.canard.gitd.gov.pl/cms/web/guest/o-nas/mapa-urzadzen",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "pl-gitd-12825860-ab",
@@ -14302,7 +14420,8 @@
         "url": "https://www.canard.gitd.gov.pl/cms/web/guest/o-nas/mapa-urzadzen",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "pl-gitd-12825860-ba",
@@ -14336,7 +14455,8 @@
         "url": "https://www.canard.gitd.gov.pl/cms/web/guest/o-nas/mapa-urzadzen",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "pl-gitd-12931379-ab",
@@ -14370,7 +14490,8 @@
         "url": "https://www.canard.gitd.gov.pl/cms/web/guest/o-nas/mapa-urzadzen",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "pl-gitd-12931379-ba",
@@ -14404,7 +14525,8 @@
         "url": "https://www.canard.gitd.gov.pl/cms/web/guest/o-nas/mapa-urzadzen",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "pl-gitd-12931401-ab",
@@ -14446,7 +14568,8 @@
         "url": "https://www.canard.gitd.gov.pl/cms/web/guest/o-nas/mapa-urzadzen",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "pl-gitd-12931401-ba",
@@ -14488,7 +14611,8 @@
         "url": "https://www.canard.gitd.gov.pl/cms/web/guest/o-nas/mapa-urzadzen",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "pl-gitd-13500662-ab",
@@ -14526,7 +14650,8 @@
         "url": "https://www.canard.gitd.gov.pl/cms/web/guest/o-nas/mapa-urzadzen",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "pl-gitd-13500662-ba",
@@ -14564,7 +14689,8 @@
         "url": "https://www.canard.gitd.gov.pl/cms/web/guest/o-nas/mapa-urzadzen",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "pl-gitd-13500954-ab",
@@ -14606,7 +14732,8 @@
         "url": "https://www.canard.gitd.gov.pl/cms/web/guest/o-nas/mapa-urzadzen",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "pl-gitd-13500954-ba",
@@ -14648,7 +14775,8 @@
         "url": "https://www.canard.gitd.gov.pl/cms/web/guest/o-nas/mapa-urzadzen",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "pl-gitd-13501468-ab",
@@ -14718,7 +14846,8 @@
         "url": "https://www.canard.gitd.gov.pl/cms/web/guest/o-nas/mapa-urzadzen",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "pl-gitd-13501468-ba",
@@ -14788,7 +14917,8 @@
         "url": "https://www.canard.gitd.gov.pl/cms/web/guest/o-nas/mapa-urzadzen",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "pl-gitd-13501525-ab",
@@ -14834,7 +14964,8 @@
         "url": "https://www.canard.gitd.gov.pl/cms/web/guest/o-nas/mapa-urzadzen",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "pl-gitd-13501525-ba",
@@ -14880,7 +15011,8 @@
         "url": "https://www.canard.gitd.gov.pl/cms/web/guest/o-nas/mapa-urzadzen",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "pl-gitd-13501544-ab",
@@ -15030,7 +15162,8 @@
         "url": "https://www.canard.gitd.gov.pl/cms/web/guest/o-nas/mapa-urzadzen",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "pl-gitd-13501544-ba",
@@ -15180,7 +15313,8 @@
         "url": "https://www.canard.gitd.gov.pl/cms/web/guest/o-nas/mapa-urzadzen",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "pl-gitd-13861774-ab",
@@ -15258,7 +15392,8 @@
         "url": "https://www.canard.gitd.gov.pl/cms/web/guest/o-nas/mapa-urzadzen",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "pl-gitd-13861774-ba",
@@ -15336,7 +15471,8 @@
         "url": "https://www.canard.gitd.gov.pl/cms/web/guest/o-nas/mapa-urzadzen",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "pl-gitd-13861852-ab",
@@ -15382,7 +15518,8 @@
         "url": "https://www.canard.gitd.gov.pl/cms/web/guest/o-nas/mapa-urzadzen",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "pl-gitd-13861852-ba",
@@ -15428,7 +15565,8 @@
         "url": "https://www.canard.gitd.gov.pl/cms/web/guest/o-nas/mapa-urzadzen",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "pl-gitd-13861967-ab",
@@ -15478,7 +15616,8 @@
         "url": "https://www.canard.gitd.gov.pl/cms/web/guest/o-nas/mapa-urzadzen",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "pl-gitd-13861967-ba",
@@ -15528,7 +15667,8 @@
         "url": "https://www.canard.gitd.gov.pl/cms/web/guest/o-nas/mapa-urzadzen",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "pl-gitd-13861996-ab",
@@ -15594,7 +15734,8 @@
         "url": "https://www.canard.gitd.gov.pl/cms/web/guest/o-nas/mapa-urzadzen",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "pl-gitd-13861996-ba",
@@ -15660,7 +15801,8 @@
         "url": "https://www.canard.gitd.gov.pl/cms/web/guest/o-nas/mapa-urzadzen",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "pl-gitd-13862031-ab",
@@ -15738,7 +15880,8 @@
         "url": "https://www.canard.gitd.gov.pl/cms/web/guest/o-nas/mapa-urzadzen",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "pl-gitd-13862031-ba",
@@ -15816,7 +15959,8 @@
         "url": "https://www.canard.gitd.gov.pl/cms/web/guest/o-nas/mapa-urzadzen",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "pl-gitd-13862113-ab",
@@ -15886,7 +16030,8 @@
         "url": "https://www.canard.gitd.gov.pl/cms/web/guest/o-nas/mapa-urzadzen",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "pl-gitd-13862113-ba",
@@ -15956,7 +16101,8 @@
         "url": "https://www.canard.gitd.gov.pl/cms/web/guest/o-nas/mapa-urzadzen",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "pl-gitd-13862149-12825720-ab",
@@ -16030,7 +16176,8 @@
         "url": "https://www.canard.gitd.gov.pl/cms/web/guest/o-nas/mapa-urzadzen",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "pl-gitd-13862149-12825720-ba",
@@ -16104,7 +16251,8 @@
         "url": "https://www.canard.gitd.gov.pl/cms/web/guest/o-nas/mapa-urzadzen",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "pl-gitd-13862413-ab",
@@ -16178,7 +16326,8 @@
         "url": "https://www.canard.gitd.gov.pl/cms/web/guest/o-nas/mapa-urzadzen",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "pl-gitd-13862413-ba",
@@ -16252,7 +16401,8 @@
         "url": "https://www.canard.gitd.gov.pl/cms/web/guest/o-nas/mapa-urzadzen",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "pl-gitd-13862446-ab",
@@ -16326,7 +16476,8 @@
         "url": "https://www.canard.gitd.gov.pl/cms/web/guest/o-nas/mapa-urzadzen",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "pl-gitd-13862446-ba",
@@ -16396,7 +16547,8 @@
         "url": "https://www.canard.gitd.gov.pl/cms/web/guest/o-nas/mapa-urzadzen",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "pl-gitd-25181164-ab",
@@ -16490,7 +16642,8 @@
         "url": "https://www.canard.gitd.gov.pl/cms/web/guest/o-nas/mapa-urzadzen",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "pl-gitd-25181164-ba",
@@ -16576,7 +16729,8 @@
         "url": "https://www.canard.gitd.gov.pl/cms/web/guest/o-nas/mapa-urzadzen",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "pl-gitd-71652912-71652896-ab",
@@ -16638,7 +16792,8 @@
         "url": "https://www.canard.gitd.gov.pl/cms/web/guest/o-nas/mapa-urzadzen",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "pl-gitd-71652927-71652931-ba",
@@ -16688,7 +16843,8 @@
         "url": "https://www.canard.gitd.gov.pl/cms/web/guest/o-nas/mapa-urzadzen",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "pl-gitd-86963874-ab",
@@ -16886,7 +17042,8 @@
         "url": "https://www.canard.gitd.gov.pl/cms/web/guest/o-nas/mapa-urzadzen",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "pl-gitd-86963874-ba",
@@ -17096,7 +17253,8 @@
         "url": "https://www.canard.gitd.gov.pl/cms/web/guest/o-nas/mapa-urzadzen",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "pl-gitd-86963955-ab",
@@ -17174,7 +17332,8 @@
         "url": "https://www.canard.gitd.gov.pl/cms/web/guest/o-nas/mapa-urzadzen",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "pl-gitd-86963955-ba",
@@ -17252,7 +17411,8 @@
         "url": "https://www.canard.gitd.gov.pl/cms/web/guest/o-nas/mapa-urzadzen",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "pl-gitd-86963966-ab",
@@ -17286,7 +17446,8 @@
         "url": "https://www.canard.gitd.gov.pl/cms/web/guest/o-nas/mapa-urzadzen",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "pl-gitd-86963966-ba",
@@ -17320,7 +17481,8 @@
         "url": "https://www.canard.gitd.gov.pl/cms/web/guest/o-nas/mapa-urzadzen",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "pl-gitd-86963975-ab",
@@ -17418,7 +17580,8 @@
         "url": "https://www.canard.gitd.gov.pl/cms/web/guest/o-nas/mapa-urzadzen",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "pl-gitd-86963975-ba",
@@ -17516,7 +17679,8 @@
         "url": "https://www.canard.gitd.gov.pl/cms/web/guest/o-nas/mapa-urzadzen",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "pl-gitd-8947143-ab",
@@ -17614,7 +17778,8 @@
         "url": "https://www.canard.gitd.gov.pl/cms/web/guest/o-nas/mapa-urzadzen",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "pl-gitd-8947143-ba",
@@ -17712,7 +17877,8 @@
         "url": "https://www.canard.gitd.gov.pl/cms/web/guest/o-nas/mapa-urzadzen",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "pl-gitd-89605782-ab",
@@ -17794,7 +17960,8 @@
         "url": "https://www.canard.gitd.gov.pl/cms/web/guest/o-nas/mapa-urzadzen",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "pl-gitd-89605782-ba",
@@ -17876,7 +18043,8 @@
         "url": "https://www.canard.gitd.gov.pl/cms/web/guest/o-nas/mapa-urzadzen",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "pl-gitd-89605843-ab",
@@ -17962,7 +18130,8 @@
         "url": "https://www.canard.gitd.gov.pl/cms/web/guest/o-nas/mapa-urzadzen",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "pl-gitd-89605843-ba",
@@ -18048,7 +18217,8 @@
         "url": "https://www.canard.gitd.gov.pl/cms/web/guest/o-nas/mapa-urzadzen",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "pl-gitd-89607520-ab",
@@ -18146,7 +18316,8 @@
         "url": "https://www.canard.gitd.gov.pl/cms/web/guest/o-nas/mapa-urzadzen",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "pl-gitd-89607520-ba",
@@ -18244,7 +18415,8 @@
         "url": "https://www.canard.gitd.gov.pl/cms/web/guest/o-nas/mapa-urzadzen",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "pl-gitd-89607544-ab",
@@ -18286,7 +18458,8 @@
         "url": "https://www.canard.gitd.gov.pl/cms/web/guest/o-nas/mapa-urzadzen",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "pl-gitd-89607544-ba",
@@ -18328,7 +18501,8 @@
         "url": "https://www.canard.gitd.gov.pl/cms/web/guest/o-nas/mapa-urzadzen",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "pl-gitd-89607603-ab",
@@ -18438,7 +18612,8 @@
         "url": "https://www.canard.gitd.gov.pl/cms/web/guest/o-nas/mapa-urzadzen",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "pl-gitd-89607603-ba",
@@ -18548,7 +18723,8 @@
         "url": "https://www.canard.gitd.gov.pl/cms/web/guest/o-nas/mapa-urzadzen",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "pl-gitd-89607636-ab",
@@ -18606,7 +18782,8 @@
         "url": "https://www.canard.gitd.gov.pl/cms/web/guest/o-nas/mapa-urzadzen",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "pl-gitd-89607636-ba",
@@ -18664,7 +18841,8 @@
         "url": "https://www.canard.gitd.gov.pl/cms/web/guest/o-nas/mapa-urzadzen",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "pl-gitd-89607811-ab",
@@ -18762,7 +18940,8 @@
         "url": "https://www.canard.gitd.gov.pl/cms/web/guest/o-nas/mapa-urzadzen",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "pl-gitd-89607811-ba",
@@ -18860,7 +19039,8 @@
         "url": "https://www.canard.gitd.gov.pl/cms/web/guest/o-nas/mapa-urzadzen",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "pl-gitd-90797669-ab",
@@ -18906,7 +19086,8 @@
         "url": "https://www.canard.gitd.gov.pl/cms/web/guest/o-nas/mapa-urzadzen",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "pl-gitd-90797669-ba",
@@ -18952,7 +19133,8 @@
         "url": "https://www.canard.gitd.gov.pl/cms/web/guest/o-nas/mapa-urzadzen",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "pl-gitd-90797708-ab",
@@ -19074,7 +19256,8 @@
         "url": "https://www.canard.gitd.gov.pl/cms/web/guest/o-nas/mapa-urzadzen",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "pl-gitd-90797708-ba",
@@ -19196,7 +19379,8 @@
         "url": "https://www.canard.gitd.gov.pl/cms/web/guest/o-nas/mapa-urzadzen",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "pl-gitd-90797792-ab",
@@ -19230,7 +19414,8 @@
         "url": "https://www.canard.gitd.gov.pl/cms/web/guest/o-nas/mapa-urzadzen",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "pl-gitd-90797792-ba",
@@ -19264,7 +19449,8 @@
         "url": "https://www.canard.gitd.gov.pl/cms/web/guest/o-nas/mapa-urzadzen",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "pl-gitd-90798213-ab",
@@ -19330,7 +19516,8 @@
         "url": "https://www.canard.gitd.gov.pl/cms/web/guest/o-nas/mapa-urzadzen",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "pl-gitd-90798213-ba",
@@ -19396,7 +19583,8 @@
         "url": "https://www.canard.gitd.gov.pl/cms/web/guest/o-nas/mapa-urzadzen",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "pl-gitd-90798227-ab",
@@ -19438,7 +19626,8 @@
         "url": "https://www.canard.gitd.gov.pl/cms/web/guest/o-nas/mapa-urzadzen",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "pl-gitd-90798227-ba",
@@ -19480,7 +19669,8 @@
         "url": "https://www.canard.gitd.gov.pl/cms/web/guest/o-nas/mapa-urzadzen",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "pl-gitd-90798253-ab",
@@ -19554,7 +19744,8 @@
         "url": "https://www.canard.gitd.gov.pl/cms/web/guest/o-nas/mapa-urzadzen",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "pl-gitd-90798253-ba",
@@ -19628,7 +19819,8 @@
         "url": "https://www.canard.gitd.gov.pl/cms/web/guest/o-nas/mapa-urzadzen",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "pl-gitd-90798297-ab",
@@ -19730,7 +19922,8 @@
         "url": "https://www.canard.gitd.gov.pl/cms/web/guest/o-nas/mapa-urzadzen",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "pl-gitd-90798297-ba",
@@ -19832,7 +20025,8 @@
         "url": "https://www.canard.gitd.gov.pl/cms/web/guest/o-nas/mapa-urzadzen",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "pl-gitd-90798353-ab",
@@ -19878,7 +20072,8 @@
         "url": "https://www.canard.gitd.gov.pl/cms/web/guest/o-nas/mapa-urzadzen",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "pl-gitd-90798353-ba",
@@ -19924,7 +20119,8 @@
         "url": "https://www.canard.gitd.gov.pl/cms/web/guest/o-nas/mapa-urzadzen",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "pl-gitd-90798983-ab",
@@ -20054,7 +20250,8 @@
         "url": "https://www.canard.gitd.gov.pl/cms/web/guest/o-nas/mapa-urzadzen",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "pl-gitd-90798983-ba",
@@ -20184,7 +20381,8 @@
         "url": "https://www.canard.gitd.gov.pl/cms/web/guest/o-nas/mapa-urzadzen",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "pl-gitd-90798996-ab",
@@ -20258,7 +20456,8 @@
         "url": "https://www.canard.gitd.gov.pl/cms/web/guest/o-nas/mapa-urzadzen",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "pl-gitd-90798996-ba",
@@ -20332,7 +20531,8 @@
         "url": "https://www.canard.gitd.gov.pl/cms/web/guest/o-nas/mapa-urzadzen",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "pl-gitd-90799008-ab",
@@ -20422,7 +20622,8 @@
         "url": "https://www.canard.gitd.gov.pl/cms/web/guest/o-nas/mapa-urzadzen",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "pl-gitd-90799008-ba",
@@ -20512,7 +20713,8 @@
         "url": "https://www.canard.gitd.gov.pl/cms/web/guest/o-nas/mapa-urzadzen",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "pl-gitd-90799056-ab",
@@ -20618,7 +20820,8 @@
         "url": "https://www.canard.gitd.gov.pl/cms/web/guest/o-nas/mapa-urzadzen",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "pl-gitd-90799056-ba",
@@ -20720,7 +20923,8 @@
         "url": "https://www.canard.gitd.gov.pl/cms/web/guest/o-nas/mapa-urzadzen",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "pl-gitd-90799066-90798287-ab",
@@ -20770,7 +20974,8 @@
         "url": "https://www.canard.gitd.gov.pl/cms/web/guest/o-nas/mapa-urzadzen",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "pl-gitd-90799066-90798287-ba",
@@ -20812,7 +21017,8 @@
         "url": "https://www.canard.gitd.gov.pl/cms/web/guest/o-nas/mapa-urzadzen",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "pl-gitd-90799076-ab",
@@ -20854,7 +21060,8 @@
         "url": "https://www.canard.gitd.gov.pl/cms/web/guest/o-nas/mapa-urzadzen",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "pl-gitd-90799076-ba",
@@ -20896,7 +21103,8 @@
         "url": "https://www.canard.gitd.gov.pl/cms/web/guest/o-nas/mapa-urzadzen",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "pl-gitd-91414174-ab",
@@ -20946,7 +21154,8 @@
         "url": "https://www.canard.gitd.gov.pl/cms/web/guest/o-nas/mapa-urzadzen",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "pl-gitd-91414174-ba",
@@ -20996,7 +21205,8 @@
         "url": "https://www.canard.gitd.gov.pl/cms/web/guest/o-nas/mapa-urzadzen",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "pl-gitd-91414183-ab",
@@ -21030,7 +21240,8 @@
         "url": "https://www.canard.gitd.gov.pl/cms/web/guest/o-nas/mapa-urzadzen",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "pl-gitd-91414183-ba",
@@ -21064,7 +21275,8 @@
         "url": "https://www.canard.gitd.gov.pl/cms/web/guest/o-nas/mapa-urzadzen",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "pl-gitd-91414226-ab",
@@ -21250,7 +21462,8 @@
         "url": "https://www.canard.gitd.gov.pl/cms/web/guest/o-nas/mapa-urzadzen",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "pl-gitd-91414226-ba",
@@ -21440,7 +21653,8 @@
         "url": "https://www.canard.gitd.gov.pl/cms/web/guest/o-nas/mapa-urzadzen",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "pl-gitd-91414451-ab",
@@ -21618,7 +21832,8 @@
         "url": "https://www.canard.gitd.gov.pl/cms/web/guest/o-nas/mapa-urzadzen",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "pl-gitd-91414451-ba",
@@ -21800,7 +22015,8 @@
         "url": "https://www.canard.gitd.gov.pl/cms/web/guest/o-nas/mapa-urzadzen",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "pl-gitd-91414698-ab",
@@ -21854,7 +22070,8 @@
         "url": "https://www.canard.gitd.gov.pl/cms/web/guest/o-nas/mapa-urzadzen",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "pl-gitd-91414698-ba",
@@ -21908,7 +22125,8 @@
         "url": "https://www.canard.gitd.gov.pl/cms/web/guest/o-nas/mapa-urzadzen",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "pl-gitd-91414742-ab",
@@ -22050,7 +22268,8 @@
         "url": "https://www.canard.gitd.gov.pl/cms/web/guest/o-nas/mapa-urzadzen",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "pl-gitd-91414742-ba",
@@ -22200,7 +22419,8 @@
         "url": "https://www.canard.gitd.gov.pl/cms/web/guest/o-nas/mapa-urzadzen",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "pl-gitd-91414765-ab",
@@ -22390,7 +22610,8 @@
         "url": "https://www.canard.gitd.gov.pl/cms/web/guest/o-nas/mapa-urzadzen",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "pl-gitd-91414765-ba",
@@ -22580,7 +22801,8 @@
         "url": "https://www.canard.gitd.gov.pl/cms/web/guest/o-nas/mapa-urzadzen",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "pl-gitd-91414977-ab",
@@ -22742,7 +22964,8 @@
         "url": "https://www.canard.gitd.gov.pl/cms/web/guest/o-nas/mapa-urzadzen",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "pl-gitd-91414977-ba",
@@ -22916,7 +23139,8 @@
         "url": "https://www.canard.gitd.gov.pl/cms/web/guest/o-nas/mapa-urzadzen",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "pl-gitd-91418175-91417929-ab",
@@ -22986,7 +23210,8 @@
         "url": "https://www.canard.gitd.gov.pl/cms/web/guest/o-nas/mapa-urzadzen",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "pl-gitd-91418175-91417929-ba",
@@ -23052,7 +23277,8 @@
         "url": "https://www.canard.gitd.gov.pl/cms/web/guest/o-nas/mapa-urzadzen",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "hivatalos"
     }
   ],
   "skipped": [],

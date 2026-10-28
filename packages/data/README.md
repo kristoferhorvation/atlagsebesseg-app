@@ -36,6 +36,15 @@ Minden szakasz `provenance` mezője: a forrás (hivatalos szerv) **neve**, **URL
 A kimeneti fájl `official` mezője: források, a listán szereplő tételek száma (irányonként), a
 bekerültek száma, a kihagyottak okkal, és a megjegyzések (pl. „határ az OSM-ből”).
 
+A határ forrása: `limitSource` / `sections.limit_source` = `hivatalos` (a hivatalos forrás adja) vagy
+`osm` (az OSM `maxspeed`-je – minden OSM-szakasznál, és hivatalos szakasznál, ha a forrás nem ad
+határt: IT, ES, NL A12/A7). Közösségi szakasznál üres.
+
+Tulajdonosi döntések (A6 zárás, 2026-10-28): IT – az ASPI km-szelvény-forrás külön körben; AT – a 10
+OSM-szakasz marad nem ellenőrzötten, később kézi ASFINAG-lista; PL – a 4 egyirányú, sorrend nélküli
+eszköz kimarad; az OSM-ből vett határ maradhat (jelölve); ES – az OSM-szakaszok nem ellenőrzötten
+maradnak.
+
 ### Ellenőrzés minden tételre (`src/official.ts` – `evaluateOfficial`)
 
 1. **Útvonal:** irányhelyes útvonal a két kapu között az OSM-úthálózaton (egyirányúság szerint –

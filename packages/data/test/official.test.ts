@@ -71,6 +71,9 @@ describe('evaluateOfficial', () => {
     const r = evaluateOfficial(item({ speedLimitKmh: null }), graph);
     expect(r.ok && r.section.speedLimitKmh).toBe(130);
     expect(r.ok && r.note).toMatch(/OSM/);
+    expect(r.ok && r.section.limitSource).toBe('osm');
+    const h = evaluateOfficial(item(), graph);
+    expect(h.ok && h.section.limitSource).toBe('hivatalos');
   });
   it('az OSM-határ csak egyértelmű többségnél', () => {
     expect(consistentMaxspeed([{ lengthM: 9, tags: { maxspeed: '130' } }, { lengthM: 1, tags: { maxspeed: '110' } }])).toBe(130);
@@ -106,5 +109,6 @@ describe('hivatalos + OSM összefésülés (duplikátum-szabály)', () => {
     const r = mergeOfficialWithOsm([official], [sec('o1', 16, 1000, 9000), sec('o2', 200, 0, 5000, { road: 'SS12', verified: true })]);
     expect(r.duplicates).toEqual([{ osm: 'o1', official: 'it-hiv' }]);
     expect(r.sections.map((s) => [s.id, s.verified])).toEqual([['it-hiv', true], ['o2', false]]);
+    expect(r.sections.find((s) => s.id === 'o2')!.limitSource).toBe('osm');
   });
 });

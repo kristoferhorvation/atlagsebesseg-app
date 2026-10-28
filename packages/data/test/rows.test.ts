@@ -24,6 +24,13 @@ describe('sections sor ↔ Section', () => {
     expect(rowToSection(row)).toEqual({ ...s, country: 'IT', lengthM: 12000 });
   });
 
+  it('a határ forrása oda-vissza; ha nincs, null és nincs mező', () => {
+    expect(sectionToRow({ ...s, limitSource: 'osm' }).limit_source).toBe('osm');
+    expect(rowToSection(sectionToRow({ ...s, limitSource: 'osm' })).limitSource).toBe('osm');
+    expect(sectionToRow(s).limit_source).toBeNull();
+    expect('limitSource' in rowToSection(sectionToRow(s))).toBe(false);
+  });
+
   it('geometria nélkül null, és visszafelé nincs geometry mező', () => {
     const row = sectionToRow({ ...s, geometry: undefined });
     expect(row.geometry).toBeNull();

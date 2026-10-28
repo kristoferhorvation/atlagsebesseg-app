@@ -88,7 +88,8 @@ async function run(cc: string) {
   let duplicates: { osm: string; official: string }[] = [];
   let osmKept = 0;
   if (load.keep) {
-    all = [...sections, ...load.keep].sort((a, b) => a.id.localeCompare(b.id));
+    // az AT-szakaszok OSM-relációk: a határ az OSM-ből
+    all = [...sections, ...load.keep.map((s) => ({ ...s, limitSource: s.limitSource ?? ('osm' as const) }))].sort((a, b) => a.id.localeCompare(b.id));
     osmKept = load.keep.length;
   } else {
     const osmPath = join(here, '..', 'osm', `sections.${cc}.json`);

@@ -39,6 +39,10 @@ select pg_temp.expect_error($$insert into public.sections (id, country, start_la
 insert into public.sections (id, country, start_lat, start_lon, end_lat, end_lon, length_m, speed_limit_kmh, source, verified, source_name, source_url, source_date, located_by)
 values ('test-hiv-2', 'IT', 44.4, 11.2, 44.3, 11.2, 12000, 130, 'hivatalos', true, 'Polizia di Stato', 'https://www.poliziadistato.it/', '2026-08', 'km_szelveny');
 select pg_temp.expect((select source_name from public.sections_in_bbox(44, 11, 45, 12) where id = 'test-hiv-2') = 'Polizia di Stato', 'sections_in_bbox a forrást is adja');
+-- A6 lezárás: a határ forrása
+update public.sections set limit_source = 'osm' where id = 'test-hiv-2';
+select pg_temp.expect((select limit_source from public.sections_in_bbox(44, 11, 45, 12) where id = 'test-hiv-2') = 'osm', 'sections_in_bbox a határ forrását is adja');
+select pg_temp.expect_error($$update public.sections set limit_source = 'becsles' where id = 'test-hiv-2'$$, 'limit_source csak hivatalos/osm');
 
 -- anon: olvashat, nem írhat
 set role anon;
@@ -60,6 +64,7 @@ insert into public.sections (id, country, start_lat, start_lon, end_lat, end_lon
 values ('kozosseg-1', 'HU', 47.5, 19.0, 47.4, 19.0, 5000, 110, 'kozosseg');
 select pg_temp.expect((select created_by from public.sections where id = 'kozosseg-1') = auth.uid(), 'közösségi szakasz beírható, szerző = auth.uid()');
 select pg_temp.expect_error($$insert into public.sections (id, country, start_lat, start_lon, end_lat, end_lon, length_m, speed_limit_kmh, source, source_name, source_url, source_date, located_by) values ('kozosseg-2','HU',47.5,19.0,47.4,19.0,5000,110,'kozosseg','Polizia di Stato','https://x.it','2026-08','koordinata')$$, 'közösségi szakasz nem hivatkozhat hivatalos forrásra');
+select pg_temp.expect_error($$insert into public.sections (id, country, start_lat, start_lon, end_lat, end_lon, length_m, speed_limit_kmh, source, limit_source) values ('kozosseg-3','HU',47.5,19.0,47.4,19.0,5000,110,'kozosseg','hivatalos')$$, 'közösségi szakasz nem jelölhet határ-forrást');
 update public.sections set length_m = 1 where id = 'test-rls-osm-1';
 select pg_temp.expect((select length_m from public.sections where id = 'test-rls-osm-1') = 12000, 'OSM-szakasz nem módosítható');
 reset role;

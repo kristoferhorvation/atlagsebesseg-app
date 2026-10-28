@@ -1,6 +1,6 @@
 {
   "country": "AT",
-  "generatedAt": "2026-10-28T06:47:01.207Z",
+  "generatedAt": "2026-10-28T07:06:29.493Z",
   "source": "Hivatalos lista: ASFINAG, RIS – Section Control-Messstreckenverordnungen, OpenStreetMap; geometria: OpenStreetMap",
   "attribution": "ASFINAG, RIS – Section Control-Messstreckenverordnungen, OpenStreetMap; © OpenStreetMap contributors",
   "license": "ODbL-1.0 (Open Database License) – https://opendatacommons.org/licenses/odbl/1-0/",
@@ -90,7 +90,8 @@
         "url": "https://www.openstreetmap.org/relation/17820940",
         "date": "2026-10-27",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "osm"
     },
     {
       "id": "osm-17820941",
@@ -152,7 +153,8 @@
         "url": "https://www.openstreetmap.org/relation/17820941",
         "date": "2026-10-27",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "osm"
     },
     {
       "id": "osm-18087739",
@@ -342,7 +344,8 @@
         "url": "https://www.openstreetmap.org/relation/18087739",
         "date": "2026-10-27",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "osm"
     },
     {
       "id": "osm-18087740",
@@ -536,7 +539,8 @@
         "url": "https://www.openstreetmap.org/relation/18087740",
         "date": "2026-10-27",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "osm"
     },
     {
       "id": "osm-19001458",
@@ -750,7 +754,8 @@
         "url": "https://www.openstreetmap.org/relation/19001458",
         "date": "2026-10-27",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "osm"
     },
     {
       "id": "osm-19001459",
@@ -964,7 +969,8 @@
         "url": "https://www.openstreetmap.org/relation/19001459",
         "date": "2026-10-27",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "osm"
     },
     {
       "id": "osm-20285904",
@@ -1458,7 +1464,8 @@
         "url": "https://www.openstreetmap.org/relation/20285904",
         "date": "2026-10-27",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "osm"
     },
     {
       "id": "osm-21048139",
@@ -1844,7 +1851,8 @@
         "url": "https://www.openstreetmap.org/relation/21048139",
         "date": "2026-10-27",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "osm"
     },
     {
       "id": "osm-276562",
@@ -2474,7 +2482,8 @@
         "url": "https://www.openstreetmap.org/relation/276562",
         "date": "2026-10-27",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "osm"
     },
     {
       "id": "osm-3003021",
@@ -3104,7 +3113,8 @@
         "url": "https://www.openstreetmap.org/relation/3003021",
         "date": "2026-10-27",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "osm"
     }
   ],
   "skipped": [],

@@ -56,5 +56,26 @@ Gyökér: `npm test` és `npm run typecheck` minden csomagra; `npm run test:all`
 
 ## Mac-specifikus
 Hosszú futás alatt a gép ne aludjon: ezt a `.claude/settings.json` SessionStart/SessionEnd
-hookja intézi (`caffeinate -dims`, PID: `/tmp/atlagsebesseg-caffeinate.pid`). A Claude Code
-ne indítson külön `caffeinate`-et kézzel.
+hookja intézi (`caffeinate -dims`, PID: `/tmp/atlagsebesseg-caffeinate.pid`).
+
+- A projekt-hook **csak akkor töltődik be, ha a session ebben a mappában indul** (CLI: `cd` ide,
+  majd `claude`; VS Code: ezt a mappát nyisd meg munkaterületként, ne a saját mappádat). A VS
+  Code-kiegészítő ugyanazokat a settings-fájlokat és hookokat olvassa, mint a CLI; a 2026-10-27-i
+  kimaradás oka az volt, hogy a session a `/Users/kristofhorvath` mappában indult, így a projekt
+  `.claude/settings.json`-ja be sem töltődött. A hook-beállítás változása új sessiontől érvényes.
+- **Ellenőrzés** minden hosszú feladat elején: `pgrep -l caffeinate`.
+- **Tartalék**, ha üres (rossz munkaterület, vagy a hook nem futott): a Claude Code maga indítja
+  háttérben, és a feladat végén leállítja:
+  ```bash
+  nohup caffeinate -dims >/dev/null 2>&1 </dev/null & echo $! > /tmp/atlagsebesseg-caffeinate.pid
+  # a végén:
+  kill "$(cat /tmp/atlagsebesseg-caffeinate.pid)" && rm -f /tmp/atlagsebesseg-caffeinate.pid
+  ```
+  Ha már fut egy `caffeinate`, nem indít másikat.
+
+## Hosszú futások
+- Hosszú futású parancsot (import, feltöltés, build) **előtérben** futtass, és a kört **ne zárd
+  „várom” állapotban**: a kör addig tart, amíg a feladat kész, vagy döntést kell kérni.
+- Ha a parancs túllépi az előtérbeli időkorlátot (10 perc), oszd fel előtérben futó lépésekre
+  (pl. `--from`/`--limit`), vagy indítsd háttérben, és ugyanabban a körben, előtérben
+  pollozva várd meg a végét – a kört nem zárod le közben.

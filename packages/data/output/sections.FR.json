@@ -1,6 +1,6 @@
 {
   "country": "FR",
-  "generatedAt": "2026-10-28T06:47:00.912Z",
+  "generatedAt": "2026-10-28T07:06:29.265Z",
   "source": "Hivatalos lista: Ministère de l'Intérieur (data.gouv.fr), Sécurité routière – carte des radars; geometria: OpenStreetMap",
   "attribution": "Ministère de l'Intérieur (data.gouv.fr), Sécurité routière – carte des radars; © OpenStreetMap contributors",
   "license": "ODbL-1.0 (Open Database License) – https://opendatacommons.org/licenses/odbl/1-0/",
@@ -118,7 +118,8 @@
         "url": "https://www.data.gouv.fr/fr/datasets/liste-des-radars-fixes-en-france/",
         "date": "2025-12-30",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "fr-20024",
@@ -300,7 +301,8 @@
         "url": "https://www.data.gouv.fr/fr/datasets/liste-des-radars-fixes-en-france/",
         "date": "2025-12-30",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "fr-20055",
@@ -738,7 +740,8 @@
         "url": "https://www.data.gouv.fr/fr/datasets/liste-des-radars-fixes-en-france/",
         "date": "2025-12-30",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "fr-20060",
@@ -864,7 +867,8 @@
         "url": "https://www.data.gouv.fr/fr/datasets/liste-des-radars-fixes-en-france/",
         "date": "2025-12-30",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "fr-20091",
@@ -906,7 +910,8 @@
         "url": "https://www.data.gouv.fr/fr/datasets/liste-des-radars-fixes-en-france/",
         "date": "2025-12-30",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "fr-20099",
@@ -960,7 +965,8 @@
         "url": "https://www.data.gouv.fr/fr/datasets/liste-des-radars-fixes-en-france/",
         "date": "2025-12-30",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "fr-20141",
@@ -994,7 +1000,8 @@
         "url": "https://www.data.gouv.fr/fr/datasets/liste-des-radars-fixes-en-france/",
         "date": "2025-12-30",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "fr-20161",
@@ -1072,7 +1079,8 @@
         "url": "https://www.data.gouv.fr/fr/datasets/liste-des-radars-fixes-en-france/",
         "date": "2025-12-30",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "fr-20178",
@@ -1186,7 +1194,8 @@
         "url": "https://www.data.gouv.fr/fr/datasets/liste-des-radars-fixes-en-france/",
         "date": "2025-12-30",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "fr-20179",
@@ -1400,7 +1409,8 @@
         "url": "https://www.data.gouv.fr/fr/datasets/liste-des-radars-fixes-en-france/",
         "date": "2025-12-30",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "fr-20185",
@@ -1606,7 +1616,8 @@
         "url": "https://www.data.gouv.fr/fr/datasets/liste-des-radars-fixes-en-france/",
         "date": "2025-12-30",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "fr-20186",
@@ -1740,7 +1751,8 @@
         "url": "https://www.data.gouv.fr/fr/datasets/liste-des-radars-fixes-en-france/",
         "date": "2025-12-30",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "fr-20200",
@@ -1910,7 +1922,8 @@
         "url": "https://www.data.gouv.fr/fr/datasets/liste-des-radars-fixes-en-france/",
         "date": "2025-12-30",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "osm-10717285",
@@ -1996,7 +2009,8 @@
         "url": "https://www.openstreetmap.org/relation/10717285",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "osm"
     },
     {
       "id": "osm-13415088",
@@ -2078,7 +2092,8 @@
         "url": "https://www.openstreetmap.org/relation/13415088",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "osm"
     },
     {
       "id": "osm-13415089",
@@ -2160,7 +2175,8 @@
         "url": "https://www.openstreetmap.org/relation/13415089",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "osm"
     },
     {
       "id": "osm-13497255",
@@ -2238,7 +2254,8 @@
         "url": "https://www.openstreetmap.org/relation/13497255",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "osm"
     },
     {
       "id": "osm-13497256",
@@ -2320,7 +2337,8 @@
         "url": "https://www.openstreetmap.org/relation/13497256",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "osm"
     },
     {
       "id": "osm-16855238",
@@ -2382,7 +2400,8 @@
         "url": "https://www.openstreetmap.org/relation/16855238",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "osm"
     },
     {
       "id": "osm-16855239",
@@ -2444,7 +2463,8 @@
         "url": "https://www.openstreetmap.org/relation/16855239",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "osm"
     },
     {
       "id": "osm-18110403",
@@ -2506,7 +2526,8 @@
         "url": "https://www.openstreetmap.org/relation/18110403",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "osm"
     },
     {
       "id": "osm-18110404",
@@ -2568,7 +2589,8 @@
         "url": "https://www.openstreetmap.org/relation/18110404",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "osm"
     },
     {
       "id": "osm-21059888",
@@ -2682,7 +2704,8 @@
         "url": "https://www.openstreetmap.org/relation/21059888",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "osm"
     },
     {
       "id": "osm-21059889",
@@ -2788,7 +2811,8 @@
         "url": "https://www.openstreetmap.org/relation/21059889",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "osm"
     },
     {
       "id": "osm-21060580",
@@ -2826,7 +2850,8 @@
         "url": "https://www.openstreetmap.org/relation/21060580",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "osm"
     },
     {
       "id": "osm-21060581",
@@ -2864,7 +2889,8 @@
         "url": "https://www.openstreetmap.org/relation/21060581",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "osm"
     },
     {
       "id": "osm-21071297",
@@ -2966,7 +2992,8 @@
         "url": "https://www.openstreetmap.org/relation/21071297",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "osm"
     },
     {
       "id": "osm-21071323",
@@ -3172,7 +3199,8 @@
         "url": "https://www.openstreetmap.org/relation/21071323",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "osm"
     },
     {
       "id": "osm-21071324",
@@ -3378,7 +3406,8 @@
         "url": "https://www.openstreetmap.org/relation/21071324",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "osm"
     },
     {
       "id": "osm-21074103",
@@ -3496,7 +3525,8 @@
         "url": "https://www.openstreetmap.org/relation/21074103",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "osm"
     },
     {
       "id": "osm-2815524",
@@ -3562,7 +3592,8 @@
         "url": "https://www.openstreetmap.org/relation/2815524",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "osm"
     },
     {
       "id": "osm-2815525",
@@ -3628,7 +3659,8 @@
         "url": "https://www.openstreetmap.org/relation/2815525",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "osm"
     },
     {
       "id": "osm-4048720",
@@ -3798,7 +3830,8 @@
         "url": "https://www.openstreetmap.org/relation/4048720",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "osm"
     },
     {
       "id": "osm-5633895",
@@ -3944,7 +3977,8 @@
         "url": "https://www.openstreetmap.org/relation/5633895",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "osm"
     },
     {
       "id": "osm-8618078",
@@ -4230,7 +4264,8 @@
         "url": "https://www.openstreetmap.org/relation/8618078",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "osm"
     },
     {
       "id": "osm-8621177",
@@ -4500,7 +4535,8 @@
         "url": "https://www.openstreetmap.org/relation/8621177",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "osm"
     }
   ],
   "skipped": [],

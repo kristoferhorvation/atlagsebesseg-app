@@ -1,4 +1,4 @@
-import type { LatLon, Section, SectionLocatedBy } from '@atlagsebesseg/core';
+import type { LatLon, Section, SectionLimitSource, SectionLocatedBy } from '@atlagsebesseg/core';
 
 /** A `public.sections` tábla egy sora (lásd supabase/migrations). */
 export interface SectionRow {
@@ -21,6 +21,7 @@ export interface SectionRow {
   source_url?: string | null;
   source_date?: string | null;
   located_by?: SectionLocatedBy | null;
+  limit_source?: SectionLimitSource | null;
 }
 
 export function sectionToRow(s: Section): SectionRow {
@@ -42,6 +43,7 @@ export function sectionToRow(s: Section): SectionRow {
     source_url: s.provenance?.url ?? null,
     source_date: s.provenance?.date ?? null,
     located_by: s.provenance?.locatedBy ?? null,
+    limit_source: s.limitSource ?? null,
   };
 }
 
@@ -64,5 +66,6 @@ export function rowToSection(r: SectionRow): Section {
     ...(r.source_name && r.source_url && r.source_date && r.located_by
       ? { provenance: { name: r.source_name, url: r.source_url, date: r.source_date, locatedBy: r.located_by } }
       : {}),
+    ...(r.limit_source ? { limitSource: r.limit_source } : {}),
   };
 }

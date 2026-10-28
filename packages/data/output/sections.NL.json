@@ -1,6 +1,6 @@
 {
   "country": "NL",
-  "generatedAt": "2026-10-28T06:47:01.198Z",
+  "generatedAt": "2026-10-28T07:06:29.489Z",
   "source": "Hivatalos lista: Openbaar Ministerie, Rijkswaterstaat NWB (hectopunten); geometria: OpenStreetMap",
   "attribution": "Openbaar Ministerie, Rijkswaterstaat NWB (hectopunten); © OpenStreetMap contributors",
   "license": "ODbL-1.0 (Open Database License) – https://opendatacommons.org/licenses/odbl/1-0/",
@@ -50,7 +50,8 @@
         "url": "https://www.om.nl/onderwerpen/v/verkeer/handhaving/snelheid-en-te-hard-rijden/trajectcontroles",
         "date": "2026-06-18",
         "locatedBy": "km_szelveny"
-      }
+      },
+      "limitSource": "osm"
     },
     {
       "id": "nl-om-a7-10",
@@ -112,7 +113,8 @@
         "url": "https://www.om.nl/onderwerpen/v/verkeer/handhaving/snelheid-en-te-hard-rijden/trajectcontroles",
         "date": "2026-06-18",
         "locatedBy": "km_szelveny"
-      }
+      },
+      "limitSource": "osm"
     },
     {
       "id": "nl-om-a7-11",
@@ -170,7 +172,8 @@
         "url": "https://www.om.nl/onderwerpen/v/verkeer/handhaving/snelheid-en-te-hard-rijden/trajectcontroles",
         "date": "2026-06-18",
         "locatedBy": "km_szelveny"
-      }
+      },
+      "limitSource": "osm"
     },
     {
       "id": "nl-om-n11-64",
@@ -236,7 +239,8 @@
         "url": "https://www.om.nl/onderwerpen/v/verkeer/handhaving/snelheid-en-te-hard-rijden/trajectcontroles",
         "date": "2026-06-18",
         "locatedBy": "km_szelveny"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "nl-om-n11-65",
@@ -314,7 +318,8 @@
         "url": "https://www.om.nl/onderwerpen/v/verkeer/handhaving/snelheid-en-te-hard-rijden/trajectcontroles",
         "date": "2026-06-18",
         "locatedBy": "km_szelveny"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "nl-om-n11-66",
@@ -388,7 +393,8 @@
         "url": "https://www.om.nl/onderwerpen/v/verkeer/handhaving/snelheid-en-te-hard-rijden/trajectcontroles",
         "date": "2026-06-18",
         "locatedBy": "km_szelveny"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "nl-om-n11-67",
@@ -462,7 +468,8 @@
         "url": "https://www.om.nl/onderwerpen/v/verkeer/handhaving/snelheid-en-te-hard-rijden/trajectcontroles",
         "date": "2026-06-18",
         "locatedBy": "km_szelveny"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "nl-om-n260-50",
@@ -528,7 +535,8 @@
         "url": "https://www.om.nl/onderwerpen/v/verkeer/handhaving/snelheid-en-te-hard-rijden/trajectcontroles",
         "date": "2026-06-18",
         "locatedBy": "km_szelveny"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "nl-om-n260-51",
@@ -590,7 +598,8 @@
         "url": "https://www.om.nl/onderwerpen/v/verkeer/handhaving/snelheid-en-te-hard-rijden/trajectcontroles",
         "date": "2026-06-18",
         "locatedBy": "km_szelveny"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "nl-om-n275-34",
@@ -660,7 +669,8 @@
         "url": "https://www.om.nl/onderwerpen/v/verkeer/handhaving/snelheid-en-te-hard-rijden/trajectcontroles",
         "date": "2026-06-18",
         "locatedBy": "km_szelveny"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "nl-om-n275-35",
@@ -694,7 +704,8 @@
         "url": "https://www.om.nl/onderwerpen/v/verkeer/handhaving/snelheid-en-te-hard-rijden/trajectcontroles",
         "date": "2026-06-18",
         "locatedBy": "km_szelveny"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "nl-om-n275-36",
@@ -760,7 +771,8 @@
         "url": "https://www.om.nl/onderwerpen/v/verkeer/handhaving/snelheid-en-te-hard-rijden/trajectcontroles",
         "date": "2026-06-18",
         "locatedBy": "km_szelveny"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "nl-om-n275-37",
@@ -794,7 +806,8 @@
         "url": "https://www.om.nl/onderwerpen/v/verkeer/handhaving/snelheid-en-te-hard-rijden/trajectcontroles",
         "date": "2026-06-18",
         "locatedBy": "km_szelveny"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "nl-om-n639-52",
@@ -848,7 +861,8 @@
         "url": "https://www.om.nl/onderwerpen/v/verkeer/handhaving/snelheid-en-te-hard-rijden/trajectcontroles",
         "date": "2026-06-18",
         "locatedBy": "km_szelveny"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "nl-om-n639-53",
@@ -902,7 +916,8 @@
         "url": "https://www.om.nl/onderwerpen/v/verkeer/handhaving/snelheid-en-te-hard-rijden/trajectcontroles",
         "date": "2026-06-18",
         "locatedBy": "km_szelveny"
-      }
+      },
+      "limitSource": "hivatalos"
     },
     {
       "id": "osm-11165720",
@@ -1008,7 +1023,8 @@
         "url": "https://www.openstreetmap.org/relation/11165720",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "osm"
     },
     {
       "id": "osm-11165721",
@@ -1114,7 +1130,8 @@
         "url": "https://www.openstreetmap.org/relation/11165721",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "osm"
     },
     {
       "id": "osm-11743706",
@@ -1168,7 +1185,8 @@
         "url": "https://www.openstreetmap.org/relation/11743706",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "osm"
     },
     {
       "id": "osm-13281998",
@@ -1238,7 +1256,8 @@
         "url": "https://www.openstreetmap.org/relation/13281998",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "osm"
     },
     {
       "id": "osm-13281999",
@@ -1308,7 +1327,8 @@
         "url": "https://www.openstreetmap.org/relation/13281999",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "osm"
     },
     {
       "id": "osm-13282055",
@@ -1362,7 +1382,8 @@
         "url": "https://www.openstreetmap.org/relation/13282055",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "osm"
     },
     {
       "id": "osm-13282056",
@@ -1416,7 +1437,8 @@
         "url": "https://www.openstreetmap.org/relation/13282056",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "osm"
     },
     {
       "id": "osm-13283700",
@@ -1482,7 +1504,8 @@
         "url": "https://www.openstreetmap.org/relation/13283700",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "osm"
     },
     {
       "id": "osm-13283701",
@@ -1548,7 +1571,8 @@
         "url": "https://www.openstreetmap.org/relation/13283701",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "osm"
     },
     {
       "id": "osm-13780343",
@@ -1610,7 +1634,8 @@
         "url": "https://www.openstreetmap.org/relation/13780343",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "osm"
     },
     {
       "id": "osm-13780344",
@@ -1668,7 +1693,8 @@
         "url": "https://www.openstreetmap.org/relation/13780344",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "osm"
     },
     {
       "id": "osm-13840050",
@@ -1714,7 +1740,8 @@
         "url": "https://www.openstreetmap.org/relation/13840050",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "osm"
     },
     {
       "id": "osm-13840051",
@@ -1760,7 +1787,8 @@
         "url": "https://www.openstreetmap.org/relation/13840051",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "osm"
     },
     {
       "id": "osm-1593239",
@@ -1826,7 +1854,8 @@
         "url": "https://www.openstreetmap.org/relation/1593239",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "osm"
     },
     {
       "id": "osm-16116502",
@@ -1936,7 +1965,8 @@
         "url": "https://www.openstreetmap.org/relation/16116502",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "osm"
     },
     {
       "id": "osm-16116503",
@@ -2038,7 +2068,8 @@
         "url": "https://www.openstreetmap.org/relation/16116503",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "osm"
     },
     {
       "id": "osm-16124417",
@@ -2096,7 +2127,8 @@
         "url": "https://www.openstreetmap.org/relation/16124417",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "osm"
     },
     {
       "id": "osm-16124418",
@@ -2146,7 +2178,8 @@
         "url": "https://www.openstreetmap.org/relation/16124418",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "osm"
     },
     {
       "id": "osm-16124419",
@@ -2208,7 +2241,8 @@
         "url": "https://www.openstreetmap.org/relation/16124419",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "osm"
     },
     {
       "id": "osm-16124420",
@@ -2242,7 +2276,8 @@
         "url": "https://www.openstreetmap.org/relation/16124420",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "osm"
     },
     {
       "id": "osm-16335969",
@@ -2312,7 +2347,8 @@
         "url": "https://www.openstreetmap.org/relation/16335969",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "osm"
     },
     {
       "id": "osm-16335970",
@@ -2390,7 +2426,8 @@
         "url": "https://www.openstreetmap.org/relation/16335970",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "osm"
     },
     {
       "id": "osm-17017897",
@@ -2428,7 +2465,8 @@
         "url": "https://www.openstreetmap.org/relation/17017897",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "osm"
     },
     {
       "id": "osm-17017933",
@@ -2466,7 +2504,8 @@
         "url": "https://www.openstreetmap.org/relation/17017933",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "osm"
     },
     {
       "id": "osm-17017994",
@@ -2512,7 +2551,8 @@
         "url": "https://www.openstreetmap.org/relation/17017994",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "osm"
     },
     {
       "id": "osm-17018058",
@@ -2562,7 +2602,8 @@
         "url": "https://www.openstreetmap.org/relation/17018058",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "osm"
     },
     {
       "id": "osm-17018192",
@@ -2612,7 +2653,8 @@
         "url": "https://www.openstreetmap.org/relation/17018192",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "osm"
     },
     {
       "id": "osm-17018200",
@@ -2658,7 +2700,8 @@
         "url": "https://www.openstreetmap.org/relation/17018200",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "osm"
     },
     {
       "id": "osm-17032900",
@@ -2700,7 +2743,8 @@
         "url": "https://www.openstreetmap.org/relation/17032900",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "osm"
     },
     {
       "id": "osm-17032901",
@@ -2742,7 +2786,8 @@
         "url": "https://www.openstreetmap.org/relation/17032901",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "osm"
     },
     {
       "id": "osm-17422851",
@@ -2808,7 +2853,8 @@
         "url": "https://www.openstreetmap.org/relation/17422851",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "osm"
     },
     {
       "id": "osm-17422852",
@@ -2870,7 +2916,8 @@
         "url": "https://www.openstreetmap.org/relation/17422852",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "osm"
     },
     {
       "id": "osm-17422924",
@@ -2928,7 +2975,8 @@
         "url": "https://www.openstreetmap.org/relation/17422924",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "osm"
     },
     {
       "id": "osm-17423798",
@@ -2974,7 +3022,8 @@
         "url": "https://www.openstreetmap.org/relation/17423798",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "osm"
     },
     {
       "id": "osm-17427638",
@@ -3012,7 +3061,8 @@
         "url": "https://www.openstreetmap.org/relation/17427638",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "osm"
     },
     {
       "id": "osm-17427670",
@@ -3046,7 +3096,8 @@
         "url": "https://www.openstreetmap.org/relation/17427670",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "osm"
     },
     {
       "id": "osm-17427947",
@@ -3116,7 +3167,8 @@
         "url": "https://www.openstreetmap.org/relation/17427947",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "osm"
     },
     {
       "id": "osm-17427948",
@@ -3194,7 +3246,8 @@
         "url": "https://www.openstreetmap.org/relation/17427948",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "osm"
     },
     {
       "id": "osm-17428336",
@@ -3296,7 +3349,8 @@
         "url": "https://www.openstreetmap.org/relation/17428336",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "osm"
     },
     {
       "id": "osm-17428337",
@@ -3394,7 +3448,8 @@
         "url": "https://www.openstreetmap.org/relation/17428337",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "osm"
     },
     {
       "id": "osm-17428338",
@@ -3488,7 +3543,8 @@
         "url": "https://www.openstreetmap.org/relation/17428338",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "osm"
     },
     {
       "id": "osm-17432562",
@@ -3534,7 +3590,8 @@
         "url": "https://www.openstreetmap.org/relation/17432562",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "osm"
     },
     {
       "id": "osm-17432610",
@@ -3568,7 +3625,8 @@
         "url": "https://www.openstreetmap.org/relation/17432610",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "osm"
     },
     {
       "id": "osm-17432675",
@@ -3602,7 +3660,8 @@
         "url": "https://www.openstreetmap.org/relation/17432675",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "osm"
     },
     {
       "id": "osm-17432766",
@@ -3644,7 +3703,8 @@
         "url": "https://www.openstreetmap.org/relation/17432766",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "osm"
     },
     {
       "id": "osm-17432826",
@@ -3690,7 +3750,8 @@
         "url": "https://www.openstreetmap.org/relation/17432826",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "osm"
     },
     {
       "id": "osm-17432896",
@@ -3740,7 +3801,8 @@
         "url": "https://www.openstreetmap.org/relation/17432896",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "osm"
     },
     {
       "id": "osm-17432910",
@@ -3798,7 +3860,8 @@
         "url": "https://www.openstreetmap.org/relation/17432910",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "osm"
     },
     {
       "id": "osm-17432967",
@@ -3840,7 +3903,8 @@
         "url": "https://www.openstreetmap.org/relation/17432967",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "osm"
     },
     {
       "id": "osm-17433639",
@@ -3874,7 +3938,8 @@
         "url": "https://www.openstreetmap.org/relation/17433639",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "osm"
     },
     {
       "id": "osm-17433663",
@@ -3924,7 +3989,8 @@
         "url": "https://www.openstreetmap.org/relation/17433663",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "osm"
     },
     {
       "id": "osm-18505138",
@@ -3994,7 +4060,8 @@
         "url": "https://www.openstreetmap.org/relation/18505138",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "osm"
     },
     {
       "id": "osm-18505139",
@@ -4064,7 +4131,8 @@
         "url": "https://www.openstreetmap.org/relation/18505139",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "osm"
     },
     {
       "id": "osm-18523697",
@@ -4130,7 +4198,8 @@
         "url": "https://www.openstreetmap.org/relation/18523697",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "osm"
     },
     {
       "id": "osm-18523698",
@@ -4196,7 +4265,8 @@
         "url": "https://www.openstreetmap.org/relation/18523698",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "osm"
     },
     {
       "id": "osm-20035910",
@@ -4302,7 +4372,8 @@
         "url": "https://www.openstreetmap.org/relation/20035910",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "osm"
     },
     {
       "id": "osm-20035911",
@@ -4404,7 +4475,8 @@
         "url": "https://www.openstreetmap.org/relation/20035911",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "osm"
     },
     {
       "id": "osm-2396474",
@@ -4450,7 +4522,8 @@
         "url": "https://www.openstreetmap.org/relation/2396474",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "osm"
     },
     {
       "id": "osm-2396487",
@@ -4512,7 +4585,8 @@
         "url": "https://www.openstreetmap.org/relation/2396487",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "osm"
     },
     {
       "id": "osm-4126514",
@@ -4574,7 +4648,8 @@
         "url": "https://www.openstreetmap.org/relation/4126514",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "osm"
     },
     {
       "id": "osm-4126515",
@@ -4636,7 +4711,8 @@
         "url": "https://www.openstreetmap.org/relation/4126515",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "osm"
     },
     {
       "id": "osm-4126516",
@@ -4678,7 +4754,8 @@
         "url": "https://www.openstreetmap.org/relation/4126516",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "osm"
     },
     {
       "id": "osm-4126517",
@@ -4728,7 +4805,8 @@
         "url": "https://www.openstreetmap.org/relation/4126517",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "osm"
     },
     {
       "id": "osm-4126518",
@@ -4786,7 +4864,8 @@
         "url": "https://www.openstreetmap.org/relation/4126518",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "osm"
     },
     {
       "id": "osm-4126519",
@@ -4824,7 +4903,8 @@
         "url": "https://www.openstreetmap.org/relation/4126519",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "osm"
     },
     {
       "id": "osm-4126521",
@@ -4866,7 +4946,8 @@
         "url": "https://www.openstreetmap.org/relation/4126521",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "osm"
     },
     {
       "id": "osm-6997044",
@@ -4948,7 +5029,8 @@
         "url": "https://www.openstreetmap.org/relation/6997044",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "osm"
     },
     {
       "id": "osm-6997045",
@@ -5058,7 +5140,8 @@
         "url": "https://www.openstreetmap.org/relation/6997045",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "osm"
     },
     {
       "id": "osm-7214774",
@@ -5152,7 +5235,8 @@
         "url": "https://www.openstreetmap.org/relation/7214774",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "osm"
     },
     {
       "id": "osm-7214775",
@@ -5246,7 +5330,8 @@
         "url": "https://www.openstreetmap.org/relation/7214775",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "osm"
     },
     {
       "id": "osm-7219393",
@@ -5308,7 +5393,8 @@
         "url": "https://www.openstreetmap.org/relation/7219393",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "osm"
     },
     {
       "id": "osm-7219394",
@@ -5354,7 +5440,8 @@
         "url": "https://www.openstreetmap.org/relation/7219394",
         "date": "2026-10-28",
         "locatedBy": "koordinata"
-      }
+      },
+      "limitSource": "osm"
     }
   ],
   "skipped": [],

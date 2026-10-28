@@ -8,6 +8,9 @@ export interface LatLon {
 export type SectionSource = 'osm' | 'hivatalos' | 'kozosseg';
 
 /** Hogyan állapítottuk meg a kapuk helyét a forrásból. */
+/** A sebességhatár forrása. */
+export type SectionLimitSource = 'hivatalos' | 'osm';
+
 export type SectionLocatedBy = 'koordinata' | 'km_szelveny' | 'telepules';
 
 /** Egy szakasz forrása: ki adta ki, hol, mikor, és hogyan lett belőle hely. */
@@ -51,6 +54,8 @@ export interface Section {
   geometry?: LatLon[];
   /** A forrás (hivatalos importnál mindig kitöltve). */
   provenance?: SectionProvenance;
+  /** Honnan jön a sebességhatár: a hivatalos forrásból vagy az OSM `maxspeed`-ből (importált szakasznál). */
+  limitSource?: SectionLimitSource;
 }
 
 /** Egy GPS-mérés. Az ismeretlen értékek `null`-ok. */
