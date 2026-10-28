@@ -9,7 +9,7 @@ import {
   type Settings,
   type SpeedStatus,
 } from '@atlagsebesseg/app-logic';
-import { meterBar, type MeterBar, type Section } from '@atlagsebesseg/core';
+import { limitWithToleranceKmh, meterBar, type MeterBar, type Section } from '@atlagsebesseg/core';
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { Icon, type IconName } from './Icon';
 import { LimitSign } from './LimitSign';
@@ -113,10 +113,16 @@ export function Hud(p: HudProps) {
           <Hero value={speedIn(live.averageKmh, unit)} />
           <div className="body muted hero-unit">{u} átlag</div>
           <div className="meter-line">
-            <LimitSign kmh={s.speedLimitKmh} unit={unit} small />
+            <div className="sign-col">
+              <LimitSign kmh={s.speedLimitKmh} unit={unit} small />
+              {settings.hatosagi_tures_megjelenitese && (
+                <div className="tolerance num">tűrés {speedIn(limitWithToleranceKmh(s.speedLimitKmh), unit)}</div>
+              )}
+            </div>
             <div className="meter-fig">
               <span className="body muted">most</span>
-              <b className="meter-num num">{speedIn(view.currentKmh, unit) ?? '–'}</b>
+              {/* az állapot nem változik: a „most” önállóan jelzi, ha a pillanatnyi sebesség a határ felett van */}
+              <b className="meter-num num" data-over={(view.currentKmh ?? 0) > s.speedLimitKmh}>{speedIn(view.currentKmh, unit) ?? '–'}</b>
             </div>
             <span className="meter-sep" aria-hidden="true">
               ·

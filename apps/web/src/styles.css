@@ -481,6 +481,18 @@ select:focus-visible {
   color: var(--color-text);
 }
 
+.meter-num[data-over='true'] {
+  color: var(--color-near);
+}
+
+.tolerance {
+  font-size: var(--type-body-size);
+  font-weight: 600;
+  line-height: 1.1;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+}
+
 .meter-sep {
   align-self: flex-end;
   padding-bottom: 6px;

@@ -69,7 +69,7 @@ biztonsági zóna fölött lebeg.
 - **HUD-kártya, mérés közben** (alul lebeg, A7b): chip (állapot) → hero szám (a pillanatnyi
   **átlag**) → alatta kicsiben „km/h átlag” → egy sor: **[határ-tábla] most 144 · várható 122**
   (a „most” a pillanatnyi GPS-sebesség; mindkét szám 44 px, tabular, 1,5 m-ről olvasható) →
-  progress + hátralévő táv. Más szám nem kerül a kártyára (a tűrés-kijelzés ezért kikerült).
+  progress + hátralévő táv. A „most” borostyán (`near`), ha a pillanatnyi sebesség a határ felett van – az állapot ettől nem változik (az átlag és a várható végső dönt). Ha a Beállításokban a tűrés-kijelzés be van kapcsolva, a határ-tábla alatt kicsiben „tűrés 136” (20 px). Más szám nem kerül a kártyára.
 - **Határ-tábla**: KRESZ-tábla stílusú kör, `title` méret.
 - **Állapot-pillek** (fent): GPS pontosság, kijelző ébren / elalhat, offline. Vezetés közben
   **csak ikonok** (szöveg nélkül). Koppinthatók, ha teendő van (pl. ébrentartás újrakérése).
