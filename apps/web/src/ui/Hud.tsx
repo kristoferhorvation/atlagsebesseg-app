@@ -336,7 +336,7 @@ function useSteady(value: boolean, onMs: number, offMs: number): boolean {
  */
 export function SlowDown({ view, unit }: { view: SessionView; unit: Settings['egyseg'] }) {
   const live = view.phase === 'meres' ? view.live : null;
-  const bar = live ? meterBar(view.status, live.required) : null;
+  const bar = live ? meterBar(view.status, live.required, view.currentKmh) : null;
   const show = useSteady(bar !== null, 1500, 3000);
   // eltűnéskor az utolsó tartalom (és színe) marad, hogy ne ugorjon a kifutó animáció alatt
   const last = useRef<{ bar: MeterBar; tone: string } | null>(null);

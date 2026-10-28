@@ -76,7 +76,7 @@ biztonsági zóna fölött lebeg.
 - **Ébrentartás (A4-döntés):** ha a Wake Lock nem sikerül, **egyszer**, induláskor egy csendes,
   semleges toast szól (5 s); utána csak a szürke kijelző-ikon jelzi – nem sárga, nem ismétlődik.
 - **„Lassíts · max X” (A4-döntés):** külön, nagy üvegpill középen a kártya fölött (76 px magas,
-  `title` címke + 44 px-es szám), **csak `lassits` / `tul_gyors` állapotban** (a színe az állapoté; „Nem hozható be” szöveggel, ha a „max” már nem reális). Megjelenés/eltűnés `slow` (480 ms)
+  `title` címke + 44 px-es szám), **csak `lassits` / `tul_gyors` állapotban, és csak amíg a pillanatnyi sebesség > X** (ha már X alatt vagy, nincs sáv; a chip és a szín az állapot szerint marad) (a színe az állapoté; „Nem hozható be” szöveggel, ha a „max” már nem reális). Megjelenés/eltűnés `slow` (480 ms)
   opacity + transform; hiszterézis: 1,5 s fennállás után jelenik meg, 3 s hiány után tűnik el,
   így a határérték körüli ingadozás nem villog. 
 - **Kerek gombok** (64 px, üveg): bejelentés, kézi mérés, beállítások.
