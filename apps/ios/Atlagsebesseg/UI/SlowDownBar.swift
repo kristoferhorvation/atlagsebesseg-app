@@ -73,7 +73,7 @@ struct SlowDownBar: View {
 private struct SlowLabel: ViewModifier {
     func body(content: Content) -> some View {
         content
-            .font(.system(size: Tokens.Typography.title.size, weight: .token(680)))
+            .font(.inter(Tokens.Typography.title.size, 680))
             .tracking(Tokens.Typography.title.trackingPt)
             .lineLimit(1)
             .minimumScaleFactor(0.7)

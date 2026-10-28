@@ -18,13 +18,13 @@ struct SimPanel: View {
                 }
             } label: {
                 Text("SIM · \(Self.labels[SimScenario(rawValue: model.sim?.fixture.id ?? "") ?? .lassit] ?? "")")
-                    .font(.system(size: 15, weight: .semibold))
+                    .font(.inter(15, 600))
                     .lineLimit(1)
             }
             Spacer(minLength: 0)
             ForEach([1.0, 4, 12], id: \.self) { v in
                 Button("\(Int(v))×") { model.simSetSpeed(v) }
-                    .font(.system(size: 15, weight: model.sim?.speed == v ? .bold : .regular))
+                    .font(.inter(15, model.sim?.speed == v ? 700 : 400))
             }
             Button { model.simPlayPause() } label: {
                 Icon(name: model.simPlaying ? .pause : .play, size: 18)

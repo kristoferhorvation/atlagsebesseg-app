@@ -14,5 +14,6 @@ describe('Swift-tokenek (iOS)', () => {
     expect(swift).toContain('static let hero = TypeStyle(size: 196, weight: 680, lineHeight: 0.9, tracking: -0.045)');
     expect(swift).toContain('static let s4: CGFloat = 16');
     expect(swift).toContain('ShadowLayer(x: 0, y: 24, blur: 60, spread: -12');
+    expect(swift).toContain('static let family = "Inter Variable"');
   });
 });

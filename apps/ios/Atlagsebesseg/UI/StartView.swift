@@ -12,7 +12,7 @@ struct StartView: View {
             VStack(alignment: .leading, spacing: Tokens.Space.s6) {
                 Spacer()
                 Text(t(.appName))
-                    .font(.system(size: Tokens.Typography.display.size * 0.7, weight: .token(Tokens.Typography.display.weight)))
+                    .font(.inter(Tokens.Typography.display.size * 0.7, Tokens.Typography.display.weight))
                     .tracking(Tokens.Typography.display.trackingPt * 0.7)
                 Text(t(.startTagline))
                     .typeStyle(Tokens.Typography.body)
@@ -38,7 +38,7 @@ struct StartView: View {
         HStack(alignment: .top, spacing: Tokens.Space.s3) {
             Icon(name: icon).foregroundStyle(Tokens.Colors.accent)
             Text(text)
-                .font(.system(size: Tokens.Typography.caption.size + 2, weight: Tokens.Typography.body.fontWeight))
+                .font(.inter(Tokens.Typography.caption.size + 2, Tokens.Typography.body.weight))
                 .foregroundStyle(Tokens.Colors.text)
         }
     }

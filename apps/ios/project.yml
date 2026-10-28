@@ -80,6 +80,8 @@ targets:
         # alapszöveg; a nyelvenkénti változat az InfoPlist.xcstrings-ből (a szótárból generálva)
         NSLocationWhenInUseUsageDescription: Your location is needed to detect sections and measure your average speed.
         ITSAppUsesNonExemptEncryption: false
+        # Inter (OFL, Resources/Fonts/Inter-OFL.txt) – ugyanaz a betű, mint a weben
+        UIAppFonts: [InterVariable.ttf]
         # a titkok az xcconfig-ból (Secrets.xcconfig, gitignore) – üresen az app offline, a beépített adattal fut
         MBXAccessToken: $(MAPBOX_ACCESS_TOKEN)
         AtlSupabaseURL: $(SUPABASE_URL)

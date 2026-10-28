@@ -58,8 +58,14 @@ Gyökér: `npm test` és `npm run typecheck` minden csomagra; `npm run test:all`
   kiírás: `npm run fixtures -w @atlagsebesseg/core`). Egy TS `it` = egy Swift `@Test`, azonos névvel.
 - Ellenőrzés commit előtt (iOS-t érintő változásnál): `xcodebuild test` (AppTests + core-swift a sémában)
   szimulátoron, és `xcodebuild build -destination 'generic/platform=iOS' CODE_SIGNING_ALLOWED=NO`.
-- Szimulátor: a gépen az iOS 27.1 runtime csak az „iPhone Duo”-t támogatja (szabványos iPhone-hoz
-  külön runtime-letöltés kellene); a tesztek és a képernyőképek ezen futnak.
+- Szimulátor: a gépen az iOS 27.1 runtime csak az „iPhone Duo”-t támogatja. **Döntés (2026-10-29): az
+  A10 elején a Claude Code letölti a szabványos runtime-ot** (`xcodebuild -downloadPlatform iOS`), létrehoz
+  egy szabványos iPhone-t (`xcrun simctl create`), és onnantól azon futnak a tesztek és a képernyőképek.
+- Betű: **Inter** (mint a weben) – `Resources/Fonts/InterVariable.ttf` (OFL, `Inter-OFL.txt`), `UIAppFonts`;
+  a nézetekben `Font.inter(méret, súly)` / `.num(…)` a token pontos súlyával. Rendszerbetű (`.system(size:)`)
+  nem kerülhet a kódba (AppTests-őr).
+- Háttér-mérés: a mérés zárolt képernyővel is fut, külön figyelmeztetés nincs (döntés). A zárolt képernyős
+  „fut a mérés” jelzés a Live Activity (A10+) dolga.
 
 ## Kör-rendszer
 - Minden prompt „A<n> kör”-rel kezdődik; minden commit-üzenet `A<n>: ...` prefixű.

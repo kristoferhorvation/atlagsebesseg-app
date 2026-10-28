@@ -64,7 +64,7 @@ struct MeterCard: View {
                 // az állapot nem változik: a „most” önállóan jelzi, ha a pillanatnyi sebesség a határ felett van
                 MeterFigure(label: t(.hudNow), value: speedIn(view.currentKmh, unit), over: (view.currentKmh ?? 0) > s.speedLimitKmh)
                 Text("·")
-                    .font(.system(size: 32, weight: .semibold))
+                    .font(.inter(32, 600))
                     .foregroundStyle(Tokens.Colors.textFaint)
                     .frame(maxHeight: .infinity, alignment: .bottom)
                     .padding(.bottom, 6)
@@ -93,7 +93,7 @@ struct MeterCard: View {
                             .tracking(Tokens.Typography.display.trackingPt)
                         if let d {
                             Text(t(.hudAhead, ["u": d.unit]))
-                                .font(.system(size: Tokens.Typography.body.size, weight: .token(560)))
+                                .font(.inter(Tokens.Typography.body.size, 560))
                                 .foregroundStyle(Tokens.Colors.textMuted)
                         }
                     }
@@ -207,12 +207,12 @@ struct MeterCard: View {
                     .font(.num(Tokens.Typography.title.size, 700))
                     .tracking(Tokens.Typography.title.trackingPt)
                 Text(u)
-                    .font(.system(size: Tokens.Typography.body.size, weight: .token(560)))
+                    .font(.inter(Tokens.Typography.body.size, 560))
                     .foregroundStyle(Tokens.Colors.textMuted)
             }
             .fixedSize()
             Text(gpsReady ? t(.hudNoneNear) : t(.hudNoneWaiting))
-                .font(.system(size: Tokens.Typography.body.size, weight: Tokens.Typography.body.fontWeight))
+                .font(.inter(Tokens.Typography.body.size, Tokens.Typography.body.weight))
                 .foregroundStyle(Tokens.Colors.textMuted)
                 .lineSpacing(0)
             Spacer(minLength: 0)
@@ -341,7 +341,7 @@ private struct MeterFigure: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             Text(label)
-                .font(.system(size: Tokens.Typography.body.size, weight: Tokens.Typography.body.fontWeight))
+                .font(.inter(Tokens.Typography.body.size, Tokens.Typography.body.weight))
                 .foregroundStyle(Tokens.Colors.textMuted)
             Text(value.map(String.init) ?? "–")
                 .font(.num(44, 700))
@@ -392,7 +392,7 @@ private struct Stat: View {
                 .font(.num(Tokens.Typography.title.size, Tokens.Typography.title.weight))
                 .tracking(-0.02 * Tokens.Typography.title.size)
             Text(label)
-                .font(.system(size: Tokens.Typography.caption.size, weight: Tokens.Typography.caption.fontWeight))
+                .font(.inter(Tokens.Typography.caption.size, Tokens.Typography.caption.weight))
                 .foregroundStyle(Tokens.Colors.textMuted)
         }
         .padding(.vertical, Tokens.Space.s3)
@@ -411,12 +411,12 @@ private struct SourceLine: View {
             if section.verified {
                 HStack(spacing: Tokens.Space.s1) {
                     Icon(name: .check, size: 18)
-                    Text(t(.sourceVerified)).font(.system(size: Tokens.Typography.body.size, weight: .token(640)))
+                    Text(t(.sourceVerified)).font(.inter(Tokens.Typography.body.size, 640))
                 }
                 .foregroundStyle(Tokens.Colors.ok)
             }
             Text(sectionSourceLabel(section))
-                .font(.system(size: Tokens.Typography.body.size, weight: .token(540)))
+                .font(.inter(Tokens.Typography.body.size, 540))
                 .foregroundStyle(Tokens.Colors.textMuted)
         }
     }

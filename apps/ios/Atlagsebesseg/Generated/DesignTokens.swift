@@ -55,6 +55,11 @@ enum Tokens {
         static let kezi = Colors.accent
     }
 
+    /// A betűcsalád (a web `Inter Variable`-je; az app a Resources/Fonts/InterVariable.ttf-et regisztrálja).
+    enum Fonts {
+        static let family = "Inter Variable"
+    }
+
     enum Typography {
         static let hero = TypeStyle(size: 196, weight: 680, lineHeight: 0.9, tracking: -0.045)
         static let heroMin: CGFloat = 120

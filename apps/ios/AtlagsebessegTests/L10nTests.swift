@@ -89,6 +89,14 @@ struct LiteralGuardTests {
         }
     }
 
+    @Test("nincs rendszerbetű: minden felirat Interrel, a token súlyával (DESIGN.md)")
+    func nincsRendszerbetu() {
+        for (rel, text) in Self.sources() {
+            let hits = Self.stripComments(text).split(separator: "\n").filter { $0.contains(".system(size:") }
+            #expect(hits.isEmpty, "rendszerbetű: \(rel): \(hits)")
+        }
+    }
+
     @Test("nincs szó szerinti felirat a nézetekben (Text/Button/Toggle/… szöveg-literállal)")
     func nincsLiteral() {
         let pattern = #"\b(Text|Label|Button|Toggle|Picker|LabeledContent|navigationTitle|Section|accessibilityLabel)\(\s*"\p{L}"#

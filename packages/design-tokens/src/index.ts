@@ -42,8 +42,8 @@ export type StatusTone = keyof typeof statusColor;
 
 export const font = {
   family: "'Inter Variable', Inter, -apple-system, BlinkMacSystemFont, 'SF Pro Display', system-ui, sans-serif",
-  /** Natív appban a betöltött Inter-változat neve. */
-  nativeFamily: 'Inter',
+  /** Natív appban a betöltött Inter-változat családneve (InterVariable.ttf: súly 100–900, optikai méret 14–32). */
+  nativeFamily: 'Inter Variable',
 } as const;
 
 export interface TypeStyle {
@@ -171,7 +171,7 @@ export function toSwift(): string {
     const ref = colorKey(v);
     L.push(`        static let ${swiftName(k)} = ${ref ? `Colors.${ref}` : swiftColor(v)}`);
   }
-  L.push('    }', '', '    enum Typography {');
+  L.push('    }', '', '    /// A betűcsalád (a web `Inter Variable`-je; az app a Resources/Fonts/InterVariable.ttf-et regisztrálja).', '    enum Fonts {', `        static let family = ${JSON.stringify(font.nativeFamily)}`, '    }', '', '    enum Typography {');
   for (const [k, v] of Object.entries(type)) {
     if (typeof v === 'number') L.push(`        static let ${k}: CGFloat = ${num(v)}`);
     else L.push(`        static let ${k} = TypeStyle(size: ${num(v.size)}, weight: ${num(v.weight)}, lineHeight: ${num(v.lineHeight)}, tracking: ${num(v.tracking)})`);

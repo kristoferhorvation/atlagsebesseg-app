@@ -4,31 +4,41 @@ import SwiftUI
 // A webes styles.css kártya-elemei SwiftUI-ban; minden szín és méret a generált tokenekből (DESIGN.md).
 
 extension TypeStyle {
-    /// A token súlya (100–900) a SwiftUI súlylépcsőjén (az Inter változó súlyai helyett a rendszerbetű).
-    var fontWeight: Font.Weight { Font.Weight.token(weight) }
-    var font: Font { .system(size: size, weight: fontWeight) }
+    var font: Font { .inter(size, weight) }
     /// A CSS `letter-spacing` em-ben → pontban.
     var trackingPt: CGFloat { tracking * size }
 }
 
-extension Font.Weight {
-    static func token(_ w: CGFloat) -> Font.Weight {
-        switch w {
-        case ..<350: .light
-        case ..<450: .regular
-        case ..<550: .medium
-        case ..<640: .semibold
-        case ..<730: .bold
-        case ..<830: .heavy
-        default: .black
-        }
+extension Font {
+    /// Inter (mint a weben) a token pontos súlyával (100–900, a változó betű `wght` tengelyén); az optikai
+    /// méret a betűmérethez igazodik (`opsz` 14–32), mint a CSS `font-optical-sizing: auto`.
+    static func inter(_ size: CGFloat, _ weight: CGFloat) -> Font {
+        Font(UIFont.inter(size, weight))
+    }
+
+    /// Szám (a web `.num` osztálya: táblázatos számjegyek).
+    static func num(_ size: CGFloat, _ weight: CGFloat) -> Font {
+        .inter(size, weight).monospacedDigit()
     }
 }
 
-extension Font {
-    /// Szám (a web `.num` osztálya: táblázatos számjegyek).
-    static func num(_ size: CGFloat, _ weight: CGFloat) -> Font {
-        .system(size: size, weight: .token(weight)).monospacedDigit()
+extension UIFont {
+    private static var interCache: [String: UIFont] = [:]
+
+    /// A Resources/Fonts/InterVariable.ttf (Info.plist `UIAppFonts`) adott súllyal és optikai mérettel.
+    static func inter(_ size: CGFloat, _ weight: CGFloat) -> UIFont {
+        let key = "\(size)/\(weight)"
+        if let f = interCache[key] { return f }
+        // a változó betű tengelyei: 'wght' és 'opsz' (négybetűs OpenType-címkék számként)
+        let wght = 0x7767_6874
+        let opsz = 0x6F70_737A
+        let descriptor = UIFontDescriptor(fontAttributes: [
+            .family: Tokens.Fonts.family,
+            UIFontDescriptor.AttributeName(rawValue: kCTFontVariationAttribute as String): [wght: weight, opsz: min(32, max(14, size))],
+        ])
+        let f = UIFont(descriptor: descriptor, size: size)
+        interCache[key] = f
+        return f
     }
 }
 
@@ -121,7 +131,7 @@ struct Chip: View {
         HStack(spacing: Tokens.Space.s2) {
             if let icon { Icon(name: icon) }
             Text(text)
-                .font(.system(size: Tokens.Typography.body.size, weight: .token(640)))
+                .font(.inter(Tokens.Typography.body.size, 640))
                 .tracking(-0.005 * Tokens.Typography.body.size)
                 .lineLimit(1)
         }
@@ -140,7 +150,7 @@ struct WideButtonStyle: ButtonStyle {
 
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .font(.system(size: Tokens.Typography.body.size, weight: .token(620)))
+            .font(.inter(Tokens.Typography.body.size, 620))
             .frame(maxWidth: .infinity, minHeight: 60)
             .foregroundStyle(kind == .primary ? Tokens.Colors.signText : kind == .danger ? Color.white : Tokens.Colors.text)
             .background(
