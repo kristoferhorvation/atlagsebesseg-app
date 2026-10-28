@@ -193,6 +193,58 @@ npm run fixture --workspace @atlagsebesseg/data -- --country IT --id osm-123456
 Ez a `packages/core/test/fixtures/osm/` mappába ír; a `real-geometry.test.ts` automatikusan
 lefut rajta (fixtúra nélkül a teszt `skipped`).
 
+## Fix kamerák (A7) – `npm run import:cameras`
+
+Csak biztos adat. Magyarország:
+
+| forrás | mi | dátum |
+|---|---|---|
+| ORFK, Zsaru Magazin 2015/48 – [police.hu](https://www.police.hu/hu/hirek-es-informaciok/legfrissebb-hireink/zsaru-magazin/veda-fix-kamerak-listaja) (`lista1.pdf`, `lista2.pdf`) | a fix VÉDA komplex ellenőrző pontok megyénként: település, út, km-szelvény, GPS-koordináta – **134 pont** | 2015-11 |
+| OSM `highway=speed_camera` (Overpass) | kamera-csomópontok Magyarországon (422 db, 2026-10-28) | lekérés napja |
+
+Egyesítés (`src/cameras.ts` – `mergeCameras`): VÉDA-pont + OSM-kamera 300 m-en belül → `complex`,
+`verified = true` (a hivatalos koordinátával; irány és határ az OSM-ből, ha van); csak OSM → `speed`,
+nem ellenőrzött; csak a 2015-ös listában → **kimarad**, a kimenet `skipped` listájában. Kimenet:
+`output/cameras.HU.json` (az app beépített tartaléka is). Feltöltés: `npm run import:cameras -- --upload`
+(upsert, nem töröl).
+
+**Figyelem – a két forrás nem független:** a párosított OSM-csomópontok többségének `source`
+címkéje `police.hu` (2026-10-28: 133 párból 116), vagyis az OSM-be épp ebből a listából kerültek.
+Az „ellenőrzött” itt azt jelenti, hogy a hivatalos pont és az OSM-pont egyezik, nem azt, hogy
+valaki 2026-ban helyszínen látta. 2015 óta megszűnt vagy áthelyezett kamerát ez nem szűr ki.
+
+## Tervezett rendőrségi mérések (A7) – `npm run planned:fetch`
+
+A `fetch-planned-checks` edge function logikája (`src/planned/`): police.hu hírlista → jelölt
+cikkek → időszak → helyszín-sorok (cikkszöveg + PDF, `unpdf`) → helymeghatározás az OSM-en →
+`planned_checks`. Részletek és szabályok: `supabase/README.md`. Helyben, időkorlát nélkül:
+
+```bash
+npm run planned:fetch                                   # a mai hírlista, száraz futás
+npm run planned:fetch -- --upload                       # + írás (service role, gyökér .env)
+npm run planned:fetch -- --article <url> --as-of 2026-04-14 --json out.json   # egy cikk, adott „mai” nappal
+```
+
+## Jogi láthatóság országonként – `camera_visibility.json`
+
+A fix kamera- és a tervezett-mérés réteg országonként: `show` (pont/vonal), `zone` (±1 km-es zóna,
+pont nélkül, 500 m-es rácsra kerekített középponttal), `hide`. **A szakaszellenőrzés-rétegre nem
+vonatkozik.** Az ország az adat (kamera, mérés) országa. **Nem jogi tanács, jogi ellenőrzése még nem történt** – a szabályok változhatnak; ahol jogszabályhely szerepel, az a közismert hivatkozás, a többi sor csak a gyakorlatot írja le.
+
+| ország | mód | indoklás / forrás |
+|---|---|---|
+| HU | show | A fix VÉDA-pontokat és a Speedmarathon-helyszíneket maga a rendőrség teszi közzé (police.hu); figyelmeztető alkalmazást jogszabály nem tilt. |
+| AT | show | A KFG 98a. § a radarérzékelőt/-zavarót tiltja; a fix helyeket mutató navigációs funkció megengedett. |
+| IT | show | A radarérzékelő tilos; a helyszínek közlése nem (a Polizia di Stato maga is közli a heti mérési helyeket). |
+| PL | show | A radarérzékelő tilos; a fix helyek (CANARD/GITD) nyilvánosak, alkalmazásban jelezhetők. |
+| ES | show | A radarérzékelő/-zavaró tilos; a figyelmeztetők (avisadores) és a DGT nyilvános radarlistája megengedett. |
+| NL | show | Radarérzékelő tilos; a flitspaal-figyelmeztető alkalmazás megengedett. |
+| GB | show | Fix kamerák helye nyilvános (Safety Camera Partnerships); figyelmeztető megengedett, csak a zavaró (jammer) tilos. |
+| FR | zone | Décret n° 2012-3 / Code de la route R413-15: a pontos radarhely nem jelezhető, csak „veszélyes zóna”; a navigációs szolgáltatások zónát jeleznek. |
+| DE | show + egyszeri figyelmeztetés | StVO 23. § (1c): a **vezető** nem használhat sebességmérést jelző eszközt/alkalmazást (bírság); utas használhatja. Az app egyszer szól: „Németországban a vezető nem használhatja ezt a funkciót”. |
+| CH | hide | SVG 98a. cikk (Via sicura, 2013): tilos a sebesség-ellenőrzésre figyelmeztető eszköz és alkalmazás. |
+| minden más | show | Alapértelmezés; egyedi szabály esetén a JSON-ba kerül. |
+
 ## Licenc – ODbL
 
 Az OSM-ből származó adat **© OpenStreetMap contributors**, **ODbL 1.0**. A forrásmegjelölés

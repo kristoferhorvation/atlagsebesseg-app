@@ -28,6 +28,7 @@ változókká alakítja, a natív app közvetlenül importálja.
 | `near` | `#FFB224` | **Átlag magas** (`lassits`) – az átlag a határ felett, de a várható végső ≤ határ |
 | `over` | `#FF4D61` | **Túl gyors** (`tul_gyors`) – a várható végső a határ felett |
 | `idle` | `#8C93A3` | megszakadt / nincs adat |
+| `planned` | `#F2DC82` | tervezett rendőrségi mérés: vonal és sáv (A7) – nem státuszszín |
 
 A státuszszín a nagy számot, a chipet, a sávot, a progress kitöltését, a kártya háttér-
 árnyalatát és fényívét, valamint a térképen az aktív szakasz vonalát színezi – **mindig ugyanabból
@@ -93,6 +94,22 @@ biztonsági zóna fölött lebeg.
   (60 px magas gombok, a saját bejelentésnél „Saját bejelentésed”). A térkép üres részére
   koppintva bezárul; mérés közben 3 s után magától is, mérésen kívül nyitva marad bezárásig.
   Dőlés-gesztus (két ujjas pitch) nincs. Lekérés a látható terület szerint, csempe-rácsra kerekítve, 60 s-enként.
+- **Fix kamerák (A7):** kicsi, **visszafogott** ikon – 32 px-es lekerekített négyzet (nem kör),
+  sötét üveg, halvány él, fehér vonalikon (kamera / jelzőlámpa / kamera + lámpa); 56 px-es
+  érintési cél. Nincs tónusszín és fény – a bejelentések (44 px-es, színes kör) hangosabbak.
+  Koppintásra kártya: típus, út · határ, forrás (ellenőrzöttnél zöld pipa). Csak a 15 km-es
+  körzet kamerái kerülnek a térképre. `zone` láthatóságnál (FR) szaggatott szélű, halvány kör
+  (±1 km), pont nélkül; `hide`-nál (CH) semmi.
+- **Tervezett rendőrségi mérés (A7):** a vonal halvány sárga (`planned`, 42% átlátszóság, a
+  most érintett vonal 75%), a szakaszok alatt. A vonalon haladva (ugyanaz a 40 m-es illesztés,
+  mint a szakaszoknál) felül, a pillek alatt **pulzáló sáv**: sárga pont táguló gyűrűvel
+  (transform + opacity), „Tervezett rendőrségi mérés” (22 px, `planned`), alatta „okt 27–nov 2 ·
+  **max 90**” (20 px); KRESZ-alapértéknél „max ~90”, időszaknál „· ápr 15. 6:00 – ápr 16. 6:00”.
+  Mérés közben (szakasz / kézi) kisebb, egysoros (20 px) – a nagy szám marad a fókusz.
+  Letéréskor 2 vonalon kívüli fix után tűnik el (egy kiugró GPS-pont nem tünteti el); be/ki
+  `slow` opacity + transform. Beállítás: „Tervezett mérések mutatása” (alapból be).
+- **Országos figyelmeztetés (A7):** ha a környéken német kamera/mérés van, egyszer (eszközönként)
+  toast: „Németországban a vezető nem használhatja ezt a funkciót” (6 s).
 - **Szabad térkép (A5):** húzás, csípés, forgatás. Mozdításkor a követés kikapcsol, és a gombsor
   fölött megjelenik a **„Vissza a helyemre”** (64 px, célkereszt, accent); rá a követő kamera
   animálva (900 ms) áll vissza. Mérés közben 5 s tétlenség után magától is; mérésen kívül csak a

@@ -54,6 +54,16 @@ export class SupabaseRest {
     await this.check(res, `upsert ${table}`);
   }
 
+  /** Sima beszúrás (pl. naplósor). */
+  async insert(table: string, rows: unknown[]): Promise<void> {
+    const res = await this.f(`${this.cfg.url}/rest/v1/${table}`, {
+      method: 'POST',
+      headers: this.headers({ Prefer: 'return=minimal' }),
+      body: JSON.stringify(rows),
+    });
+    await this.check(res, `insert ${table}`);
+  }
+
   /** Törlés PostgREST-szűrővel (pl. `country=eq.IT&source=in.(osm,hivatalos)`); a törölt sorok száma. */
   async delete(table: string, query: string): Promise<number> {
     const res = await this.f(`${this.cfg.url}/rest/v1/${table}?${query}`, {

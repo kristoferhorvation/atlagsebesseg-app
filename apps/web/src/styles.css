@@ -1238,6 +1238,161 @@ a.list-row {
 
 /* ---------- mozgás ---------- */
 
+/* ---------- fix kamerák (A7): kicsi, visszafogott – a bejelentésektől eltérő stílus ---------- */
+
+.camera-pin {
+  width: var(--size-touch);
+  height: var(--size-touch);
+  display: grid;
+  place-items: center;
+}
+
+.camera-pin-disc {
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+  color: var(--color-text);
+  background: var(--color-surface-strong);
+  border: 1.5px solid var(--color-text-faint);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.45);
+  transition: transform var(--motion-fast) var(--motion-ease);
+}
+
+.camera-pin.selected .camera-pin-disc {
+  transform: scale(1.2);
+  color: var(--color-text);
+  border-color: var(--color-text-muted);
+}
+
+.camera-card-ic {
+  color: var(--color-text-muted);
+  background: var(--color-surface-raised);
+  border-radius: 12px;
+}
+
+.camera-card-source {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: var(--type-body-size);
+  color: var(--color-text-muted);
+}
+
+.camera-card-source svg {
+  color: var(--color-ok);
+  flex: none;
+}
+
+/* ---------- tervezett rendőrségi mérés: felső, pulzáló sáv ---------- */
+
+.planned-band {
+  position: absolute;
+  top: calc(env(safe-area-inset-top) + 96px);
+  left: 50%;
+  /* a left: 50% a fél szélességre zsugorítaná – a tartalom szélessége, legfeljebb a képernyő */
+  width: max-content;
+  max-width: calc(100% - 24px);
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 20px 12px 16px;
+  border-radius: 24px;
+  border: 1px solid color-mix(in srgb, var(--color-planned) 45%, transparent);
+  color: var(--color-text);
+  z-index: 20;
+  opacity: 0;
+  transform: translate(-50%, -12px);
+  transition:
+    opacity var(--motion-slow) var(--motion-ease),
+    transform var(--motion-slow) var(--motion-ease);
+  pointer-events: none;
+}
+
+.planned-band[data-show='true'] {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+
+.planned-band-dot {
+  position: relative;
+  flex: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--color-planned);
+}
+
+/* a pulzálás: táguló, halványuló gyűrű (transform + opacity) */
+.planned-band-dot::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: var(--color-planned);
+  animation: planned-pulse 1.6s var(--motion-ease) infinite;
+}
+
+.planned-band-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.planned-band-text b {
+  font-size: 22px;
+  font-weight: 650;
+  letter-spacing: var(--type-title-tracking);
+  color: var(--color-planned);
+}
+
+.planned-band-meta {
+  font-size: var(--type-body-size);
+  font-weight: 560;
+  color: var(--color-text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.planned-band-limit {
+  color: var(--color-text);
+  font-weight: 680;
+}
+
+/* mérés közben kisebb: egy sor, a nagy szám marad a fókusz */
+.planned-band[data-compact='true'] {
+  top: calc(env(safe-area-inset-top) + 92px);
+  padding: 8px 14px 8px 12px;
+  gap: 10px;
+}
+
+.planned-band[data-compact='true'] .planned-band-text {
+  flex-direction: row;
+  gap: 8px;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.planned-band[data-compact='true'] .planned-band-text b {
+  font-size: var(--type-body-size);
+}
+
+.planned-band[data-compact='true'] .planned-band-dot {
+  width: 10px;
+  height: 10px;
+}
+
+@keyframes planned-pulse {
+  from {
+    transform: scale(1);
+    opacity: 0.7;
+  }
+  to {
+    transform: scale(2.6);
+    opacity: 0;
+  }
+}
+
 @keyframes rise {
   from {
     opacity: 0;

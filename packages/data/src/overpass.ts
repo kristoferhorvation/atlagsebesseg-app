@@ -20,6 +20,8 @@ export interface OsmRelationMember {
   type: 'node' | 'way' | 'relation';
   ref: number;
   role: string;
+  /** `out geom` esetén a tag-út koordinátái. */
+  geometry?: { lat: number; lon: number }[];
 }
 
 export interface OsmRelation {
@@ -81,6 +83,8 @@ export interface FetchOptions {
   fetchImpl?: typeof fetch;
   /** Az első újrapróbálás előtti várakozás (ms), utána duplázódik. */
   backoffMs?: number;
+  /** Egy kérés időkorlátja (ms); a beragadt kapcsolat így újrapróbálható. */
+  timeoutMs?: number;
 }
 
 /** Overpass-lekérdezés újrapróbálással (429/504 esetén exponenciális várakozás). */
@@ -98,6 +102,7 @@ export async function runOverpass(query: string, opts: FetchOptions = {}): Promi
           'User-Agent': opts.userAgent ?? 'atlagsebesseg-app-import/0.1 (+https://github.com/)',
         },
         body: new URLSearchParams({ data: query }).toString(),
+        signal: AbortSignal.timeout(opts.timeoutMs ?? 200_000),
       });
       if (res.ok) return (await res.json()) as OverpassResponse;
       lastError = new Error(`Overpass HTTP ${res.status}: ${(await res.text()).slice(0, 300)}`);

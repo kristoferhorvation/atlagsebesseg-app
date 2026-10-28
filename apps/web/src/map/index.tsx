@@ -23,5 +23,7 @@ class NoMapAdapter implements WebMapAdapter {
   setFocusY(): void {}
   setLook(): void {}
   showReports(): void {}
+  showCameras(): void {}
+  showPlannedChecks(): void {}
   setHandlers(): void {}
 }

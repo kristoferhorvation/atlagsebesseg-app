@@ -8,7 +8,7 @@ Szekciókontroll-(átlagsebesség-)mérő app, Kristof és apja ötlete. Elősz�
 | Mappa | Szerep | Fő parancs |
 |---|---|---|
 | `packages/core` | Függőségmentes mérőmotor (szakasz-felismerés, átlag, tűrés, napállás) | `npm test -w @atlagsebesseg/core` |
-| `packages/data` | OSM-import, HU kézi lista, edge-bundle, feltöltő | `npm run import:sections`, `npm run build:edge` |
+| `packages/data` | OSM-import, HU kézi lista, kamerák, tervezett mérések, edge-bundle, feltöltő | `npm run import:sections`, `npm run import:cameras`, `npm run planned:fetch`, `npm run build:edge` |
 | `packages/app-logic` | Közös app-logika (cache, kapuk, Supabase, mérés-munkamenet) | `npm test -w @atlagsebesseg/app-logic` |
 | `packages/design-tokens` | Platformfüggetlen dizájn-tokenek, CSS-változók | `npm test -w @atlagsebesseg/design-tokens` |
 | `apps/web` | Web PWA (Vite + React, mapbox-gl) | `npm run dev -w @atlagsebesseg/web` |

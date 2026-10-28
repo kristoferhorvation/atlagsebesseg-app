@@ -1,12 +1,12 @@
-import type { FeatureCollection, LineString } from 'geojson';
+import type { FeatureCollection, LineString, MultiLineString, Polygon } from 'geojson';
 import mapboxgl, { type GeoJSONSource, type Map as MbMap } from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { useEffect, useRef } from 'react';
 import { MapStore, type LightPreset, type MapLook } from '@atlagsebesseg/app-logic';
-import { bearingDeg, haversineM, type GpsFix, type Section } from '@atlagsebesseg/core';
+import { bearingDeg, haversineM, LocalProjection, type GpsFix, type Section } from '@atlagsebesseg/core';
 import { color } from '@atlagsebesseg/design-tokens';
 import { iconSvg } from '../ui/Icon';
-import type { MapHandlers, MapReport, WebMapAdapter, WebMapState } from './WebMapAdapter';
+import type { MapCamera, MapHandlers, MapPlanned, MapReport, MapZone, WebMapAdapter, WebMapState } from './WebMapAdapter';
 
 const STANDARD_STYLE = 'mapbox://styles/mapbox/standard';
 const PITCH = 60;
@@ -30,8 +30,13 @@ export class MapboxWebAdapter implements WebMapAdapter {
     look: 'szines',
     reports: [],
     selectedReportId: null,
+    cameras: [],
+    cameraZones: [],
+    selectedCameraId: null,
+    planned: [],
+    activePlannedId: null,
   });
-  private readonly handlers: MapHandlers = { onGesture: () => {}, onReportTap: () => {}, onView: () => {} };
+  private readonly handlers: MapHandlers = { onGesture: () => {}, onReportTap: () => {}, onCameraTap: () => {}, onView: () => {} };
   readonly MapView: (props: { className?: string }) => React.JSX.Element;
 
   constructor(accessToken: string) {
@@ -71,6 +76,12 @@ export class MapboxWebAdapter implements WebMapAdapter {
   }
   showReports(reports: readonly MapReport[], selectedId: string | null): void {
     this.store.set({ reports, selectedReportId: selectedId });
+  }
+  showCameras(cameras: readonly MapCamera[], zones: readonly MapZone[], selectedId: string | null): void {
+    this.store.set({ cameras, cameraZones: zones, selectedCameraId: selectedId });
+  }
+  showPlannedChecks(planned: readonly MapPlanned[], activeId: string | null): void {
+    this.store.set({ planned, activePlannedId: activeId });
   }
   setHandlers(h: Partial<MapHandlers>): void {
     Object.assign(this.handlers, h);
@@ -115,6 +126,7 @@ class MapController {
   private lastGesture = 0;
   private viewTimer: ReturnType<typeof setTimeout> | undefined;
   private readonly pins = new Map<string, { marker: mapboxgl.Marker; el: HTMLButtonElement; key: string }>();
+  private readonly cams = new Map<string, { marker: mapboxgl.Marker; el: HTMLButtonElement; key: string }>();
 
   constructor(
     container: HTMLElement,
@@ -173,14 +185,46 @@ class MapController {
     clearTimeout(this.viewTimer);
     this.unsubscribe();
     for (const p of this.pins.values()) p.marker.remove();
+    for (const p of this.cams.values()) p.marker.remove();
     this.marker.remove();
     this.map.remove();
   }
 
   private addLayers(): void {
     const m = this.map;
-    m.addSource('sections', { type: 'geojson', data: toGeoJson([]), lineMetrics: true });
     const layout = { 'line-cap': 'round', 'line-join': 'round' } as const;
+    // tervezett mérés (A7): halvány sárga, a szakaszok alatt; a most érintett vonal teltebb
+    m.addSource('planned', { type: 'geojson', data: plannedGeoJson([]) });
+    m.addLayer({
+      id: 'planned-line',
+      type: 'line',
+      source: 'planned',
+      slot: 'middle',
+      layout,
+      paint: {
+        'line-color': color.planned,
+        'line-width': ['interpolate', ['linear'], ['zoom'], 8, 3, 16, 12],
+        'line-opacity': ['case', ['get', 'active'], 0.75, 0.42],
+        'line-emissive-strength': 1,
+      },
+    });
+    // kamera-zóna (`zone` láthatóság): kör, pont nélkül
+    m.addSource('camera-zones', { type: 'geojson', data: zonesGeoJson([]) });
+    m.addLayer({
+      id: 'camera-zones-fill',
+      type: 'fill',
+      source: 'camera-zones',
+      slot: 'middle',
+      paint: { 'fill-color': color.idle, 'fill-opacity': 0.12, 'fill-emissive-strength': 1 },
+    });
+    m.addLayer({
+      id: 'camera-zones-line',
+      type: 'line',
+      source: 'camera-zones',
+      slot: 'middle',
+      paint: { 'line-color': color.idle, 'line-width': 1.5, 'line-opacity': 0.5, 'line-dasharray': [2, 2], 'line-emissive-strength': 1 },
+    });
+    m.addSource('sections', { type: 'geojson', data: toGeoJson([]), lineMetrics: true });
     m.addLayer({
       id: 'sections-line',
       type: 'line',
@@ -270,6 +314,41 @@ class MapController {
     }
   }
 
+  /** Fix kamerák: kis, visszafogott DOM-jelölők (56 px-es érintési cél, 30 px-es korong). */
+  private syncCameras(cameras: readonly MapCamera[], selectedId: string | null): void {
+    const keep = new Set<string>();
+    for (const c of cameras) {
+      keep.add(c.id);
+      const key = `${c.icon}|${c.lat}|${c.lon}`;
+      let pin = this.cams.get(c.id);
+      if (pin && pin.key !== key) {
+        pin.marker.remove();
+        pin = undefined;
+      }
+      if (!pin) {
+        const el = document.createElement('button');
+        el.className = 'camera-pin';
+        el.setAttribute('aria-label', c.label);
+        el.innerHTML = `<span class="camera-pin-disc">${iconSvg(c.icon, 18)}</span>`;
+        el.addEventListener('click', (ev) => {
+          ev.stopPropagation();
+          this.handlers.onCameraTap(c.id);
+        });
+        const marker = new mapboxgl.Marker({ element: el, rotationAlignment: 'viewport', pitchAlignment: 'viewport' })
+          .setLngLat([c.lon, c.lat])
+          .addTo(this.map);
+        pin = { marker, el, key };
+        this.cams.set(c.id, pin);
+      }
+      pin.el.classList.toggle('selected', c.id === selectedId);
+    }
+    for (const [id, pin] of this.cams) {
+      if (keep.has(id)) continue;
+      pin.marker.remove();
+      this.cams.delete(id);
+    }
+  }
+
   private camera(): Camera {
     const c = this.map.getCenter();
     return { lat: c.lat, lon: c.lng, bearing: this.map.getBearing(), zoom: this.map.getZoom(), pitch: this.map.getPitch(), padBottom: this.map.getPadding().bottom ?? 0 };
@@ -283,11 +362,16 @@ class MapController {
       this.recenter = s.follow ? { from: this.camera(), start: performance.now() } : null;
     }
     if (s.reports !== p?.reports || s.selectedReportId !== p?.selectedReportId) this.syncPins(s.reports, s.selectedReportId);
+    if (s.cameras !== p?.cameras || s.selectedCameraId !== p?.selectedCameraId) this.syncCameras(s.cameras, s.selectedCameraId);
     if (!this.styleReady) return;
     const m = this.map;
     if (s.lightPreset !== p?.lightPreset) m.setConfigProperty('basemap', 'lightPreset', s.lightPreset);
     if (s.look !== p?.look) m.setConfigProperty('basemap', 'theme', THEME[s.look]);
     if (s.sections !== p?.sections) (m.getSource('sections') as GeoJSONSource | undefined)?.setData(toGeoJson(s.sections));
+    if (s.planned !== p?.planned || s.activePlannedId !== p?.activePlannedId) {
+      (m.getSource('planned') as GeoJSONSource | undefined)?.setData(plannedGeoJson(s.planned, s.activePlannedId));
+    }
+    if (s.cameraZones !== p?.cameraZones) (m.getSource('camera-zones') as GeoJSONSource | undefined)?.setData(zonesGeoJson(s.cameraZones));
     if (s.highlightId !== p?.highlightId) {
       const f: mapboxgl.FilterSpecification = ['==', ['get', 'id'], s.highlightId ?? ''];
       const others: mapboxgl.FilterSpecification = ['!=', ['get', 'id'], s.highlightId ?? ''];
@@ -401,5 +485,32 @@ function toGeoJson(sections: readonly Section[]): FeatureCollection<LineString> 
         coordinates: (s.geometry?.length ? s.geometry : [s.start, s.end]).map((p) => [p.lon, p.lat]),
       },
     })),
+  };
+}
+
+function plannedGeoJson(planned: readonly MapPlanned[], activeId: string | null = null): FeatureCollection<MultiLineString> {
+  return {
+    type: 'FeatureCollection',
+    features: planned.map((c) => ({
+      type: 'Feature',
+      properties: { id: c.id, active: c.id === activeId },
+      geometry: { type: 'MultiLineString', coordinates: c.lines.map((l) => l.map((p) => [p.lon, p.lat])) },
+    })),
+  };
+}
+
+/** Körök 48 oldalú sokszögként (helyi vetületben, a sugár méterben). */
+function zonesGeoJson(zones: readonly MapZone[]): FeatureCollection<Polygon> {
+  return {
+    type: 'FeatureCollection',
+    features: zones.map((z) => {
+      const proj = new LocalProjection(z.center);
+      const ring = Array.from({ length: 49 }, (_, i) => {
+        const a = (i / 48) * 2 * Math.PI;
+        const p = proj.fromXY({ x: Math.cos(a) * z.radiusM, y: Math.sin(a) * z.radiusM });
+        return [p.lon, p.lat];
+      });
+      return { type: 'Feature', properties: { id: z.id }, geometry: { type: 'Polygon', coordinates: [ring] } };
+    }),
   };
 }

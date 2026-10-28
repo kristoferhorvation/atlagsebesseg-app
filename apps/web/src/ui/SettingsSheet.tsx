@@ -63,6 +63,16 @@ export function SettingsSheet({
           </div>
         </div>
         <div className="list-row">
+          <div>
+            <div className="label">Tervezett mérések mutatása</div>
+            <div className="hint">
+              A rendőrség által előre közzétett mérési helyszínek halvány sárga vonalként; a vonalon haladva felül sáv jelzi. A fix
+              kamerákat nem érinti.
+            </div>
+          </div>
+          <Switch label="Tervezett mérések mutatása" checked={settings.tervezett_meresek} onChange={(v) => update({ tervezett_meresek: v })} />
+        </div>
+        <div className="list-row">
           <div className="label">Térkép</div>
           <div className="segmented" role="group" aria-label="Térkép">
             {looks.map((l) => (
@@ -102,7 +112,8 @@ export function SettingsSheet({
       </div>
 
       <div className="sheet-note">
-        Szakaszadatok: © OpenStreetMap contributors (ODbL). Térkép: © Mapbox, © OpenStreetMap. Az app tájékoztató jellegű – a
+        Szakaszadatok és kamerák: © OpenStreetMap contributors (ODbL); fix VÉDA-pontok: ORFK (2015); tervezett mérések: police.hu.
+        Térkép: © Mapbox, © OpenStreetMap. Az app tájékoztató jellegű – a
         sebességhatárt mindig a táblák határozzák meg.
       </div>
     </Sheet>

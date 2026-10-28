@@ -12,11 +12,13 @@
     "db:live": "supabase/tests/run-live.sh",
     "db:test:local": "supabase/tests/run-local.sh",
     "build:edge": "npm run build:edge --workspace @atlagsebesseg/data",
-    "test:edge": "npm run build:edge && deno test --allow-env supabase/functions/promote-temp-gates/",
-    "deploy:edge": "npm run build:edge && supabase functions deploy promote-temp-gates",
+    "test:edge": "npm run build:edge && deno test --allow-env supabase/functions/promote-temp-gates/ supabase/functions/fetch-planned-checks/",
+    "deploy:edge": "npm run build:edge && supabase functions deploy promote-temp-gates && supabase functions deploy fetch-planned-checks",
     "upload:sections": "npm run upload --workspace @atlagsebesseg/data --",
     "test:all": "npm test && npm run test:edge && npm run db:test:local",
-    "import:official": "npm run import:official --workspace @atlagsebesseg/data --"
+    "import:official": "npm run import:official --workspace @atlagsebesseg/data --",
+    "import:cameras": "npm run import:cameras --workspace @atlagsebesseg/data --",
+    "planned:fetch": "npm run planned:fetch --workspace @atlagsebesseg/data --"
   },
   "engines": {
     "node": ">=20",

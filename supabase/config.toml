@@ -418,3 +418,6 @@ enabled = true
 # Cron hívja a saját CRON_SECRET titkával (nem JWT-vel), ezért a platform-JWT-ellenőrzés ki van kapcsolva.
 [functions.promote-temp-gates]
 verify_jwt = false
+
+[functions.fetch-planned-checks]
+verify_jwt = false

@@ -11,7 +11,8 @@
     "preview": "vite preview",
     "icons": "node scripts/make-icons.mjs",
     "test": "vitest run",
-    "typecheck": "tsc -p tsconfig.json && tsc -p tsconfig.node.json"
+    "typecheck": "tsc -p tsconfig.json && tsc -p tsconfig.node.json",
+    "shots": "node scripts/shots.mjs"
   },
   "dependencies": {
     "@atlagsebesseg/app-logic": "*",

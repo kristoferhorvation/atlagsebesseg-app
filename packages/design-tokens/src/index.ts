@@ -18,6 +18,8 @@ export const color = {
   near: '#FFB224',
   over: '#FF4D61',
   idle: '#8C93A3',
+  /** Tervezett rendőrségi mérés: halvány sárga vonal és sáv (A7) – nem státuszszín. */
+  planned: '#F2DC82',
   signRing: '#E5303F',
   signFace: '#FFFFFF',
   signText: '#0B0C10',

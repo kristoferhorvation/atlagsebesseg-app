@@ -1,14 +1,22 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import {
+  CAMERA_LABEL,
+  cameraVisibility,
+  cameraWarning,
   createReports,
   currentUserId,
   listActiveReports,
   mergeById,
   ownReport,
+  plannedCheckActive,
+  PlannedCheckWatch,
   reportVisual,
   rowToActiveReport,
+  visibleCameras,
   voteReport,
   type ActiveReport,
+  type FixedCamera,
+  type PlannedCheck,
   type BBox,
   REPORT_CHOICES,
   reportFromFix,
@@ -17,10 +25,11 @@ import {
   type ReportInsert,
   type SessionView,
 } from '@atlagsebesseg/app-logic';
+import { BUNDLED_CAMERAS } from '@atlagsebesseg/app-logic/bundled-cameras';
 import { BUNDLED_SECTIONS } from '@atlagsebesseg/app-logic/bundled-sections';
-import type { GpsFix, Section } from '@atlagsebesseg/core';
+import { haversineM, type GpsFix, type Section } from '@atlagsebesseg/core';
 import { statusColor } from '@atlagsebesseg/design-tokens';
-import { supabase } from './backend';
+import { cameraCache, plannedCache, supabase } from './backend';
 import { useFollow } from './hooks/useFollow';
 import { useGeolocation, type GeoStatus } from './hooks/useGeolocation';
 import { useLightPreset } from './hooks/useLightPreset';
@@ -28,12 +37,16 @@ import { useReports } from './hooks/useReports';
 import { useSections } from './hooks/useSections';
 import { useSession } from './hooks/useSession';
 import { useSettings } from './hooks/useSettings';
+import { useTileItems } from './hooks/useTileItems';
 import { useWakeLock } from './hooks/useWakeLock';
 import { createWebMapAdapter, type MapReport, type WebMapAdapter } from './map';
-import { simReports } from './sim/scenarios';
+import { simCameras, simPlannedChecks, simReports } from './sim/scenarios';
 import { simStartFromUrl, useSimulator } from './sim/useSimulator';
+import { CameraCard } from './ui/CameraCard';
+import { cameraIcon } from './ui/cameraIcon';
 import { Hud, SlowDown, toneOf, type GateReportState } from './ui/Hud';
 import { Icon, type IconName } from './ui/Icon';
+import { PlannedBand } from './ui/PlannedBand';
 import { ReportCard } from './ui/ReportCard';
 import { ReportSheet } from './ui/ReportSheet';
 import { SettingsSheet } from './ui/SettingsSheet';
@@ -42,6 +55,11 @@ import { StartScreen } from './ui/StartScreen';
 import { StatusPills } from './ui/StatusPills';
 
 const SIM_MODE = new URLSearchParams(location.search).has('sim');
+/** `?sim&panel=0`: a szimulátor vezérlője és jelzése nélkül (marketing-képernyőképekhez). */
+const SIM_PANEL = new URLSearchParams(location.search).get('panel') !== '0';
+/** A kamerák ekkora körzetben kerülnek a térképre (DOM-jelölők – nem az egész ország). */
+const CAMERA_RADIUS_M = 15_000;
+const NO_PLANNED: readonly PlannedCheck[] = [];
 /** Mérés közben a bejelentés-kártya ennyi idő után magától bezárul (mérésen kívül nyitva marad). */
 const REPORT_CARD_AUTOCLOSE_MS = 3000;
 
@@ -157,7 +175,6 @@ function Drive({ map }: { map: WebMapAdapter }) {
   }, [simReps, reloadReports]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const selected = feed.reports.find((r) => r.id === selectedId) ?? null;
-  useEffect(() => map.setHandlers({ onReportTap: setSelectedId }), [map]);
   useEffect(() => {
     if (!selectedId || !measuring) return;
     const id = setTimeout(() => setSelectedId(null), REPORT_CARD_AUTOCLOSE_MS);
@@ -170,6 +187,71 @@ function Drive({ map }: { map: WebMapAdapter }) {
     [pinsKey],
   );
   useEffect(() => map.showReports(pins, selected?.id ?? null), [map, pins, selected?.id]);
+
+  // fix kamerák (A7): a beépített lista + szerver (szimulátorban a minta-kamerák is), a környéken
+  const [simCams, setSimCams] = useState<FixedCamera[]>([]);
+  const serverCameras = useTileItems(SIM_MODE || !supabase ? null : cameraCache, tileFix, BUNDLED_CAMERAS);
+  const cameras = useMemo(() => (SIM_MODE ? [...BUNDLED_CAMERAS, ...simCams] : serverCameras), [simCams, serverCameras]);
+  // a körzet csak ~1 km-es elmozdulásonként számolódik újra
+  const camAnchor = view.lastFix ? `${view.lastFix.lat.toFixed(2)}:${view.lastFix.lon.toFixed(2)}` : null;
+  const nearCameras = useMemo(() => {
+    const f = view.lastFix;
+    return f ? cameras.filter((c) => haversineM(f, c) <= CAMERA_RADIUS_M) : [];
+  }, [cameras, camAnchor]);
+  const camLayer = useMemo(() => visibleCameras(nearCameras), [nearCameras]);
+  const [selectedCamId, setSelectedCamId] = useState<string | null>(null);
+  const selectedCam = camLayer.points.find((c) => c.id === selectedCamId) ?? null;
+  useEffect(
+    () =>
+      map.showCameras(
+        camLayer.points.map((c) => ({ id: c.id, lat: c.lat, lon: c.lon, icon: cameraIcon(c.type), label: CAMERA_LABEL[c.type] })),
+        camLayer.zones,
+        selectedCam?.id ?? null,
+      ),
+    [map, camLayer, selectedCam?.id],
+  );
+  useEffect(
+    () =>
+      map.setHandlers({
+        onReportTap: (id) => {
+          setSelectedId(id);
+          setSelectedCamId(null);
+        },
+        onCameraTap: (id) => {
+          setSelectedCamId(id);
+          setSelectedId(null);
+        },
+      }),
+    [map],
+  );
+  useEffect(() => {
+    if (!selectedCamId || !measuring) return;
+    const id = setTimeout(() => setSelectedCamId(null), REPORT_CARD_AUTOCLOSE_MS);
+    return () => clearTimeout(id);
+  }, [selectedCamId, measuring]);
+
+  // tervezett mérések (A7): halvány sárga vonal; a vonalon haladva felül sáv
+  const [simPlanned, setSimPlanned] = useState<PlannedCheck[]>([]);
+  const serverPlanned = useTileItems(SIM_MODE || !supabase ? null : plannedCache, tileFix, NO_PLANNED);
+  const plannedAll = SIM_MODE ? simPlanned : serverPlanned;
+  const fixT = view.lastFix?.timestamp ?? 0;
+  const plannedShown = useMemo(
+    () => (settings.tervezett_meresek ? plannedAll.filter((c) => plannedCheckActive(c, now())) : NO_PLANNED),
+    // a lejárat percenként (a fixek idejéből) elég pontos
+    [plannedAll, settings.tervezett_meresek, Math.floor(fixT / 60_000)],
+  );
+  const plannedWatch = useRef(new PlannedCheckWatch());
+  const [activePlanned, setActivePlanned] = useState<PlannedCheck | null>(null);
+  useEffect(() => setActivePlanned(plannedWatch.current.update(view.lastFix, plannedShown, now())), [view.lastFix, plannedShown, now]);
+  useEffect(
+    () =>
+      map.showPlannedChecks(
+        // `zone` láthatóságnál a vonal nem kerül a térképre (csak a sáv jelez)
+        plannedShown.filter((c) => cameraVisibility(c.country) === 'show').map((c) => ({ id: c.id, lines: c.lines })),
+        activePlanned?.id ?? null,
+      ),
+    [map, plannedShown, activePlanned?.id],
+  );
 
   // az autó a HUD feletti szabad terület ~60%-ánál – a kártya magasságát mérjük, nem becsüljük
   const hudRef = useRef<HTMLDivElement>(null);
@@ -210,6 +292,25 @@ function Drive({ map }: { map: WebMapAdapter }) {
     const id = setTimeout(() => setToast(null), toast.ms ?? 2600);
     return () => clearTimeout(id);
   }, [toast]);
+
+  // Egyszeri figyelmeztetés országonként (DE: a vezető nem használhatja a kamera-funkciót) – eszközönként egyszer.
+  const countriesKey = [...new Set([...nearCameras, ...plannedShown].map((c) => c.country))].sort().join(',');
+  const warnedCountries = useRef(new Set<string>());
+  useEffect(() => {
+    for (const country of countriesKey ? countriesKey.split(',') : []) {
+      const text = cameraWarning(country);
+      if (!text || warnedCountries.current.has(country)) continue;
+      warnedCountries.current.add(country);
+      const key = `figyelmeztetes:${country}`;
+      try {
+        if (localStorage.getItem(key)) continue;
+        localStorage.setItem(key, '1');
+      } catch {
+        // tárhely nélkül munkamenetenként egyszer
+      }
+      showToast({ text, tone: 'hataron', icon: 'report', ms: 6000 });
+    }
+  }, [countriesKey, showToast]);
 
   // Ébrentartás: egyetlen, csendes figyelmeztetés induláskor (ha nem sikerült), utána csak az ikon.
   const wakeWarned = useRef(false);
@@ -331,11 +432,11 @@ function Drive({ map }: { map: WebMapAdapter }) {
   return (
     <>
       <StatusPills
-        geo={geo}
+        geo={SIM_MODE ? 'aktiv' : geo}
         accuracy={accuracy}
         wake={wake.status}
         offline={!SIM_MODE && (sectionsStatus === 'offline' || !supabase)}
-        simMode={SIM_MODE}
+        simMode={SIM_MODE && SIM_PANEL}
         compact={driving}
         onWake={() => {
           if (wake.status === 'nem_tamogatott')
@@ -344,8 +445,18 @@ function Drive({ map }: { map: WebMapAdapter }) {
         }}
       />
       {SIM_MODE && (
-        <SimDriver onFix={onFix} onTick={session.tick} clock={clock} onSection={setSimSection} onReports={setSimReps} onBackground={session.interrupt} />
+        <SimDriver
+          onFix={onFix}
+          onTick={session.tick}
+          clock={clock}
+          onSection={setSimSection}
+          onReports={setSimReps}
+          onCameras={setSimCams}
+          onPlanned={setSimPlanned}
+          onBackground={session.interrupt}
+        />
       )}
+      <PlannedBand check={activePlanned} compact={measuring} />
 
       <div className="hud" ref={hudRef}>
         {view.phase === 'meres' && <SlowDown view={view} unit={settings.egyseg} />}
@@ -363,6 +474,7 @@ function Drive({ map }: { map: WebMapAdapter }) {
               onClose={() => setSelectedId(null)}
             />
           )}
+          {!selected && selectedCam && <CameraCard key={selectedCam.id} camera={selectedCam} onClose={() => setSelectedCamId(null)} />}
           {!follow.following && (
             <div className="recenter-row">
               <button className="round-btn glass recenter" onClick={follow.recenter} aria-label="Vissza a helyemre">
@@ -443,6 +555,8 @@ function SimDriver({
   clock,
   onSection,
   onReports,
+  onCameras,
+  onPlanned,
   onBackground,
 }: {
   onFix: (f: GpsFix) => void;
@@ -450,6 +564,8 @@ function SimDriver({
   clock: { current: () => number };
   onSection: (s: Section) => void;
   onReports: (r: ActiveReport[]) => void;
+  onCameras: (c: FixedCamera[]) => void;
+  onPlanned: (p: PlannedCheck[]) => void;
   onBackground: () => void;
 }) {
   const sim = useSimulator(BUNDLED_SECTIONS, { onFix, onTick }, useMemo(() => simStartFromUrl(location.search), []));
@@ -459,5 +575,9 @@ function SimDriver({
     onSection(sim.section);
   }, [clock, sim.now, onSection, sim.section]);
   useEffect(() => onReports(simReports(sim.simulation)), [onReports, sim.simulation]);
-  return <SimPanel sim={sim} onBackground={onBackground} />;
+  useEffect(() => {
+    onCameras(simCameras(sim.simulation, sim.scenario));
+    onPlanned(simPlannedChecks(sim.simulation, sim.scenario));
+  }, [onCameras, onPlanned, sim.simulation, sim.scenario]);
+  return SIM_PANEL ? <SimPanel sim={sim} onBackground={onBackground} /> : null;
 }

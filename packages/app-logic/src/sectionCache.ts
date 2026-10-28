@@ -33,13 +33,15 @@ export function tilesAround(lat: number, lon: number, radius = 1): string[] {
   return out;
 }
 
-interface CachedTile {
+interface CachedTile<T> {
   fetchedAt: number;
-  sections: Section[];
+  /** A régi (A3–A6) szakasz-cache mezőneve; az új rétegek `items`-ben tárolnak. */
+  sections?: T[];
+  items?: T[];
 }
 
-export interface LoadResult {
-  sections: Section[];
+export interface TileLoad<T> {
+  items: T[];
   fromNetwork: number;
   fromCache: number;
   /** Csempék, amelyekhez se hálózat, se cache nem volt. */
@@ -48,50 +50,62 @@ export interface LoadResult {
   stale: boolean;
 }
 
+export interface LoadResult extends Omit<TileLoad<Section>, 'items'> {
+  sections: Section[];
+}
+
 export interface SectionCacheOptions {
   ttlMs?: number;
   now?: () => number;
   radius?: number;
 }
 
+export interface TileCacheOptions extends SectionCacheOptions {
+  /** A tár kulcsának előtagja (`<prefix>:tile:<csempe>`). */
+  prefix: string;
+}
+
 /**
- * Szakaszok csempénként: friss cache → hálózat → (hiba esetén) lejárt cache.
- * Offline is működik, amíg van cache; az appba csomagolt adat a végső tartalék (a hívónál).
+ * Bármely azonosítós réteg (szakaszok, kamerák, tervezett mérések) csempénként: friss cache →
+ * hálózat → (hiba esetén) lejárt cache. Offline is működik, amíg van cache.
  */
-export class SectionCache {
+export class TileCache<T extends { id: string }> {
   private readonly ttlMs: number;
   private readonly now: () => number;
   private readonly radius: number;
+  private readonly prefix: string;
 
   constructor(
     private readonly store: KeyValueStore,
-    private readonly fetchBBox: (bbox: BBox) => Promise<Section[]>,
-    opts: SectionCacheOptions = {},
+    private readonly fetchBBox: (bbox: BBox) => Promise<T[]>,
+    opts: TileCacheOptions,
   ) {
     this.ttlMs = opts.ttlMs ?? 24 * 3600_000;
     this.now = opts.now ?? Date.now;
     this.radius = opts.radius ?? 1;
+    this.prefix = opts.prefix;
   }
 
-  async load(lat: number, lon: number): Promise<LoadResult> {
-    const byId = new Map<string, Section>();
-    const res: LoadResult = { sections: [], fromNetwork: 0, fromCache: 0, missing: 0, stale: false };
+  async loadItems(lat: number, lon: number): Promise<TileLoad<T>> {
+    const byId = new Map<string, T>();
+    const res: TileLoad<T> = { items: [], fromNetwork: 0, fromCache: 0, missing: 0, stale: false };
     await Promise.all(
       tilesAround(lat, lon, this.radius).map(async (key) => {
-        const storeKey = `sections:tile:${key}`;
+        const storeKey = `${this.prefix}:tile:${key}`;
         const cached = await this.read(storeKey);
-        let sections: Section[] | null = null;
+        let items: T[] | null = null;
         if (cached && this.now() - cached.fetchedAt < this.ttlMs) {
-          sections = cached.sections;
+          items = cached.items;
           res.fromCache++;
         } else {
           try {
-            sections = await this.fetchBBox(tileBBox(key));
+            items = await this.fetchBBox(tileBBox(key));
             res.fromNetwork++;
-            await this.store.setItem(storeKey, JSON.stringify({ fetchedAt: this.now(), sections } satisfies CachedTile));
+            const tile: CachedTile<T> = this.prefix === 'sections' ? { fetchedAt: this.now(), sections: items } : { fetchedAt: this.now(), items };
+            await this.store.setItem(storeKey, JSON.stringify(tile));
           } catch {
             if (cached) {
-              sections = cached.sections;
+              items = cached.items;
               res.fromCache++;
               res.stale = true;
             } else {
@@ -99,20 +113,37 @@ export class SectionCache {
             }
           }
         }
-        for (const s of sections ?? []) byId.set(s.id, s);
+        for (const s of items ?? []) byId.set(s.id, s);
       }),
     );
-    res.sections = [...byId.values()].sort((a, b) => a.id.localeCompare(b.id));
+    res.items = [...byId.values()].sort((a, b) => a.id.localeCompare(b.id));
     return res;
   }
 
-  private async read(key: string): Promise<CachedTile | null> {
+  private async read(key: string): Promise<{ fetchedAt: number; items: T[] } | null> {
     try {
       const raw = await this.store.getItem(key);
-      return raw ? (JSON.parse(raw) as CachedTile) : null;
+      if (!raw) return null;
+      const t = JSON.parse(raw) as CachedTile<T>;
+      return { fetchedAt: t.fetchedAt, items: t.items ?? t.sections ?? [] };
     } catch {
       return null;
     }
+  }
+}
+
+/**
+ * Szakaszok csempénként (a `TileCache` a „sections” előtaggal). Offline is működik, amíg van
+ * cache; az appba csomagolt adat a végső tartalék (a hívónál).
+ */
+export class SectionCache extends TileCache<Section> {
+  constructor(store: KeyValueStore, fetchBBox: (bbox: BBox) => Promise<Section[]>, opts: SectionCacheOptions = {}) {
+    super(store, fetchBBox, { ...opts, prefix: 'sections' });
+  }
+
+  async load(lat: number, lon: number): Promise<LoadResult> {
+    const { items, ...rest } = await this.loadItems(lat, lon);
+    return { ...rest, sections: items };
   }
 }
 

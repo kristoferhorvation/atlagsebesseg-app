@@ -1,15 +1,16 @@
-import type { ActiveReport } from '@atlagsebesseg/app-logic';
+import type { ActiveReport, CameraType, FixedCamera, PlannedCheck } from '@atlagsebesseg/app-logic';
 import { bearingDeg, LocalProjection, polylineLengthM, type LatLon, type Section } from '@atlagsebesseg/core';
 // A core tesztjeinek vezetés-generátora (Route menti mozgás, zaj, alagút) – ugyanaz, amin a core tesztel.
 import { drive, testCourse, toLatLon, type DriveSample } from '@atlagsebesseg/core/test/helpers/trace';
 
-export type SimScenario = 'jo' | 'tul' | 'lassit' | 'alagut';
+export type SimScenario = 'jo' | 'tul' | 'lassit' | 'alagut' | 'tervezett';
 
 export const SCENARIOS: readonly { id: SimScenario; label: string }[] = [
   { id: 'jo', label: 'Jó ütem' },
   { id: 'tul', label: 'Túl gyors' },
   { id: 'lassit', label: 'Gyors, majd lassít' },
   { id: 'alagut', label: 'Alagút' },
+  { id: 'tervezett', label: 'Tervezett mérés + kamerák' },
 ];
 
 export interface SimRoute {
@@ -52,6 +53,8 @@ function profile(scenario: SimScenario, limit: number): (f: number) => number {
       return (f) => (f < 0.45 ? limit + 16 : limit - 22);
     case 'alagut':
       return () => limit - 6;
+    case 'tervezett':
+      return () => limit - 9;
   }
 }
 
@@ -126,6 +129,81 @@ export function simReports(sim: Simulation): ActiveReport[] {
         confirmations: 0,
         denials: 0,
         own: false,
+      },
+    ];
+  });
+}
+
+/** A pálya [from, to] hányada a lejátszott fixekből (minden 3. pont) – a szimulált vonalakhoz. */
+function pathSlice(sim: Simulation, from: number, to: number): LatLon[] {
+  const fixes = sim.samples.filter((s) => !s.dropped).map((s) => s.fix);
+  const a = Math.floor(from * fixes.length);
+  const b = Math.min(fixes.length - 1, Math.ceil(to * fixes.length));
+  return fixes.slice(a, b + 1).filter((_, i, arr) => i % 3 === 0 || i === arr.length - 1).map((f) => ({ lat: f.lat, lon: f.lon }));
+}
+
+/**
+ * A „tervezett” forgatókönyv tervezett mérése: a rávezető út második felétől a szakasz közepéig
+ * (így előbb nagy sávként, majd mérés közben kicsiként látszik). Más forgatókönyvben nincs.
+ */
+export function simPlannedChecks(sim: Simulation, scenario: SimScenario): PlannedCheck[] {
+  if (scenario !== 'tervezett') return [];
+  const t0 = sim.samples[0]?.t ?? Date.now();
+  const n = sim.samples.length;
+  const leadShare = sim.samples.findIndex((x) => x.s >= sim.leadInM) / n;
+  const line = pathSlice(sim, Math.max(0.03, leadShare * 0.35), Math.min(0.9, leadShare + (1 - leadShare) * 0.45));
+  // a hét hétfőjétől vasárnapjáig, mint a valódi közzétett hét
+  const day = new Date(t0);
+  const monday = Date.UTC(day.getUTCFullYear(), day.getUTCMonth(), day.getUTCDate() - ((day.getUTCDay() + 6) % 7));
+  return [
+    {
+      id: `sim-planned-${sim.section.id}`,
+      country: sim.section.country,
+      county: 'Szimulátor',
+      settlement: null,
+      roadRef: sim.section.road || null,
+      description: 'Szimulált tervezett mérés',
+      lines: [line],
+      speedLimitKmh: sim.section.speedLimitKmh,
+      limitSource: 'osm',
+      validFrom: monday - 3600_000,
+      validTo: monday + 7 * 86400_000 - 3600_000 - 1000,
+      timeWindow: null,
+      sourceUrl: 'https://www.police.hu/',
+    },
+  ];
+}
+
+const SIM_CAMERAS: readonly { type: CameraType; at: number; verified: boolean }[] = [
+  { type: 'complex', at: 0.18, verified: true },
+  { type: 'speed', at: 0.52, verified: false },
+  { type: 'red_light', at: 0.86, verified: false },
+];
+
+/** Fix kamerák az út szélén (20 m-re a pályától) – a „tervezett” forgatókönyvben. */
+export function simCameras(sim: Simulation, scenario: SimScenario): FixedCamera[] {
+  if (scenario !== 'tervezett') return [];
+  const fixes = sim.samples.filter((s) => !s.dropped).map((s) => s.fix);
+  return SIM_CAMERAS.flatMap((c, i) => {
+    const f = fixes[Math.floor(c.at * fixes.length)];
+    if (!f) return [];
+    const proj = new LocalProjection(f);
+    const h = ((f.heading ?? 0) * Math.PI) / 180;
+    const p = proj.fromXY({ x: Math.cos(h) * 20, y: -Math.sin(h) * 20 });
+    return [
+      {
+        id: `sim-cam-${sim.section.id}-${i}`,
+        country: sim.section.country,
+        type: c.type,
+        lat: p.lat,
+        lon: p.lon,
+        headingDeg: f.heading,
+        road: sim.section.road,
+        speedLimitKmh: sim.section.speedLimitKmh,
+        source: c.verified ? 'Szimulátor (VÉDA-minta)' : 'Szimulátor (OSM-minta)',
+        sourceUrl: 'https://www.openstreetmap.org/',
+        sourceDate: '2026-10-28',
+        verified: c.verified,
       },
     ];
   });

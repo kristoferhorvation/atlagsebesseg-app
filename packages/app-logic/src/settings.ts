@@ -8,9 +8,11 @@ export interface Settings {
   hatosagi_tures_megjelenitese: boolean;
   egyseg: SpeedUnit;
   terkep: MapLook;
+  /** A rendőrség által előre közzétett mérési helyszínek (vonal + sáv); a fix kamerákat nem érinti. */
+  tervezett_meresek: boolean;
 }
 
-export const DEFAULT_SETTINGS: Settings = { hatosagi_tures_megjelenitese: false, egyseg: 'kmh', terkep: 'szines' };
+export const DEFAULT_SETTINGS: Settings = { hatosagi_tures_megjelenitese: false, egyseg: 'kmh', terkep: 'szines', tervezett_meresek: true };
 export const SETTINGS_KEY = 'settings:v1';
 
 /** Tárolt beállítások beolvasása; ismeretlen / sérült érték helyett az alapértelmezés. */
@@ -23,6 +25,7 @@ export function parseSettings(raw: string | null | undefined): Settings {
         typeof p.hatosagi_tures_megjelenitese === 'boolean' ? p.hatosagi_tures_megjelenitese : DEFAULT_SETTINGS.hatosagi_tures_megjelenitese,
       egyseg: p.egyseg === 'mph' || p.egyseg === 'kmh' ? p.egyseg : DEFAULT_SETTINGS.egyseg,
       terkep: p.terkep === 'szines' || p.terkep === 'visszafogott' ? p.terkep : DEFAULT_SETTINGS.terkep,
+      tervezett_meresek: typeof p.tervezett_meresek === 'boolean' ? p.tervezett_meresek : DEFAULT_SETTINGS.tervezett_meresek,
     };
   } catch {
     return DEFAULT_SETTINGS;

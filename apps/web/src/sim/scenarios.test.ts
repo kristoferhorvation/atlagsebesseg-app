@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { BUNDLED_SECTIONS } from '@atlagsebesseg/app-logic/bundled-sections';
-import { TrackingSession } from '@atlagsebesseg/app-logic';
-import { buildSimulation, simReports, simRoutes, type SimScenario } from './scenarios';
+import { PlannedCheckWatch, plannedCheckActive, TrackingSession } from '@atlagsebesseg/app-logic';
+import { haversineM } from '@atlagsebesseg/core';
+import { buildSimulation, simCameras, simPlannedChecks, simReports, simRoutes, type SimScenario } from './scenarios';
 
 /** Lejátszás a mérés-munkamenettel: a szimulált vezetés valóban végigmegy az állapotokon. */
 function play(routeIdx: number, scenario: SimScenario) {
@@ -74,5 +75,40 @@ describe('szimulátor minta-bejelentései', () => {
       expect(r.createdAt).toBeLessThan(t);
       expect(r.expiresAt).toBeGreaterThan(t);
     }
+  });
+});
+
+describe('„Tervezett mérés + kamerák” forgatókönyv', () => {
+  for (const routeIdx of [0, 1]) {
+    it(`útvonal #${routeIdx}: a sáv a rávezetőn megjelenik, mérés közben is él, a vonal végén eltűnik`, () => {
+      const route = simRoutes(BUNDLED_SECTIONS)[routeIdx]!;
+      const sim = buildSimulation(route, 'tervezett', 1_700_000_000_000);
+      const checks = simPlannedChecks(sim, 'tervezett');
+      expect(checks).toHaveLength(1);
+      expect(plannedCheckActive(checks[0]!, sim.samples[0]!.t)).toBe(true);
+      let t = sim.samples[0]!.t;
+      const session = new TrackingSession([...BUNDLED_SECTIONS, route.section], { now: () => t });
+      const watch = new PlannedCheckWatch();
+      const seen: string[] = [];
+      for (const s of sim.samples) {
+        t = s.t;
+        const v = s.dropped ? session.tick() : session.onFix(s.fix);
+        const on = watch.update(s.dropped ? null : s.fix, checks, t) !== null;
+        const state = on ? (v.phase === 'meres' ? 'sav+meres' : 'sav') : 'nincs';
+        if (seen[seen.length - 1] !== state) seen.push(state);
+      }
+      expect(seen).toEqual(['nincs', 'sav', 'sav+meres', 'nincs']);
+    });
+  }
+
+  it('három fix kamera (komplex, sebesség, piroslámpa) 20 m-re az úttól; más forgatókönyvben nincs', () => {
+    const route = simRoutes(BUNDLED_SECTIONS)[0]!;
+    const sim = buildSimulation(route, 'tervezett', 1_700_000_000_000);
+    const cams = simCameras(sim, 'tervezett');
+    expect(cams.map((c) => c.type)).toEqual(['complex', 'speed', 'red_light']);
+    const fixes = sim.samples.map((s) => s.fix);
+    for (const c of cams) expect(Math.min(...fixes.map((f) => haversineM(f, c)))).toBeLessThan(30);
+    expect(simCameras(sim, 'jo')).toEqual([]);
+    expect(simPlannedChecks(sim, 'jo')).toEqual([]);
   });
 });

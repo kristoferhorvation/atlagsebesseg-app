@@ -1,6 +1,6 @@
 import type { ComponentType } from 'react';
 import type { BBox, MapController, MapLook, MapState } from '@atlagsebesseg/app-logic';
-import type { GpsFix } from '@atlagsebesseg/core';
+import type { GpsFix, LatLon } from '@atlagsebesseg/core';
 import type { IconName } from '../ui/Icon';
 
 /** A web-adapter állapota: a közös `MapState` + a böngészőben a GPS-t az app adja a térképnek. */
@@ -16,6 +16,33 @@ export interface WebMapState extends MapState {
   look: MapLook;
   reports: readonly MapReport[];
   selectedReportId: string | null;
+  cameras: readonly MapCamera[];
+  cameraZones: readonly MapZone[];
+  selectedCameraId: string | null;
+  planned: readonly MapPlanned[];
+  activePlannedId: string | null;
+}
+
+/** Fix kamera a térképen: kis, visszafogott ikon (a bejelentésektől eltérő stílus). */
+export interface MapCamera {
+  id: string;
+  lat: number;
+  lon: number;
+  icon: IconName;
+  label: string;
+}
+
+/** Kamera-zóna (`zone` láthatóság): kör a pont nélkül. */
+export interface MapZone {
+  id: string;
+  center: LatLon;
+  radiusM: number;
+}
+
+/** Tervezett mérés vonala(i): halvány sárga. */
+export interface MapPlanned {
+  id: string;
+  lines: LatLon[][];
 }
 
 /** Egy bejelentés-ikon a térképen (ikon a webes `Icon` neve, tónus a DESIGN.md státusz-tónusa). */
@@ -34,6 +61,8 @@ export interface MapHandlers {
   onGesture: () => void;
   /** Koppintás egy bejelentés-ikonra; `null`: koppintás a térkép üres részére. */
   onReportTap: (id: string | null) => void;
+  /** Koppintás egy kamera-ikonra (az üres térképre koppintás az `onReportTap(null)`). */
+  onCameraTap: (id: string) => void;
   /** A látható terület (a kamera mozgása után, ritkítva). */
   onView: (bbox: BBox) => void;
 }
@@ -49,5 +78,7 @@ export interface WebMapAdapter extends MapController {
   setFocusY(y: number): void;
   setLook(look: MapLook): void;
   showReports(reports: readonly MapReport[], selectedId: string | null): void;
+  showCameras(cameras: readonly MapCamera[], zones: readonly MapZone[], selectedId: string | null): void;
+  showPlannedChecks(planned: readonly MapPlanned[], activeId: string | null): void;
   setHandlers(handlers: Partial<MapHandlers>): void;
 }

@@ -28,6 +28,20 @@ adatokat nem módosítja. **Az anonim bejelentkezést a Supabase-dashboardon be 
 - **temp_gate_sections** – melyik kapupárból melyik szakasz lett (vagy miért nem).
 - `sections.expires_at` – a kapupárból létrejött szakaszok lejárata; a lejártakat az RLS elrejti.
 - `sections_in_bbox(south, west, north, east)` – az app ezzel kéri le a környék szakaszait.
+- **cameras** (A7) – fix kamerák: `type` (`speed | red_light | complex | section_gate`), `lat`, `lng`,
+  `heading` (opcionális), `road`, `speed_limit_kmh` (opcionális), `source`, `source_url`, `source_date`,
+  `verified`. Kliensről csak olvasható; az import (`npm run import:cameras -- --upload`) tölti
+  service role-lal. Lekérés: `cameras_in_bbox(south, west, north, east)`.
+- **planned_checks** (A7) – a rendőrség által előre megnevezett mérési helyszínek: `county`,
+  `settlement`, `road_ref`, `description` (a rendőrségi sor szó szerint), `geometry` (GeoJSON
+  `LineString`, vagy `MultiLineString`, ha a hely több vonal – osztott pálya, kereszteződés),
+  befoglaló téglalap (`min_lat` … `max_lng`), `speed_limit_kmh`, `limit_source` (`osm | kresz_default`),
+  `valid_from`, `valid_to` (a közzétett hét vége), `time_window` (ha a forrás órát is ad), `source_url`,
+  `fetched_at`. Kliensről csak olvasható, **a lejártat az RLS elrejti**; lekérés:
+  `planned_checks_in_bbox(...)` (a vonal befoglalója metszi a téglalapot). A lejárt sorokat a
+  következő futás törli.
+- **planned_check_runs** (A7) – a `fetch-planned-checks` futásnaplója (ok, összegzés megyénként, hiba);
+  csak service_role.
 
 ## Ideiglenes kapuk (`ideiglenes_kapu`)
 
@@ -76,8 +90,8 @@ ez a kulcs soha nem kerül az appba vagy a repóba.
 ## Helyi teszt (Supabase nélkül)
 
 `tests/stub_supabase.sql` utánozza a Supabase szerepköreit (`anon`, `authenticated`) és az
-`auth.uid()` függvényt. Tesztek: `tests/rls_test.sql` (18 ellenőrzés) és
-`tests/temp_gate_test.sql` (26 ellenőrzés), mindkettő tranzakcióban, ROLLBACK-kel.
+`auth.uid()` függvényt. Tesztek: `tests/rls_test.sql` (18 ellenőrzés),
+`tests/temp_gate_test.sql` (26 ellenőrzés) és `tests/cameras_test.sql` (17 ellenőrzés, A7), mindhárom tranzakcióban, ROLLBACK-kel.
 
 A tesztek helyben és élőben is futnak: az `auth.users`-be oszlopnévvel (`(id)`) szúrnak be (az élő
 táblában az első oszlop az `instance_id`), a felhasználót a `pg_temp.as_user()` szimulálja
@@ -107,6 +121,58 @@ A függvény a Supabase-hez a platform által injektált `SUPABASE_SERVICE_ROLE_
 Ütemezés (a projekten egyszer beállítva): `pg_cron` job `promote-temp-gates`, `*/10 * * * *`, ami a
 `pg_net` `net.http_post`-jával hívja a függvény URL-jét. A titok a Vaultban van
 (`vault.decrypted_secrets`, név: `promote_temp_gates_cron_secret`), nem a job szövegében.
+
+## Edge function: `fetch-planned-checks` (A7)
+
+A police.hu közlekedésrendészeti hírei közül azokat dolgozza fel, amelyek előre megnevezett
+mérési helyszíneket tartalmaznak (cikkszövegben vagy PDF-mellékletben), és a `planned_checks`
+táblába írja az OSM-re illesztve. **A rendőrség 2018 óta nem közöl heti, megyei mérési tervet**;
+helyszínt ma csak az évi Speedmarathon (megyénként PDF) és egy-egy megyei akció ad. A heti
+ROADPOL-bejelentés helyszín nélküli → 0 sor, ez a normál eset.
+
+- Forrás: `https://www.police.hu/hu/hirek-es-informaciok/legfrissebb-hireink/kozlekedesrendeszet`
+  (gépi forrás – RSS/JSON – a helyszínekhez nincs; a megyei RSS-ek 10 hírt adnak, a lista mind a 20 szervet lefedi).
+- Jelölt: az utolsó 21 nap híre, amelynek címe/bevezetője sebességmérésre / helyszínekre utal.
+- Időszak a szövegből; ha nincs dátum, a cikk kimarad. Lejárat: az utolsó nap hetének vasárnapja 23:59 (budapesti idő).
+- Helymeghatározás (`packages/data/src/planned/`): település + útszám → az út a település
+  közigazgatási határán belül (OSM admin_level=8, Budapesten a kerület, 9); település + utca → az
+  utca a településen; kereszteződés → mindkét ág a csomópont 300 m-es körzetében; útszám + km
+  település nélkül → a km-kövek (`highway=milestone`) között. Megyénként egy Overpass-lekérés
+  (határok geometriával + a kért utak), a vágás helyben. Ami nem illeszthető, kimarad, és a
+  válaszban / a naplóban megyénként, a sor szó szerinti szövegével és okkal szerepel.
+- Sebességhatár: a vonal menti OSM `maxspeed` (több érték → hossz szerint a leggyakoribb); ha
+  nincs, KRESZ-alapérték (autópálya 130, autóút 110, lakott 50, lakott kívül 90) → `kresz_default`,
+  az app „max ~90”-ként mutatja.
+- Hiba (500, a naplóban `ok = false`): a police.hu nem érhető el, a hírlista 0 hírt ad (szerkezet-
+  változás), vagy egy helyszín-mellékletből 0 sor jön. Nincs csendes üres eredmény.
+- Időkeret: 100 s után nem indít új Overpass-lekérést (`remaining` a válaszban); nagy listát
+  (Speedmarathon, ~1100 sor) helyben érdemes futtatni: `npm run planned:fetch -- --upload`
+  (ugyanaz a kód, időkorlát nélkül).
+- Kézi futtatás egy cikkre: `POST {"articleUrls": ["https://www.police.hu/…"]}`.
+- A police.hu a Supabase-szerverről (eu-west-1, Írország) elérhető (2026-10-28-án mérve: 20 hír,
+  a PDF-ek `npm:unpdf`-fel olvashatók). Ha ez megváltozna, tartalék: ugyanaz a szkript helyi
+  ütemezett feladatként (`launchd`) vagy Vercel cronból.
+
+```bash
+npm run test:edge      # mindkét bundle + Deno-teszt
+npm run deploy:edge    # mindkét függvény
+```
+
+Ütemezés (`pg_cron`, 2026-10-28-án beállítva): job `fetch-planned-checks`, `0 5 * * 1,4` – hétfőn és
+csütörtökön 05:00 UTC = **06:00 budapesti téli idő** (nyári időben 07:00; a pg_cron UTC-ben fut).
+Ugyanaz a CRON_SECRET-minta, mint a `promote-temp-gates`-nél (a titok a Vaultban, a függvényben
+`CRON_SECRET` secret):
+
+```sql
+select cron.schedule('fetch-planned-checks', '0 5 * * 1,4', $$select net.http_post(
+  url := 'https://<projekt>.supabase.co/functions/v1/fetch-planned-checks',
+  headers := jsonb_build_object('Content-Type','application/json','Authorization','Bearer '||
+    (select decrypted_secret from vault.decrypted_secrets where name='promote_temp_gates_cron_secret')),
+  body := '{}'::jsonb,
+  timeout_milliseconds := 140000
+) as request_id$$);
+-- ellenőrzés: select * from planned_check_runs order by id desc limit 5;
+```
 
 ## Szakaszok feltöltése
 

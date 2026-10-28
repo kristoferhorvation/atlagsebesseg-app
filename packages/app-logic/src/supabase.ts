@@ -1,6 +1,8 @@
 import { createClient, type SupabaseClient, type SupportedStorage } from '@supabase/supabase-js';
 import type { Section } from '@atlagsebesseg/core';
 import { rowToSection, type SectionRow } from '@atlagsebesseg/data/rows';
+import { rowToCamera, type CameraRow, type FixedCamera } from './cameras';
+import { rowToPlannedCheck, type PlannedCheck, type PlannedCheckRow } from './plannedChecks';
 import type { ReportInsert } from './reports';
 import type { BBox } from './sectionCache';
 
@@ -59,6 +61,22 @@ export async function fetchSectionsInBBox(client: SupabaseClient | null, b: BBox
   });
   if (error) throw error;
   return (data as SectionRow[]).map(rowToSection);
+}
+
+const bboxArgs = (b: BBox) => ({ p_south: b.south, p_west: b.west, p_north: b.north, p_east: b.east });
+
+/** A téglalap fix kamerái (`cameras_in_bbox`). */
+export async function fetchCamerasInBBox(client: SupabaseClient | null, b: BBox): Promise<FixedCamera[]> {
+  const { data, error } = await need(client).rpc('cameras_in_bbox', bboxArgs(b));
+  if (error) throw error;
+  return (data as CameraRow[]).map(rowToCamera);
+}
+
+/** A téglalapot érintő, le nem járt tervezett mérések (`planned_checks_in_bbox`). */
+export async function fetchPlannedChecksInBBox(client: SupabaseClient | null, b: BBox): Promise<PlannedCheck[]> {
+  const { data, error } = await need(client).rpc('planned_checks_in_bbox', bboxArgs(b));
+  if (error) throw error;
+  return (data as PlannedCheckRow[]).map(rowToPlannedCheck);
 }
 
 export interface ReportRow {

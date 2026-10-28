@@ -11,7 +11,9 @@
     "typecheck": "tsc -p tsconfig.json",
     "build:edge": "tsx scripts/build-edge.ts",
     "upload": "tsx scripts/upload-sections.ts",
-    "import:official": "tsx scripts/import-official.ts"
+    "import:official": "tsx scripts/import-official.ts",
+    "import:cameras": "tsx scripts/import-cameras.ts",
+    "planned:fetch": "tsx scripts/fetch-planned-checks.ts"
   },
   "dependencies": {
     "@atlagsebesseg/core": "*"
@@ -22,11 +24,14 @@
     "lz-string": "^1.5.0",
     "tsx": "^4.20.0",
     "typescript": "~6.0.3",
+    "unpdf": "^1.9.1",
     "vitest": "^4.0.0"
   },
   "exports": {
     ".": "./src/index.ts",
     "./output/*": "./output/*",
-    "./rows": "./src/rows.ts"
+    "./rows": "./src/rows.ts",
+    "./camera_visibility.json": "./camera_visibility.json",
+    "./planned-parse": "./src/planned/parse.ts"
   }
 }
