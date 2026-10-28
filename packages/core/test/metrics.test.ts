@@ -144,15 +144,4 @@ describe('meterState / meterBar', () => {
     expect(meterBar('tul_gyors', { kind: 'nem_lehetseges', maxKmh: 60 })).toEqual({ kind: 'nem_hozhato' });
     expect(meterBar('tul_gyors', { kind: 'nincs_korlat' })).toBeNull();
   });
-
-  it('sáv: „max X” csak amíg a pillanatnyi sebesség > X', () => {
-    const req = { kind: 'ok', maxKmh: 122 } as const;
-    expect(meterBar('lassits', req, 140)).toEqual({ kind: 'max', maxKmh: 122 });
-    expect(meterBar('lassits', req, 122.1)).toEqual({ kind: 'max', maxKmh: 122 });
-    expect(meterBar('lassits', req, 122)).toBeNull();
-    expect(meterBar('lassits', req, 108)).toBeNull();
-    expect(meterBar('tul_gyors', req, 108)).toBeNull(); // az állapot marad, csak a sáv tűnik el
-    expect(meterBar('tul_gyors', req, null)).toEqual({ kind: 'max', maxKmh: 122 });
-    expect(meterBar('tul_gyors', { kind: 'nem_lehetseges', maxKmh: 60 }, 50)).toEqual({ kind: 'nem_hozhato' });
-  });
 });

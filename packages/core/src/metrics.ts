@@ -94,13 +94,12 @@ export function meterState(input: { averageKmh: number | null; projectedKmh: num
 export type MeterBar = { kind: 'max'; maxKmh: number } | { kind: 'nem_hozhato' };
 
 /**
- * Sáv csak `lassits` / `tul_gyors` állapotban van (és ha a hátralévő útra van értelmes korlát),
- * és „max X” csak amíg a pillanatnyi sebesség > X – ha már X alatt vagy, nincs mit mondani
- * (az állapot, a chip és a szín ettől függetlenül marad). Ismeretlen sebességnél a sáv megmarad.
+ * Sáv: `jo`-ban soha, `lassits`-ban és `tul_gyors`-ban mindig (ha a hátralévő útra van értelmes
+ * korlát). A szöveget az állapot adja: `lassits` „Maradj X alatt”, `tul_gyors` „Lassíts · max X”.
  */
-export function meterBar(state: MeterState | null, required: RequiredSpeed, currentKmh: number | null = null): MeterBar | null {
+export function meterBar(state: MeterState | null, required: RequiredSpeed): MeterBar | null {
   if (state === null || state === 'jo') return null;
-  if (required.kind === 'ok') return currentKmh !== null && currentKmh <= required.maxKmh ? null : { kind: 'max', maxKmh: required.maxKmh };
+  if (required.kind === 'ok') return { kind: 'max', maxKmh: required.maxKmh };
   if (required.kind === 'nem_lehetseges') return { kind: 'nem_hozhato' };
   return null;
 }

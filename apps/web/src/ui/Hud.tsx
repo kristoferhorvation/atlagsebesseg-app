@@ -32,7 +32,7 @@ export interface HudProps {
 
 export const STATUS_META: Record<SpeedStatus, { icon: IconName; label: string }> = {
   jo: { icon: 'check', label: 'Jó ütem' },
-  lassits: { icon: 'arrowDown', label: 'Lassíts' },
+  lassits: { icon: 'arrowDown', label: 'Átlag magas' },
   tul_gyors: { icon: 'arrowUp', label: 'Túl gyors' },
 };
 
@@ -336,7 +336,7 @@ function useSteady(value: boolean, onMs: number, offMs: number): boolean {
  */
 export function SlowDown({ view, unit }: { view: SessionView; unit: Settings['egyseg'] }) {
   const live = view.phase === 'meres' ? view.live : null;
-  const bar = live ? meterBar(view.status, live.required, view.currentKmh) : null;
+  const bar = live ? meterBar(view.status, live.required) : null;
   const show = useSteady(bar !== null, 1500, 3000);
   // eltűnéskor az utolsó tartalom (és színe) marad, hogy ne ugorjon a kifutó animáció alatt
   const last = useRef<{ bar: MeterBar; tone: string } | null>(null);
@@ -348,6 +348,15 @@ export function SlowDown({ view, unit }: { view: SessionView; unit: Settings['eg
         <>
           <Icon name="arrowUp" size={30} />
           <span className="slowdown-label">Nem hozható be</span>
+        </>
+      ) : shown?.tone === 'lassits' ? (
+        <>
+          <Icon name="arrowDown" size={30} />
+          <span className="slowdown-label">Maradj</span>
+          <span className="slowdown-max">
+            <b className="num">{shown ? speedIn(shown.bar.maxKmh, unit) : ''}</b>
+            <span style={{ marginLeft: 8 }}>alatt</span>
+          </span>
         </>
       ) : (
         <>

@@ -25,21 +25,21 @@ változókká alakítja, a natív app közvetlenül importálja.
 | `text` / `textMuted` / `textFaint` | `#F4F6FA` / 64% / 40% | szöveg |
 | `accent` | `#7A86FF` | márka, kézi mód, fókusz |
 | `ok` | `#2EE59D` | **Jó ütem** (`jo`) – az átlag ≤ határ |
-| `near` | `#FFB224` | **Lassíts** (`lassits`) – az átlag a határ felett, de a várható végső ≤ határ |
+| `near` | `#FFB224` | **Átlag magas** (`lassits`) – az átlag a határ felett, de a várható végső ≤ határ |
 | `over` | `#FF4D61` | **Túl gyors** (`tul_gyors`) – a várható végső a határ felett |
 | `idle` | `#8C93A3` | megszakadt / nincs adat |
 
-A státuszszín a nagy számot, a chipet, a „Lassíts” sávot, a progress kitöltését, a kártya háttér-
+A státuszszín a nagy számot, a chipet, a sávot, a progress kitöltését, a kártya háttér-
 árnyalatát és fényívét, valamint a térképen az aktív szakasz vonalát színezi – **mindig ugyanabból
-az egy állapotból**. Az állapot-ikonok: ✓ jó ütem, ↓ lassíts, ↑ túl gyors, ⏸ megszakadt.
+az egy állapotból**. Az állapot-ikonok: ✓ jó ütem, ↓ átlag magas, ↑ túl gyors, ⏸ megszakadt.
 
 **Az állapot (A7b; core `meterState`, app-logic `speedStatus`):**
 
 | állapot | feltétel | chip | sáv |
 |---|---|---|---|
 | `jo` (zöld) | átlag ≤ határ | „Jó ütem” | nincs |
-| `lassits` (borostyán) | átlag > határ, de várható végső ≤ határ | „Lassíts” | „Lassíts · max X” |
-| `tul_gyors` (piros) | várható végső > határ | „Túl gyors” | „Lassíts · max X”; ha X a „nem lehetséges” küszöb alatt (határ 60%-a): „Nem hozható be” |
+| `lassits` (borostyán) | átlag > határ, de várható végső ≤ határ | „Átlag magas” | mindig: „Maradj X alatt” (X = a szükséges max) |
+| `tul_gyors` (piros) | várható végső > határ | „Túl gyors” | mindig: „Lassíts · max X”; ha X a „nem lehetséges” küszöb alatt (határ 60%-a): „Nem hozható be” |
 
 A régi „határon” (3%) sáv megszűnt. A **várható végső** a core becslése (`projectedAverageKmh`): a
 hátralévő utat a jelenlegi sebességgel megtéve mennyi lesz a szakasz átlaga. Sebesség nélkül (álló
@@ -75,8 +75,8 @@ biztonsági zóna fölött lebeg.
   **csak ikonok** (szöveg nélkül). Koppinthatók, ha teendő van (pl. ébrentartás újrakérése).
 - **Ébrentartás (A4-döntés):** ha a Wake Lock nem sikerül, **egyszer**, induláskor egy csendes,
   semleges toast szól (5 s); utána csak a szürke kijelző-ikon jelzi – nem sárga, nem ismétlődik.
-- **„Lassíts · max X” (A4-döntés):** külön, nagy üvegpill középen a kártya fölött (76 px magas,
-  `title` címke + 44 px-es szám), **csak `lassits` / `tul_gyors` állapotban, és csak amíg a pillanatnyi sebesség > X** (ha már X alatt vagy, nincs sáv; a chip és a szín az állapot szerint marad) (a színe az állapoté; „Nem hozható be” szöveggel, ha a „max” már nem reális). Megjelenés/eltűnés `slow` (480 ms)
+- **Sáv: „Lassíts · max X” / „Maradj X alatt” (A4-, A7b-döntés):** külön, nagy üvegpill középen a kártya fölött (76 px magas,
+  `title` címke + 44 px-es szám), **`lassits` és `tul_gyors` állapotban mindig, `jo`-ban soha** (a színe az állapoté: borostyán „Maradj X alatt”, piros „Lassíts · max X”, vagy „Nem hozható be”, ha a „max” már nem reális). Megjelenés/eltűnés `slow` (480 ms)
   opacity + transform; hiszterézis: 1,5 s fennállás után jelenik meg, 3 s hiány után tűnik el,
   így a határérték körüli ingadozás nem villog. 
 - **Kerek gombok** (64 px, üveg): bejelentés, kézi mérés, beállítások.
@@ -96,7 +96,7 @@ biztonsági zóna fölött lebeg.
 - **Szabad térkép (A5):** húzás, csípés, forgatás. Mozdításkor a követés kikapcsol, és a gombsor
   fölött megjelenik a **„Vissza a helyemre”** (64 px, célkereszt, accent); rá a követő kamera
   animálva (900 ms) áll vissza. Mérés közben 5 s tétlenség után magától is; mérésen kívül csak a
-  gombra. Mérés közben a gomb a „Lassíts” sáv helye fölött ül.
+  gombra. Mérés közben a gomb a állapot-sáv helye fölött ül.
 - **Mapbox-attribúció (A5):** logó a bal, kompakt „i” a jobb felső sarokban, alapméretben, a
   biztonsági zóna alatt 4 px-re; kinyitva az attribúció több sorba tördel, nem takarja a logót.
   Az állapot-pillek közvetlenül a logó sora alatt (az A4-es helyükön).
