@@ -146,23 +146,24 @@ export function routeOverlap(a: NavRoute, b: NavRoute, bandM = 60): number {
 }
 
 
+/** Ezek a manőver-típusok nem jelentenek leágazást (a lépések tagolásából is adódhatnak). */
+const NOT_AN_EXIT = new Set(['depart', 'arrive', 'continue', 'new name', 'notification']);
+
+/** Két manőver „ugyanaz”, ha ilyen közel van egymáshoz (m). */
+const SAME_MANEUVER_M = 35;
+
 /**
- * Az alternatíva leágazási pontja: az első pontja, amely a jelenlegi útvonaltól `thresholdM`-nél
- * távolabb esik. Visszaadja az alternatíva mentén mért távolságot a kezdőpontjától (az alternatívát
- * a jelenlegi pozícióról kérjük, tehát ez a távolság a pozíciótól számít); `null`, ha végig egyezik.
+ * Az alternatíva lehajtója: az alternatíva első manővere, amely a jelenlegi útvonal lépései között
+ * nincs (a helye alapján). `distanceM` az alternatíva mentén mért távolság a kezdőpontjától – az
+ * alternatívát a jelenlegi pozícióról kérjük, tehát ez a pozíciótól számít; `name` a manőver
+ * szalag-szövege (pl. a kijárat neve), ha van. `null`, ha nincs ilyen manőver.
  */
-export function divergenceM(current: Route, alt: NavRoute, thresholdM = 30, stepM = 40): number | null {
-  let acc = 0;
-  let since = stepM;
-  for (let i = 0; i < alt.points.length; i++) {
-    if (i > 0) {
-      const seg = haversineM(alt.points[i - 1]!, alt.points[i]!);
-      acc += seg;
-      since += seg;
-    }
-    if (since < stepM) continue;
-    since = 0;
-    if (current.project(alt.points[i]!).crossM > thresholdM) return acc;
+export function firstNewManeuver(current: NavRoute, alt: NavRoute): { distanceM: number; name: string | null } | null {
+  for (const step of alt.steps) {
+    const m = step.endManeuver;
+    if (NOT_AN_EXIT.has(m.type)) continue;
+    if (!m.location || current.steps.some((c) => c.endManeuver.location && haversineM(c.endManeuver.location, m.location) <= SAME_MANEUVER_M)) continue;
+    return { distanceM: step.startM + step.distanceM, name: step.banners[0]?.primary.text || null };
   }
   return null;
 }

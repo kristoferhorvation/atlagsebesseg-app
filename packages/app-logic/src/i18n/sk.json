@@ -266,5 +266,7 @@
   "nav.voice.rerouting": "Prepočítavam trasu",
   "nav.voice.faster": "Rýchlejšia trasa, úspora {n} min",
   "nav.offer.exit": "Zjazd o {km} km · úspora {n} min",
-  "nav.voice.fasterExit": "Rýchlejšia trasa, zjazd o {km} kilometrov"
+  "nav.voice.fasterExit": "Rýchlejšia trasa, zjazd o {km} kilometrov",
+  "nav.offer.exitNamed": "Zjazd: {name} · {km} km · úspora {n} min",
+  "nav.voice.fasterExit500": "Rýchlejšia trasa, zjazd o 500 metrov"
 }

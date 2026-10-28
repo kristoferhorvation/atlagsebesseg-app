@@ -266,5 +266,7 @@
   "nav.voice.rerouting": "Neuberechnung",
   "nav.voice.faster": "Schnellere Route, spart {n} Min.",
   "nav.offer.exit": "Abfahrt in {km} km · spart {n} Min.",
-  "nav.voice.fasterExit": "Schnellere Route, Abfahrt in {km} Kilometern"
+  "nav.voice.fasterExit": "Schnellere Route, Abfahrt in {km} Kilometern",
+  "nav.offer.exitNamed": "Abfahrt: {name} · {km} km · spart {n} Min.",
+  "nav.voice.fasterExit500": "Schnellere Route, Abfahrt in 500 Metern"
 }

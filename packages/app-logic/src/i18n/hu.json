@@ -266,5 +266,7 @@
   "nav.voice.rerouting": "Újratervezés",
   "nav.voice.faster": "Gyorsabb út, {n} perc megtakarítás",
   "nav.offer.exit": "Lehajtó {km} km-nél · {n} perc megtakarítás",
-  "nav.voice.fasterExit": "Gyorsabb út, lehajtó {km} kilométernél"
+  "nav.voice.fasterExit": "Gyorsabb út, lehajtó {km} kilométernél",
+  "nav.offer.exitNamed": "Lehajtó: {name} · {km} km · {n} perc megtakarítás",
+  "nav.voice.fasterExit500": "Gyorsabb út, lehajtó 500 méternél"
 }

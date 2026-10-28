@@ -79,7 +79,7 @@ function splice(main: NavRoute, head: readonly LatLon[], joinAlongM: number, id:
     durationS: headLen / (SIM_DETOUR_SPEED_KMH / 3.6),
     startM: 0,
     name: '',
-    endManeuver: { type: 'merge', modifier: 'slight right', instruction: 'Hajtson vissza az M1-re', location: points[headSegs]! },
+    endManeuver: { type: 'merge', modifier: 'slight right', instruction: 'Hajtson vissza az M1-re', location: points[Math.min(headSegs, points.length - 1)]! },
     banners: [{ distanceAlongM: headLen, primary: { text: first?.name || 'M1', type: 'merge', modifier: 'slight right' }, secondary: null, sub: null }],
     voice: [{ distanceAlongM: headLen, text: 'Hajtson vissza az M1-re' }],
   };
@@ -129,6 +129,27 @@ function routeFrom(main: NavRoute, detour: SimDetour, from: LatLon, id: string):
   return splice(main, [from, route.pointAt(join)], join, id);
 }
 
+/** A szimulált lehajtó távolsága az alternatíva elejétől (m): a mérés közbeni ajánlatnál a szakaszon belül van. */
+const SIM_EXIT_M = 400;
+
+/** Az első lépést a lehajtó helyén kettévágja: a lehajtó-manőver az, ami a jelenlegi útvonalon nincs meg. */
+function withExit(steps: NavStep[], route: Route, exitM: number): NavStep[] {
+  const at = steps.findIndex((s) => s.startM < exitM && s.startM + s.distanceM > exitM + 50);
+  const target = steps[at];
+  if (!target) return steps;
+  const cut = exitM - target.startM;
+  const exit: NavStep = {
+    ...target,
+    distanceM: cut,
+    durationS: target.durationS * (cut / target.distanceM),
+    endManeuver: { type: 'off ramp', modifier: 'right', instruction: 'Hajtson le a lehajtón', location: route.pointAt(exitM) },
+    banners: [{ distanceAlongM: cut, primary: { text: 'Kijárat 56', type: 'off ramp', modifier: 'right' }, secondary: null, sub: null }],
+    voice: [{ distanceAlongM: cut, text: 'Hajtson le a lehajtón' }],
+  };
+  const rest: NavStep = { ...target, startM: exitM, distanceM: target.distanceM - cut, durationS: target.durationS * (1 - cut / target.distanceM) };
+  return [...steps.slice(0, at), exit, rest, ...steps.slice(at + 1)].map((s, k) => ({ ...s, index: k }));
+}
+
 /** Gyorsabb (de más vonalú) alternatíva: a fő útvonal ívesen eltolva, a hátralévő időnél 7 perccel rövidebb. */
 function fasterAlternative(base: NavRoute, id: string, gainS = 420): NavRoute {
   const n = base.points.length;
@@ -142,6 +163,24 @@ function fasterAlternative(base: NavRoute, id: string, gainS = 420): NavRoute {
   });
   const total = base.segDurationS.reduce((a, b) => a + b, 0);
   const k = Math.max(0.2, (total - gainS) / total);
+  // a szimulált „visszahajtás” rövid fejlépése csak a szimulátor műterméke (igazi, friss Directions-hívásban nincs): az alternatíva nélküle indul
+  const head = base.steps[0];
+  const baseSteps =
+    head && head.endManeuver.type === 'merge' && head.distanceM < 150 && base.steps.length > 1
+      ? base.steps.slice(1).map((s, k) => (k === 0 ? { ...s, startM: 0, distanceM: s.distanceM + head.distanceM } : s))
+      : base.steps;
+  const shiftedSteps = baseSteps.map((s) => {
+      // az első 0,8 km-en az alternatíva ugyanazt a vonalat követi; utána tér le (az ottani manőver a lehajtó)
+      const eased = s.startM + s.distanceM > 800;
+      const f = Math.min(1, (s.startM + s.distanceM) / base.distanceM);
+      const loc = s.endManeuver.location;
+      return {
+        ...s,
+        startM: s.startM * (cum / base.distanceM),
+        distanceM: s.distanceM * (cum / base.distanceM),
+        endManeuver: { ...s.endManeuver, location: eased ? { lat: loc.lat + 0.0042 * Math.max(0.2, Math.sin(Math.PI * f)), lon: loc.lon } : loc },
+      };
+    });
   return {
     ...base,
     id,
@@ -151,7 +190,7 @@ function fasterAlternative(base: NavRoute, id: string, gainS = 420): NavRoute {
     typicalDurationS: total * k,
     segStartM,
     segDurationS: base.segDurationS.map((d) => d * k),
-    steps: base.steps.map((s) => ({ ...s, startM: s.startM * (cum / base.distanceM), distanceM: s.distanceM * (cum / base.distanceM) })),
+    steps: withExit(shiftedSteps, new Route(points, cum), SIM_EXIT_M),
   };
 }
 

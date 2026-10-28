@@ -5,7 +5,7 @@ import type { SpeedUnit } from '../settings';
 import type { RouteFetcher } from './client';
 import { NAV_CONFIG, type NavConfig } from './config';
 import { limitAt } from './directions';
-import { adjustedDurations, cumulative, divergenceM, NO_ENFORCEMENT_DATA, remainingSeconds, routeEnforcement, routeOverlap, type EnforcementData } from './enforcement';
+import { adjustedDurations, cumulative, firstNewManeuver, NO_ENFORCEMENT_DATA, remainingSeconds, routeEnforcement, routeOverlap, type EnforcementData } from './enforcement';
 import { maneuverIcon, type ManeuverIcon } from './maneuver';
 import type { EnforcementItem, NavDestination, NavRoute, NavStep } from './types';
 
@@ -34,14 +34,24 @@ export interface AlternativeOffer {
   /** Nyereség a jelenlegi útvonalhoz képest (s). */
   gainS: number;
   expiresAt: number;
-  /** A leágazás helye az aktuális útvonal mentén (m). */
-  exitAlongM: number;
+  /** A lehajtó (az alternatíva első új manővere) helye az aktuális útvonal mentén (m); `null`, ha nem állapítható meg. */
+  exitAlongM: number | null;
+  /** A lehajtó manőver neve (pl. a kijárat), ha van. */
+  exitName: string | null;
   /** A leágazásig hátralévő távolság (m) – a nézetben élőben számolva. */
   exitInM: number;
   /** Ugyanez km-ben, a nyelv tizedesjelével (a feliratokhoz). */
   exitKm: string;
   /** Mérés közben megjelenő, kompakt forma. */
   compact: boolean;
+}
+
+/** Az ajánlat jelöltje: az alternatíva és a lehajtója. */
+interface Candidate {
+  route: NavRoute;
+  gainS: number;
+  exitAlongM: number | null;
+  exitName: string | null;
 }
 
 export interface NavView {
@@ -119,7 +129,9 @@ export class NavigationSession {
   private altPending = false;
   private offer: AlternativeOffer | null = null;
   /** Mérés közben visszatartott ajánlat: a mérés végén jelenik meg, friss lejárati idővel. */
-  private held: { route: NavRoute; gainS: number; exitAlongM: number } | null = null;
+  private held: Candidate | null = null;
+  /** Az az ajánlat, amelynél a 500 m-es második bemondás már elhangzott (vagy fölösleges). */
+  private exit500For: string | null = null;
   private measuring = false;
   private readonly declined = new Set<string>();
 
@@ -188,7 +200,7 @@ export class NavigationSession {
     if (measuring === this.measuring) return;
     this.measuring = measuring;
     if (measuring && this.offer && !this.exitBeforeSectionEnd(this.offer.exitAlongM)) {
-      this.held = { route: this.offer.route, gainS: this.offer.gainS, exitAlongM: this.offer.exitAlongM };
+      this.held = { route: this.offer.route, gainS: this.offer.gainS, exitAlongM: this.offer.exitAlongM, exitName: this.offer.exitName };
       this.offer = null;
     } else if (!measuring && this.held) {
       const h = this.held;
@@ -257,8 +269,14 @@ export class NavigationSession {
 
     if (this.offer && t0 >= this.offer.expiresAt) this.declineOffer();
     // a leágazást elhagytuk: az ajánlat érvénytelen
-    if (this.offer && this.along > this.offer.exitAlongM + 50) this.offer = null;
-    if (this.held && this.along > this.held.exitAlongM + 50) this.held = null;
+    if (this.offer && this.offer.exitAlongM !== null && this.along > this.offer.exitAlongM + 50) this.offer = null;
+    if (this.held && this.held.exitAlongM !== null && this.along > this.held.exitAlongM + 50) this.held = null;
+    // Waze-minta: a lehajtó előtt 500 m-nél még egyszer
+    const o = this.offer;
+    if (o && o.exitAlongM !== null && this.exit500For !== o.id && o.exitAlongM - this.along <= 500) {
+      this.exit500For = o.id;
+      this.say('faster', t('nav.voice.fasterExit500'));
+    }
 
     // alternatíva-figyelés: 2 percenként, ha minden rendben
     if (
@@ -353,29 +371,32 @@ export class NavigationSession {
       }
     }
     if (!best) return;
-    const d = divergenceM(this.core, best.route) ?? 0;
-    this.present({ ...best, exitAlongM: this.along + d });
+    const exit = firstNewManeuver(this.route, best.route);
+    this.present({ ...best, exitAlongM: exit ? this.along + exit.distanceM : null, exitName: exit?.name ?? null });
   }
 
   /** A mérés alatt álló szakasz végkapuja előtt van-e a leágazás (kézi mérésnél nincs végkapu → nem). */
-  private exitBeforeSectionEnd(exitAlongM: number): boolean {
+  private exitBeforeSectionEnd(exitAlongM: number | null): boolean {
+    if (exitAlongM === null) return false;
     const sec = this.items.find((i) => i.kind === 'section' && i.startM <= this.along && this.along <= i.endM);
     return sec !== undefined && exitAlongM < sec.endM;
   }
 
   /** Az ajánlat megjelenítése (és bemondása); mérés közben visszatartjuk. */
-  private present(best: { route: NavRoute; gainS: number; exitAlongM: number }): void {
+  private present(best: Candidate): void {
     if (this.measuring && !this.exitBeforeSectionEnd(best.exitAlongM)) {
       this.held = best;
       return;
     }
-    this.offer = { id: `offer-${++this.voiceSeq}`, route: best.route, gainS: best.gainS, exitAlongM: best.exitAlongM, exitInM: 0, exitKm: '', compact: false, expiresAt: this.clock() + this.cfg.offerTtlMs };
-    if (this.measuring) this.say('faster', t('nav.voice.fasterExit', { km: this.exitKm(best.exitAlongM - this.along) }));
+    this.offer = { id: `offer-${++this.voiceSeq}`, route: best.route, gainS: best.gainS, exitAlongM: best.exitAlongM, exitName: best.exitName, exitInM: 0, exitKm: '', compact: false, expiresAt: this.clock() + this.cfg.offerTtlMs };
+    // a második (500 m-es) bemondás fölösleges, ha az első is 600 m-en belül hangzik el
+    this.exit500For = best.exitAlongM !== null && best.exitAlongM - this.along <= 600 ? this.offer.id : null;
+    if (best.exitAlongM !== null) this.say('faster', t('nav.voice.fasterExit', { km: this.exitKm(best.exitAlongM - this.along) }));
     else this.say('faster', t('nav.voice.faster', { n: Math.max(1, Math.round(best.gainS / 60)) }));
   }
 
   private offerView(o: AlternativeOffer): AlternativeOffer {
-    const exitInM = Math.max(0, o.exitAlongM - this.along);
+    const exitInM = o.exitAlongM === null ? 0 : Math.max(0, o.exitAlongM - this.along);
     return { ...o, exitInM, exitKm: this.exitKm(exitInM), compact: this.measuring };
   }
 

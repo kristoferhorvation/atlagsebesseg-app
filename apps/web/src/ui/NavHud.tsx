@@ -101,7 +101,8 @@ export function NavBottom({ view, unit, currentKmh, onEnd }: { view: NavView; un
 export function OfferCard({ offer, onAccept, onDecline }: { offer: AlternativeOffer; onAccept: () => void; onDecline: () => void }) {
   if (offer.compact) {
     // mérés közben: egysoros, a mérőkártya (státusz) fölött
-    const title = t('nav.offer.exit', { km: offer.exitKm, n: Math.max(1, Math.round(offer.gainS / 60)) });
+    const n = Math.max(1, Math.round(offer.gainS / 60));
+    const title = offer.exitName ? t('nav.offer.exitNamed', { name: offer.exitName, km: offer.exitKm, n }) : t('nav.offer.exit', { km: offer.exitKm, n });
     return (
       <section className="nav-offer nav-offer-compact glass" role="alertdialog" aria-label={title}>
         <div className="title nav-offer-title">{title}</div>

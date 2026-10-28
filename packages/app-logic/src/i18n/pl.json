@@ -266,5 +266,7 @@
   "nav.voice.rerouting": "Przeliczam trasę",
   "nav.voice.faster": "Szybsza trasa, oszczędność {n} min",
   "nav.offer.exit": "Zjazd za {km} km · oszczędność {n} min",
-  "nav.voice.fasterExit": "Szybsza trasa, zjazd za {km} kilometrów"
+  "nav.voice.fasterExit": "Szybsza trasa, zjazd za {km} kilometrów",
+  "nav.offer.exitNamed": "Zjazd: {name} · {km} km · oszczędność {n} min",
+  "nav.voice.fasterExit500": "Szybsza trasa, zjazd za 500 metrów"
 }
