@@ -170,6 +170,14 @@ describe('helyszín-sorok (Speedmarathon 2026 PDF-szövegek)', () => {
     expect(parseLocationLine('Budapest VIII. II. János Pál pápa tér 13.', 'Budapest', ['Budapest']).streets).toEqual(['II. János Pál pápa tér']);
   });
 
+  it('településrész („Ajka-Bakonygyepes”) → a fő település; több település kötőjellel nem utca', () => {
+    expect(parseLocationLine('Ajka-Bakonygyepes Fő út 88.', 'Veszprém', ['Ajka'])).toMatchObject({ kind: 'street', settlement: 'Ajka', streets: ['Fő út'] });
+    expect(parseLocationLine('Ajka-Bakonygyepes 8-as főút 83 km.+160 m.', 'Veszprém', ['Ajka'])).toMatchObject({ kind: 'road', settlement: 'Ajka', road: '8' });
+    expect(parseLocationLine('Barcs-Szulok-Homokszentgyörgy-Lad', 'Somogy', ['Barcs']).kind).toBe('settlement_only');
+    // a teljes, kötőjeles településnév előnyt élvez
+    expect(parseLocationLine('Szendehely-Katalinpuszta Fő u. 1.', 'Nógrád', ['Szendehely', 'Szendehely-Katalinpuszta']).settlement).toBe('Szendehely-Katalinpuszta');
+  });
+
   it('„lakott területen belül” utótag; ismételt településnév', () => {
     expect(parseLocationLine('Nyíregyháza Nyíregyháza, Kincs köz lakott területen belül', 'Szabolcs-Szatmár-Bereg', ['Nyíregyháza'])).toMatchObject({
       kind: 'street',

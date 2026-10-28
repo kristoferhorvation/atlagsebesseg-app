@@ -145,7 +145,7 @@ export function looksLikeLocation(line: string, settlements: readonly string[]):
   if (!l || l.length > 160 || isHeaderLine(l)) return false;
   if (/^(M\d{1,2}|\d{1,5})(\s*-\s*(as|es|ös|os|ás|s)\b|\.)?\s*(sz\.|számú|számfú)?\s*(főút|út|autópálya|autóút)\b/i.test(l)) return true;
   const lower = l.toLowerCase();
-  return settlements.some((s) => lower === s.toLowerCase() || lower.startsWith(`${s.toLowerCase()} `) || lower.startsWith(`${s.toLowerCase()},`));
+  return settlements.some((s) => lower === s.toLowerCase() || [' ', ',', '-'].some((sep) => lower.startsWith(`${s.toLowerCase()}${sep}`)));
 }
 
 interface SourcedLine {

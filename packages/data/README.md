@@ -208,10 +208,10 @@ nem ellenőrzött; csak a 2015-ös listában → **kimarad**, a kimenet `skipped
 `output/cameras.HU.json` (az app beépített tartaléka is). Feltöltés: `npm run import:cameras -- --upload`
 (upsert, nem töröl).
 
-**Figyelem – a két forrás nem független:** a párosított OSM-csomópontok többségének `source`
-címkéje `police.hu` (2026-10-28: 133 párból 116), vagyis az OSM-be épp ebből a listából kerültek.
-Az „ellenőrzött” itt azt jelenti, hogy a hivatalos pont és az OSM-pont egyezik, nem azt, hogy
-valaki 2026-ban helyszínen látta. 2015 óta megszűnt vagy áthelyezett kamerát ez nem szűr ki.
+**Döntés (2026-10-28): mind a 133 párosított VÉDA-pont ellenőrzött.** A forrás az ORFK hivatalos
+listája; az OSM-egyezés csak a pozíciót igazolja, függetlenség nem követelmény. (A párosított
+OSM-csomópontok többségének `source` címkéje `police.hu` – 133-ból 116 –, vagyis az OSM-be is
+ebből a listából kerültek.) 2015 óta megszűnt vagy áthelyezett kamerát ez nem szűr ki.
 
 ## Tervezett rendőrségi mérések (A7) – `npm run planned:fetch`
 

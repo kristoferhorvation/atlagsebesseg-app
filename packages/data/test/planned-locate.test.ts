@@ -82,6 +82,13 @@ describe('település + utca („Kecskemét, Nagykőrösi út”)', () => {
     expect(two).toEqual({ ok: false, reason: expect.stringContaining('több utcára') });
   });
 
+  it('utcatípus-eltérés („Fő utca” ~ „Fő út”), ha egyértelmű; két jelöltnél kimarad', () => {
+    const line = parseLocationLine('Vecsés Fő utca 9.', 'Pest', ['Vecsés']);
+    expect(locateInSettlement(line, settlementResponse([way(1, 0, 500, 0, { name: 'Fő út' })])).ok).toBe(true);
+    const two = locateInSettlement(line, settlementResponse([way(1, 0, 500, 0, { name: 'Fő út' }), way(2, 0, 500, 300, { name: 'Fő tér' })]));
+    expect(two).toEqual({ ok: false, reason: expect.stringContaining('több utcára') });
+  });
+
   it('nincs ilyen utca → kimarad', () => {
     const line = parseLocationLine('Kecskemét Nagykőrösi út 12.', 'Bács-Kiskun', ['Kecskemét']);
     const r = locateInSettlement(line, settlementResponse([way(1, 0, 500, 0, { name: 'Kossuth utca' })]));

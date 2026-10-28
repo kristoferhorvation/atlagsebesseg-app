@@ -409,10 +409,15 @@ export function locateInSettlement(line: PlannedLine, res: OverpassResponse): Lo
 function streetRuns(street: string, runsFor: (pred: (w: OsmWay) => boolean) => Part[]): Part[] | string {
   const strict = runsFor((w) => !!w.tags?.name && streetMatches(street, w.tags.name));
   if (strict.length) return strict;
-  const loose = runsFor((w) => !!w.tags?.name && streetMatchesLoose(street, w.tags.name));
-  const names = new Set(loose.map((p) => p.tags.name));
-  if (names.size > 1) return `„${street}” több utcára is illik a településen (${[...names].join(', ')})`;
-  if (loose.length) return loose;
+  // második lépcső: elhagyott szó („Kossuth utca” ~ „Kossuth Lajos utca”), harmadik: más
+  // utcatípus („Fő utca” ~ „Fő út”) – mindkettő csak egyértelmű (egyetlen nevű) találattal
+  const anyType = street.endsWith(' *') ? null : `${street.split(' ').slice(0, -1).join(' ')} *`;
+  for (const match of [(n: string) => streetMatchesLoose(street, n), ...(anyType ? [(n: string) => streetMatches(anyType, n)] : [])]) {
+    const found = runsFor((w) => !!w.tags?.name && match(w.tags.name));
+    const names = new Set(found.map((p) => p.tags.name));
+    if (names.size > 1) return `„${street}” több utcára is illik a településen (${[...names].join(', ')})`;
+    if (found.length) return found;
+  }
   return `nincs „${street}” nevű út a településen (OSM)`;
 }
 

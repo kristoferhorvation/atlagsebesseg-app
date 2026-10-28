@@ -382,12 +382,18 @@ export function parseLocationLine(rawLine: string, county: string, settlements: 
   // település (leghosszabb egyezés a sor elején)
   const lower = rest.toLowerCase();
   let settlement: string | null = null;
+  let partOf = false;
   for (const s of settlements) {
     const sl = s.toLowerCase();
-    if ((lower === sl || lower.startsWith(`${sl} `) || lower.startsWith(`${sl},`)) && (!settlement || s.length > settlement.length)) settlement = s;
+    const whole = lower === sl || lower.startsWith(`${sl} `) || lower.startsWith(`${sl},`);
+    // „Ajka-Bakonygyepes”: a településrész a fő település része (az OSM-határon belül keresünk)
+    const part = !whole && lower.startsWith(`${sl}-`) && /^\p{Lu}/u.test(rest.slice(s.length + 1));
+    if ((whole || part) && (!settlement || s.length > settlement.length)) [settlement, partOf] = [s, part];
   }
   if (settlement) {
-    rest = rest.slice(settlement.length).replace(/^,?\s*/, '');
+    rest = rest.slice(settlement.length);
+    if (partOf) rest = rest.replace(/^-\S+/, '');
+    rest = rest.replace(/^,?\s*/, '');
     // „Nyíregyháza Nyíregyháza, Kincs köz” – a településnév megismételve
     if (rest.toLowerCase().startsWith(settlement.toLowerCase())) rest = rest.slice(settlement.length).replace(/^,?\s*/, '');
     base.settlement = settlement;

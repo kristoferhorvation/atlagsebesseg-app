@@ -137,7 +137,10 @@ ROADPOL-bejelentés helyszín nélküli → 0 sor, ez a normál eset.
 - Helymeghatározás (`packages/data/src/planned/`): település + útszám → az út a település
   közigazgatási határán belül (OSM admin_level=8, Budapesten a kerület, 9); település + utca → az
   utca a településen; kereszteződés → mindkét ág a csomópont 300 m-es körzetében; útszám + km
-  település nélkül → a km-kövek (`highway=milestone`) között. Megyénként egy Overpass-lekérés
+  település nélkül → a km-kövek (`highway=milestone`) között. Településrész („Ajka-Bakonygyepes”) →
+  a fő település határán belül. Utcanév: szigorú egyezés („Petőfi S.” = „Petőfi Sándor”); ha nincs,
+  egy elhagyott szó („Kossuth utca” = „Kossuth Lajos utca”), majd más utcatípus („Fő utca” = „Fő út”)
+  – az utóbbi kettő csak akkor, ha a településen pontosan egy ilyen nevű utca van. Megyénként egy Overpass-lekérés
   (határok geometriával + a kért utak), a vágás helyben. Ami nem illeszthető, kimarad, és a
   válaszban / a naplóban megyénként, a sor szó szerinti szövegével és okkal szerepel.
 - Sebességhatár: a vonal menti OSM `maxspeed` (több érték → hossz szerint a leggyakoribb); ha
