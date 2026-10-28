@@ -2,6 +2,7 @@ import {
   formatDistance,
   sectionSourceLabel,
   formatDuration,
+  speedFloorIn,
   speedIn,
   unitLabel,
   type InterruptReason,
@@ -116,7 +117,7 @@ export function Hud(p: HudProps) {
             <div className="sign-col">
               <LimitSign kmh={s.speedLimitKmh} unit={unit} small />
               {settings.hatosagi_tures_megjelenitese && (
-                <div className="tolerance num">tűrés {speedIn(limitWithToleranceKmh(s.speedLimitKmh), unit)}</div>
+                <div className="tolerance num">tűrés {speedFloorIn(limitWithToleranceKmh(s.speedLimitKmh), unit)}</div>
               )}
             </div>
             <div className="meter-fig">

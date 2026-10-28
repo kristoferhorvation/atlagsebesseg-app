@@ -20,6 +20,12 @@ export function speedIn(kmh: number | null | undefined, unit: SpeedUnit): number
   return Math.round(unit === 'mph' ? kmh / KMH_PER_MPH : kmh);
 }
 
+/** Mint a `speedIn`, de lefelé kerekítve (a tűrés-kijelzés ne ígérjön többet a valóságosnál). */
+export function speedFloorIn(kmh: number | null | undefined, unit: SpeedUnit): number | null {
+  if (kmh === null || kmh === undefined || !Number.isFinite(kmh)) return null;
+  return Math.floor(unit === 'mph' ? kmh / KMH_PER_MPH : kmh);
+}
+
 export const unitLabel = (unit: SpeedUnit) => (unit === 'mph' ? 'mph' : 'km/h');
 
 /** Távolság: 1 km alatt 10 m-re kerekítve, felette egy tizedessel (mph-nál mérföldben). */

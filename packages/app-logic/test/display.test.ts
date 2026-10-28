@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { formatDistance, formatDuration, progressOf, sectionSourceLabel, speedIn, speedStatus } from '../src/display';
+import { formatDistance, formatDuration, progressOf, sectionSourceLabel, speedFloorIn, speedIn, speedStatus } from '../src/display';
 import { parseSettings, DEFAULT_SETTINGS } from '../src/settings';
 import { reportFromFix } from '../src/reports';
 import { MapStore } from '../src/mapState';
@@ -21,6 +21,9 @@ describe('egységek és formázás', () => {
     expect(speedIn(130, 'kmh')).toBe(130);
     expect(speedIn(130, 'mph')).toBe(81);
     expect(speedIn(null, 'kmh')).toBeNull();
+    expect(speedFloorIn(136.5, 'kmh')).toBe(136); // a tűrés lefelé kerekül
+    expect(speedFloorIn(136.9, 'kmh')).toBe(136);
+    expect(speedFloorIn(null, 'kmh')).toBeNull();
   });
   it('távolság és idő', () => {
     expect(formatDistance(843, 'kmh')).toEqual({ value: '840', unit: 'm' });
