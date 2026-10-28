@@ -1,4 +1,4 @@
-import { LANGUAGES, LANGUAGE_NAMES, t, type MapLook, type Settings, type SpeedUnit } from '@atlagsebesseg/app-logic';
+import { LANGUAGES, LANGUAGE_NAMES, t, type MapLook, type SavedPlaces, type Settings, type SpeedUnit } from '@atlagsebesseg/app-logic';
 import { DEFAULT_TOLERANCE } from '@atlagsebesseg/core';
 import { useLanguage, useVoiceStatus } from '../i18n';
 import { Sheet } from './Sheet';
@@ -8,6 +8,8 @@ export interface SystemInfo {
   wake: string;
   sections: string;
   server: string;
+  /** A mai útvonal-kérések száma. */
+  requests: string;
 }
 
 function Switch({ checked, onChange, label }: { checked: boolean; onChange: (v: boolean) => void; label: string }) {
@@ -19,12 +21,18 @@ export function SettingsSheet({
   update,
   info,
   simMode,
+  saved,
+  onPickPlace,
+  onClearPlace,
   onClose,
 }: {
   settings: Settings;
   update: (p: Partial<Settings>) => void;
   info: SystemInfo;
   simMode: boolean;
+  saved: SavedPlaces;
+  onPickPlace: (kind: 'home' | 'work') => void;
+  onClearPlace: (kind: 'home' | 'work') => void;
   onClose: () => void;
 }) {
   const { lang, preference, setPreference } = useLanguage();
@@ -97,12 +105,41 @@ export function SettingsSheet({
         </div>
         <div className="list-row">
           <div>
+            <div className="label">{t('settings.voiceInstructions')}</div>
+            <div className="hint">{t('settings.voiceInstructionsHint')}</div>
+          </div>
+          <Switch label={t('settings.voiceInstructions')} checked={settings.hangos_utasitasok} onChange={(v) => update({ hangos_utasitasok: v })} />
+        </div>
+        <div className="list-row">
+          <div>
             <div className="label">{t('settings.voice')}</div>
             <div className="hint" data-voice={voice}>
               {t(voice === 'ok' ? 'settings.voice.ok' : voice === 'missing' ? 'settings.voice.missing' : 'settings.voice.unsupported')}
             </div>
           </div>
         </div>
+      </div>
+
+      <div className="group-label">{t('settings.group.places')}</div>
+      <div className="list">
+        {(['home', 'work'] as const).map((kind) => (
+          <div className="list-row" key={kind}>
+            <div style={{ minWidth: 0 }}>
+              <div className="label">{t(kind === 'home' ? 'nav.place.home' : 'nav.place.work')}</div>
+              <div className="hint">{saved[kind]?.name ?? t('nav.place.unset')}</div>
+            </div>
+            <div className="mini-btns">
+              <button className="mini-btn" onClick={() => onPickPlace(kind)}>
+                {t('nav.place.set')}
+              </button>
+              {saved[kind] && (
+                <button className="mini-btn" onClick={() => onClearPlace(kind)}>
+                  {t('nav.place.remove')}
+                </button>
+              )}
+            </div>
+          </div>
+        ))}
       </div>
 
       <div className="group-label">{t('settings.group.status')}</div>
@@ -113,6 +150,7 @@ export function SettingsSheet({
             [t('settings.wake'), info.wake],
             [t('settings.sections'), info.sections],
             [t('settings.server'), info.server],
+            [t('settings.requests'), info.requests],
           ] as const
         ).map(([k, v]) => (
           <div className="list-row" key={k}>

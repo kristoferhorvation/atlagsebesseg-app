@@ -10,7 +10,8 @@
   "exports": {
     ".": "./src/index.ts",
     "./bundled-sections": "./src/bundledSections.ts",
-    "./bundled-cameras": "./src/bundledCameras.ts"
+    "./bundled-cameras": "./src/bundledCameras.ts",
+    "./nav-fixtures": "./src/navigation/fixtures/index.ts"
   },
   "scripts": {
     "test": "vitest run",

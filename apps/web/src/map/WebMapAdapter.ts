@@ -21,6 +21,24 @@ export interface WebMapState extends MapState {
   selectedCameraId: string | null;
   planned: readonly MapPlanned[];
   activePlannedId: string | null;
+  routes: readonly MapRoute[];
+  destination: LatLon | null;
+  /** Az útvonal(ak) látványa a térképen (útvonalválasztó): a kamera ide áll, a követés kikapcsol. */
+  fit: MapFit | null;
+}
+
+/** Egy tervezett útvonal a térképen: dugó szerint színezett szakaszokra bontva. */
+export interface MapRoute {
+  id: string;
+  selected: boolean;
+  runs: { points: LatLon[]; level: 'normal' | 'moderate' | 'heavy' }[];
+}
+
+export interface MapFit {
+  points: readonly LatLon[];
+  /** Hely a felső / alsó kártyának (px). */
+  padTop: number;
+  padBottom: number;
 }
 
 /** Fix kamera a térképen: kis, visszafogott ikon (a bejelentésektől eltérő stílus). */
@@ -82,5 +100,7 @@ export interface WebMapAdapter extends MapController {
   showReports(reports: readonly MapReport[], selectedId: string | null): void;
   showCameras(cameras: readonly MapCamera[], zones: readonly MapZone[], selectedId: string | null): void;
   showPlannedChecks(planned: readonly MapPlanned[], activeId: string | null): void;
+  showRoutes(routes: readonly MapRoute[], destination: LatLon | null): void;
+  fitRoute(fit: MapFit | null): void;
   setHandlers(handlers: Partial<MapHandlers>): void;
 }

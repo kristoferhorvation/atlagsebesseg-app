@@ -13,6 +13,7 @@
     "test": "vitest run",
     "typecheck": "tsc -p tsconfig.json && tsc -p tsconfig.node.json",
     "shots": "node scripts/shots.mjs",
+    "nav-shots": "node scripts/nav-shots.mjs",
     "i18n:check": "node scripts/i18n-check.mjs"
   },
   "dependencies": {

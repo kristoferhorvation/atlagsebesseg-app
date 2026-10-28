@@ -45,6 +45,7 @@ describe('beállítások', () => {
       hatosagi_tures_megjelenitese: true,
       terkep: 'szines',
       tervezett_meresek: true,
+      hangos_utasitasok: true,
     });
   });
   it('a térkép alapból színes; a visszafogott megmarad, ismeretlen érték színes', () => {

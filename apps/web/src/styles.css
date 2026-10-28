@@ -1466,6 +1466,533 @@ a.list-row {
   }
 }
 
+/* ---------- navigáció (A8) ---------- */
+
+.recenter-row {
+  justify-content: space-between;
+  align-items: flex-end;
+}
+
+.recenter-row .sign-slot {
+  margin-right: auto;
+  pointer-events: auto;
+}
+
+/* kereső: teljes képernyő */
+.search-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  display: flex;
+  flex-direction: column;
+  padding: calc(env(safe-area-inset-top) + 12px) max(12px, env(safe-area-inset-right)) 0 max(12px, env(safe-area-inset-left));
+  background: color-mix(in srgb, var(--color-bg) 96%, transparent);
+  -webkit-backdrop-filter: blur(var(--blur-glass));
+  backdrop-filter: blur(var(--blur-glass));
+  animation: fade var(--motion-base) var(--motion-ease);
+}
+
+.search-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.search-field {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  height: 60px;
+  padding: 0 16px;
+  border-radius: 18px;
+  background: var(--color-surface-raised);
+  border: 1px solid var(--color-stroke-strong);
+  color: var(--color-text-muted);
+}
+
+.search-field input {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  border: 0;
+  outline: 0;
+  background: none;
+  color: var(--color-text);
+  font: inherit;
+  font-size: 20px;
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+.search-field input::placeholder {
+  color: var(--color-text-faint);
+}
+
+.search-field:focus-within {
+  border-color: var(--color-accent);
+}
+
+.search-close {
+  width: 56px;
+  height: 56px;
+  flex: none;
+}
+
+.search-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px 0 calc(env(safe-area-inset-bottom) + 16px);
+}
+
+.search-note {
+  padding: 16px 8px;
+  font-size: var(--type-body-size);
+  color: var(--color-text-muted);
+}
+
+.search-note[data-tone='tul'] {
+  color: var(--color-over);
+}
+
+.search-saved {
+  border-bottom: 1px solid var(--color-stroke);
+  margin-bottom: 4px;
+}
+
+.place-row {
+  width: 100%;
+  min-height: 64px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 8px 6px;
+  text-align: left;
+  border-bottom: 1px solid var(--color-stroke);
+}
+
+.place-icon {
+  flex: none;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: var(--color-surface-raised);
+  color: var(--color-accent);
+}
+
+.place-text {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.place-text b {
+  font-size: var(--type-body-size);
+  font-weight: 620;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.place-text span {
+  font-size: 16px;
+  color: var(--color-text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* útvonalválasztó */
+.picker {
+  position: absolute;
+  left: max(12px, env(safe-area-inset-left));
+  right: max(12px, env(safe-area-inset-right));
+  bottom: calc(env(safe-area-inset-bottom) + 12px);
+  z-index: 14;
+  border-radius: var(--radius-card);
+  padding: 14px 16px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  animation: rise var(--motion-base) var(--motion-ease);
+}
+
+.picker-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.picker-title {
+  font-size: 24px;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.picker-msg {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  font-size: var(--type-body-size);
+  color: var(--color-text-muted);
+}
+
+.picker-msg[data-status='error'] {
+  color: var(--color-over);
+}
+
+.picker-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: 38vh;
+  overflow-y: auto;
+}
+
+.route-opt {
+  width: 100%;
+  text-align: left;
+  padding: 12px 14px;
+  border-radius: 22px;
+  border: 2px solid var(--color-stroke);
+  background: var(--color-surface-raised);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.route-opt[data-selected='true'] {
+  border-color: var(--color-accent);
+  background: color-mix(in srgb, var(--color-accent) 14%, transparent);
+}
+
+.route-opt-main {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 12px;
+}
+
+.route-opt-main b {
+  font-size: 28px;
+  font-weight: 680;
+  letter-spacing: -0.02em;
+}
+
+.route-opt-main span {
+  font-size: 18px;
+  color: var(--color-text-muted);
+}
+
+.route-opt-main .route-opt-tag {
+  margin-left: auto;
+  font-size: 16px;
+  font-weight: 620;
+  color: var(--color-accent);
+}
+
+.route-opt-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  font-size: 16px;
+  color: var(--color-text);
+}
+
+.route-opt-meta span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.route-opt-meta [data-zero='true'] {
+  color: var(--color-text-muted);
+}
+
+.route-opt-meta [data-delay='true'] {
+  color: var(--color-near);
+  font-weight: 620;
+}
+
+.picker-start {
+  height: 64px;
+  font-size: 22px;
+}
+
+.picker-retry {
+  width: auto;
+  align-self: flex-start;
+  padding: 0 22px;
+}
+
+/* a tervezett útvonal célja a térképen */
+.dest-pin {
+  color: var(--color-text);
+  filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.6));
+}
+
+.dest-pin svg {
+  fill: var(--color-accent);
+  stroke: var(--color-text);
+}
+
+/* felső navigációs kártya */
+.nav-top {
+  position: absolute;
+  top: calc(env(safe-area-inset-top) + 84px);
+  left: max(12px, env(safe-area-inset-left));
+  right: max(12px, env(safe-area-inset-right));
+  z-index: 15;
+  border-radius: 28px;
+  padding: 14px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  animation: rise var(--motion-base) var(--motion-ease);
+}
+
+.nav-main {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.nav-main > svg {
+  flex: none;
+  color: var(--color-text);
+}
+
+.nav-text {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.nav-dist {
+  font-size: 46px;
+  line-height: 1;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+}
+
+.nav-road {
+  font-size: 26px;
+  font-weight: 600;
+  line-height: 1.15;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.nav-arrived {
+  font-size: 34px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.nav-reroute {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-height: 64px;
+  font-size: var(--type-title-size);
+  font-weight: 620;
+  color: var(--color-near);
+}
+
+.nav-reroute[data-failed='true'] {
+  color: var(--color-over);
+  font-size: 22px;
+}
+
+.nav-reroute .spin {
+  animation: spin 1.1s linear infinite;
+}
+
+.nav-badge {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px 8px 12px;
+  border-radius: var(--radius-pill);
+  font-size: var(--type-body-size);
+  font-weight: 620;
+  background: color-mix(in srgb, var(--color-accent) 22%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-accent) 55%, transparent);
+}
+
+.nav-badge[data-kind='planned'] {
+  background: color-mix(in srgb, var(--color-planned) 20%, transparent);
+  border-color: color-mix(in srgb, var(--color-planned) 55%, transparent);
+}
+
+.nav-badge[data-kind='camera'] {
+  background: var(--color-surface-raised);
+  border-color: var(--color-stroke-strong);
+}
+
+.nav-then {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: var(--type-body-size);
+  color: var(--color-text-muted);
+  padding-top: 8px;
+  border-top: 1px solid var(--color-stroke);
+}
+
+.nav-then-text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--color-text);
+  font-weight: 580;
+}
+
+/* mérés közben: egysoros sáv a mérőkártya fölött */
+.nav-strip {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  height: 56px;
+  padding: 0 16px;
+  border-radius: 20px;
+  font-size: var(--type-body-size);
+  animation: rise var(--motion-base) var(--motion-ease);
+}
+
+.nav-strip b {
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.nav-strip-text {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 580;
+}
+
+.nav-strip-eta {
+  flex: none;
+  color: var(--color-text-muted);
+}
+
+/* alsó navigációs sáv */
+.nav-bottom {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.nav-bottom-speed {
+  flex: none;
+  min-width: 70px;
+  font-size: var(--type-title-size);
+  font-weight: 700;
+  letter-spacing: var(--type-title-tracking);
+  white-space: nowrap;
+}
+
+.nav-bottom-speed small {
+  display: block;
+  font-size: 16px;
+  font-weight: 560;
+  color: var(--color-text-muted);
+  letter-spacing: 0;
+}
+
+.nav-bottom-eta {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  line-height: 1.2;
+}
+
+.nav-bottom-eta b {
+  font-size: 28px;
+  font-weight: 700;
+}
+
+.nav-bottom-eta span {
+  font-size: 17px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+}
+
+.nav-end {
+  flex: none;
+  width: auto;
+  padding: 0 14px;
+  height: 56px;
+  min-height: 56px;
+}
+
+/* gyorsabb út ajánlat */
+.nav-offer {
+  border-radius: 26px;
+  padding: 14px 16px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  border-color: color-mix(in srgb, var(--color-ok) 55%, transparent);
+  animation: rise var(--motion-base) var(--motion-ease);
+}
+
+.nav-offer-title {
+  color: var(--color-ok);
+}
+
+.nav-offer .btn {
+  height: 56px;
+  min-height: 56px;
+}
+
+.hud[data-hidden='true'] {
+  visibility: hidden;
+}
+
+.mini-btns {
+  flex: none;
+  display: flex;
+  gap: 8px;
+}
+
+.mini-btn {
+  height: 48px;
+  padding: 0 16px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.1);
+  font-size: 16px;
+  font-weight: 600;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.app:has(.nav-top) .planned-band {
+  top: calc(env(safe-area-inset-top) + 262px);
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -1477,6 +2004,13 @@ a.list-row {
 
 /* nagyobb kijelző (asztali szimulátor): a HUD középen, telefonszélességben */
 @media (min-width: 640px) {
+  .nav-top,
+  .picker {
+    left: 50%;
+    right: auto;
+    width: 440px;
+    margin-left: -220px;
+  }
   .hud,
   .pills {
     left: 50%;

@@ -3,11 +3,11 @@ import mapboxgl, { type GeoJSONSource, type Map as MbMap } from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { useEffect, useRef } from 'react';
 import { MapStore, type LightPreset, type MapLook } from '@atlagsebesseg/app-logic';
-import { bearingDeg, haversineM, LocalProjection, type GpsFix, type Section } from '@atlagsebesseg/core';
+import { bearingDeg, haversineM, LocalProjection, type GpsFix, type LatLon, type Section } from '@atlagsebesseg/core';
 import { color } from '@atlagsebesseg/design-tokens';
 import { iconSvg } from '../ui/Icon';
 import { t } from '@atlagsebesseg/app-logic';
-import type { MapCamera, MapHandlers, MapPlanned, MapReport, MapZone, WebMapAdapter, WebMapState } from './WebMapAdapter';
+import type { MapCamera, MapFit, MapHandlers, MapPlanned, MapReport, MapRoute, MapZone, WebMapAdapter, WebMapState } from './WebMapAdapter';
 
 const STANDARD_STYLE = 'mapbox://styles/mapbox/standard';
 const PITCH = 60;
@@ -35,6 +35,9 @@ export class MapboxWebAdapter implements WebMapAdapter {
     selectedCameraId: null,
     planned: [],
     activePlannedId: null,
+    routes: [],
+    destination: null,
+    fit: null,
   });
   private readonly handlers: MapHandlers = { onGesture: () => {}, onReportTap: () => {}, onCameraTap: () => {}, onView: () => {} };
   readonly MapView: (props: { className?: string }) => React.JSX.Element;
@@ -83,6 +86,13 @@ export class MapboxWebAdapter implements WebMapAdapter {
   showPlannedChecks(planned: readonly MapPlanned[], activeId: string | null): void {
     this.store.set({ planned, activePlannedId: activeId });
   }
+  showRoutes(routes: readonly MapRoute[], destination: LatLon | null): void {
+    this.store.set({ routes, destination });
+  }
+  fitRoute(fit: MapFit | null): void {
+    // a látvány-állapotban a követő kamera pihen; a követés visszakapcsolása (followUser) animálva visszaáll
+    this.store.set(fit ? { fit, follow: false } : { fit: null });
+  }
   setHandlers(h: Partial<MapHandlers>): void {
     Object.assign(this.handlers, h);
   }
@@ -125,6 +135,7 @@ class MapController {
   private focusY = 0.38;
   private lastGesture = 0;
   private viewTimer: ReturnType<typeof setTimeout> | undefined;
+  private destMarker: mapboxgl.Marker | null = null;
   private readonly pins = new Map<string, { marker: mapboxgl.Marker; el: HTMLButtonElement; key: string }>();
   private readonly cams = new Map<string, { marker: mapboxgl.Marker; el: HTMLButtonElement; key: string }>();
 
@@ -187,12 +198,46 @@ class MapController {
     for (const p of this.pins.values()) p.marker.remove();
     for (const p of this.cams.values()) p.marker.remove();
     this.marker.remove();
+    this.destMarker?.remove();
     this.map.remove();
   }
 
   private addLayers(): void {
     const m = this.map;
     const layout = { 'line-cap': 'round', 'line-join': 'round' } as const;
+    // tervezett útvonalak (A8): alul, hogy a szakaszok és a mérés fölötte látszódjanak; az alternatívák halványan
+    m.addSource('routes', { type: 'geojson', data: routesGeoJson([]) });
+    m.addLayer({
+      id: 'route-alt',
+      type: 'line',
+      source: 'routes',
+      slot: 'middle',
+      layout,
+      filter: ['==', ['get', 'selected'], false],
+      paint: { 'line-color': color.idle, 'line-width': ['interpolate', ['linear'], ['zoom'], 6, 3, 16, 9], 'line-opacity': 0.42, 'line-emissive-strength': 1 },
+    });
+    m.addLayer({
+      id: 'route-casing',
+      type: 'line',
+      source: 'routes',
+      slot: 'middle',
+      layout,
+      filter: ['==', ['get', 'selected'], true],
+      paint: { 'line-color': color.bg, 'line-width': ['interpolate', ['linear'], ['zoom'], 6, 6, 16, 20], 'line-opacity': 0.6, 'line-emissive-strength': 1 },
+    });
+    m.addLayer({
+      id: 'route-main',
+      type: 'line',
+      source: 'routes',
+      slot: 'middle',
+      layout,
+      filter: ['==', ['get', 'selected'], true],
+      paint: {
+        'line-color': ['match', ['get', 'level'], 'heavy', color.over, 'moderate', color.near, color.accent],
+        'line-width': ['interpolate', ['linear'], ['zoom'], 6, 4, 16, 13],
+        'line-emissive-strength': 1,
+      },
+    });
     // tervezett mérés (A7): halvány sárga, a szakaszok alatt; a most érintett vonal teltebb
     m.addSource('planned', { type: 'geojson', data: plannedGeoJson([]) });
     // zóna (csak települést közölt a rendőrség): halvány sárga kitöltés, a vonal alatt
@@ -365,6 +410,27 @@ class MapController {
     }
   }
 
+  /** Az úti cél jelölője. */
+  private syncDestination(dest: LatLon | null): void {
+    this.destMarker?.remove();
+    this.destMarker = null;
+    if (!dest) return;
+    const el = document.createElement('div');
+    el.className = 'dest-pin';
+    el.setAttribute('aria-label', t('nav.dest.aria'));
+    el.innerHTML = iconSvg('pin', 36);
+    this.destMarker = new mapboxgl.Marker({ element: el, anchor: 'bottom', rotationAlignment: 'viewport', pitchAlignment: 'viewport' }).setLngLat([dest.lon, dest.lat]).addTo(this.map);
+  }
+
+  /** Az útvonal(ak) a képernyőn: felülnézet, a kártyák alatt / fölött hagyott hellyel. */
+  private fit(fit: MapFit): void {
+    this.following = false;
+    this.recenter = null;
+    const b = new mapboxgl.LngLatBounds();
+    for (const p of fit.points) b.extend([p.lon, p.lat]);
+    this.map.fitBounds(b, { padding: { top: fit.padTop, bottom: fit.padBottom, left: 36, right: 36 }, pitch: 0, bearing: 0, duration: 900, maxZoom: 15 });
+  }
+
   private camera(): Camera {
     const c = this.map.getCenter();
     return { lat: c.lat, lon: c.lng, bearing: this.map.getBearing(), zoom: this.map.getZoom(), pitch: this.map.getPitch(), padBottom: this.map.getPadding().bottom ?? 0 };
@@ -377,6 +443,8 @@ class MapController {
       this.following = s.follow;
       this.recenter = s.follow ? { from: this.camera(), start: performance.now() } : null;
     }
+    if (s.destination !== p?.destination) this.syncDestination(s.destination);
+    if (s.fit && s.fit !== p?.fit) this.fit(s.fit);
     if (s.reports !== p?.reports || s.selectedReportId !== p?.selectedReportId) this.syncPins(s.reports, s.selectedReportId);
     if (s.cameras !== p?.cameras || s.selectedCameraId !== p?.selectedCameraId) this.syncCameras(s.cameras, s.selectedCameraId);
     if (!this.styleReady) return;
@@ -388,6 +456,7 @@ class MapController {
       (m.getSource('planned') as GeoJSONSource | undefined)?.setData(plannedGeoJson(s.planned, s.activePlannedId));
       (m.getSource('planned-zones') as GeoJSONSource | undefined)?.setData(plannedZonesGeoJson(s.planned, s.activePlannedId));
     }
+    if (s.routes !== p?.routes) (m.getSource('routes') as GeoJSONSource | undefined)?.setData(routesGeoJson(s.routes));
     if (s.cameraZones !== p?.cameraZones) (m.getSource('camera-zones') as GeoJSONSource | undefined)?.setData(zonesGeoJson(s.cameraZones));
     if (s.highlightId !== p?.highlightId) {
       const f: mapboxgl.FilterSpecification = ['==', ['get', 'id'], s.highlightId ?? ''];
@@ -502,6 +571,19 @@ function toGeoJson(sections: readonly Section[]): FeatureCollection<LineString> 
         coordinates: (s.geometry?.length ? s.geometry : [s.start, s.end]).map((p) => [p.lon, p.lat]),
       },
     })),
+  };
+}
+
+function routesGeoJson(routes: readonly MapRoute[]): FeatureCollection<LineString> {
+  return {
+    type: 'FeatureCollection',
+    features: routes.flatMap((r) =>
+      r.runs.map((run) => ({
+        type: 'Feature' as const,
+        properties: { id: r.id, selected: r.selected, level: run.level },
+        geometry: { type: 'LineString' as const, coordinates: run.points.map((p) => [p.lon, p.lat]) },
+      })),
+    ),
   };
 }
 

@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import {
+  congestionRuns,
   cameraLabel,
   cameraVisibility,
   cameraWarning,
@@ -26,12 +27,18 @@ import {
   type ReportChoice,
   type ReportInsert,
   type SessionView,
+  type EnforcementData,
+  type NavigationSession,
+  type NavRoute,
 } from '@atlagsebesseg/app-logic';
 import { BUNDLED_CAMERAS } from '@atlagsebesseg/app-logic/bundled-cameras';
 import { BUNDLED_SECTIONS } from '@atlagsebesseg/app-logic/bundled-sections';
-import { haversineM, type GpsFix, type Section } from '@atlagsebesseg/core';
+import { haversineM, type GpsFix, type LatLon, type Section } from '@atlagsebesseg/core';
 import { statusColor } from '@atlagsebesseg/design-tokens';
 import { cameraCache, plannedCache, supabase } from './backend';
+import { directionsClient, requestCounter, searchPlaces } from './nav/backend';
+import { loadRouteData } from './nav/routeData';
+import { usePlaces, useNavigation } from './nav/useNavigation';
 import { useLanguage } from './i18n';
 import { useFollow } from './hooks/useFollow';
 import { useGeolocation, type GeoStatus } from './hooks/useGeolocation';
@@ -42,13 +49,18 @@ import { useSession } from './hooks/useSession';
 import { useSettings } from './hooks/useSettings';
 import { useTileItems } from './hooks/useTileItems';
 import { useWakeLock } from './hooks/useWakeLock';
-import { createWebMapAdapter, type MapReport, type WebMapAdapter } from './map';
+import { createWebMapAdapter, type MapReport, type MapRoute, type WebMapAdapter } from './map';
 import { simCameras, simPlannedChecks, simReports } from './sim/scenarios';
 import { simStartFromUrl, useSimulator } from './sim/useSimulator';
+import { buildNavSim, simIdleFix, simRouteFetcher, simSearch, SIM_PLACES, type NavSimData } from './sim/navSim';
 import { CameraCard } from './ui/CameraCard';
 import { cameraIcon } from './ui/cameraIcon';
 import { Hud, SlowDown, toneOf, type GateReportState } from './ui/Hud';
 import { Icon, type IconName } from './ui/Icon';
+import { LimitSign } from './ui/LimitSign';
+import { NavBottom, NavStrip, NavTop, OfferCard } from './ui/NavHud';
+import { RoutePicker } from './ui/RoutePicker';
+import { SearchScreen } from './ui/SearchScreen';
 import { PlannedBand } from './ui/PlannedBand';
 import { ReportCard } from './ui/ReportCard';
 import { ReportSheet } from './ui/ReportSheet';
@@ -57,9 +69,11 @@ import { SimPanel } from './ui/SimPanel';
 import { StartScreen } from './ui/StartScreen';
 import { StatusPills } from './ui/StatusPills';
 
-const SIM_MODE = new URLSearchParams(location.search).has('sim');
+/** `?navsim`: a navigációs szimulátor (Budapest → Győr, rögzített Directions-fixtúrával). */
+const NAV_SIM = new URLSearchParams(location.search).has('navsim');
+const SIM_MODE = new URLSearchParams(location.search).has('sim') || NAV_SIM;
 /** `?sim&panel=0`: a szimulátor vezérlője és jelzése nélkül (marketing-képernyőképekhez). */
-const SIM_PANEL = new URLSearchParams(location.search).get('panel') !== '0';
+const SIM_PANEL = new URLSearchParams(location.search).get('panel') !== '0' && !NAV_SIM;
 /** A kamerák ekkora körzetben kerülnek a térképre (DOM-jelölők – nem az egész ország). */
 const CAMERA_RADIUS_M = 15_000;
 const NO_PLANNED: readonly PlannedCheck[] = [];
@@ -124,19 +138,40 @@ function Drive({ map }: { map: WebMapAdapter }) {
   const session = useSession(all, now);
   const { view } = session;
 
+  // navigáció (A8): a munkamenet ugyanazokat a fixeket kapja, mint a mérés
+  const navSessionRef = useRef<NavigationSession | null>(null);
   const onFix = useCallback(
     (fix: GpsFix) => {
       session.onFix(fix);
+      navSessionRef.current?.onFix(fix);
       setTileFix(fix);
     },
     [session.onFix],
   );
+  const places = usePlaces();
+  const navSim = useMemo<NavSimData | null>(() => (NAV_SIM ? buildNavSim() : null), []);
+  const navFetch = useMemo(() => (navSim ? simRouteFetcher(navSim) : (directionsClient?.routes ?? null)), [navSim]);
+  const loadData = useCallback(
+    async (route: NavRoute): Promise<EnforcementData> =>
+      navSim ? { sections: [...BUNDLED_SECTIONS, navSim.section], cameras: [...BUNDLED_CAMERAS, navSim.camera], planned: [] } : loadRouteData(route),
+    [navSim],
+  );
+  const nav = useNavigation(
+    { fix: view.lastFix, fetchRoutes: navFetch, loadData, now, unit: settings.egyseg, voice: settings.hangos_utasitasok, lang, simMode: SIM_MODE },
+    places,
+  );
+  navSessionRef.current = nav.session;
+  const navSearch = useCallback((q: string) => (NAV_SIM ? simSearch(q) : searchPlaces(q, view.lastFix)), [view.lastFix]);
+  const requestsToday = useSyncExternalStore(requestCounter.subscribe, () => requestCounter.count);
 
   // GPS (valódi mód) + másodpercenkénti frissítés (alagútban a becslés miatt)
   const geo = useGeolocation(!SIM_MODE, onFix);
   useEffect(() => {
     if (SIM_MODE) return;
-    const id = setInterval(session.tick, 1000);
+    const id = setInterval(() => {
+      session.tick();
+      navSessionRef.current?.tick();
+    }, 1000);
     return () => clearInterval(id);
   }, [session.tick]);
 
@@ -168,6 +203,42 @@ function Drive({ map }: { map: WebMapAdapter }) {
   // követő kamera: a térkép mozgatása kikapcsolja; mérés közben 5 s után magától visszaáll
   const measuring = view.phase === 'meres' || view.phase === 'kezi';
   const follow = useFollow(map, measuring);
+
+  // a „Túl gyors” állapotot a navigáció is bemondja
+  useEffect(() => nav.session?.setMeasureStatus(view.phase === 'meres' ? view.status : null), [nav.session, view.phase, view.status]);
+
+  // tervezett útvonalak és a cél a térképen; navigáció közben csak a jelenlegi útvonal
+  const routesShown = useMemo<{ routes: MapRoute[]; dest: LatLon | null }>(() => {
+    const toMap = (r: NavRoute, selected: boolean): MapRoute => ({ id: r.id, selected, runs: congestionRuns(r) });
+    if (nav.view) return { routes: [toMap(nav.view.route, true)], dest: nav.view.destination };
+    if (nav.plan?.status === 'ready') return { routes: nav.plan.routes.map((r, i) => toMap(r, i === nav.plan!.selected)), dest: nav.plan.dest };
+    return { routes: [], dest: null };
+  }, [nav.view?.route, nav.view?.destination, nav.plan]);
+  useEffect(() => map.showRoutes(routesShown.routes, routesShown.dest), [map, routesShown]);
+  const planRoutes = nav.plan?.status === 'ready' ? nav.plan.routes : null;
+  useEffect(() => {
+    if (planRoutes) map.fitRoute({ points: planRoutes.flatMap((r) => r.points.filter((_, i) => i % 8 === 0)), padTop: 120, padBottom: 400 });
+  }, [map, planRoutes]);
+  // a tervezés vége (indítás vagy mégse): a kamera visszaáll a követésre
+  const planOpen = nav.plan !== null;
+  const wasPlanOpen = useRef(false);
+  useEffect(() => {
+    if (wasPlanOpen.current && !planOpen) {
+      map.fitRoute(null);
+      map.followUser(true);
+      follow.recenter();
+    }
+    wasPlanOpen.current = planOpen;
+  }, [map, planOpen]);
+
+  // szimulátor: ?navsim&stage=picker|nav – a keresés átugrásával a kiválasztott állapotba
+  const stage = useMemo(() => new URLSearchParams(location.search).get('stage'), []);
+  useEffect(() => {
+    if (NAV_SIM && stage && view.lastFix && !nav.plan && !nav.view) nav.planTo(SIM_PLACES[0]!);
+  }, [view.lastFix === null]);
+  useEffect(() => {
+    if (NAV_SIM && stage === 'nav' && nav.plan?.status === 'ready') nav.start();
+  }, [nav.plan?.status]);
 
   // bejelentések a térképen (szimulátorban a minta-bejelentések a szerver helyett)
   const [simReps, setSimReps] = useState<ActiveReport[]>([]);
@@ -210,11 +281,12 @@ function Drive({ map }: { map: WebMapAdapter }) {
   useEffect(
     () =>
       map.showCameras(
-        camLayer.points.map((c) => ({ id: c.id, lat: c.lat, lon: c.lon, icon: cameraIcon(c.type), label: cameraLabel(c.type) })),
+        // az útvonalválasztó látványában a kamera-ikonok csak zsúfolnának
+        (nav.plan ? [] : camLayer.points).map((c) => ({ id: c.id, lat: c.lat, lon: c.lon, icon: cameraIcon(c.type), label: cameraLabel(c.type) })),
         camLayer.zones,
         selectedCam?.id ?? null,
       ),
-    [map, camLayer, selectedCam?.id, lang],
+    [map, camLayer, selectedCam?.id, lang, nav.plan !== null],
   );
   useEffect(
     () =>
@@ -433,6 +505,8 @@ function Drive({ map }: { map: WebMapAdapter }) {
   );
 
   const driving = view.phase === 'meres' || view.phase === 'kozeledik' || view.phase === 'kezi';
+  // a bal alsó sebességhatár-tábla: mérés / közeledés közben a mérőkártya saját táblája szól
+  const navSign = nav.view !== null && (view.phase === 'nincs_szakasz' || view.phase === 'befejezve' || view.phase === 'megszakadt' || view.phase === 'kezi_eredmeny');
   const accuracy = view.lastFix?.accuracy ?? null;
 
   return (
@@ -443,14 +517,15 @@ function Drive({ map }: { map: WebMapAdapter }) {
         wake={wake.status}
         offline={!SIM_MODE && (sectionsStatus === 'offline' || !supabase)}
         simMode={SIM_MODE && SIM_PANEL}
-        compact={driving}
+        compact={driving || nav.view !== null}
         onWake={() => {
           if (wake.status === 'nem_tamogatott')
             showToast({ text: t('toast.wakeNever'), tone: 'hataron', icon: 'screen' });
           else wake.request();
         }}
       />
-      {SIM_MODE && (
+      {NAV_SIM && navSim && <NavSimDriver data={navSim} active={nav.session !== null} onFix={onFix} onTick={session.tick} clock={clock} onSection={setSimSection} onCameras={setSimCams} />}
+      {SIM_MODE && !NAV_SIM && (
         <SimDriver
           onFix={onFix}
           onTick={session.tick}
@@ -462,12 +537,14 @@ function Drive({ map }: { map: WebMapAdapter }) {
           onBackground={session.interrupt}
         />
       )}
+      {nav.view && !measuring && <NavTop view={nav.view} unit={settings.egyseg} />}
       <PlannedBand check={activePlanned} compact={measuring} />
 
-      <div className="hud" ref={hudRef}>
+      <div className="hud" ref={hudRef} data-hidden={nav.plan !== null || nav.searchFor !== null}>
         {view.phase === 'meres' && <SlowDown view={view} unit={settings.egyseg} />}
         {/* a HUD fölött lebeg (nem változtat a magasságán → a kamera nem ugrik); mérésnél a Lassíts-sáv fölött */}
         <div className="hud-float" data-raised={view.phase === 'meres'}>
+          {nav.view?.offer && !measuring && <OfferCard offer={nav.view.offer} onAccept={() => nav.session?.acceptOffer()} onDecline={() => nav.session?.declineOffer()} />}
           {selected && (
             <ReportCard
               key={selected.id}
@@ -481,17 +558,29 @@ function Drive({ map }: { map: WebMapAdapter }) {
             />
           )}
           {!selected && selectedCam && <CameraCard key={selectedCam.id} camera={selectedCam} onClose={() => setSelectedCamId(null)} />}
-          {!follow.following && (
+          {(!follow.following || navSign) && (
             <div className="recenter-row">
-              <button className="round-btn glass recenter" onClick={follow.recenter} aria-label={t('map.recenter')}>
-                <Icon name="crosshair" size={28} />
-              </button>
+              {navSign && nav.view && (
+                <div className="sign-slot">
+                  <LimitSign kmh={nav.view.limitKmh} unit={settings.egyseg} small />
+                </div>
+              )}
+              {!follow.following && (
+                <button className="round-btn glass recenter" onClick={follow.recenter} aria-label={t('map.recenter')}>
+                  <Icon name="crosshair" size={28} />
+                </button>
+              )}
             </div>
           )}
         </div>
         <div className="actions">
           {!driving && view.phase !== 'kezi_eredmeny' && (
             <>
+              {!nav.view && (
+                <button className="round-btn glass" onClick={() => nav.openSearch()} aria-label={t('map.search')}>
+                  <Icon name="search" size={26} />
+                </button>
+              )}
               <button className="round-btn glass" onClick={() => setSheet('settings')} aria-label={t('map.settings')}>
                 <Icon name="sliders" size={26} />
               </button>
@@ -500,10 +589,19 @@ function Drive({ map }: { map: WebMapAdapter }) {
               </button>
             </>
           )}
+          {nav.view && view.phase !== 'nincs_szakasz' && (
+            <button className="round-btn glass" onClick={nav.end} aria-label={t('nav.end')}>
+              <Icon name="stop" size={26} />
+            </button>
+          )}
           <button className="round-btn glass report" onClick={() => setSheet('report')} aria-label={t('map.report')}>
             <Icon name="report" size={28} />
           </button>
         </div>
+        {nav.view && measuring && <NavStrip view={nav.view} unit={settings.egyseg} />}
+        {nav.view && view.phase === 'nincs_szakasz' ? (
+          <NavBottom view={nav.view} unit={settings.egyseg} currentKmh={view.currentKmh} onEnd={nav.end} />
+        ) : (
         <Hud
           key={phaseKey(view)}
           view={view}
@@ -515,12 +613,29 @@ function Drive({ map }: { map: WebMapAdapter }) {
           onDismiss={session.dismiss}
           onRetryGates={() => gateRows && sendGates(gateRows)}
         />
+        )}
       </div>
 
       {toast && (
         <div key={toast.id} className="toast glass" data-tone={toast.tone} role="status">
           <Icon name={toast.icon} size={22} /> {toast.text}
         </div>
+      )}
+
+      {nav.searchFor && (
+        <SearchScreen kind={nav.searchFor} recents={places.recents} saved={places.saved} search={navSearch} onPick={nav.choose} onClose={nav.closeSearch} />
+      )}
+      {nav.plan && (
+        <RoutePicker
+          plan={nav.plan}
+          summaries={nav.summaries}
+          unit={settings.egyseg}
+          now={now()}
+          onSelect={nav.selectRoute}
+          onStart={nav.start}
+          onRetry={nav.retryPlan}
+          onClose={nav.cancelPlan}
+        />
       )}
 
       {sheet === 'report' && (
@@ -538,6 +653,12 @@ function Drive({ map }: { map: WebMapAdapter }) {
           settings={settings}
           update={update}
           simMode={SIM_MODE}
+          saved={places.saved}
+          onPickPlace={(kind) => {
+            setSheet(null);
+            nav.openSearch(kind);
+          }}
+          onClearPlace={(kind) => places.setSaved(kind, null)}
           onClose={() => setSheet(null)}
           info={{
             gps: t(SIM_MODE ? 'geo.sim' : GEO_TEXT[geo]),
@@ -551,6 +672,7 @@ function Drive({ map }: { map: WebMapAdapter }) {
               ),
             }),
             server: t(supabase ? 'server.set' : 'server.none'),
+            requests: String(requestsToday),
           }}
         />
       )}
@@ -593,4 +715,59 @@ function SimDriver({
     onPlanned(simPlannedChecks(sim.simulation, sim.scenario));
   }, [onCameras, onPlanned, sim.simulation, sim.scenario]);
   return SIM_PANEL ? <SimPanel sim={sim} onBackground={onBackground} /> : null;
+}
+
+/** A navigációs szimulátor bejátszása: indulás előtt egy álló fix, indítás után a fixtúra-útvonal (letéréssel, szakasszal, kamerával). */
+function NavSimDriver({
+  data,
+  active,
+  onFix,
+  onTick,
+  clock,
+  onSection,
+  onCameras,
+}: {
+  data: NavSimData;
+  active: boolean;
+  onFix: (f: GpsFix) => void;
+  onTick: () => void;
+  clock: { current: () => number };
+  onSection: (s: Section) => void;
+  onCameras: (c: FixedCamera[]) => void;
+}) {
+  const q = useMemo(() => new URLSearchParams(location.search), []);
+  const speed = Math.max(1, Number(q.get('speed')) || 12);
+  const seek = Math.min(1, Math.max(0, Number(q.get('seek')) || 0));
+  useLayoutEffect(() => {
+    onSection(data.section);
+    onCameras([data.camera]);
+    // a képernyőkép-szkript innen tudja, hol vannak az ablakok (mintaindexek)
+    (window as unknown as { __navSim?: unknown }).__navSim = { windows: data.windows, length: data.samples.length };
+  }, [data, onSection, onCameras]);
+  // indulás előtt: állva a kiindulópontnál
+  useEffect(() => {
+    onFix(simIdleFix());
+  }, [onFix]);
+  useEffect(() => {
+    if (!active) return;
+    const { samples, windows } = data;
+    // a seek az ablak elejéről játssza le gyorsan, hogy a mérés belépése is megtörténjen
+    const at = Number(q.get('at')) || 0;
+    const target = at > 0 ? at : Math.floor(seek * samples.length);
+    let i = [...windows].reverse().find((w) => w <= target) ?? 0;
+    const base = Date.now() - samples[i]!.t;
+    const play = (k: number) => {
+      const s = samples[k]!;
+      clock.current = () => s.t + base;
+      if (s.dropped) onTick();
+      else onFix({ ...s.fix, timestamp: s.fix.timestamp + base });
+    };
+    for (; i < target; i++) play(i);
+    const id = setInterval(() => {
+      if (i >= samples.length) return clearInterval(id);
+      play(i++);
+    }, 1000 / speed);
+    return () => clearInterval(id);
+  }, [active]);
+  return null;
 }
