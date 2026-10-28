@@ -396,6 +396,26 @@ describe('alternatíva-figyelés', () => {
     expect(offer).not.toBeNull();
   });
 
+  it('mérés közben nincs ajánlat; a mérés végén jelenik meg, onnan 45 mp', async () => {
+    const route = lineRoute({ lengthM: 40_000, durationS: 1800 });
+    const alt = scaleDurations(lineRoute({ lengthM: 42_000, durationS: 1800, id: 'alt' }), 1200, 'alt', 0.003);
+    const h = harness(route);
+    h.respond([route, alt]);
+    h.session.setMeasuring(true);
+    feed(h, at(route, 500, 0, T0 + 120_000));
+    await flush();
+    expect(h.session.view().offer).toBeNull();
+    expect(h.session.drainVoice().some((v) => v.kind === 'faster')).toBe(false);
+    // hosszú mérés: a visszatartott ajánlat nem évül el
+    feed(h, at(route, 900, 0, T0 + 400_000));
+    expect(h.session.view().offer).toBeNull();
+    h.session.setMeasuring(false);
+    const offer = h.session.view().offer;
+    expect(offer).not.toBeNull();
+    expect(offer!.expiresAt).toBe(T0 + 400_000 + NAV_CONFIG.offerTtlMs);
+    expect(h.session.drainVoice().some((v) => v.kind === 'faster')).toBe(true);
+  });
+
   it('elfogadás: az alternatíva veszi át; elvetés: ugyanaz nem jön vissza', async () => {
     const route = lineRoute({ lengthM: 40_000, durationS: 1800 });
     const alt = scaleDurations(lineRoute({ lengthM: 42_000, durationS: 1800, id: 'alt' }), 1200, 'alt', 0.003);

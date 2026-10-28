@@ -241,7 +241,7 @@
   "nav.picker.fastest": "Najszybsza",
   "nav.picker.alt": "Alternatywa {n}",
   "nav.picker.sections": "Odcinkowe pomiary: {n}",
-  "nav.picker.cameras": "Kamery: {n}",
+  "nav.picker.cameras": "{n} kamer · {v} zweryfikowanych",
   "nav.picker.delay": "+{n} min przez korki",
   "nav.picker.noDelay": "Bez opóźnień",
   "nav.dur.min": "{n} min",
@@ -264,5 +264,5 @@
   "nav.voice.sectionAhead": "Zaczyna się odcinkowy pomiar, maksimum {x}",
   "nav.voice.tooFast": "Jedziesz za szybko, zwolnij",
   "nav.voice.rerouting": "Przeliczam trasę",
-  "nav.voice.faster": "Dostępna szybsza trasa, oszczędność {n} min"
+  "nav.voice.faster": "Szybsza trasa, oszczędność {n} min"
 }

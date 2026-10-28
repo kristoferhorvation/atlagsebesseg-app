@@ -241,7 +241,7 @@
   "nav.picker.fastest": "Leggyorsabb",
   "nav.picker.alt": "Alternatíva {n}",
   "nav.picker.sections": "Szakaszellenőrzés: {n}",
-  "nav.picker.cameras": "Kamera: {n}",
+  "nav.picker.cameras": "{n} kamera · {v} ellenőrzött",
   "nav.picker.delay": "+{n} perc dugó miatt",
   "nav.picker.noDelay": "Nincs dugó",
   "nav.dur.min": "{n} perc",
@@ -264,5 +264,5 @@
   "nav.voice.sectionAhead": "Szakaszellenőrzés kezdődik, maximum {x}",
   "nav.voice.tooFast": "Túl gyors vagy, lassíts",
   "nav.voice.rerouting": "Újratervezés",
-  "nav.voice.faster": "Gyorsabb út érhető el, {n} perc megtakarítás"
+  "nav.voice.faster": "Gyorsabb út, {n} perc megtakarítás"
 }

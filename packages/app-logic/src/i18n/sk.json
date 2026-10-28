@@ -241,7 +241,7 @@
   "nav.picker.fastest": "Najrýchlejšia",
   "nav.picker.alt": "Alternatíva {n}",
   "nav.picker.sections": "Úsekové kontroly: {n}",
-  "nav.picker.cameras": "Kamery: {n}",
+  "nav.picker.cameras": "{n} kamier · {v} overených",
   "nav.picker.delay": "+{n} min kvôli premávke",
   "nav.picker.noDelay": "Bez zdržania",
   "nav.dur.min": "{n} min",
@@ -264,5 +264,5 @@
   "nav.voice.sectionAhead": "Začína úseková kontrola, maximum {x}",
   "nav.voice.tooFast": "Ideš príliš rýchlo, spomaľ",
   "nav.voice.rerouting": "Prepočítavam trasu",
-  "nav.voice.faster": "Dostupná rýchlejšia trasa, úspora {n} min"
+  "nav.voice.faster": "Rýchlejšia trasa, úspora {n} min"
 }

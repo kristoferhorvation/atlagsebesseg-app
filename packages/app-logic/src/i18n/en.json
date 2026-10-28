@@ -241,7 +241,7 @@
   "nav.picker.fastest": "Fastest",
   "nav.picker.alt": "Alternative {n}",
   "nav.picker.sections": "Section checks: {n}",
-  "nav.picker.cameras": "Cameras: {n}",
+  "nav.picker.cameras": "{n} cameras · {v} verified",
   "nav.picker.delay": "+{n} min due to traffic",
   "nav.picker.noDelay": "No traffic delay",
   "nav.dur.min": "{n} min",
@@ -264,5 +264,5 @@
   "nav.voice.sectionAhead": "Section control ahead, maximum {x}",
   "nav.voice.tooFast": "Too fast, slow down",
   "nav.voice.rerouting": "Rerouting",
-  "nav.voice.faster": "A faster route is available, saving {n} min"
+  "nav.voice.faster": "Faster route, saves {n} min"
 }

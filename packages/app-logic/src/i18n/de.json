@@ -241,7 +241,7 @@
   "nav.picker.fastest": "Schnellste",
   "nav.picker.alt": "Alternative {n}",
   "nav.picker.sections": "Abschnittskontrollen: {n}",
-  "nav.picker.cameras": "Kameras: {n}",
+  "nav.picker.cameras": "{n} Kameras · {v} geprüft",
   "nav.picker.delay": "+{n} Min. wegen Verkehr",
   "nav.picker.noDelay": "Kein Stau",
   "nav.dur.min": "{n} Min.",
@@ -264,5 +264,5 @@
   "nav.voice.sectionAhead": "Abschnittskontrolle beginnt, maximal {x}",
   "nav.voice.tooFast": "Zu schnell, bitte langsamer",
   "nav.voice.rerouting": "Neuberechnung",
-  "nav.voice.faster": "Schnellere Route verfügbar, spart {n} Min."
+  "nav.voice.faster": "Schnellere Route, spart {n} Min."
 }

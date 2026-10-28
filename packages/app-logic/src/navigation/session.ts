@@ -110,6 +110,9 @@ export class NavigationSession {
   private lastAltAt: number;
   private altPending = false;
   private offer: AlternativeOffer | null = null;
+  /** Mérés közben visszatartott ajánlat: a mérés végén jelenik meg, friss lejárati idővel. */
+  private held: { route: NavRoute; gainS: number } | null = null;
+  private measuring = false;
   private readonly declined = new Set<string>();
 
   private spoken = new Set<string>();
@@ -170,6 +173,21 @@ export class NavigationSession {
     if (this.lastTooFastAt !== null && t0 - this.lastTooFastAt < this.cfg.tooFastRepeatMs) return;
     this.lastTooFastAt = t0;
     this.say('tooFast', t('nav.voice.tooFast'));
+  }
+
+  /** Aktív mérés (szakasz vagy kézi): az ajánlat addig nem jelenik meg, a mérés végén indul a TTL. */
+  setMeasuring(measuring: boolean): void {
+    if (measuring === this.measuring) return;
+    this.measuring = measuring;
+    if (measuring && this.offer) {
+      this.held = { route: this.offer.route, gainS: this.offer.gainS };
+      this.offer = null;
+    } else if (!measuring && this.held) {
+      const h = this.held;
+      this.held = null;
+      this.present(h);
+    }
+    this.changed();
   }
 
   dispose(): void {
@@ -238,6 +256,7 @@ export class NavigationSession {
       !this.altPending &&
       this.offSince === null &&
       this.offer === null &&
+      this.held === null &&
       t0 - this.lastAltAt >= this.cfg.altCheckEveryMs &&
       this.canRoute(t0, this.lastCallAt, this.cfg.directionsMinGapMs)
     ) {
@@ -260,6 +279,7 @@ export class NavigationSession {
     this.lastRerouteAt = t0;
     this.lastCallAt = t0;
     this.offer = null;
+    this.held = null;
     this.say('reroute', t('nav.voice.rerouting'));
     const from: LatLon = { lat: fix.lat, lon: fix.lon };
     this.fetchRoutes(from, this.destination, { heading: fix.heading, reason: 'reroute' }).then(
@@ -322,6 +342,15 @@ export class NavigationSession {
       }
     }
     if (!best) return;
+    this.present(best);
+  }
+
+  /** Az ajánlat megjelenítése (és bemondása); mérés közben visszatartjuk. */
+  private present(best: { route: NavRoute; gainS: number }): void {
+    if (this.measuring) {
+      this.held = best;
+      return;
+    }
     this.offer = { id: `offer-${++this.voiceSeq}`, route: best.route, gainS: best.gainS, expiresAt: this.clock() + this.cfg.offerTtlMs };
     this.say('faster', t('nav.voice.faster', { n: Math.max(1, Math.round(best.gainS / 60)) }));
   }

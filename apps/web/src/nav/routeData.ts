@@ -24,11 +24,13 @@ const byId = <T extends { id: string }>(...lists: (readonly T[])[]): T[] => [...
 /**
  * Az útvonal menti szakaszok, kamerák, tervezett mérések: a beépített lista + az útvonalat érő
  * csempék a szerverről (a meglévő cache-eken át). Szerver nélkül csak a beépített adat.
+ * Útvonalválasztáskor egyszer fut, az ajánlott és az alternatív útvonalakra együtt; a csempék
+ * a 2 km-es sávnál bővebb környéket fedik, így navigáció közben nem töltünk újra.
  */
-export async function loadRouteData(route: NavRoute): Promise<EnforcementData> {
+export async function loadRouteData(routes: readonly NavRoute[]): Promise<EnforcementData> {
   if (!supabase) return { sections: [...BUNDLED_SECTIONS], cameras: [...BUNDLED_CAMERAS], planned: [] };
   // a csempe ~0,5° (a 3 × 3 szomszédsággal együtt bőven lefedi) – 35 km-enként elég mintát venni
-  const samples = sampleRoute(route, 35_000);
+  const samples = routes.flatMap((r) => sampleRoute(r, 35_000));
   const loaded = await Promise.all(
     samples.map(async (p) => {
       const [s, c, pl] = await Promise.all([sectionCache.loadItems(p.lat, p.lon), cameraCache.loadItems(p.lat, p.lon), plannedCache.loadItems(p.lat, p.lon)]);

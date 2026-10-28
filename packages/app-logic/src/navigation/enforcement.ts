@@ -64,7 +64,7 @@ export function routeEnforcement(navRoute: NavRoute, data: EnforcementData, now:
     if (p.crossM > bandM || p.alongM < 0 || p.alongM > route.lengthM) continue;
     // az ellenkező irányba néző kamerát nem vesszük az útra (ha van irány)
     if (c.headingDeg !== null && angleDiffDeg(c.headingDeg, p.bearingDeg) > 100) continue;
-    items.push({ kind: 'camera', id: c.id, startM: p.alongM, endM: p.alongM, limitKmh: c.speedLimitKmh, label: c.road });
+    items.push({ kind: 'camera', id: c.id, startM: p.alongM, endM: p.alongM, limitKmh: c.speedLimitKmh, label: c.road, verified: c.verified });
   }
 
   const samples: { along: number; p: LatLon }[] = [];

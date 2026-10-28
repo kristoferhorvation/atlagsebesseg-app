@@ -71,7 +71,7 @@ export function RoutePicker({
                       <Icon name="rendorseg" size={18} /> {t('nav.picker.sections', { n: s.sections })}
                     </span>
                     <span data-zero={s.cameras === 0}>
-                      <Icon name="cam_speed" size={18} /> {t('nav.picker.cameras', { n: s.cameras })}
+                      <Icon name="cam_speed" size={18} /> {t('nav.picker.cameras', { n: s.cameras, v: s.camerasVerified })}
                     </span>
                     <span data-delay={s.delayS >= 60}>{s.delayS >= 60 ? t('nav.picker.delay', { n: Math.round(s.delayS / 60) }) : t('nav.picker.noDelay')}</span>
                   </div>

@@ -9,6 +9,8 @@ export interface RouteSummary {
   distanceM: number;
   sections: number;
   cameras: number;
+  /** Ebből az ellenőrzött forrásból valók. */
+  camerasVerified: number;
   /** Dugó miatti késés (s) a tipikus időhöz képest. */
   delayS: number;
 }
@@ -20,6 +22,7 @@ export function routeSummary(route: NavRoute, data: EnforcementData, now: number
     distanceM: route.distanceM,
     sections: items.filter((i) => i.kind === 'section').length,
     cameras: items.filter((i) => i.kind === 'camera').length,
+    camerasVerified: items.filter((i) => i.kind === 'camera' && i.verified).length,
     delayS: trafficDelayS(route),
   };
 }

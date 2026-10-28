@@ -79,4 +79,6 @@ export interface EnforcementItem {
   endM: number;
   limitKmh: number | null;
   label: string;
+  /** Ellenőrzött forrásból való-e (kamerára, szakaszra). */
+  verified?: boolean;
 }

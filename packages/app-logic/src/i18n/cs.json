@@ -241,7 +241,7 @@
   "nav.picker.fastest": "Nejrychlejší",
   "nav.picker.alt": "Alternativa {n}",
   "nav.picker.sections": "Úsekové měření: {n}",
-  "nav.picker.cameras": "Kamery: {n}",
+  "nav.picker.cameras": "{n} kamer · {v} ověřených",
   "nav.picker.delay": "+{n} min kvůli provozu",
   "nav.picker.noDelay": "Bez zdržení",
   "nav.dur.min": "{n} min",
@@ -264,5 +264,5 @@
   "nav.voice.sectionAhead": "Začíná úsekové měření, maximálně {x}",
   "nav.voice.tooFast": "Jedeš příliš rychle, zpomal",
   "nav.voice.rerouting": "Přepočítávám trasu",
-  "nav.voice.faster": "K dispozici je rychlejší trasa, úspora {n} min"
+  "nav.voice.faster": "Rychlejší trasa, úspora {n} min"
 }

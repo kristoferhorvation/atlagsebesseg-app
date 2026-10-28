@@ -39,7 +39,7 @@ export type SearchFor = 'dest' | 'home' | 'work';
 export interface NavigationOptions {
   fix: GpsFix | null;
   fetchRoutes: RouteFetcher | null;
-  loadData: (route: NavRoute) => Promise<EnforcementData>;
+  loadData: (routes: readonly NavRoute[]) => Promise<EnforcementData>;
   now: () => number;
   unit: SpeedUnit;
   voice: boolean;
@@ -94,7 +94,7 @@ export function useNavigation(o: NavigationOptions, places: ReturnType<typeof us
       (routes) => {
         if (seq !== planSeq.current) return;
         setPlan({ dest, status: 'ready', routes, selected: 0 });
-        opts.current.loadData(routes[0]!).then(
+        opts.current.loadData(routes).then(
           (d) => seq === planSeq.current && setData(d),
           () => undefined,
         );

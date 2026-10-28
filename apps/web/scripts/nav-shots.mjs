@@ -56,7 +56,7 @@ try {
   await click(p, '.search-screen .place-row');
   await p.waitFor(`document.querySelectorAll('.picker .route-opt').length >= 2`, 15_000, 'útvonalválasztó');
   const opts = await p.evaluate(`[...document.querySelectorAll('.route-opt')].map((e) => e.innerText.replace(/\\s+/g, ' '))`);
-  check('útvonalválasztó: idő, táv, szakaszellenőrzés, kamera, késés', /perc|ó/.test(opts[0]) && /km/.test(opts[0]) && /Szakaszellenőrzés: 1/.test(opts[0]) && /Kamera: [1-9]/.test(opts[0]) && /dugó/i.test(opts[0]), opts[0]);
+  check('útvonalválasztó: idő, táv, szakaszellenőrzés, kamera, késés', /perc|ó/.test(opts[0]) && /km/.test(opts[0]) && /Szakaszellenőrzés: 1/.test(opts[0]) && /[1-9]\d* kamera · \d+ ellenőrzött/.test(opts[0]) && /dugó/i.test(opts[0]), opts[0]);
   check('az alternatíva is megjelenik', opts.length >= 2, `${opts.length} útvonal`);
   await sleep(1800);
   if (!CHECK_ONLY) await p.shot(`${DATE}-nav-utvonalvalaszto.png`);

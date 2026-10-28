@@ -152,8 +152,8 @@ function Drive({ map }: { map: WebMapAdapter }) {
   const navSim = useMemo<NavSimData | null>(() => (NAV_SIM ? buildNavSim() : null), []);
   const navFetch = useMemo(() => (navSim ? simRouteFetcher(navSim) : (directionsClient?.routes ?? null)), [navSim]);
   const loadData = useCallback(
-    async (route: NavRoute): Promise<EnforcementData> =>
-      navSim ? { sections: [...BUNDLED_SECTIONS, navSim.section], cameras: [...BUNDLED_CAMERAS, navSim.camera], planned: [] } : loadRouteData(route),
+    async (routes: readonly NavRoute[]): Promise<EnforcementData> =>
+      navSim ? { sections: [...BUNDLED_SECTIONS, navSim.section], cameras: [...BUNDLED_CAMERAS, navSim.camera], planned: [] } : loadRouteData(routes),
     [navSim],
   );
   const nav = useNavigation(
@@ -206,6 +206,7 @@ function Drive({ map }: { map: WebMapAdapter }) {
 
   // a „Túl gyors” állapotot a navigáció is bemondja
   useEffect(() => nav.session?.setMeasureStatus(view.phase === 'meres' ? view.status : null), [nav.session, view.phase, view.status]);
+  useEffect(() => nav.session?.setMeasuring(measuring), [nav.session, measuring]);
 
   // tervezett útvonalak és a cél a térképen; navigáció közben csak a jelenlegi útvonal
   const routesShown = useMemo<{ routes: MapRoute[]; dest: LatLon | null }>(() => {
