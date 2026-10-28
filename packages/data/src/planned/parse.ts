@@ -297,7 +297,16 @@ export interface PlannedLine {
   builtUp: boolean | null;
   /** Miért nem értelmezhető (ha `unknown` / `settlement_only`). */
   reason?: string;
+  /**
+   * `settlement_only`: a sor valóban az egész településről szól (csak a név, vagy „belterülete
+   * álló-mozgó ellenőrzés”) → zóna-típusú mérés. Ha a név mellett konkrét hely is áll (nem
+   * ismert utca-típus, házszám), nem zóna: a pontos hely helyett nem állítunk egész várost.
+   */
+  zone?: boolean;
 }
+
+/** A település neve után álló, az egész településre vonatkozó közlés: semmi, „belterülete”, „(álló-)mozgó ellenőrzés”. */
+const ZONE_REST_RE = /^(?:belterület(?:e|én)?)?\s*(?:(?:álló[- ]?)?mozgó\s+|álló\s+)?(?:ellenőrzés)?$/i;
 
 /** Útszám a sorban: „6-os főút”, „8123-as út”, „11104-es számú út”, „38. sz. főút”, „M1 autópálya”, „5-ös számfú főút”. */
 const ROAD_RE =
@@ -441,6 +450,7 @@ export function parseLocationLine(rawLine: string, county: string, settlements: 
     const houseNumber = /\d/.test(rest.slice(rest.toLowerCase().indexOf(street.split(' ').pop()!.toLowerCase())));
     return { ...base, kind: 'street', streets: [street], builtUp: base.builtUp ?? (houseNumber ? true : null) };
   }
+  if (ZONE_REST_RE.test(rest)) return { ...base, kind: 'settlement_only', zone: true, builtUp: /belterület/i.test(rest) ? true : base.builtUp };
   return { ...base, kind: 'settlement_only', reason: 'csak település, útszám vagy utca nélkül' };
 }
 

@@ -29,6 +29,11 @@ Gyökér: `npm test` és `npm run typecheck` minden csomagra; `npm run test:all`
   ha nincs hivatalos párja. Duplikátum = ugyanaz az út, ugyanaz az irány, és a geometria legalább
   70%-ban átfed – ilyenkor csak a hivatalos marad. Minden más OSM-szakasz marad (élőben is csak a duplikátum törlődik).
 - Kód-kommentek és commit-üzenetek magyarul.
+- **Felirat csak a szótárba**: minden felhasználónak szóló szöveg (UI, chipek, sávok, toastok,
+  beállítások, bejelentés-típusok, hibaüzenetek; a szimulátor feliratai kivételek) a
+  `packages/app-logic/src/i18n/<nyelv>.json` szótárba kerül, **mind a 6 nyelven** (hu, en, de, sk, cs, pl),
+  és `t('kulcs', {param})`-mal kérjük. A teszt bukik, ha egy kulcs bárhonnan hiányzik, és a webes őr
+  (`apps/web/test/i18n-guard.test.ts`) ékezetes magyar szöveget keres a kódban.
 
 ## Kör-rendszer
 - Minden prompt „A<n> kör”-rel kezdődik; minden commit-üzenet `A<n>: ...` prefixű.

@@ -1,4 +1,4 @@
-import { REPORT_CHOICES, REPORT_TONE, type ReportChoice } from '@atlagsebesseg/app-logic';
+import { REPORT_CHOICES, REPORT_TONE, reportChoiceLabel, t, type ReportChoice } from '@atlagsebesseg/app-logic';
 import type { GpsFix } from '@atlagsebesseg/core';
 import { Icon } from './Icon';
 import { Sheet } from './Sheet';
@@ -24,13 +24,9 @@ export function ReportSheet({
   onPick: (c: ReportChoice) => void;
   onClose: () => void;
 }) {
-  const note = !online
-    ? 'Nincs szerver-beállítás – a bejelentés most nem küldhető.'
-    : !fix
-      ? 'Nincs még GPS-helyzet.'
-      : 'A jelenlegi helyed és haladási irányod kerül a bejelentésbe. Ideiglenes szakasz: a mérés végén a „Vége” gomb jelenti be a záró kaput.';
+  const note = !online ? t('report.note.offline') : !fix ? t('report.note.noGps') : t('report.note.default');
   return (
-    <Sheet title="Bejelentés" onClose={onClose}>
+    <Sheet title={t('report.title')} onClose={onClose}>
       <div className="tiles">
         {REPORT_CHOICES.map((c) => (
           <button
@@ -43,7 +39,7 @@ export function ReportSheet({
             <span className="ic">
               <Icon name={c.id} />
             </span>
-            {c.label}
+            {reportChoiceLabel(c.id)}
           </button>
         ))}
       </div>

@@ -3,7 +3,7 @@ import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { LocalProjection } from '@atlagsebesseg/core';
 import type { OsmElement, OverpassResponse } from '../src/overpass';
-import { areaId } from '../src/planned/locate';
+import { areaId, simplifyRing } from '../src/planned/locate';
 import { rowId, runPlannedChecks, type PlannedCheckRow, type PlannedDeps, type PlannedStore } from '../src/planned/run';
 
 const fx = (f: string) => readFileSync(join(__dirname, 'fixtures', 'police', f), 'utf8');
@@ -84,6 +84,57 @@ const listingWith = (published: string, title: string) =>
   `<article><header><h1><a href="${ARTICLE.replace('https://www.police.hu', '')}" hreflang="hu">${title}</a></h1></header>` +
   `<footer><time datetime="${published}">x</time><span class="location">ORFK Kommunikációs Szolgálat</span></footer>` +
   `<div class="lead-text"><p>A rendőrség kijelölte a helyszíneket.</p></div></article>`;
+
+describe('tervezett mérések – zóna (egész település)', () => {
+  /** Mint a `deps`, de a Fejér-melléklet csak településeket nevez meg. */
+  const zoneDeps = (today: string) => {
+    const d = deps(today);
+    d.pdfText = async (bytes) =>
+      new TextDecoder().decode(bytes) === FEJER_PDF
+        ? 'Fejér VMRFK helyszínek\nSzékesfehérvár\nSzékesfehérvár mozgó ellenőrzés\nTác belterülete álló-mozgó ellenőrzés\nSzékesfehérvár Kossuth sgt.\n'
+        : 'Speedmarathon 2026. ellenőrzési helyszínek\n';
+    return d;
+  };
+
+  it('csak települést adó sorból zóna-sor: a település határa sokszögként, a Székesfehérvár kétféle megfogalmazása egy sor', async () => {
+    const d = zoneDeps('2026-04-14');
+    const s = await runPlannedChecks(d, { articleUrls: [ARTICLE] });
+    expect(s.zones).toBe(1);
+    expect(s.counties['Fejér']!.rows).toBe(1);
+    const row = d.calls.upserts[0]!;
+    expect(row).toMatchObject({
+      settlement: 'Székesfehérvár',
+      road_ref: null,
+      description: 'Székesfehérvár',
+      valid_from: '2026-04-15T04:00:00.000Z',
+      valid_to: '2026-04-19T21:59:59.000Z',
+      source_url: FEJER_PDF,
+    });
+    expect(row.geometry.type).toBe('Polygon');
+    const ring = (row.geometry.coordinates as [number, number][][])[0]!;
+    expect(ring[0]).toEqual(ring[ring.length - 1]);
+    const xs = ring.map(([lon, lat]) => proj.toXY({ lat, lon }).x);
+    expect(Math.min(...xs)).toBeCloseTo(-100, -1);
+    expect(Math.max(...xs)).toBeCloseTo(700, -1);
+    expect(row.min_lng).toBeLessThan(row.max_lng);
+    expect(d.calls.stale).toContainEqual([FEJER_PDF, [row.id]]);
+  });
+
+  it('a kimaradó zóna okkal listázva: nincs határ-geometria (Tác); a „Kossuth sgt.” nem zóna', async () => {
+    const s = await runPlannedChecks(zoneDeps('2026-04-14'), { articleUrls: [ARTICLE] });
+    const sk = s.counties['Fejér']!.skipped;
+    expect(sk).toContainEqual({ line: 'Tác belterülete álló-mozgó ellenőrzés', reason: expect.stringContaining('határa nincs meg') });
+    expect(sk).toContainEqual({ line: 'Székesfehérvár Kossuth sgt.', reason: expect.stringContaining('csak település') });
+  });
+
+  it('a határ egyszerűsítése: az egyenes menti pontok elhagyva, a sarkok és a zárás megmarad', () => {
+    const sq = [0, 100, 200, 300].map((x) => proj.fromXY({ x, y: 0 }));
+    const ring = [...sq, proj.fromXY({ x: 300, y: 300 }), proj.fromXY({ x: 0, y: 300 }), sq[0]!];
+    const out = simplifyRing(ring, 25);
+    expect(out).toHaveLength(5);
+    expect(out[0]).toEqual(out[out.length - 1]);
+  });
+});
 
 describe('tervezett mérések – egy futás', () => {
   it('Speedmarathon 2026 a közzététel napján: Fejérben a Palotai út elhelyezve, a többi sor okkal kimarad', async () => {

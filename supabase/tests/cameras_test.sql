@@ -42,7 +42,12 @@ values
   ('test-pc-lejart', 'Fejér', 'Tác', 'Fő utca', 'Tác Fő u. 1.',
    '{"type":"LineString","coordinates":[[18.40,47.08],[18.41,47.09]]}', 47.08, 18.40, 47.09, 18.41,
    50, 'kresz_default', now() - interval '10 days', now() - interval '1 day', 'https://www.police.hu/');
-select pg_temp.expect_error($$insert into public.planned_checks (id, county, description, geometry, min_lat, min_lng, max_lat, max_lng, speed_limit_kmh, limit_source, valid_from, valid_to, source_url) values ('test-pc-pont','Fejér','x','{"type":"Point","coordinates":[18,47]}',47,18,47,18,50,'osm',now(),now()+interval '1 day','https://x')$$, 'tervezett mérés: a geometria vonal (LineString/MultiLineString)');
+select pg_temp.expect_error($$insert into public.planned_checks (id, county, description, geometry, min_lat, min_lng, max_lat, max_lng, speed_limit_kmh, limit_source, valid_from, valid_to, source_url) values ('test-pc-pont','Fejér','x','{"type":"Point","coordinates":[18,47]}',47,18,47,18,50,'osm',now(),now()+interval '1 day','https://x')$$, 'tervezett mérés: a geometria vonal vagy zóna (Point nem)');
+
+-- zóna: a település határa sokszögként
+insert into public.planned_checks (id, county, settlement, description, geometry, min_lat, min_lng, max_lat, max_lng, speed_limit_kmh, limit_source, valid_from, valid_to, source_url)
+values ('test-zona','Fejér','Székesfehérvár','Székesfehérvár','{"type":"Polygon","coordinates":[[[18.40,47.18],[18.44,47.18],[18.44,47.21],[18.40,47.21],[18.40,47.18]]]}',47.18,18.40,47.21,18.44,50,'kresz_default',now(),now()+interval '1 day','https://x');
+select pg_temp.expect((select count(*) from public.planned_checks_in_bbox(47.19, 18.41, 47.20, 18.42) where id = 'test-zona') = 1, 'tervezett mérés: a zóna sora a bbox-lekérésben');
 select pg_temp.expect_error($$insert into public.planned_checks (id, county, description, geometry, min_lat, min_lng, max_lat, max_lng, speed_limit_kmh, limit_source, valid_from, valid_to, source_url) values ('test-pc-forras','Fejér','x','{"type":"LineString","coordinates":[[18,47],[18.1,47]]}',47,18,47,18.1,50,'becsles',now(),now()+interval '1 day','https://x')$$, 'tervezett mérés: limit_source csak osm/kresz_default');
 select pg_temp.expect_error($$insert into public.planned_checks (id, county, description, geometry, min_lat, min_lng, max_lat, max_lng, speed_limit_kmh, limit_source, valid_from, valid_to, source_url) values ('test-pc-ido','Fejér','x','{"type":"LineString","coordinates":[[18,47],[18.1,47]]}',47,18,47,18.1,50,'osm',now(),now()-interval '1 day','https://x')$$, 'tervezett mérés: a lejárat a kezdet után');
 

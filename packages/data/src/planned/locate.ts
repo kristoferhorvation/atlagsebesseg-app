@@ -106,6 +106,77 @@ export function pointInArea(p: LatLon, area: AdminArea): boolean {
   return r.outer.some((ring) => inRing(p, ring)) && !r.inner.some((ring) => inRing(p, ring));
 }
 
+// ---------------------------------------------------------------------------
+// Zóna: a település közigazgatási határa
+// ---------------------------------------------------------------------------
+
+export type ZoneGeometry =
+  | { type: 'Polygon'; coordinates: [number, number][][] }
+  | { type: 'MultiPolygon'; coordinates: [number, number][][][] };
+
+/** A zóna határának egyszerűsítési tűrése: a térképen ennyi eltérés nem látszik, a sor viszont töredék méretű. */
+export const ZONE_SIMPLIFY_M = 25;
+
+/** Douglas–Peucker egy zárt gyűrűre (helyi, méteres vetületben); a végpontok maradnak. */
+export function simplifyRing(ring: readonly LatLon[], tolM = ZONE_SIMPLIFY_M): LatLon[] {
+  const open = ring.length > 1 && ring[0]!.lat === ring[ring.length - 1]!.lat && ring[0]!.lon === ring[ring.length - 1]!.lon ? ring.slice(0, -1) : [...ring];
+  if (open.length <= 3) return [...open, open[0]!];
+  const proj = new LocalProjection(open[0]!);
+  const xy = open.map((p) => proj.toXY(p));
+  const keep = new Array<boolean>(open.length).fill(false);
+  keep[0] = true;
+  keep[open.length - 1] = true;
+  const stack: [number, number][] = [[0, open.length - 1]];
+  while (stack.length) {
+    const [a, b] = stack.pop()!;
+    const dx = xy[b]!.x - xy[a]!.x;
+    const dy = xy[b]!.y - xy[a]!.y;
+    const len = Math.hypot(dx, dy);
+    let far = -1;
+    let farD = tolM;
+    for (let i = a + 1; i < b; i++) {
+      const d = len ? Math.abs(dy * (xy[i]!.x - xy[a]!.x) - dx * (xy[i]!.y - xy[a]!.y)) / len : Math.hypot(xy[i]!.x - xy[a]!.x, xy[i]!.y - xy[a]!.y);
+      if (d > farD) [far, farD] = [i, d];
+    }
+    if (far >= 0) {
+      keep[far] = true;
+      stack.push([a, far], [far, b]);
+    }
+  }
+  const out = open.filter((_, i) => keep[i]);
+  return out.length >= 3 ? [...out, out[0]!] : [...open, open[0]!];
+}
+
+const round6 = (x: number) => Math.round(x * 1e6) / 1e6;
+const coords = (ring: readonly LatLon[]) => ring.map((p) => [round6(p.lon), round6(p.lat)] as [number, number]);
+
+/**
+ * A település határa GeoJSON-sokszögként: a külső gyűrűk egyszerűsítve, a belső gyűrűk (lyukak)
+ * ahhoz a külső gyűrűhöz, amely tartalmazza őket. `null`, ha a határ geometriája nem áll rendelkezésre.
+ */
+export function areaZone(area: AdminArea): ZoneGeometry | null {
+  const r = area.rings;
+  if (!r?.outer.length) return null;
+  const polys = r.outer.map((outer) => ({ outer, holes: [] as LatLon[][] }));
+  for (const hole of r.inner) {
+    const home = polys.find((p) => inRing(hole[0]!, p.outer));
+    if (home) home.holes.push(hole);
+  }
+  const rings = polys.map((p) => [p.outer, ...p.holes].map((g) => coords(simplifyRing(g))));
+  return rings.length === 1 ? { type: 'Polygon', coordinates: rings[0]! } : { type: 'MultiPolygon', coordinates: rings };
+}
+
+/** A zóna befoglaló téglalapja. */
+export function zoneBbox(z: ZoneGeometry): { minLat: number; minLng: number; maxLat: number; maxLng: number } {
+  const pts = (z.type === 'Polygon' ? [z.coordinates] : z.coordinates).flatMap((p) => p[0]!);
+  return {
+    minLat: Math.min(...pts.map((p) => p[1]!)),
+    minLng: Math.min(...pts.map((p) => p[0]!)),
+    maxLat: Math.max(...pts.map((p) => p[1]!)),
+    maxLng: Math.max(...pts.map((p) => p[0]!)),
+  };
+}
+
 /** A megye útjai a kért utcanevek első szava és az útszámok szerint (egy lekérés a megye összes helyszínére). */
 export function countyWaysQuery(county: AdminArea, streets: readonly string[], roads: readonly string[]): string {
   const parts: string[] = [];

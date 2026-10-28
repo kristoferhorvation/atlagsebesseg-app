@@ -723,9 +723,20 @@ select:focus-visible {
 }
 
 .slowdown-label {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
   font-size: var(--type-title-size);
   font-weight: 680;
   letter-spacing: var(--type-title-tracking);
+}
+
+/* a szám a mondat közepén (nyelvenként más a szórend): nagy, fehér */
+.slowdown-num {
+  font-size: 44px;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  color: var(--color-text);
 }
 
 .slowdown-max {
@@ -1021,6 +1032,24 @@ a.list-row {
 .segmented button[aria-pressed='true'] {
   background: var(--color-text);
   color: var(--color-sign-text);
+}
+
+/* nyelv-választó a beállítások listájában */
+.select {
+  height: 40px;
+  max-width: 55%;
+  padding: 0 12px;
+  border-radius: 12px;
+  border: 0;
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--color-text);
+  font: inherit;
+  font-size: 15px;
+  font-weight: 620;
+}
+
+.hint[data-voice='missing'] {
+  color: var(--color-planned);
 }
 
 /* ---------- indítóképernyő ---------- */
@@ -1359,6 +1388,14 @@ a.list-row {
   font-weight: 680;
 }
 
+/* zóna: egy hosszabb mondat – törhet, és nem a címsor-méretű */
+.planned-band[data-zone='true'] .planned-band-text b {
+  font-size: var(--type-body-size);
+  font-weight: 620;
+  color: var(--color-text);
+  white-space: normal;
+}
+
 /* mérés közben kisebb: egy sor, a nagy szám marad a fókusz */
 .planned-band[data-compact='true'] {
   top: calc(env(safe-area-inset-top) + 92px);
@@ -1375,6 +1412,15 @@ a.list-row {
 
 .planned-band[data-compact='true'] .planned-band-text b {
   font-size: var(--type-body-size);
+}
+
+.planned-band[data-compact='true'][data-zone='true'] .planned-band-text {
+  white-space: normal;
+}
+
+.planned-band[data-compact='true'][data-zone='true'] .planned-band-text b {
+  font-size: 15px;
+  line-height: 1.25;
 }
 
 .planned-band[data-compact='true'] .planned-band-dot {

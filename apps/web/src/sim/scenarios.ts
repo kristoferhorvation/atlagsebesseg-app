@@ -3,7 +3,7 @@ import { bearingDeg, LocalProjection, polylineLengthM, type LatLon, type Section
 // A core tesztjeinek vezetés-generátora (Route menti mozgás, zaj, alagút) – ugyanaz, amin a core tesztel.
 import { drive, testCourse, toLatLon, type DriveSample } from '@atlagsebesseg/core/test/helpers/trace';
 
-export type SimScenario = 'jo' | 'tul' | 'lassit' | 'alagut' | 'tervezett';
+export type SimScenario = 'jo' | 'tul' | 'lassit' | 'alagut' | 'tervezett' | 'zona';
 
 export const SCENARIOS: readonly { id: SimScenario; label: string }[] = [
   { id: 'jo', label: 'Jó ütem' },
@@ -11,6 +11,7 @@ export const SCENARIOS: readonly { id: SimScenario; label: string }[] = [
   { id: 'lassit', label: 'Gyors, majd lassít' },
   { id: 'alagut', label: 'Alagút' },
   { id: 'tervezett', label: 'Tervezett mérés + kamerák' },
+  { id: 'zona', label: 'Települészóna' },
 ];
 
 export interface SimRoute {
@@ -54,6 +55,7 @@ function profile(scenario: SimScenario, limit: number): (f: number) => number {
     case 'alagut':
       return () => limit - 6;
     case 'tervezett':
+    case 'zona':
       return () => limit - 9;
   }
 }
@@ -147,6 +149,7 @@ function pathSlice(sim: Simulation, from: number, to: number): LatLon[] {
  * (így előbb nagy sávként, majd mérés közben kicsiként látszik). Más forgatókönyvben nincs.
  */
 export function simPlannedChecks(sim: Simulation, scenario: SimScenario): PlannedCheck[] {
+  if (scenario === 'zona') return [simZone(sim)];
   if (scenario !== 'tervezett') return [];
   const t0 = sim.samples[0]?.t ?? Date.now();
   const n = sim.samples.length;
@@ -164,6 +167,7 @@ export function simPlannedChecks(sim: Simulation, scenario: SimScenario): Planne
       roadRef: sim.section.road || null,
       description: 'Szimulált tervezett mérés',
       lines: [line],
+      zones: [],
       speedLimitKmh: sim.section.speedLimitKmh,
       limitSource: 'osm',
       validFrom: monday - 3600_000,
@@ -172,6 +176,40 @@ export function simPlannedChecks(sim: Simulation, scenario: SimScenario): Planne
       sourceUrl: 'https://www.police.hu/',
     },
   ];
+}
+
+/**
+ * A „zóna” forgatókönyv: a pálya 20–85%-át befoglaló, 400 m-rel megtoldott téglalap egy „településen” belül
+ * (a rendőrség csak a települést közölte) – a sáv a határon belül látszik.
+ */
+function simZone(sim: Simulation): PlannedCheck {
+  const t0 = sim.samples[0]?.t ?? Date.now();
+  const fixes = sim.samples.filter((s) => !s.dropped).map((s) => s.fix);
+  const part = fixes.slice(Math.floor(fixes.length * 0.2), Math.ceil(fixes.length * 0.85));
+  const proj = new LocalProjection(part[0] ?? sim.section.start);
+  const xy = part.map((f) => proj.toXY(f));
+  const pad = 400;
+  const [x0, x1] = [Math.min(...xy.map((p) => p.x)) - pad, Math.max(...xy.map((p) => p.x)) + pad];
+  const [y0, y1] = [Math.min(...xy.map((p) => p.y)) - pad, Math.max(...xy.map((p) => p.y)) + pad];
+  const ring = [proj.fromXY({ x: x0, y: y0 }), proj.fromXY({ x: x1, y: y0 }), proj.fromXY({ x: x1, y: y1 }), proj.fromXY({ x: x0, y: y1 }), proj.fromXY({ x: x0, y: y0 })];
+  const day = new Date(t0);
+  const monday = Date.UTC(day.getUTCFullYear(), day.getUTCMonth(), day.getUTCDate() - ((day.getUTCDay() + 6) % 7));
+  return {
+    id: `sim-zone-${sim.section.id}`,
+    country: sim.section.country,
+    county: 'Szimulátor',
+    settlement: 'Mintaváros',
+    roadRef: null,
+    description: 'Szimulált települészóna',
+    lines: [],
+    zones: [[ring]],
+    speedLimitKmh: 50,
+    limitSource: 'kresz_default',
+    validFrom: monday - 3600_000,
+    validTo: monday + 7 * 86400_000 - 3600_000 - 1000,
+    timeWindow: null,
+    sourceUrl: 'https://www.police.hu/',
+  };
 }
 
 const SIM_CAMERAS: readonly { type: CameraType; at: number; verified: boolean }[] = [

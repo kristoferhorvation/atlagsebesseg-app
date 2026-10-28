@@ -1,5 +1,6 @@
-import type { MapLook, Settings, SpeedUnit } from '@atlagsebesseg/app-logic';
+import { LANGUAGES, LANGUAGE_NAMES, t, type MapLook, type Settings, type SpeedUnit } from '@atlagsebesseg/app-logic';
 import { DEFAULT_TOLERANCE } from '@atlagsebesseg/core';
+import { useLanguage, useVoiceStatus } from '../i18n';
 import { Sheet } from './Sheet';
 
 export interface SystemInfo {
@@ -26,35 +27,34 @@ export function SettingsSheet({
   simMode: boolean;
   onClose: () => void;
 }) {
+  const { lang, preference, setPreference } = useLanguage();
+  const voice = useVoiceStatus(lang);
   const units: { id: SpeedUnit; label: string }[] = [
     { id: 'kmh', label: 'km/h' },
     { id: 'mph', label: 'mph' },
   ];
   const looks: { id: MapLook; label: string }[] = [
-    { id: 'szines', label: 'színes' },
-    { id: 'visszafogott', label: 'visszafogott' },
+    { id: 'szines', label: t('settings.look.color') },
+    { id: 'visszafogott', label: t('settings.look.muted') },
   ];
   return (
-    <Sheet title="Beállítások" onClose={onClose}>
-      <div className="group-label">Kijelző</div>
+    <Sheet title={t('settings.title')} onClose={onClose}>
+      <div className="group-label">{t('settings.group.display')}</div>
       <div className="list">
         <div className="list-row">
           <div>
-            <div className="label">Hatósági tűrés megjelenítése</div>
-            <div className="hint">
-              A határ mellett a tűréssel növelt érték ({DEFAULT_TOLERANCE.percent}%, legalább {DEFAULT_TOLERANCE.minKmh} km/h). A
-              színkód és a javaslat mindig a szigorú határhoz számol.
-            </div>
+            <div className="label">{t('settings.tolerance')}</div>
+            <div className="hint">{t('settings.toleranceHint', { percent: DEFAULT_TOLERANCE.percent, min: DEFAULT_TOLERANCE.minKmh })}</div>
           </div>
           <Switch
-            label="Hatósági tűrés megjelenítése"
+            label={t('settings.tolerance')}
             checked={settings.hatosagi_tures_megjelenitese}
             onChange={(v) => update({ hatosagi_tures_megjelenitese: v })}
           />
         </div>
         <div className="list-row">
-          <div className="label">Egység</div>
-          <div className="segmented" role="group" aria-label="Egység">
+          <div className="label">{t('settings.unit')}</div>
+          <div className="segmented" role="group" aria-label={t('settings.unit')}>
             {units.map((u) => (
               <button key={u.id} aria-pressed={settings.egyseg === u.id} onClick={() => update({ egyseg: u.id })}>
                 {u.label}
@@ -64,17 +64,14 @@ export function SettingsSheet({
         </div>
         <div className="list-row">
           <div>
-            <div className="label">Tervezett mérések mutatása</div>
-            <div className="hint">
-              A rendőrség által előre közzétett mérési helyszínek halvány sárga vonalként; a vonalon haladva felül sáv jelzi. A fix
-              kamerákat nem érinti.
-            </div>
+            <div className="label">{t('settings.planned')}</div>
+            <div className="hint">{t('settings.plannedHint')}</div>
           </div>
-          <Switch label="Tervezett mérések mutatása" checked={settings.tervezett_meresek} onChange={(v) => update({ tervezett_meresek: v })} />
+          <Switch label={t('settings.planned')} checked={settings.tervezett_meresek} onChange={(v) => update({ tervezett_meresek: v })} />
         </div>
         <div className="list-row">
-          <div className="label">Térkép</div>
-          <div className="segmented" role="group" aria-label="Térkép">
+          <div className="label">{t('settings.map')}</div>
+          <div className="segmented" role="group" aria-label={t('settings.map')}>
             {looks.map((l) => (
               <button key={l.id} aria-pressed={settings.terkep === l.id} onClick={() => update({ terkep: l.id })}>
                 {l.label}
@@ -82,16 +79,40 @@ export function SettingsSheet({
             ))}
           </div>
         </div>
+        <div className="list-row">
+          <div className="label">{t('settings.language')}</div>
+          <select
+            className="select"
+            aria-label={t('settings.language')}
+            value={preference}
+            onChange={(e) => setPreference(e.target.value as typeof preference)}
+          >
+            <option value="auto">{t('settings.language.auto')} ({LANGUAGE_NAMES[lang]})</option>
+            {LANGUAGES.map((l) => (
+              <option key={l} value={l}>
+                {LANGUAGE_NAMES[l]}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="list-row">
+          <div>
+            <div className="label">{t('settings.voice')}</div>
+            <div className="hint" data-voice={voice}>
+              {t(voice === 'ok' ? 'settings.voice.ok' : voice === 'missing' ? 'settings.voice.missing' : 'settings.voice.unsupported')}
+            </div>
+          </div>
+        </div>
       </div>
 
-      <div className="group-label">Állapot</div>
+      <div className="group-label">{t('settings.group.status')}</div>
       <div className="list">
         {(
           [
-            ['GPS', info.gps],
-            ['Kijelző ébren tartása', info.wake],
-            ['Szakaszok', info.sections],
-            ['Szerver', info.server],
+            [t('settings.gps'), info.gps],
+            [t('settings.wake'), info.wake],
+            [t('settings.sections'), info.sections],
+            [t('settings.server'), info.server],
           ] as const
         ).map(([k, v]) => (
           <div className="list-row" key={k}>
@@ -101,21 +122,17 @@ export function SettingsSheet({
         ))}
       </div>
 
-      <div className="group-label">Fejlesztés</div>
+      <div className="group-label">{t('settings.group.dev')}</div>
       <div className="list">
         <a className="list-row" href={simMode ? '/' : '/?sim'}>
           <div>
-            <div className="label">{simMode ? 'Kilépés a szimulátorból' : 'Szimulátor'}</div>
-            <div className="hint">Felvett útvonal lejátszása GPS nélkül, a kijelző kipróbálásához.</div>
+            <div className="label">{simMode ? t('settings.sim.exit') : t('settings.sim.enter')}</div>
+            <div className="hint">{t('settings.sim.hint')}</div>
           </div>
         </a>
       </div>
 
-      <div className="sheet-note">
-        Szakaszadatok és kamerák: © OpenStreetMap contributors (ODbL); fix VÉDA-pontok: ORFK (2015); tervezett mérések: police.hu.
-        Térkép: © Mapbox, © OpenStreetMap. Az app tájékoztató jellegű – a
-        sebességhatárt mindig a táblák határozzák meg.
-      </div>
+      <div className="sheet-note">{t('settings.attribution')}</div>
     </Sheet>
   );
 }

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import {
-  CAMERA_LABEL,
+  cameraLabel,
   cameraVisibility,
   cameraWarning,
   createReports,
@@ -18,8 +18,10 @@ import {
   type FixedCamera,
   type PlannedCheck,
   type BBox,
-  REPORT_CHOICES,
+  reportChoiceLabel,
   reportFromFix,
+  t,
+  type TKey,
   tempSectionEndReports,
   type ReportChoice,
   type ReportInsert,
@@ -30,6 +32,7 @@ import { BUNDLED_SECTIONS } from '@atlagsebesseg/app-logic/bundled-sections';
 import { haversineM, type GpsFix, type Section } from '@atlagsebesseg/core';
 import { statusColor } from '@atlagsebesseg/design-tokens';
 import { cameraCache, plannedCache, supabase } from './backend';
+import { useLanguage } from './i18n';
 import { useFollow } from './hooks/useFollow';
 import { useGeolocation, type GeoStatus } from './hooks/useGeolocation';
 import { useLightPreset } from './hooks/useLightPreset';
@@ -71,6 +74,8 @@ async function fetchServerReports(b: BBox): Promise<ActiveReport[]> {
 }
 
 export function App() {
+  // a t() globális: a gyökér a nyelvváltásra újrarenderel, vele a teljes fa
+  useLanguage();
   const [map, setMap] = useState<WebMapAdapter | null>(null);
   const [started, setStarted] = useState(SIM_MODE);
   useEffect(() => {
@@ -97,17 +102,18 @@ interface Toast {
   ms?: number;
 }
 
-const GEO_TEXT: Record<GeoStatus, string> = {
-  ki: 'ki',
-  kereses: 'keresés…',
-  aktiv: 'aktív',
-  elutasitva: 'tiltva (Beállítások → Safari → Hely)',
-  nem_elerheto: 'nem elérhető (HTTPS kell)',
-  hiba: 'hiba',
+const GEO_TEXT: Record<GeoStatus, TKey> = {
+  ki: 'geo.off',
+  kereses: 'geo.searching',
+  aktiv: 'geo.active',
+  elutasitva: 'geo.denied',
+  nem_elerheto: 'geo.unavailable',
+  hiba: 'geo.error',
 };
 
 /** A vezetés közbeni képernyő: mérés-munkamenet + GPS vagy szimulátor + térkép + HUD. */
 function Drive({ map }: { map: WebMapAdapter }) {
+  const { lang } = useLanguage();
   const { settings, update } = useSettings();
   const clock = useRef<() => number>(Date.now);
   const now = useCallback(() => clock.current(), []);
@@ -183,8 +189,8 @@ function Drive({ map }: { map: WebMapAdapter }) {
   const pinsKey = feed.reports.map((r) => `${r.id}:${r.type}:${r.gateKind}`).join('|');
   const pins = useMemo<MapReport[]>(
     () => feed.reports.map((r) => ({ id: r.id, lat: r.lat, lon: r.lon, ...reportVisual(r) })),
-    // csak ha a halmaz változik (a lista minden frissítésnél új tömb)
-    [pinsKey],
+    // csak ha a halmaz (vagy a nyelv – a felirat) változik; a lista minden frissítésnél új tömb
+    [pinsKey, lang],
   );
   useEffect(() => map.showReports(pins, selected?.id ?? null), [map, pins, selected?.id]);
 
@@ -204,11 +210,11 @@ function Drive({ map }: { map: WebMapAdapter }) {
   useEffect(
     () =>
       map.showCameras(
-        camLayer.points.map((c) => ({ id: c.id, lat: c.lat, lon: c.lon, icon: cameraIcon(c.type), label: CAMERA_LABEL[c.type] })),
+        camLayer.points.map((c) => ({ id: c.id, lat: c.lat, lon: c.lon, icon: cameraIcon(c.type), label: cameraLabel(c.type) })),
         camLayer.zones,
         selectedCam?.id ?? null,
       ),
-    [map, camLayer, selectedCam?.id],
+    [map, camLayer, selectedCam?.id, lang],
   );
   useEffect(
     () =>
@@ -247,7 +253,7 @@ function Drive({ map }: { map: WebMapAdapter }) {
     () =>
       map.showPlannedChecks(
         // `zone` láthatóságnál a vonal nem kerül a térképre (csak a sáv jelez)
-        plannedShown.filter((c) => cameraVisibility(c.country) === 'show').map((c) => ({ id: c.id, lines: c.lines })),
+        plannedShown.filter((c) => cameraVisibility(c.country) === 'show').map((c) => ({ id: c.id, lines: c.lines, zones: c.zones })),
         activePlanned?.id ?? null,
       ),
     [map, plannedShown, activePlanned?.id],
@@ -320,7 +326,7 @@ function Drive({ map }: { map: WebMapAdapter }) {
     const id = setTimeout(() => {
       if (wakeWarned.current || wakeStatus.current === 'aktiv') return;
       wakeWarned.current = true;
-      showToast({ text: 'A kijelző elalhat – állítsd az automatikus zárolást „Soha” értékre', tone: 'semleges', icon: 'screen', ms: 5000 });
+      showToast({ text: t('toast.wakeSleep'), tone: 'semleges', icon: 'screen', ms: 5000 });
     }, 2500);
     return () => clearTimeout(id);
   }, [showToast]);
@@ -337,11 +343,11 @@ function Drive({ map }: { map: WebMapAdapter }) {
       .then((ids) => {
         ids.forEach((id, i) => rows[i] && feed.addOwn(ownReport(rows[i], id, now())));
         setGateState('elkuldve');
-        showToast({ text: 'Ideiglenes szakasz bejelentve', tone: 'jo', icon: 'check' });
+        showToast({ text: t('toast.tempSent'), tone: 'jo', icon: 'check' });
       })
       .catch(() => {
         setGateState('hiba');
-        showToast({ text: 'A kapukat nem sikerült elküldeni', tone: 'tul', icon: 'report' });
+        showToast({ text: t('toast.gatesFail'), tone: 'tul', icon: 'report' });
       });
   }, [showToast, feed.addOwn, now]);
   useEffect(() => {
@@ -357,7 +363,7 @@ function Drive({ map }: { map: WebMapAdapter }) {
     if (!start) {
       // álló helyzetben még nincs irány: a kezdő kapu a mérés első pontjából, a végén megy el
       setTemp({ startSent: false });
-      showToast({ text: 'Mérés indult – a kezdő kaput a végén küldjük', tone: 'kezi', icon: 'kapu_kezdo' });
+      showToast({ text: t('toast.startLater'), tone: 'kezi', icon: 'kapu_kezdo' });
       return;
     }
     setTemp({ startSent: false });
@@ -365,9 +371,9 @@ function Drive({ map }: { map: WebMapAdapter }) {
       .then(([id]) => {
         if (id) feed.addOwn(ownReport(start, id, now()));
         setTemp((t) => t && { startSent: true });
-        showToast({ text: 'Kezdő kapu bejelentve', tone: 'jo', icon: 'check' });
+        showToast({ text: t('toast.startSent'), tone: 'jo', icon: 'check' });
       })
-      .catch(() => showToast({ text: 'A kezdő kaput a végén újra megpróbáljuk', tone: 'hataron', icon: 'kapu_kezdo' }));
+      .catch(() => showToast({ text: t('toast.startRetry'), tone: 'hataron', icon: 'kapu_kezdo' }));
   }, [view.lastFix, session.startManual, showToast, feed.addOwn, now]);
 
   const startManual = useCallback(() => {
@@ -391,14 +397,14 @@ function Drive({ map }: { map: WebMapAdapter }) {
       if (choice === 'ideiglenes_szakasz') return startTempSection();
       const row = view.lastFix ? reportFromFix(choice, view.lastFix) : null;
       if (!row) return;
-      const label = REPORT_CHOICES.find((c) => c.id === choice)?.label ?? 'Bejelentés';
+      const label = reportChoiceLabel(choice);
       setSending(choice);
       createReports(supabase, [row])
         .then(([id]) => {
           if (id) feed.addOwn(ownReport(row, id, now()));
-          showToast({ text: `Elküldve: ${label}`, tone: 'jo', icon: 'check' });
+          showToast({ text: t('report.sent', { label }), tone: 'jo', icon: 'check' });
         })
-        .catch(() => showToast({ text: 'Nem sikerült elküldeni – nincs kapcsolat?', tone: 'tul', icon: 'report' }))
+        .catch(() => showToast({ text: t('report.sendFail'), tone: 'tul', icon: 'report' }))
         .finally(() => {
           setSending(null);
           setSheet(null);
@@ -413,14 +419,14 @@ function Drive({ map }: { map: WebMapAdapter }) {
     (id: string, confirm: boolean) => {
       const done = () => {
         feed.vote(id, confirm);
-        showToast({ text: confirm ? 'Köszönjük – megerősítve' : 'Köszönjük – jelezted, hogy nincs ott', tone: 'jo', icon: 'check' });
+        showToast({ text: t(confirm ? 'vote.confirmed' : 'vote.gone'), tone: 'jo', icon: 'check' });
         setSelectedId(null);
       };
       if (SIM_MODE) return done();
       setVoting(true);
       voteReport(supabase, id, confirm)
         .then(done)
-        .catch(() => showToast({ text: 'Nem sikerült elküldeni – nincs kapcsolat?', tone: 'tul', icon: 'report' }))
+        .catch(() => showToast({ text: t('report.sendFail'), tone: 'tul', icon: 'report' }))
         .finally(() => setVoting(false));
     },
     [feed.vote, showToast],
@@ -440,7 +446,7 @@ function Drive({ map }: { map: WebMapAdapter }) {
         compact={driving}
         onWake={() => {
           if (wake.status === 'nem_tamogatott')
-            showToast({ text: 'Állítsd az automatikus zárolást „Soha” értékre', tone: 'hataron', icon: 'screen' });
+            showToast({ text: t('toast.wakeNever'), tone: 'hataron', icon: 'screen' });
           else wake.request();
         }}
       />
@@ -477,7 +483,7 @@ function Drive({ map }: { map: WebMapAdapter }) {
           {!selected && selectedCam && <CameraCard key={selectedCam.id} camera={selectedCam} onClose={() => setSelectedCamId(null)} />}
           {!follow.following && (
             <div className="recenter-row">
-              <button className="round-btn glass recenter" onClick={follow.recenter} aria-label="Vissza a helyemre">
+              <button className="round-btn glass recenter" onClick={follow.recenter} aria-label={t('map.recenter')}>
                 <Icon name="crosshair" size={28} />
               </button>
             </div>
@@ -486,15 +492,15 @@ function Drive({ map }: { map: WebMapAdapter }) {
         <div className="actions">
           {!driving && view.phase !== 'kezi_eredmeny' && (
             <>
-              <button className="round-btn glass" onClick={() => setSheet('settings')} aria-label="Beállítások">
+              <button className="round-btn glass" onClick={() => setSheet('settings')} aria-label={t('map.settings')}>
                 <Icon name="sliders" size={26} />
               </button>
-              <button className="round-btn glass" onClick={startManual} aria-label="Kézi mérés indítása">
+              <button className="round-btn glass" onClick={startManual} aria-label={t('map.manualStart')}>
                 <Icon name="stopwatch" size={26} />
               </button>
             </>
           )}
-          <button className="round-btn glass report" onClick={() => setSheet('report')} aria-label="Bejelentés">
+          <button className="round-btn glass report" onClick={() => setSheet('report')} aria-label={t('map.report')}>
             <Icon name="report" size={28} />
           </button>
         </div>
@@ -534,10 +540,17 @@ function Drive({ map }: { map: WebMapAdapter }) {
           simMode={SIM_MODE}
           onClose={() => setSheet(null)}
           info={{
-            gps: SIM_MODE ? 'szimulátor' : GEO_TEXT[geo],
-            wake: { aktiv: 'aktív', inaktiv: 'nem aktív', nem_tamogatott: 'nem támogatott' }[wake.status],
-            sections: `${all.length} db · ${{ beepitett: 'beépített', betoltes: 'betöltés…', szerver: 'szerverről', offline_cache: 'cache (offline)', offline: 'beépített (offline)' }[sectionsStatus]}`,
-            server: supabase ? 'beállítva' : 'nincs (offline mód)',
+            gps: t(SIM_MODE ? 'geo.sim' : GEO_TEXT[geo]),
+            wake: t({ aktiv: 'wakeinfo.active', inaktiv: 'wakeinfo.inactive', nem_tamogatott: 'wakeinfo.unsupported' }[wake.status] as TKey),
+            sections: t('sections.count', {
+              n: all.length,
+              status: t(
+                { beepitett: 'sections.status.bundled', betoltes: 'sections.status.loading', szerver: 'sections.status.server', offline_cache: 'sections.status.cache', offline: 'sections.status.offline' }[
+                  sectionsStatus
+                ] as TKey,
+              ),
+            }),
+            server: t(supabase ? 'server.set' : 'server.none'),
           }}
         />
       )}

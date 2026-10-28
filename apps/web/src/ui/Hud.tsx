@@ -4,7 +4,9 @@ import {
   formatDuration,
   speedFloorIn,
   speedIn,
+  t,
   unitLabel,
+  type TKey,
   type InterruptReason,
   type SessionView,
   type Settings,
@@ -12,6 +14,7 @@ import {
 } from '@atlagsebesseg/app-logic';
 import { limitWithToleranceKmh, meterBar, type MeterBar, type Section } from '@atlagsebesseg/core';
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
+import { tNode } from '../i18n';
 import { Icon, type IconName } from './Icon';
 import { LimitSign } from './LimitSign';
 
@@ -30,24 +33,24 @@ export interface HudProps {
   onRetryGates: () => void;
 }
 
-export const STATUS_META: Record<SpeedStatus, { icon: IconName; label: string }> = {
-  jo: { icon: 'check', label: 'Jó ütem' },
-  lassits: { icon: 'arrowDown', label: 'Átlag magas' },
-  tul_gyors: { icon: 'arrowUp', label: 'Túl gyors' },
+export const STATUS_META: Record<SpeedStatus, { icon: IconName; label: TKey }> = {
+  jo: { icon: 'check', label: 'status.good' },
+  lassits: { icon: 'arrowDown', label: 'status.slow' },
+  tul_gyors: { icon: 'arrowUp', label: 'status.fast' },
 };
 
-const INTERRUPT_TEXT: Record<InterruptReason, string> = {
-  hatter: 'Az app háttérbe került',
-  letert: 'Letértél a szakaszról',
-  ellenirany: 'Ellenirányban haladsz',
-  jelvesztes: 'Túl hosszú GPS-kiesés',
+const INTERRUPT_TEXT: Record<InterruptReason, TKey> = {
+  hatter: 'interrupt.background',
+  letert: 'interrupt.offRoute',
+  ellenirany: 'interrupt.wrongWay',
+  jelvesztes: 'interrupt.gpsLoss',
 };
 
-const GATE_TEXT: Record<Exclude<GateReportState, 'nincs'>, string> = {
-  kuldes: 'Kapuk küldése…',
-  elkuldve: 'Ideiglenes szakasz bejelentve – mások megerősítésére vár.',
-  hiba: 'A kapukat nem sikerült elküldeni – nincs kapcsolat?',
-  nem_hatarozhato: 'A kapuk helye nem határozható meg (kevés GPS-adat), nem küldtük el.',
+const GATE_TEXT: Record<Exclude<GateReportState, 'nincs'>, TKey> = {
+  kuldes: 'gate.sending',
+  elkuldve: 'gate.sent',
+  hiba: 'gate.error',
+  nem_hatarozhato: 'gate.undetermined',
 };
 
 /** A kijelző tónusa (DESIGN.md): mérésnél a státusz, kézi módban az accent. */
@@ -96,32 +99,32 @@ export function Hud(p: HudProps) {
       const meta = view.status ? STATUS_META[view.status] : null;
       const chip: ReactNode = meta ? (
         <span className="chip">
-          <Icon name={meta.icon} /> {meta.label}
+          <Icon name={meta.icon} /> {t(meta.label)}
         </span>
       ) : (
-        <span className="chip neutral">Mérés indul…</span>
+        <span className="chip neutral">{t('hud.starting')}</span>
       );
       return (
-        <Card tone={tone} label="Mérés">
+        <Card tone={tone} label={t('hud.measure')}>
           <div className="row">
             {chip}
             {live.estimated && (
-              <span className="chip neutral" aria-label="Becsült érték, nincs GPS">
-                <Icon name="tunnel" /> Becslés
+              <span className="chip neutral" aria-label={t('hud.estimateAria')}>
+                <Icon name="tunnel" /> {t('hud.estimate')}
               </span>
             )}
           </div>
           <Hero value={speedIn(live.averageKmh, unit)} />
-          <div className="body muted hero-unit">{u} átlag</div>
+          <div className="body muted hero-unit">{t('hud.avg', { u })}</div>
           <div className="meter-line">
             <div className="sign-col">
               <LimitSign kmh={s.speedLimitKmh} unit={unit} small />
               {settings.hatosagi_tures_megjelenitese && (
-                <div className="tolerance num">tűrés {speedFloorIn(limitWithToleranceKmh(s.speedLimitKmh), unit)}</div>
+                <div className="tolerance num">{t('hud.tolerance', { x: speedFloorIn(limitWithToleranceKmh(s.speedLimitKmh), unit) ?? '' })}</div>
               )}
             </div>
             <div className="meter-fig">
-              <span className="body muted">most</span>
+              <span className="body muted">{t('hud.now')}</span>
               {/* az állapot nem változik: a „most” önállóan jelzi, ha a pillanatnyi sebesség a határ felett van */}
               <b className="meter-num num" data-over={(view.currentKmh ?? 0) > s.speedLimitKmh}>{speedIn(view.currentKmh, unit) ?? '–'}</b>
             </div>
@@ -129,7 +132,7 @@ export function Hud(p: HudProps) {
               ·
             </span>
             <div className="meter-fig">
-              <span className="body muted">várható</span>
+              <span className="body muted">{t('hud.expected')}</span>
               <b className="meter-num num">{speedIn(live.projectedKmh, unit) ?? '–'}</b>
             </div>
           </div>
@@ -141,20 +144,20 @@ export function Hud(p: HudProps) {
     case 'kozeledik': {
       const s = view.section!;
       return (
-        <Card tone={tone} label="Mérőszakasz közeleg">
+        <Card tone={tone} label={t('hud.approach.aria')}>
           <div className="row">
             <span className="chip">
-              <Icon name="approach" /> Mérőszakasz
+              <Icon name="approach" /> {t('hud.approach.chip')}
             </span>
           </div>
           <div className="hero-row">
             <div className="hero-col">
               <div className="display num">
                 {view.approachM !== null ? formatDistance(view.approachM, unit).value : '–'}
-                <small>{view.approachM !== null ? `${formatDistance(view.approachM, unit).unit} múlva` : ''}</small>
+                <small>{view.approachM !== null ? t('hud.ahead', { u: formatDistance(view.approachM, unit).unit }) : ''}</small>
               </div>
               <div className="body muted" style={{ marginTop: 8 }}>
-                {[s.road, s.direction].filter(Boolean).join(' · ') || 'Átlagsebesség-mérés'}
+                {[s.road, s.direction].filter(Boolean).join(' · ') || t('hud.approach.default')}
               </div>
             </div>
             <LimitSign kmh={s.speedLimitKmh} unit={unit} />
@@ -169,30 +172,30 @@ export function Hud(p: HudProps) {
       const diff = Math.round(Math.abs((speedIn(r.averageKmh, unit) ?? 0) - (speedIn(r.speedLimitKmh, unit) ?? 0)));
       const meta = STATUS_META[view.status ?? 'jo'];
       return (
-        <Card tone={tone} label="Szakasz vége">
+        <Card tone={tone} label={t('hud.done.aria')}>
           <div className="row">
             <span className="chip">
-              <Icon name={meta.icon} /> {r.overLimit ? `+${diff} ${u} a határ felett` : 'A határ alatt'}
+              <Icon name={meta.icon} /> {r.overLimit ? t('hud.done.over', { x: diff, u }) : t('hud.done.under')}
             </span>
           </div>
           <Hero value={speedIn(r.averageKmh, unit)} />
           <div className="row" style={{ justifyContent: 'flex-start' }}>
             <LimitSign kmh={r.speedLimitKmh} unit={unit} small />
-            <div className="body muted">{u} végső átlag</div>
+            <div className="body muted">{t('hud.done.final', { u })}</div>
           </div>
           <div className="stats two">
             <div className="stat">
               <b className="num">{dist(r.lengthM, unit)}</b>
-              <span>szakasz</span>
+              <span>{t('hud.done.section')}</span>
             </div>
             <div className="stat">
               <b className="num">{formatDuration(r.exitTime - r.entryTime)}</b>
-              <span>menetidő</span>
+              <span>{t('hud.done.duration')}</span>
             </div>
           </div>
           {view.section && <SourceLine section={view.section} />}
           <button className="btn" onClick={p.onDismiss}>
-            Kész
+            {t('common.done')}
           </button>
         </Card>
       );
@@ -202,21 +205,18 @@ export function Hud(p: HudProps) {
       const reason = view.interruption?.reason ?? 'jelvesztes';
       const manual = !view.section;
       return (
-        <Card tone={tone} label="Mérés megszakadt">
+        <Card tone={tone} label={t('hud.interrupted.aria')}>
           <div className="row">
             <span className="chip">
-              <Icon name="pause" /> {manual ? 'Kézi mérés megszakadt' : 'Mérés megszakadt'}
+              <Icon name="pause" /> {manual ? t('hud.interrupted.manual') : t('hud.interrupted.auto')}
             </span>
           </div>
-          <div className="title">{INTERRUPT_TEXT[reason]}</div>
+          <div className="title">{t(INTERRUPT_TEXT[reason])}</div>
           <div className="body muted">
-            Az átlag nem érvényes.{' '}
-            {reason === 'hatter'
-              ? 'A háttérben nincs GPS, ezért lezártuk – a következő szakasz elején újraindul.'
-              : 'A következő szakasz elején újraindul.'}
+            {t('hud.interrupted.invalid')} {reason === 'hatter' ? t('hud.interrupted.background') : t('hud.interrupted.restart')}
           </div>
           <button className="btn" onClick={p.onDismiss}>
-            Rendben
+            {t('common.ok')}
           </button>
         </Card>
       );
@@ -225,25 +225,25 @@ export function Hud(p: HudProps) {
     case 'kezi': {
       const m = view.manual!;
       return (
-        <Card tone={tone} label={p.tempSection ? 'Ideiglenes szakasz' : 'Kézi mérés'}>
+        <Card tone={tone} label={p.tempSection ? t('hud.tempSection') : t('hud.manual')}>
           <div className="row">
             <span className="chip">
-              <Icon name={p.tempSection ? 'kapu_kezdo' : 'stopwatch'} /> {p.tempSection ? 'Ideiglenes szakasz' : 'Kézi mérés'}
+              <Icon name={p.tempSection ? 'kapu_kezdo' : 'stopwatch'} /> {p.tempSection ? t('hud.tempSection') : t('hud.manual')}
             </span>
             <span className="title num muted">{formatDuration(m.elapsedMs)}</span>
           </div>
           <Hero value={speedIn(m.averageKmh, unit)} />
           <div className="row">
-            <div className="body muted">{u} átlag</div>
+            <div className="body muted">{t('hud.avg', { u })}</div>
             <div className="body num">{dist(m.distanceM, unit)}</div>
           </div>
           {p.tempSection ? (
             <button className="btn primary" onClick={p.onStopManual}>
-              <Icon name="kapu_zaro" /> Vége · záró kapu
+              <Icon name="kapu_zaro" /> {t('hud.manual.stopTemp')}
             </button>
           ) : (
             <button className="btn danger" onClick={p.onStopManual}>
-              <Icon name="stop" /> Leállítás
+              <Icon name="stop" /> {t('hud.manual.stop')}
             </button>
           )}
         </Card>
@@ -253,33 +253,33 @@ export function Hud(p: HudProps) {
     case 'kezi_eredmeny': {
       const r = view.manualResult!;
       return (
-        <Card tone={tone} label="Kézi mérés eredménye">
+        <Card tone={tone} label={t('hud.manualDone.aria')}>
           <div className="row">
             <span className="chip">
-              <Icon name="check" /> Kézi mérés kész
+              <Icon name="check" /> {t('hud.manualDone.chip')}
             </span>
           </div>
           <Hero value={speedIn(r.averageKmh, unit)} />
-          <div className="body muted">{u} átlag</div>
+          <div className="body muted">{t('hud.avg', { u })}</div>
           <div className="stats two">
             <div className="stat">
               <b className="num">{dist(r.distanceM, unit)}</b>
-              <span>távolság{r.estimatedGapM > 0 ? ' (részben becsült)' : ''}</span>
+              <span>{t(r.estimatedGapM > 0 ? 'hud.manualDone.distanceEst' : 'hud.manualDone.distance')}</span>
             </div>
             <div className="stat">
               <b className="num">{formatDuration(r.elapsedMs)}</b>
-              <span>idő</span>
+              <span>{t('hud.manualDone.time')}</span>
             </div>
           </div>
-          {p.gateState !== 'nincs' && <div className="body muted">{GATE_TEXT[p.gateState]}</div>}
+          {p.gateState !== 'nincs' && <div className="body muted">{t(GATE_TEXT[p.gateState])}</div>}
           <div className={p.gateState === 'hiba' ? 'btn-row' : undefined}>
             {p.gateState === 'hiba' && (
               <button className="btn primary" onClick={p.onRetryGates}>
-                Újraküldés
+                {t('gate.retry')}
               </button>
             )}
             <button className="btn" onClick={p.onDismiss}>
-              Kész
+              {t('common.done')}
             </button>
           </div>
         </Card>
@@ -289,13 +289,13 @@ export function Hud(p: HudProps) {
     case 'nincs_szakasz':
       return (
         // kompakt alapállapot: egy sor, hogy a térkép lássa a képernyő ~80%-át
-        <Card tone={tone} label="Nincs mérőszakasz" compact>
+        <Card tone={tone} label={t('hud.none.aria')} compact>
           <div className="compact-row">
             <div className="compact-speed num">
               {p.gpsReady ? (speedIn(view.currentKmh ?? 0, unit) ?? 0) : '–'}
               <small>{u}</small>
             </div>
-            <div className="body muted">{p.gpsReady ? 'Nincs mérőszakasz a közelben' : 'GPS-jelre vár…'}</div>
+            <div className="body muted">{p.gpsReady ? t('hud.none.near') : t('hud.none.waiting')}</div>
           </div>
         </Card>
       );
@@ -308,7 +308,7 @@ function SourceLine({ section }: { section: Section }) {
     <div className="source-line">
       {section.verified && (
         <span className="verified">
-          <Icon name="check" size={18} /> Ellenőrzött
+          <Icon name="check" size={18} /> {t('source.verified')}
         </span>
       )}
       <span className="muted">{sectionSourceLabel(section)}</span>
@@ -347,24 +347,17 @@ export function SlowDown({ view, unit }: { view: SessionView; unit: Settings['eg
       {shown?.bar.kind === 'nem_hozhato' ? (
         <>
           <Icon name="arrowUp" size={30} />
-          <span className="slowdown-label">Nem hozható be</span>
+          <span className="slowdown-label">{t('slowdown.cant')}</span>
         </>
       ) : shown?.tone === 'lassits' ? (
         <>
           <Icon name="arrowDown" size={30} />
-          <span className="slowdown-label">Maradj</span>
-          <span className="slowdown-max">
-            <b className="num">{shown ? speedIn(shown.bar.maxKmh, unit) : ''}</b>
-            <span style={{ marginLeft: 8 }}>alatt</span>
-          </span>
+          <span className="slowdown-label">{tNode('slowdown.stay', { x: <b className="num slowdown-num">{shown ? speedIn(shown.bar.maxKmh, unit) : ''}</b> })}</span>
         </>
       ) : (
         <>
           <Icon name="arrowDown" size={30} />
-          <span className="slowdown-label">Lassíts</span>
-          <span className="slowdown-max">
-            max <b className="num">{shown ? speedIn(shown.bar.maxKmh, unit) : ''}</b>
-          </span>
+          <span className="slowdown-label">{tNode('slowdown.slow', { x: <b className="num slowdown-num">{shown ? speedIn(shown.bar.maxKmh, unit) : ''}</b> })}</span>
         </>
       )}
     </div>

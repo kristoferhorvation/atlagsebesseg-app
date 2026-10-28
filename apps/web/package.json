@@ -12,7 +12,8 @@
     "icons": "node scripts/make-icons.mjs",
     "test": "vitest run",
     "typecheck": "tsc -p tsconfig.json && tsc -p tsconfig.node.json",
-    "shots": "node scripts/shots.mjs"
+    "shots": "node scripts/shots.mjs",
+    "i18n:check": "node scripts/i18n-check.mjs"
   },
   "dependencies": {
     "@atlagsebesseg/app-logic": "*",

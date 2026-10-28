@@ -1,4 +1,4 @@
-import type { FeatureCollection, LineString, MultiLineString, Polygon } from 'geojson';
+import type { FeatureCollection, LineString, MultiLineString, MultiPolygon, Polygon } from 'geojson';
 import mapboxgl, { type GeoJSONSource, type Map as MbMap } from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { useEffect, useRef } from 'react';
@@ -6,13 +6,13 @@ import { MapStore, type LightPreset, type MapLook } from '@atlagsebesseg/app-log
 import { bearingDeg, haversineM, LocalProjection, type GpsFix, type Section } from '@atlagsebesseg/core';
 import { color } from '@atlagsebesseg/design-tokens';
 import { iconSvg } from '../ui/Icon';
+import { t } from '@atlagsebesseg/app-logic';
 import type { MapCamera, MapHandlers, MapPlanned, MapReport, MapZone, WebMapAdapter, WebMapState } from './WebMapAdapter';
 
 const STANDARD_STYLE = 'mapbox://styles/mapbox/standard';
 const PITCH = 60;
 /** Mapbox Standard `theme` konfiguráció a beállítás szerint. */
 const THEME: Record<MapLook, string> = { szines: 'default', visszafogott: 'monochrome' };
-const OSM_ATTRIBUTION = 'Szakaszok © OpenStreetMap contributors (ODbL)';
 /** „Vissza a helyemre”: a követő kamera ennyi idő alatt áll vissza. */
 const RECENTER_MS = 900;
 /** Mozdulat közben a jelzés és a nézet-frissítés ritkítása. */
@@ -159,7 +159,7 @@ class MapController {
         },
       },
     });
-    this.map.addControl(new mapboxgl.AttributionControl({ compact: true, customAttribution: OSM_ATTRIBUTION }), 'top-right');
+    this.map.addControl(new mapboxgl.AttributionControl({ compact: true, customAttribution: t('map.attribution') }), 'top-right');
 
     const el = document.createElement('div');
     el.className = 'puck';
@@ -195,6 +195,22 @@ class MapController {
     const layout = { 'line-cap': 'round', 'line-join': 'round' } as const;
     // tervezett mérés (A7): halvány sárga, a szakaszok alatt; a most érintett vonal teltebb
     m.addSource('planned', { type: 'geojson', data: plannedGeoJson([]) });
+    // zóna (csak települést közölt a rendőrség): halvány sárga kitöltés, a vonal alatt
+    m.addSource('planned-zones', { type: 'geojson', data: plannedZonesGeoJson([]) });
+    m.addLayer({
+      id: 'planned-zone-fill',
+      type: 'fill',
+      source: 'planned-zones',
+      slot: 'middle',
+      paint: { 'fill-color': color.planned, 'fill-opacity': ['case', ['get', 'active'], 0.22, 0.12], 'fill-emissive-strength': 1 },
+    });
+    m.addLayer({
+      id: 'planned-zone-line',
+      type: 'line',
+      source: 'planned-zones',
+      slot: 'middle',
+      paint: { 'line-color': color.planned, 'line-width': 1.5, 'line-opacity': ['case', ['get', 'active'], 0.7, 0.4], 'line-emissive-strength': 1 },
+    });
     m.addLayer({
       id: 'planned-line',
       type: 'line',
@@ -370,6 +386,7 @@ class MapController {
     if (s.sections !== p?.sections) (m.getSource('sections') as GeoJSONSource | undefined)?.setData(toGeoJson(s.sections));
     if (s.planned !== p?.planned || s.activePlannedId !== p?.activePlannedId) {
       (m.getSource('planned') as GeoJSONSource | undefined)?.setData(plannedGeoJson(s.planned, s.activePlannedId));
+      (m.getSource('planned-zones') as GeoJSONSource | undefined)?.setData(plannedZonesGeoJson(s.planned, s.activePlannedId));
     }
     if (s.cameraZones !== p?.cameraZones) (m.getSource('camera-zones') as GeoJSONSource | undefined)?.setData(zonesGeoJson(s.cameraZones));
     if (s.highlightId !== p?.highlightId) {
@@ -491,11 +508,27 @@ function toGeoJson(sections: readonly Section[]): FeatureCollection<LineString> 
 function plannedGeoJson(planned: readonly MapPlanned[], activeId: string | null = null): FeatureCollection<MultiLineString> {
   return {
     type: 'FeatureCollection',
-    features: planned.map((c) => ({
-      type: 'Feature',
-      properties: { id: c.id, active: c.id === activeId },
-      geometry: { type: 'MultiLineString', coordinates: c.lines.map((l) => l.map((p) => [p.lon, p.lat])) },
-    })),
+    features: planned
+      .filter((c) => c.lines.length > 0)
+      .map((c) => ({
+        type: 'Feature',
+        properties: { id: c.id, active: c.id === activeId },
+        geometry: { type: 'MultiLineString', coordinates: c.lines.map((l) => l.map((p) => [p.lon, p.lat])) },
+      })),
+  };
+}
+
+/** A zóna-típusú mérések sokszögei (a település határa). */
+function plannedZonesGeoJson(planned: readonly MapPlanned[], activeId: string | null = null): FeatureCollection<MultiPolygon> {
+  return {
+    type: 'FeatureCollection',
+    features: planned
+      .filter((c) => c.zones.length > 0)
+      .map((c) => ({
+        type: 'Feature',
+        properties: { id: c.id, active: c.id === activeId },
+        geometry: { type: 'MultiPolygon', coordinates: c.zones.map((poly) => poly.map((ring) => ring.map((p) => [p.lon, p.lat]))) },
+      })),
   };
 }
 

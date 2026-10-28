@@ -1,4 +1,5 @@
 import { meterState, type MeterState, type Section } from '@atlagsebesseg/core';
+import { formatNumber, t, type TKey } from './i18n';
 import type { SpeedUnit } from './settings';
 
 /** A mérőkártya állapota: jó / lassíts / túl gyors (DESIGN.md; a logika a core `meterState`-je). */
@@ -28,14 +29,17 @@ export function speedFloorIn(kmh: number | null | undefined, unit: SpeedUnit): n
 
 export const unitLabel = (unit: SpeedUnit) => (unit === 'mph' ? 'mph' : 'km/h');
 
+/** Egy tizedesjegy, a nyelv tizedesjelével („12,3” / „12.3”). */
+const decimal1 = (x: number) => formatNumber(x, { minimumFractionDigits: 1, maximumFractionDigits: 1, useGrouping: false });
+
 /** Távolság: 1 km alatt 10 m-re kerekítve, felette egy tizedessel (mph-nál mérföldben). */
 export function formatDistance(m: number, unit: SpeedUnit): { value: string; unit: string } {
   if (unit === 'mph') {
     const mi = m / 1609.344;
-    return mi < 0.2 ? { value: String(Math.round((m * 3.28084) / 50) * 50), unit: 'ft' } : { value: mi.toFixed(1).replace('.', ','), unit: 'mi' };
+    return mi < 0.2 ? { value: String(Math.round((m * 3.28084) / 50) * 50), unit: 'ft' } : { value: decimal1(mi), unit: 'mi' };
   }
   if (m < 1000) return { value: String(Math.max(0, Math.round(m / 10) * 10)), unit: 'm' };
-  return { value: (m / 1000).toFixed(1).replace('.', ','), unit: 'km' };
+  return { value: decimal1(m / 1000), unit: 'km' };
 }
 
 /** Eltelt idő „m:ss” vagy „h:mm:ss” alakban. */
@@ -53,13 +57,13 @@ export const progressOf = (doneM: number, lengthM: number) => (lengthM > 0 ? Mat
 /** „most”, „12 perce”, „2 órája” – mikor jelentették. */
 export function timeAgo(ms: number): string {
   const min = Math.floor(Math.max(0, ms) / 60_000);
-  if (min < 1) return 'most';
-  if (min < 60) return `${min} perce`;
-  return `${Math.floor(min / 60)} órája`;
+  if (min < 1) return t('time.now');
+  if (min < 60) return t('time.minutes', { n: min });
+  return t('time.hours', { n: Math.floor(min / 60) });
 }
 
 /** „Forrás: Polizia di Stato, 2026-08” – a szakasz-kártyára. */
 export function sectionSourceLabel(s: Pick<Section, 'source' | 'provenance'>): string {
-  if (s.provenance) return `Forrás: ${s.provenance.name}, ${s.provenance.date}`;
-  return { osm: 'Forrás: OpenStreetMap', hivatalos: 'Forrás: hivatalos lista', kozosseg: 'Forrás: közösségi (ideiglenes kapuk)' }[s.source];
+  if (s.provenance) return t('source.named', { name: s.provenance.name, date: s.provenance.date });
+  return t({ osm: 'source.osm', hivatalos: 'source.official', kozosseg: 'source.community' }[s.source] as TKey);
 }

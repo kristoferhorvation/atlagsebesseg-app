@@ -85,7 +85,8 @@ async function openPage() {
       await send('Page.navigate', { url: `${BASE}/` });
       await sleep(300);
       // a beállítás a betöltés előtt (localStorage), a DE-figyelmeztetés már „látott”
-      await evaluate(`localStorage.clear(); ${settings ? `localStorage.setItem('settings:v1', ${JSON.stringify(JSON.stringify(settings))});` : ''} true`);
+      // és magyar nyelv (a készülék nyelvét az alkalmazás felismeri – az ellenőrzések és a képek magyarok)
+      await evaluate(`localStorage.clear(); localStorage.setItem('lang:v1', 'hu'); ${settings ? `localStorage.setItem('settings:v1', ${JSON.stringify(JSON.stringify(settings))});` : ''} true`);
       await send('Page.navigate', { url: `${BASE}${path}` });
     },
     /** Várakozás egy feltételre (JS-kifejezés), pollozva. */
@@ -152,6 +153,15 @@ try {
   check('koppintásra kártya: típus és forrás', /kamera|ellenőrző pont|kapu/i.test(card) && /Hivatalos forrás|OpenStreetMap|VÉDA/.test(card), card);
   p.close();
 
+  // települészóna (A7c): a határon belül a sáv a településsel, a térképen halvány sárga kitöltés
+  const zone = await openPage();
+  await zone.goto('/?sim=zona&route=0&speed=12&panel=0');
+  await zone.waitFor(MAP_READY, 60_000, 'térkép');
+  await zone.waitFor(BAND_SHOWN, 90_000, 'zóna-sáv');
+  const zoneText = await zone.evaluate(BAND_TEXT);
+  check('zóna: a sáv a településsel, dátummal, forrással', /^Rendőrségi mérés .+ területén · .+ · forrás: .+$/.test(zoneText), zoneText);
+  zone.close();
+
   // kapcsoló kikapcsolva: a sáv nem jelenik meg, a vonal sem
   const off = await openPage();
   await off.goto('/?sim=tervezett&route=0&speed=12&panel=0', { tervezett_meresek: false });
@@ -185,6 +195,15 @@ try {
     );
     await s.shot(`${DATE}-fix-kamerak.png`);
     s.close();
+
+    // települészóna: a sáv a településsel, a határ halvány sárga kitöltéssel a térképen
+    const z = await openPage();
+    await z.goto('/?sim=zona&route=0&speed=1&seek=0.4&panel=0');
+    await z.waitFor(MAP_READY, 60_000, 'térkép');
+    await z.waitFor(BAND_SHOWN, 30_000, 'zóna-sáv');
+    await sleep(4000);
+    await z.shot(`${DATE}-telepuleszona.png`);
+    z.close();
 
     // bejelentés-ikonok: kizoomolt, felülnézeti térkép a pálya elején
     const r = await openPage();

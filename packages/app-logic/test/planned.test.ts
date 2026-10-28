@@ -3,15 +3,21 @@ import { LocalProjection, type GpsFix } from '@atlagsebesseg/core';
 import { BUNDLED_CAMERAS } from '../src/bundledCameras';
 import { cameraSourceText, cameraVisibility, cameraWarning, visibleCameras, type FixedCamera } from '../src/cameras';
 import {
+  inPlannedZone,
   onPlannedLine,
   PlannedCheckWatch,
   plannedBandText,
+  plannedIsZone,
+  plannedZoneText,
   plannedCheckActive,
   plannedDateRange,
   rowToPlannedCheck,
   type PlannedCheck,
 } from '../src/plannedChecks';
+import visibility from '../../data/camera_visibility.json';
 import { DEFAULT_SETTINGS, parseSettings } from '../src/settings';
+
+const VISIBILITY_WARNING_KEYS = Object.values(visibility.countries).flatMap((c) => ('warning' in c ? [c.warning] : []));
 import { TileCache, type KeyValueStore } from '../src/sectionCache';
 
 const proj = new LocalProjection({ lat: 47.2, lon: 18.4 });
@@ -30,6 +36,7 @@ const check = (extra: Partial<PlannedCheck> = {}): PlannedCheck => ({
   roadRef: '7',
   description: 'Székesfehérvár 7-es főút',
   lines: [[at(0, 0), at(1000, 0), at(2000, 0)]],
+  zones: [],
   speedLimitKmh: 90,
   limitSource: 'osm',
   validFrom: FROM,
@@ -79,6 +86,82 @@ describe('tervezett mérés – a vonalon haladás (40 m tűrés)', () => {
   });
 });
 
+// Székesfehérvár „határa”: 4 × 4 km-es négyzet, közepén 1 × 1 km-es lyuk (pl. enklávé)
+const square = (x0: number, y0: number, x1: number, y1: number) => [at(x0, y0), at(x1, y0), at(x1, y1), at(x0, y1), at(x0, y0)];
+const zone = (extra: Partial<PlannedCheck> = {}): PlannedCheck =>
+  check({ roadRef: null, lines: [], zones: [[square(0, -2000, 4000, 2000), square(1500, -500, 2500, 500)]], description: 'Székesfehérvár', ...extra });
+
+describe('zóna-típusú tervezett mérés (csak települést adó közlemény)', () => {
+  it('a határon belül igen, kívül és a lyukban nem', () => {
+    const c = zone();
+    expect(plannedIsZone(c)).toBe(true);
+    expect(inPlannedZone(at(500, 0), c)).toBe(true);
+    expect(inPlannedZone(at(3500, 1800), c)).toBe(true);
+    expect(inPlannedZone(at(5000, 0), c)).toBe(false);
+    expect(inPlannedZone(at(2000, 0), c)).toBe(false); // lyuk
+    expect(onPlannedLine(at(500, 0), c)).toBe(false); // vonalnak nem számít
+  });
+
+  it('a sáv a településre érve megjelenik, bent maradva nem tűnik el (egy kiugró fix sem), kilépve igen', () => {
+    const w = new PlannedCheckWatch();
+    const c = [zone()];
+    expect(w.update(fix(-300, 0), c, NOW)).toBeNull();
+    expect(w.update(fix(100, 0), c, NOW)?.id).toBe('pc-1');
+    expect(w.update(fix(3000, 1500), c, NOW)?.id).toBe('pc-1'); // a településen belül bárhol
+    expect(w.update(fix(6000, 0), c, NOW)?.id).toBe('pc-1'); // egy kiugró pont
+    expect(w.update(fix(3500, 100), c, NOW)?.id).toBe('pc-1');
+    expect(w.update(fix(6000, 0), c, NOW)?.id).toBe('pc-1');
+    expect(w.update(fix(6100, 0), c, NOW)).toBeNull(); // kilépett
+  });
+
+  it('lejárt zónánál nincs sáv (csak aktuális dátumra látszik)', () => {
+    const w = new PlannedCheckWatch();
+    expect(w.update(fix(100, 0), [zone({ validTo: NOW - 1 })], NOW)).toBeNull();
+    expect(w.update(fix(100, 0), [zone({ validFrom: NOW + 3600_000 })], NOW)).toBeNull();
+  });
+
+  it('vonal és zóna egyszerre: a vonal (pontosabb hely) az erősebb, a vonalról lelépve a zóna marad', () => {
+    const w = new PlannedCheckWatch();
+    const z = zone({ id: 'zone-1' });
+    const l = check({ id: 'line-1', lines: [[at(0, 0), at(1000, 0)]] });
+    expect(w.update(fix(100, 0), [z, l], NOW)?.id).toBe('line-1');
+    expect(w.update(fix(100, 400), [z, l], NOW)?.id).toBe('zone-1'); // a vonalról lelépett, de még a településen
+  });
+
+  it('a zóna-sor szövege: település, dátum, forrás (a szótárból)', () => {
+    expect(plannedZoneText(zone())).toBe('Rendőrségi mérés Székesfehérvár területén · okt 27–nov 1 · forrás: police.hu');
+    expect(plannedBandText(zone())).toBe(plannedZoneText(zone()));
+  });
+
+  it('sorból (Polygon és MultiPolygon, lyukkal)', () => {
+    const base = {
+      id: 'z',
+      country: 'HU',
+      county: 'Fejér',
+      settlement: 'Székesfehérvár',
+      road_ref: null,
+      description: 'Székesfehérvár',
+      speed_limit_kmh: 50,
+      limit_source: 'kresz_default' as const,
+      valid_from: '2026-10-26T23:00:00Z',
+      valid_to: '2026-11-01T22:59:59Z',
+      time_window: null,
+      source_url: 'https://www.police.hu/',
+    };
+    const ring: [number, number][] = [[18.4, 47.1], [18.5, 47.1], [18.5, 47.2], [18.4, 47.2], [18.4, 47.1]];
+    const hole: [number, number][] = [[18.44, 47.14], [18.46, 47.14], [18.46, 47.16], [18.44, 47.16], [18.44, 47.14]];
+    const one = rowToPlannedCheck({ ...base, geometry: { type: 'Polygon', coordinates: [ring, hole] } });
+    expect(one.lines).toEqual([]);
+    expect(one.zones).toHaveLength(1);
+    expect(one.zones[0]).toHaveLength(2);
+    expect(one.zones[0]![0]![0]).toEqual({ lat: 47.1, lon: 18.4 });
+    expect(inPlannedZone({ lat: 47.12, lon: 18.41 }, one)).toBe(true);
+    expect(inPlannedZone({ lat: 47.15, lon: 18.45 }, one)).toBe(false);
+    const two = rowToPlannedCheck({ ...base, geometry: { type: 'MultiPolygon', coordinates: [[ring], [hole]] } });
+    expect(two.zones).toHaveLength(2);
+  });
+});
+
 describe('a sáv szövege', () => {
   it('„Tervezett rendőrségi mérés · okt 27–nov 1 · max 90”', () => {
     expect(plannedBandText(check())).toBe('Tervezett rendőrségi mérés · okt 27–nov 1 · max 90');
@@ -123,6 +206,7 @@ describe('jogi láthatóság (camera_visibility.json)', () => {
     expect(cameraVisibility('CH')).toBe('hide');
     expect(cameraVisibility('SK')).toBe('show');
     expect(cameraWarning('DE')).toBe('Németországban a vezető nem használhatja ezt a funkciót');
+    expect(VISIBILITY_WARNING_KEYS).toEqual(['warn.camera.DE']);
     expect(cameraWarning('HU')).toBeNull();
   });
 

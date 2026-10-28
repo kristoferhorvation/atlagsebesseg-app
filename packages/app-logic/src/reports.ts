@@ -1,4 +1,5 @@
 import type { GpsFix } from '@atlagsebesseg/core';
+import { t, type TKey } from './i18n';
 import type { GateReportInsert } from './gateReports';
 
 /** A `public.report_type` enum értékei (supabase/migrations). */
@@ -23,15 +24,18 @@ export type GateChoice = 'kapu_kezdo' | 'kapu_zaro';
  */
 export type ReportChoice = SimpleReportInsert['type'] | 'ideiglenes_szakasz';
 
-export const REPORT_CHOICES: readonly { id: ReportChoice; label: string }[] = [
-  { id: 'rendorseg', label: 'Rendőrség' },
-  { id: 'traffipax', label: 'Traffipax' },
-  { id: 'baleset', label: 'Baleset' },
-  { id: 'akadaly', label: 'Akadály' },
-  { id: 'utlezaras', label: 'Útlezárás' },
-  { id: 'szakasz_hiba', label: 'Hibás szakasz' },
-  { id: 'ideiglenes_szakasz', label: 'Ideiglenes szakasz kezdete' },
+export const REPORT_CHOICES: readonly { id: ReportChoice }[] = [
+  { id: 'rendorseg' },
+  { id: 'traffipax' },
+  { id: 'baleset' },
+  { id: 'akadaly' },
+  { id: 'utlezaras' },
+  { id: 'szakasz_hiba' },
+  { id: 'ideiglenes_szakasz' },
 ];
+
+/** A bejelentés-típus felirata az aktuális nyelven. */
+export const reportChoiceLabel = (id: ReportChoice | SimpleReportInsert['type']): string => t(`report.type.${id}` as TKey);
 
 const heading = (h: number | null) => (h === null ? null : ((Math.round(h) % 360) + 360) % 360);
 

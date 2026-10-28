@@ -1,5 +1,6 @@
 import type { LatLon } from '@atlagsebesseg/core';
 import visibilityJson from '@atlagsebesseg/data/camera_visibility.json';
+import { t, type TKey } from './i18n';
 
 /** Fix kamera (a `cameras` tábla sora appbeli alakban). */
 export type CameraType = 'speed' | 'red_light' | 'complex' | 'section_gate';
@@ -51,18 +52,14 @@ export function rowToCamera(r: CameraRow): FixedCamera {
   };
 }
 
-export const CAMERA_LABEL: Record<CameraType, string> = {
-  speed: 'Sebességmérő kamera',
-  red_light: 'Piroslámpa-kamera',
-  complex: 'Komplex ellenőrző pont',
-  section_gate: 'Szakaszmérő kapu',
-};
+/** A kamera típusának felirata az aktuális nyelven. */
+export const cameraLabel = (type: CameraType): string => t(`camera.type.${type}` as TKey);
 
 /** A kártya forrás-sora: honnan tudjuk, és mennyire biztos. */
 export function cameraSourceText(c: Pick<FixedCamera, 'verified' | 'type' | 'sourceDate' | 'country'>): string {
-  if (c.verified && c.type === 'complex' && c.country === 'HU') return 'ORFK fix VÉDA-lista (2015) · OSM-mel egyeztetve';
-  if (c.verified) return `Hivatalos forrás (${c.sourceDate})`;
-  return `OpenStreetMap · nem ellenőrzött (${c.sourceDate})`;
+  if (c.verified && c.type === 'complex' && c.country === 'HU') return t('camera.source.veda');
+  if (c.verified) return t('camera.source.official', { date: c.sourceDate });
+  return t('camera.source.osm', { date: c.sourceDate });
 }
 
 // ---------------------------------------------------------------------------
@@ -73,7 +70,7 @@ export type CameraVisibility = 'show' | 'zone' | 'hide';
 
 interface VisibilityFile {
   default: CameraVisibility;
-  countries: Record<string, { mode: CameraVisibility; warning?: string }>;
+  countries: Record<string, { mode: CameraVisibility; warning?: TKey }>;
 }
 
 const VISIBILITY = visibilityJson as VisibilityFile;
@@ -83,9 +80,10 @@ export function cameraVisibility(country: string): CameraVisibility {
   return VISIBILITY.countries[country.toUpperCase()]?.mode ?? VISIBILITY.default;
 }
 
-/** Egyszeri figyelmeztetés szövege az országra (DE), ha van. */
+/** Egyszeri figyelmeztetés szövege az országra (DE), ha van – az aktuális nyelven (a JSON a szótár kulcsát adja). */
 export function cameraWarning(country: string): string | null {
-  return VISIBILITY.countries[country.toUpperCase()]?.warning ?? null;
+  const key = VISIBILITY.countries[country.toUpperCase()]?.warning;
+  return key ? t(key) : null;
 }
 
 /** A zóna sugara (`zone` mód): a pont helyett ±1 km. */

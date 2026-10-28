@@ -101,6 +101,26 @@ describe('„Tervezett mérés + kamerák” forgatókönyv', () => {
     });
   }
 
+  for (const routeIdx of [0, 1]) {
+    it(`„Települészóna” útvonal #${routeIdx}: a sáv a határra érve megjelenik, bent marad, a végén eltűnik`, () => {
+      const route = simRoutes(BUNDLED_SECTIONS)[routeIdx]!;
+      const sim = buildSimulation(route, 'zona', 1_700_000_000_000);
+      const checks = simPlannedChecks(sim, 'zona');
+      expect(checks).toHaveLength(1);
+      expect(checks[0]!.zones).toHaveLength(1);
+      expect(checks[0]!.lines).toEqual([]);
+      const watch = new PlannedCheckWatch();
+      const seen: boolean[] = [];
+      for (const s of sim.samples) {
+        if (s.dropped) continue;
+        const on = watch.update(s.fix, checks, s.t) !== null;
+        if (seen[seen.length - 1] !== on) seen.push(on);
+      }
+      expect(seen).toEqual([false, true, false]);
+      expect(simCameras(sim, 'zona')).toEqual([]);
+    });
+  }
+
   it('három fix kamera (komplex, sebesség, piroslámpa) 20 m-re az úttól; más forgatókönyvben nincs', () => {
     const route = simRoutes(BUNDLED_SECTIONS)[0]!;
     const sim = buildSimulation(route, 'tervezett', 1_700_000_000_000);

@@ -143,6 +143,13 @@ ROADPOL-bejelentés helyszín nélküli → 0 sor, ez a normál eset.
   – az utóbbi kettő csak akkor, ha a településen pontosan egy ilyen nevű utca van. Megyénként egy Overpass-lekérés
   (határok geometriával + a kért utak), a vágás helyben. Ami nem illeszthető, kimarad, és a
   válaszban / a naplóban megyénként, a sor szó szerinti szövegével és okkal szerepel.
+- **Zóna (A7c)**: ha a sor csak települést ad (a név, „belterülete”, „(álló-)mozgó ellenőrzés”; út, utca,
+  házszám nélkül), a sor zóna-típusú: `geometry` = a település OSM-közigazgatási határa
+  (`Polygon`/`MultiPolygon`, 25 m-re egyszerűsítve), `speed_limit_kmh` formális 50 / `kresz_default`
+  (a sáv nem mutatja). Település + olyan hely, amit nem értünk („Szeged Kossuth sgt.”), **nem** zóna –
+  pontos hely helyett nem állítunk egész várost. Az app halvány sárga kitöltéssel rajzolja, a
+  településen belül a felső sáv: „Rendőrségi mérés {település} területén · {dátum} · forrás: {forrás}”,
+  csak aktuális dátumra. Azonos azonosítójú (kétszer szereplő) sor egyszer kerül a kötegbe.
 - Sebességhatár: a vonal menti OSM `maxspeed` (több érték → hossz szerint a leggyakoribb); ha
   nincs, KRESZ-alapérték (autópálya 130, autóút 110, lakott 50, lakott kívül 90) → `kresz_default`,
   az app „max ~90”-ként mutatja.

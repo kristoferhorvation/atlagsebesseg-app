@@ -1,4 +1,5 @@
-import { REPORT_CHOICES, type ReportInsert, type ReportType } from './reports';
+import { reportChoiceLabel, type ReportInsert, type ReportType } from './reports';
+import { t } from './i18n';
 import { TILE_DEG, tileBBox, tilesAround, type BBox } from './sectionCache';
 import type { ReportRow } from './supabase';
 
@@ -195,7 +196,7 @@ export const REPORT_TONE: Record<ReportIconName, string> = {
 export function reportVisual(r: Pick<ActiveReport, 'type' | 'gateKind'>): { icon: ReportIconName; tone: string; label: string } {
   if (r.type === 'ideiglenes_kapu') {
     const icon = r.gateKind === 'zaro' ? 'kapu_zaro' : 'kapu_kezdo';
-    return { icon, tone: REPORT_TONE[icon], label: r.gateKind === 'zaro' ? 'Ideiglenes szakasz vége' : 'Ideiglenes szakasz kezdete' };
+    return { icon, tone: REPORT_TONE[icon], label: r.gateKind === 'zaro' ? t('report.gate.end') : reportChoiceLabel('ideiglenes_szakasz') };
   }
-  return { icon: r.type, tone: REPORT_TONE[r.type], label: REPORT_CHOICES.find((c) => c.id === r.type)?.label ?? 'Bejelentés' };
+  return { icon: r.type, tone: REPORT_TONE[r.type], label: reportChoiceLabel(r.type) };
 }

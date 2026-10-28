@@ -150,9 +150,24 @@ describe('helyszín-sorok (Speedmarathon 2026 PDF-szövegek)', () => {
     expect(parseLocationLine('Budaörs, M1 autópálya', 'Pest', ['Budaörs'])).toMatchObject({ kind: 'road', road: 'M1' });
   });
 
-  it('csak település → kimarad (settlement_only)', () => {
+  it('csak település → zóna (settlement_only, zone): a név, „belterülete”, „(álló-)mozgó ellenőrzés”', () => {
     const l = parseLocationLine('Ceglédbercel belterülete álló-mozgó ellenőrzés', 'Pest', ['Ceglédbercel']);
-    expect(l.kind).toBe('settlement_only');
+    expect(l).toMatchObject({ kind: 'settlement_only', zone: true, settlement: 'Ceglédbercel', builtUp: true });
+    expect(parseLocationLine('Gyula', 'Békés', ['Gyula'])).toMatchObject({ kind: 'settlement_only', zone: true });
+    expect(parseLocationLine('Békéscsaba mozgó ellenőrzés', 'Békés', ['Békéscsaba'])).toMatchObject({ zone: true });
+    expect(parseLocationLine('Jobbágyi Jobbágyi', 'Nógrád', ['Jobbágyi'])).toMatchObject({ zone: true });
+    expect(parseLocationLine('Budapest XI. kerület', 'Budapest', ['Budapest'])).toMatchObject({ zone: true, district: 'XI. kerület' });
+  });
+
+  it('település + konkrét hely, amit nem értünk → nem zóna (egész várost nem állítunk pontos hely helyett)', () => {
+    for (const raw of ['Szeged Kossuth sgt.', 'Pécs Mecsextrém', 'Szeged Szatymaz belterület']) {
+      const l = parseLocationLine(raw, 'Csongrád-Csanád', ['Szeged', 'Pécs']);
+      expect(l.kind).toBe('settlement_only');
+      expect(l.zone).toBeUndefined();
+      expect(l.reason).toContain('csak település');
+    }
+    // fejlécszerű sor, ami településnévvel kezdődik
+    expect(parseLocationLine('Békés vármegye Speedmarathon 2026. ellenőrzési helyszínek és időpontok', 'Békés', ['Békés']).zone).toBeUndefined();
   });
 
   it('ismeretlen település → kimarad okkal', () => {

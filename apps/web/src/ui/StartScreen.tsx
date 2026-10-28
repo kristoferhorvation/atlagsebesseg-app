@@ -1,3 +1,4 @@
+import { t } from '@atlagsebesseg/app-logic';
 import { Icon } from './Icon';
 
 const isIos = () => /iPhone|iPad|iPod/.test(navigator.userAgent);
@@ -11,30 +12,30 @@ export function StartScreen({ onStart }: { onStart: () => void }) {
     <div className="start">
       <img className="start-mark" src="/icons/icon-192.png" alt="" />
       <div>
-        <h1>Átlagsebesség</h1>
-        <p style={{ marginTop: 10 }}>Mérőszakaszon automatikusan indul: élő átlag, határ és egyértelmű színkód.</p>
+        <h1>{t('app.name')}</h1>
+        <p style={{ marginTop: 10 }}>{t('start.tagline')}</p>
       </div>
       <ul>
         <li>
-          <Icon name="check" /> Telefon tartóban, képernyő bekapcsolva
+          <Icon name="check" /> {t('start.tip.phone')}
         </li>
         <li>
-          <Icon name="check" /> Helyhozzáférés engedélyezése
+          <Icon name="check" /> {t('start.tip.location')}
         </li>
         <li>
-          <Icon name="check" /> Az app maradjon előtérben – háttérben a mérés megszakad
+          <Icon name="check" /> {t('start.tip.foreground')}
         </li>
       </ul>
       {showInstallHint && (
         <div className="hint-card glass">
-          <b>Tedd a kezdőképernyőre:</b> Megosztás gomb → „Főképernyőhöz adás”. Így teljes képernyőn, címsor nélkül fut.
+          <b>{t('start.install.title')}</b> {t('start.install.steps')}
         </div>
       )}
       <button className="btn primary" onClick={onStart}>
-        Indulás
+        {t('start.go')}
       </button>
       <a className="link-btn" href="/?sim" style={{ textAlign: 'center', textDecoration: 'none' }}>
-        Kipróbálom GPS nélkül (szimulátor)
+        {t('start.sim')}
       </a>
     </div>
   );

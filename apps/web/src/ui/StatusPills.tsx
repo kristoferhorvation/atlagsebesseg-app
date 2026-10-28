@@ -1,3 +1,4 @@
+import { t } from '@atlagsebesseg/app-logic';
 import type { WakeStatus } from '../hooks/useWakeLock';
 import type { GeoStatus } from '../hooks/useGeolocation';
 import { Icon, type IconName } from './Icon';
@@ -35,23 +36,23 @@ export function StatusPills({
   if (simMode) pills.push({ key: 'sim', tone: 'kezi', icon: 'play', text: 'Szimulátor' });
   else {
     const gps: Record<GeoStatus, Omit<Pill, 'key'>> = {
-      ki: { tone: 'semleges', icon: 'gps', text: 'GPS ki' },
-      kereses: { tone: 'hataron', icon: 'gps', text: 'GPS keresése…' },
+      ki: { tone: 'semleges', icon: 'gps', text: t('pill.gps.off') },
+      kereses: { tone: 'hataron', icon: 'gps', text: t('pill.gps.searching') },
       aktiv:
         accuracy !== null && accuracy > 25
-          ? { tone: 'hataron', icon: 'gps', text: `GPS ±${Math.round(accuracy)} m` }
-          : { tone: 'jo', icon: 'gps', text: accuracy !== null ? `GPS ±${Math.round(accuracy)} m` : 'GPS' },
-      elutasitva: { tone: 'tul', icon: 'gps', text: 'Helyhozzáférés tiltva' },
-      nem_elerheto: { tone: 'tul', icon: 'gps', text: 'Nincs GPS (HTTPS kell)' },
-      hiba: { tone: 'tul', icon: 'gps', text: 'GPS-hiba' },
+          ? { tone: 'hataron', icon: 'gps', text: t('pill.gps.accuracy', { m: Math.round(accuracy) }) }
+          : { tone: 'jo', icon: 'gps', text: accuracy !== null ? t('pill.gps.accuracy', { m: Math.round(accuracy) }) : t('pill.gps.active') },
+      elutasitva: { tone: 'tul', icon: 'gps', text: t('pill.gps.denied') },
+      nem_elerheto: { tone: 'tul', icon: 'gps', text: t('pill.gps.unavailable') },
+      hiba: { tone: 'tul', icon: 'gps', text: t('pill.gps.error') },
     };
     pills.push({ key: 'gps', ...gps[geo] });
   }
-  if (wake === 'aktiv') pills.push({ key: 'wake', tone: 'jo', icon: 'screen', text: 'Kijelző ébren' });
+  if (wake === 'aktiv') pills.push({ key: 'wake', tone: 'jo', icon: 'screen', text: t('pill.wake.on') });
   // csendes: a figyelmeztetés egyszer, induláskor jön (toast); itt csak semleges ikon
-  else if (wake === 'inaktiv') pills.push({ key: 'wake', tone: 'semleges', icon: 'screen', text: 'Kijelző elalhat – koppints', onClick: onWake });
-  else pills.push({ key: 'wake', tone: 'semleges', icon: 'screen', text: 'Kijelző elalhat', onClick: onWake });
-  if (offline) pills.push({ key: 'net', tone: 'semleges', text: 'Offline · beépített szakaszok' });
+  else if (wake === 'inaktiv') pills.push({ key: 'wake', tone: 'semleges', icon: 'screen', text: t('pill.wake.tap'), onClick: onWake });
+  else pills.push({ key: 'wake', tone: 'semleges', icon: 'screen', text: t('pill.wake.off'), onClick: onWake });
+  if (offline) pills.push({ key: 'net', tone: 'semleges', text: t('pill.offline') });
 
   return (
     <div className={`pills${compact ? ' compact' : ''}`}>

@@ -45,6 +45,23 @@ npm run upload:sections  # → sections tábla (service role kulccsal, csak hely
 npm run deploy:edge      # promote-temp-gates edge function
 ```
 
+## Többnyelvűség
+
+Minden felirat a `packages/app-logic/src/i18n/<nyelv>.json` szótárakban van (kulcs → szöveg, `{x}`
+paraméterrel); a `hu` a forrás, a többi (en, de, sk, cs, pl) fordítása mellette él, és a teszt
+minden kulcsot mind a 6 fájlban megkövetel. A nyelv alapból a készülék nyelve (ha támogatott, különben
+`en`), a Beállításokban választható; ugyanez adja a hangos utasítások nyelvét
+(`directionsLanguage`, `LOCALES` → speechSynthesis). Ellenőrzés: `npm run i18n:check -w @atlagsebesseg/web`
+(headless Chrome, hu → en váltás; a dev szerver fusson).
+
+**Új nyelv hozzáadása – egy prompt** (Claude Code-nak):
+
+> Add hozzá a `<nyelv>` (`xx`) nyelvet: másold a `packages/app-logic/src/i18n/hu.json`-t `xx.json`-ba és
+> fordítsd le rövid, vezetés közben olvasható, tegező hangnemben (a `{paraméterek}` változatlanok, a
+> dátum-mintákat `date.range.*` a nyelv szórendje szerint); vedd fel a `LANGUAGES`, `LANGUAGE_NAMES`
+> (saját nevén), `LOCALES` listába és az `index.ts` importjába; futtasd az `npm test`-et és a
+> `npm run typecheck`-et, majd az `npm run i18n:check`-et.
+
 ## Architektúra-döntések
 
 - **Monorepo, npm workspaces.** A `core` forrásként (TS) van bekötve (`main: src/index.ts`), build

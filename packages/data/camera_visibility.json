@@ -1,5 +1,5 @@
 {
-  "$comment": "Fix kamerák és tervezett mérések megjelenítése országonként (A7). show = pont/vonal; zone = csak ±1 km-es zóna, pont nélkül; hide = nem látszik. A szakaszellenőrzés-rétegre nem vonatkozik. Forrás és indoklás: packages/data/README.md.",
+  "$comment": "Fix kamerák és tervezett mérések megjelenítése országonként (A7). show = pont/vonal; zone = csak ±1 km-es zóna, pont nélkül; hide = nem látszik. A szakaszellenőrzés-rétegre nem vonatkozik. A warning a packages/app-logic/src/i18n szótárának kulcsa. Forrás és indoklás: packages/data/README.md.",
   "default": "show",
   "countries": {
     "HU": { "mode": "show" },
@@ -10,7 +10,7 @@
     "NL": { "mode": "show" },
     "GB": { "mode": "show" },
     "FR": { "mode": "zone" },
-    "DE": { "mode": "show", "warning": "Németországban a vezető nem használhatja ezt a funkciót" },
+    "DE": { "mode": "show", "warning": "warn.camera.DE" },
     "CH": { "mode": "hide" }
   }
 }

@@ -39,10 +39,12 @@ export interface MapZone {
   radiusM: number;
 }
 
-/** Tervezett mérés vonala(i): halvány sárga. */
+/** Tervezett mérés vonala(i) vagy zónája (a település határa): halvány sárga. */
 export interface MapPlanned {
   id: string;
   lines: LatLon[][];
+  /** Zóna: sokszögenként a gyűrűk (külső, majd a lyukak); vonalnál üres. */
+  zones: LatLon[][][];
 }
 
 /** Egy bejelentés-ikon a térképen (ikon a webes `Icon` neve, tónus a DESIGN.md státusz-tónusa). */

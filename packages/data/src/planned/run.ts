@@ -7,6 +7,7 @@
 import type { LatLon } from '@atlagsebesseg/core';
 import type { OverpassResponse } from '../overpass';
 import {
+  areaZone,
   bboxOf,
   countyWaysQuery,
   locateByKm,
@@ -18,6 +19,8 @@ import {
   type AdminArea,
   type CountyAreas,
   type LocateResult,
+  type ZoneGeometry,
+  zoneBbox,
 } from './locate';
 import {
   clean,
@@ -43,7 +46,11 @@ export interface PlannedCheckRow {
   settlement: string | null;
   road_ref: string | null;
   description: string;
-  geometry: { type: 'LineString'; coordinates: [number, number][] } | { type: 'MultiLineString'; coordinates: [number, number][][] };
+  /** Vonal (út / utca / kereszteződés) vagy zóna (egész település: a közigazgatási határ sokszöge). */
+  geometry:
+    | { type: 'LineString'; coordinates: [number, number][] }
+    | { type: 'MultiLineString'; coordinates: [number, number][][] }
+    | ZoneGeometry;
   min_lat: number;
   min_lng: number;
   max_lat: number;
@@ -112,6 +119,8 @@ export interface RunSummary {
   articles: ArticleSummary[];
   counties: Record<string, CountySummary>;
   rows: number;
+  /** A `rows`-ból ennyi zóna-típusú (egész település). */
+  zones: number;
   skipped: number;
   deletedExpired: number;
   deletedStale: number;
@@ -167,7 +176,7 @@ export async function runPlannedChecks(deps: PlannedDeps, opts: RunOptions = {})
   const started = Date.now();
   const now = deps.now();
   const budget = opts.budgetMs ?? Infinity;
-  const summary: RunSummary = { listingItems: 0, candidates: 0, articles: [], counties: {}, rows: 0, skipped: 0, deletedExpired: 0, deletedStale: 0, remaining: 0, errors: [] };
+  const summary: RunSummary = { listingItems: 0, candidates: 0, articles: [], counties: {}, rows: 0, zones: 0, skipped: 0, deletedExpired: 0, deletedStale: 0, remaining: 0, errors: [] };
   const county = (c: string) => (summary.counties[c] ??= { rows: 0, skipped: [] });
 
   // 1. jelöltek
@@ -263,7 +272,7 @@ export async function runPlannedChecks(deps: PlannedDeps, opts: RunOptions = {})
       let key: string;
       let area: AdminArea | null = null;
       if (line.kind === 'road_km') key = `km:${line.county}:${line.road}`;
-      else if (line.kind === 'road' || line.kind === 'street' || line.kind === 'junction') {
+      else if (line.kind === 'road' || line.kind === 'street' || line.kind === 'junction' || (line.kind === 'settlement_only' && line.zone)) {
         const areas = (await areasOf(line.county))!;
         const name = line.settlement === 'Budapest' ? line.district : line.settlement;
         area = name ? (areas.areas.get(name) ?? null) : null;
@@ -300,7 +309,7 @@ export async function runPlannedChecks(deps: PlannedDeps, opts: RunOptions = {})
         summary.remaining += g.items.length;
         continue;
       }
-      let results: { p: (typeof parsed)[number]; r: LocateResult; part: number }[] = [];
+      let results: { p: (typeof parsed)[number]; r: LocateResult | ZoneResult; part: number }[] = [];
       try {
         if (key.startsWith('km:')) {
           const first = g.items[0]!.line;
@@ -312,8 +321,14 @@ export async function runPlannedChecks(deps: PlannedDeps, opts: RunOptions = {})
           const why = l.settlement === 'Budapest' && !l.district ? 'Budapesten kerület nélkül' : `a település („${l.settlement}”) nincs meg az OSM-ben`;
           results = g.items.map((p) => ({ p, r: { ok: false, reason: why }, part: 0 }));
         } else {
-          const res = settlementSubset(await waysOf(g.items[0]!.line.county), g.area);
-          results = g.items.map((p) => ({ p, r: locateInSettlement(p.line, res), part: 0 }));
+          const area = g.area;
+          // zóna: csak a határ kell, az utak lekérése (megyénként egy, nagy) kimarad
+          const res = g.items.some((p) => !p.line.zone) ? settlementSubset(await waysOf(g.items[0]!.line.county), area) : null;
+          results = g.items.map((p) => ({
+            p,
+            r: p.line.zone ? locateZone(area) : locateInSettlement(p.line, res!),
+            part: 0,
+          }));
         }
       } catch (e) {
         for (const p of g.items) skip(p, `Overpass-hiba: ${(e as Error).message.slice(0, 120)}`);
@@ -324,11 +339,22 @@ export async function runPlannedChecks(deps: PlannedDeps, opts: RunOptions = {})
           skip(p, r.reason);
           continue;
         }
-        rows.push(toRow(p.line, r.located, period, p.sourceUrl, part, now));
-        processedSources.get(p.sourceUrl)!.push(rows[rows.length - 1]!.id);
+        const row = 'zone' in r ? toZoneRow(p.line, r.zone, period, p.sourceUrl, part, now) : toRow(p.line, r.located, period, p.sourceUrl, part, now);
+        // ugyanaz a sor kétszer („Gyula”, „Gyula”), vagy ugyanaz a zóna másképp megfogalmazva („Gyula mozgó
+        // ellenőrzés”): egyszer kerül be (az upsert egy kötegben nem érintheti kétszer ugyanazt az azonosítót)
+        const isZone = (x: PlannedCheckRow) => x.geometry.type === 'Polygon' || x.geometry.type === 'MultiPolygon';
+        const same = rows.find((x) => x.id === row.id || (isZone(row) && isZone(x) && x.settlement === row.settlement && x.source_url === row.source_url));
+        if (same) {
+          const kept = processedSources.get(p.sourceUrl)!;
+          if (!kept.includes(same.id)) kept.push(same.id);
+          continue;
+        }
+        rows.push(row);
+        processedSources.get(p.sourceUrl)!.push(row.id);
         county(p.line.county).rows++;
         art.rows++;
         summary.rows++;
+        if (isZone(row)) summary.zones++;
       }
     }
   }
@@ -340,6 +366,41 @@ export async function runPlannedChecks(deps: PlannedDeps, opts: RunOptions = {})
     summary.deletedExpired = await deps.store.deleteExpired(now.toISOString());
   }
   return summary;
+}
+
+/** Egész településre szóló sor eredménye: a közigazgatási határ. */
+type ZoneResult = { ok: true; zone: ZoneGeometry } | { ok: false; reason: string };
+
+function locateZone(area: AdminArea): ZoneResult {
+  const zone = areaZone(area);
+  return zone ? { ok: true, zone } : { ok: false, reason: `a(z) ${area.name} közigazgatási határa nincs meg az OSM-ben` };
+}
+
+/** KRESZ-alapérték a zónához: nincs vonal, amiből sebességhatár jönne, a sáv nem is mutatja – lakott területi 50. */
+const ZONE_LIMIT_KMH = 50;
+
+function toZoneRow(line: PlannedLine, zone: ZoneGeometry, period: Period, sourceUrl: string, part: number, now: Date): PlannedCheckRow {
+  const bb = zoneBbox(zone);
+  return {
+    id: rowId(sourceUrl, line.raw, part),
+    country: 'HU',
+    county: line.county,
+    settlement: line.district ? `Budapest ${line.district}` : line.settlement,
+    road_ref: null,
+    description: line.raw.slice(0, 500),
+    geometry: zone,
+    min_lat: round6(bb.minLat),
+    min_lng: round6(bb.minLng),
+    max_lat: round6(bb.maxLat),
+    max_lng: round6(bb.maxLng),
+    speed_limit_kmh: ZONE_LIMIT_KMH,
+    limit_source: 'kresz_default',
+    valid_from: period.validFrom.toISOString(),
+    valid_to: period.validTo.toISOString(),
+    time_window: period.timeWindow,
+    source_url: sourceUrl,
+    fetched_at: now.toISOString(),
+  };
 }
 
 function toRow(

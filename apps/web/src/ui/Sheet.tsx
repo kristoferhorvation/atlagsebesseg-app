@@ -1,3 +1,4 @@
+import { t } from '@atlagsebesseg/app-logic';
 import { useEffect, type ReactNode } from 'react';
 import { Icon } from './Icon';
 
@@ -14,7 +15,7 @@ export function Sheet({ title, onClose, children }: { title: string; onClose: ()
       <div className="sheet" role="dialog" aria-modal="true" aria-label={title}>
         <div className="sheet-head">
           <div className="title">{title}</div>
-          <button className="icon-btn" onClick={onClose} aria-label="Bezárás">
+          <button className="icon-btn" onClick={onClose} aria-label={t('common.close')}>
             <Icon name="close" size={20} />
           </button>
         </div>
