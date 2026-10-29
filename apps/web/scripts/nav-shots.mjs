@@ -5,6 +5,7 @@
 // borostyán kamera-sáv + rezgés, pozíció-jel az alsó harmadban, „Utána” sor, mentett címek chip-sora.
 // AW13: kapu utáni (≤ 1 km) lehajtó → azonnali kompakt ajánlat, fogyó csík a kiemelt gomb alatt, „megéri” bemondás a
 // lehajtóval, helyhozzáférés: GPS-pill (prompt → kérés, denied → tiltott-lap a böngészőre, granted → semmi), első gesztus.
+// AOS13: a mérés eredménye navigáció közben kompakt, és nem ér a felső kártya alá.
 //
 //   npm run dev -w @atlagsebesseg/web            # másik terminálban (a Mapbox-token az apps/web/.env-ben)
 //   npm run nav-shots -w @atlagsebesseg/web
@@ -138,6 +139,9 @@ try {
   check('a sáv egysoros és a mérőkártya fölött van', strip.h <= 60 && strip.above, JSON.stringify(strip));
   await p.waitFor(`${q('.nav-top')} && !${q('.nav-strip')}`, 120_000, 'mérés után vissza a teljes nézet');
   check('mérés után vissza a teljes navigációs nézet', true);
+  // AOS13: a mérés eredménye navigáció közben egysoros kártya, a teljes felső kártya alatt (nem fedi egymást)
+  const done = await p.evaluate(`(() => { const top = ${q('.nav-top')}.getBoundingClientRect(); const c = document.querySelector('.hud .card:not(.nav-bottom)'); if (!c) return null; const r = c.getBoundingClientRect(); return { label: c.getAttribute('aria-label'), compact: c.classList.contains('compact'), h: Math.round(r.height), gap: Math.round(r.top - top.bottom), strip: ${q('.nav-top')}.dataset.strip }; })()`);
+  check('mérés után: kompakt eredménykártya, nem ér a felső kártya alá', done?.label === 'Szakasz vége' && done.compact && done.h <= 90 && done.gap >= 12 && done.strip === 'false', JSON.stringify(done));
 
   // AW12: közeli kamera – a felső kártya borostyán, „Kamera N m · max 130”, egy rezgés; elhaladás után vissza
   await p.waitFor(`${q('.nav-top')}?.dataset.camera === 'true'`, 120_000, 'kamera-közeledés');

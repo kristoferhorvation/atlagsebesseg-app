@@ -30,13 +30,14 @@ export function cameraNearText(view: NavView, unit: SpeedUnit): string | null {
  * Felső kártya: következő manőver (ikon + távolság + út), alatta kisebben a rákövetkező, és a közeledő szakasz jelzése.
  * Közeli kameránál (AW12) a kártya borostyánra vált, nagy kamera-ikonnal; elhaladás után vissza.
  */
-export function NavTop({ view, unit }: { view: NavView; unit: SpeedUnit }) {
+/** `hidden` (AOS13): a kártya nem fér ki – rejtve elrendezve marad (mérhető), a lépés egysoros sávként látszik. */
+export function NavTop({ view, unit, hidden = false }: { view: NavView; unit: SpeedUnit; hidden?: boolean }) {
   const arrived = view.phase === 'arrived';
   const busy = view.rerouting || view.offRoute;
   const cam = busy || arrived ? null : cameraNearText(view, unit);
   const up = cam ? null : upcomingText(view, unit);
   return (
-    <section className="nav-top glass" data-busy={busy} data-camera={cam !== null} aria-live="polite" aria-label={view.next.instruction || t('nav.aria')}>
+    <section className="nav-top glass" data-busy={busy} data-camera={cam !== null} data-strip={hidden} aria-hidden={hidden} aria-live="polite" aria-label={view.next.instruction || t('nav.aria')}>
       {busy || view.rerouteFailed ? (
         <div className="nav-reroute" data-failed={!view.rerouting && view.rerouteFailed}>
           <Icon name="restart" size={34} className={view.rerouting ? 'spin' : undefined} />

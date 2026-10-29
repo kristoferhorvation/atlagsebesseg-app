@@ -90,7 +90,11 @@ Gyökér: `npm test` és `npm run typecheck` minden csomagra; `npm run test:all`
   a kiválasztott `route` 7 pt + 2 × 2 pt `routeCasing`, az alternatíva 5 pt `routeAltDay`/`routeAltNight` + 1,5 pt
   kontúr (nappal / hajnal 55/45 sötét, éjjel / alkony 70/30 világos), „+/− perc” címke a leágazás után 300 m-rel
   (`altLabels`), érintésre (vonal vagy címke) arra vált. Mérés közben a mérőkártya a fő,
-  a navigációs lépés egysoros sáv fölötte; a „Lassíts” sáv e fölé kerül. Hang: az `AlertPlayer` szintetizátora
+  a navigációs lépés egysoros sáv fölötte; a „Lassíts” sáv e fölé kerül. **AOS13 (weben és iOS-en):** az alsó
+  kártya-csoport soha nem ér a felső lépés-kártya alá – ha a teljes kártya (+ 12 pt) nem fér ki, a lépés mérésen kívül is
+  egysoros sáv (`navStepStrip`, `navigation/layout.ts` / `Navigation/Layout.swift`; a rejtett kártyát is mérjük, az alsó
+  csoport tetejét a sáv nélkül, hogy ne villogjon), és navigáció közben a mérés eredménye (`befejezve`) egysoros, kompakt
+  kártya (`navResultCompact`); a kézi mérés eredménye nagy marad. Hang: az `AlertPlayer` szintetizátora
   (`announce`), a fontos mondat (szakasz, túl gyors, újratervezés, gyorsabb út) megszakítja a fordulót.
 - **AW12 (első éles navi-teszt, Kristof 2026-10-29), weben és iOS-en (AOS12) kész:** „Gyorsabb út” ≥ 2 perc nyereségtől,
   `net = Δperc − k·Δkm` (k az alternatíva átlagsebességéből, 40 km/h-ig 1,0, 110-től 0,3) → Megéri (45 s után elfogad) /
@@ -138,6 +142,9 @@ Gyökér: `npm test` és `npm run typecheck` minden csomagra; `npm run test:all`
 - Minden prompt „AW<n> kör” vagy „AOS<n> kör”-rel kezdődik; minden commit-üzenet `AW<n>: ...` / `AOS<n>: ...` prefixű.
 - A kör végén frissül a `ROUNDS.md` (dátum, modell, fő commit, 1 mondat); **minden sor végén** `(local)` vagy
   `(cloud)` – hol készült a kör (felhőben készült, helyben lezárt kör: `(cloud, lezárás local)`).
+- **Körben talált hiba (Kristof, 2026-10-29):** a kör közben talált hibát **ugyanabban a körben javítjuk, ha kicsi**.
+  Ha nagy, a kör **elején** jelezzük és döntést kérünk – nem a zárójelentésben (ott legfeljebb a már eldöntött
+  kérdésre hivatkozunk).
 - **Worktree és ágak (Kristof, 2026-10-29):** ha a fő mappában (`~/Desktop/atlagsebesseg-app`) másik kör fut, külön
   worktree-ben dolgozunk (pl. `../atlagsebesseg-<kör>`). A munka **worktree-ből is mindig a mainre kerül, ágon semmi nem
   marad**: a kör végén `git fetch` + rebase az `origin/main`-re, push a mainre (`git push origin HEAD:main`), ellenőrzés,

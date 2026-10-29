@@ -399,6 +399,38 @@ select:focus-visible {
   line-height: 1.2;
 }
 
+/* AOS13: a mérés eredménye navigáció közben egy sorban */
+.compact-speed.tone {
+  color: var(--tone);
+}
+
+.compact-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.compact-text > * {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.compact-status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--tone);
+  font-size: var(--type-caption-size);
+  font-weight: 620;
+}
+
+.compact-row .mini-btn {
+  flex: none;
+}
+
 .compact-speed {
   flex: none;
   font-size: var(--type-title-size);
@@ -1927,6 +1959,11 @@ a.list-row {
 }
 
 /* AW12: közeli kamera – a felső kártya borostyán, nagy kamera-ikon; elhaladás után vissza */
+.nav-top[data-strip='true'] {
+  visibility: hidden;
+  pointer-events: none;
+}
+
 .nav-top[data-camera='true'] {
   background: var(--color-near);
   border-color: var(--color-near);

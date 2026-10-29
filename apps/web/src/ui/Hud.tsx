@@ -25,6 +25,8 @@ export interface HudProps {
   view: SessionView;
   settings: Settings;
   gpsReady: boolean;
+  /** Navigáció közben (AOS13) a mérés eredménye egy sor (`navResultCompact`). */
+  navCompact?: boolean;
   /** A kézi mérés egy ideiglenes szakasz (indításkor a kezdő kapu bejelentve, „Vége” = záró kapu). */
   tempSection: boolean;
   gateState: GateReportState;
@@ -171,6 +173,24 @@ export function Hud(p: HudProps) {
       const r = view.result!;
       const diff = Math.round(Math.abs((speedIn(r.averageKmh, unit) ?? 0) - (speedIn(r.speedLimitKmh, unit) ?? 0)));
       const meta = STATUS_META[view.status ?? 'jo'];
+      if (p.navCompact)
+        return (
+          // navigáció közben egy sor: a nagy kártya a felső lépés-kártya alá érne
+          <Card tone={tone} label={t('hud.done.aria')} compact>
+            <div className="compact-row">
+              <div className="compact-speed num tone">{speedIn(r.averageKmh, unit) ?? '–'}</div>
+              <div className="compact-text">
+                <div className="body muted">{t('hud.done.final', { u })}</div>
+                <div className="compact-status">
+                  <Icon name={meta.icon} size={16} /> {r.overLimit ? t('hud.done.over', { x: diff, u }) : t('hud.done.under')}
+                </div>
+              </div>
+              <button className="mini-btn" onClick={p.onDismiss}>
+                {t('common.done')}
+              </button>
+            </div>
+          </Card>
+        );
       return (
         <Card tone={tone} label={t('hud.done.aria')}>
           <div className="row">

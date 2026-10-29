@@ -1570,3 +1570,35 @@ struct Aw12Tests {
         #expect(removeSavedOther(saved, "p2").others.map(\.id) == ["p3"])
     }
 }
+
+@Suite("AOS13: a felső lépés-kártya nem kerülhet az alsó kártya-csoport alá")
+struct NavStepLayoutTests {
+    @Test("mérés közben mindig sáv; egyébként sáv, ha a teljes kártya (+ térköz) az alsó csoport teteje alá érne; méretlenül kártya")
+    func savVagyKartya() {
+        let strip = { (measuring: Bool, cardBottom: Double?, bottomTop: Double?) in
+            navStepStrip(NavStepLayout(measuring: measuring, cardBottom: cardBottom, bottomTop: bottomTop, gap: 8))
+        }
+        // a mérés utáni eredménykártya a 390 × 844-es nézetben (AOS13): a kártya alja 322, a „Szakasz vége” teteje 237
+        #expect(strip(false, 322, 237))
+        // navigációs alsó sáv (nincs szakasz): bőven elfér
+        #expect(!strip(false, 322, 740))
+        // a határ: pontosan a térköznyi rés még elfér
+        #expect(!strip(false, 322, 330))
+        #expect(strip(false, 322.5, 330))
+        // mérés közben a mérési adatoktól függetlenül sáv
+        #expect(strip(true, 322, 740))
+        #expect(strip(true, nil, nil))
+        // az első elrendezés előtt a teljes kártya marad
+        #expect(!strip(false, nil, 237))
+        #expect(!strip(false, 322, nil))
+    }
+
+    @Test("navigáció közben a mérés eredménye kompakt; navigáció nélkül és más fázisban a nagy kártya marad")
+    func kompaktEredmeny() {
+        #expect(navResultCompact(.befejezve, navigating: true))
+        #expect(!navResultCompact(.befejezve, navigating: false))
+        for phase in [SessionPhase.nincsSzakasz, .kozeledik, .meres, .kezi, .keziEredmeny, .megszakadt] {
+            #expect(!navResultCompact(phase, navigating: true), "\(phase)")
+        }
+    }
+}

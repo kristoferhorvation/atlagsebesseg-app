@@ -33,6 +33,8 @@ import {
   limitAt,
   maneuverIcon,
   NavigationSession,
+  navResultCompact,
+  navStepStrip,
   NAV_CONFIG,
   firstNewManeuver,
   parseDirections,
@@ -1417,5 +1419,32 @@ describe('AW12: újratervezés, kamera, „Utána”, érkezés, követő zoom, 
     ]);
     expect(parseSaved(JSON.stringify(saved)).others.map((x) => x.name)).toEqual(['Edzőterem', 'Nagymama']);
     expect(removeSavedOther(saved, 'p2').others.map((x) => x.id)).toEqual(['p3']);
+  });
+});
+
+describe('AOS13: a felső lépés-kártya nem kerülhet az alsó kártya-csoport alá', () => {
+  it('mérés közben mindig sáv; egyébként sáv, ha a teljes kártya (+ térköz) az alsó csoport teteje alá érne; méretlenül kártya', () => {
+    const gap = 8;
+    // a mérés utáni eredménykártya a 390 × 844-es nézetben (AOS13): a kártya alja 322, a „Szakasz vége” teteje 237
+    expect(navStepStrip({ measuring: false, cardBottom: 322, bottomTop: 237, gap })).toBe(true);
+    // navigációs alsó sáv (nincs szakasz): bőven elfér
+    expect(navStepStrip({ measuring: false, cardBottom: 322, bottomTop: 740, gap })).toBe(false);
+    // a határ: pontosan a térköznyi rés még elfér
+    expect(navStepStrip({ measuring: false, cardBottom: 322, bottomTop: 330, gap })).toBe(false);
+    expect(navStepStrip({ measuring: false, cardBottom: 322.5, bottomTop: 330, gap })).toBe(true);
+    // mérés közben a mérési adatoktól függetlenül sáv
+    expect(navStepStrip({ measuring: true, cardBottom: 322, bottomTop: 740, gap })).toBe(true);
+    expect(navStepStrip({ measuring: true, cardBottom: null, bottomTop: null, gap })).toBe(true);
+    // az első elrendezés előtt a teljes kártya marad
+    expect(navStepStrip({ measuring: false, cardBottom: null, bottomTop: 237, gap })).toBe(false);
+    expect(navStepStrip({ measuring: false, cardBottom: 322, bottomTop: null, gap })).toBe(false);
+  });
+
+  it('navigáció közben a mérés eredménye kompakt; navigáció nélkül és más fázisban a nagy kártya marad', () => {
+    expect(navResultCompact('befejezve', true)).toBe(true);
+    expect(navResultCompact('befejezve', false)).toBe(false);
+    for (const phase of ['nincs_szakasz', 'kozeledik', 'meres', 'kezi', 'kezi_eredmeny', 'megszakadt'] as const) {
+      expect(navResultCompact(phase, true), phase).toBe(false);
+    }
   });
 });

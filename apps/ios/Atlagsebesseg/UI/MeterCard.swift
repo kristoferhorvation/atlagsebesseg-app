@@ -8,6 +8,8 @@ struct MeterCard: View {
     let gpsReady: Bool
     var onStopManual: () -> Void = {}
     var onDismiss: () -> Void = {}
+    /// Navigáció közben (AOS13) a mérés eredménye egy sor (`navResultCompact`).
+    var compact = false
 
     @Environment(\.horizontalSizeClass) private var sizeClass
 
@@ -19,7 +21,7 @@ struct MeterCard: View {
         switch view.phase {
         case .meres: measuring(tone)
         case .kozeledik: approaching(tone)
-        case .befejezve: finished(tone)
+        case .befejezve: if compact { finishedCompact(tone) } else { finished(tone) }
         case .megszakadt: interrupted(tone)
         case .kezi: manual(tone)
         case .keziEredmeny: manualResult(tone)
@@ -132,6 +134,51 @@ struct MeterCard: View {
             if let s = view.section { SourceLine(section: s) }
             Button(t(.commonDone), action: onDismiss).buttonStyle(WideButtonStyle())
         }
+    }
+
+    /// Kompakt eredmény (navigáció közben): átlag a tónus színében, alatta a határhoz mért állapot, jobbra „Kész”.
+    private func finishedCompact(_ tone: Tone) -> some View {
+        let r = view.result!
+        let diff = abs((speedIn(r.averageKmh, unit) ?? 0) - (speedIn(r.speedLimitKmh, unit) ?? 0))
+        let status = view.status ?? .jo
+        return HStack(spacing: Tokens.Space.s4) {
+            Text(speedIn(r.averageKmh, unit).map(String.init) ?? "–")
+                .font(.num(Tokens.Typography.title.size, 700))
+                .tracking(Tokens.Typography.title.trackingPt)
+                .foregroundStyle(tone.color)
+                .fixedSize()
+            VStack(alignment: .leading, spacing: 2) {
+                Text(t(.hudDoneFinal, ["u": u]))
+                    .font(.inter(Tokens.Typography.body.size, Tokens.Typography.body.weight))
+                    .foregroundStyle(Tokens.Colors.textMuted)
+                HStack(spacing: 6) {
+                    Icon(name: status.icon, size: 16)
+                    Text(r.overLimit ? t(.hudDoneOver, ["x": String(diff), "u": u]) : t(.hudDoneUnder))
+                        .font(.inter(Tokens.Typography.caption.size, 620))
+                }
+                .foregroundStyle(tone.color)
+            }
+            .lineLimit(1)
+            .minimumScaleFactor(0.8)
+            Spacer(minLength: 0)
+            Button(t(.commonDone), action: onDismiss)
+                .font(.inter(16, 620))
+                .lineLimit(1)
+                .fixedSize()
+                .foregroundStyle(Tokens.Colors.text)
+                .padding(.horizontal, Tokens.Space.s4)
+                .frame(height: 48)
+                .background(Color.white.opacity(0.1), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+        }
+        .frame(minHeight: 48)
+        .padding(.vertical, Tokens.Space.s3)
+        .padding(.horizontal, Tokens.Space.s5)
+        .background(CardBackground(tone: tone, glow: 0.1))
+        // a státusz-tónus fénye a kártyán túlnyúlna (mint a nagy kártyánál, vágjuk)
+        .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+        .glass(radius: 24)
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel(t(.hudDoneAria))
     }
 
     private func interrupted(_ tone: Tone) -> some View {

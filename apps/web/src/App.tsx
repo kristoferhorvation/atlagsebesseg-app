@@ -34,6 +34,8 @@ import {
   type EnforcementData,
   type NavigationSession,
   type NavRoute,
+  navResultCompact,
+  navStepStrip,
 } from '@atlagsebesseg/app-logic';
 import { BUNDLED_CAMERAS } from '@atlagsebesseg/app-logic/bundled-cameras';
 import { BUNDLED_SECTIONS } from '@atlagsebesseg/app-logic/bundled-sections';
@@ -368,6 +370,23 @@ function Drive({ map }: { map: WebMapAdapter }) {
     [map, plannedShown, activePlanned?.id],
   );
 
+  // AOS13: a felső lépés-kártya egysoros sávvá zsugorodik, ha a teljes kártya az alsó csoport alá érne (mérés közben
+  // mindig). A rejtett kártyát is mérjük, az alsó csoport tetejét pedig a sáv nélkül – így a kettő nem kapcsolgat
+  // oda-vissza. Elrendezés szerint (offset*), mert a megjelenési animáció transzformja a látszó helyet még torzítja.
+  const [stepStrip, setStepStrip] = useState(false);
+  useLayoutEffect(() => {
+    const hud = hudRef.current;
+    const card = document.querySelector<HTMLElement>('.nav-top');
+    let bottomTop: number | null = null;
+    if (hud) {
+      const float = hud.querySelector<HTMLElement>('.hud-float');
+      const strip = hud.querySelector<HTMLElement>('.nav-strip');
+      bottomTop =
+        window.innerHeight - hud.offsetHeight - (float && float.offsetHeight > 0 ? float.offsetHeight + 12 : 0) + (strip ? strip.offsetHeight + 12 : 0);
+    }
+    setStepStrip(navStepStrip({ measuring, cardBottom: card ? card.offsetTop + card.offsetHeight : null, bottomTop, gap: 12 }));
+  });
+
   // az autó a HUD feletti szabad terület ~60%-ánál, navigáció közben az alsó harmadban (az út előre látszik) –
   // a kártya magasságát mérjük, nem becsüljük
   const hudRef = useRef<HTMLDivElement>(null);
@@ -585,7 +604,7 @@ function Drive({ map }: { map: WebMapAdapter }) {
           onBackground={session.interrupt}
         />
       )}
-      {nav.view && !measuring && <NavTop view={nav.view} unit={settings.egyseg} />}
+      {nav.view && !measuring && <NavTop view={nav.view} unit={settings.egyseg} hidden={stepStrip} />}
       <PlannedBand check={activePlanned} compact={measuring} />
 
       <div className="hud" ref={hudRef} data-hidden={nav.plan !== null || nav.searchFor !== null}>
@@ -646,7 +665,7 @@ function Drive({ map }: { map: WebMapAdapter }) {
             <Icon name="report" size={28} />
           </button>
         </div>
-        {nav.view && measuring && <NavStrip view={nav.view} unit={settings.egyseg} />}
+        {nav.view && (measuring || stepStrip) && <NavStrip view={nav.view} unit={settings.egyseg} />}
         {nav.view && view.phase === 'nincs_szakasz' ? (
           <NavBottom view={nav.view} unit={settings.egyseg} currentKmh={view.currentKmh} onEnd={nav.end} />
         ) : (
@@ -655,6 +674,7 @@ function Drive({ map }: { map: WebMapAdapter }) {
           view={view}
           settings={settings}
           gpsReady={view.lastFix !== null}
+          navCompact={navResultCompact(view.phase, nav.view !== null)}
           tempSection={temp !== null}
           gateState={gateState}
           onStopManual={stopManual}
