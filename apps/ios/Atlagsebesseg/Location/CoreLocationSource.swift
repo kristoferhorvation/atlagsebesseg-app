@@ -5,6 +5,9 @@ final class CoreLocationSource: NSObject, LocationSource, CLLocationManagerDeleg
     var onLocation: ((CLLocation) -> Void)?
     var onGap: (() -> Void)?
     var onStatus: ((GeoStatus) -> Void)?
+    /// Az engedély változása (a GPS-pill koppintásához, AOS12).
+    var onPermission: ((LocationPermission) -> Void)?
+    var permission: LocationPermission { LocationPermission(manager.authorizationStatus) }
 
     private let manager = CLLocationManager()
     /// iOS 17+: a When In Use engedéllyel ez tartja életben a háttérbeli frissítéseket (kék jelzés a státuszsorban).
@@ -33,6 +36,11 @@ final class CoreLocationSource: NSObject, LocationSource, CLLocationManagerDeleg
         }
     }
 
+    /// A GPS-pill koppintása „nem eldöntött” engedélynél: a rendszer engedélykérése (csak egyszer jelenik meg).
+    func requestAccess() {
+        if manager.authorizationStatus == .notDetermined { manager.requestWhenInUseAuthorization() }
+    }
+
     func stop() {
         running = false
         manager.stopUpdatingLocation()
@@ -52,6 +60,7 @@ final class CoreLocationSource: NSObject, LocationSource, CLLocationManagerDeleg
     nonisolated func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
         let status = manager.authorizationStatus
         MainActor.assumeIsolated {
+            onPermission?(LocationPermission(status))
             switch status {
             case .authorizedWhenInUse, .authorizedAlways: begin()
             case .denied, .restricted: onStatus?(.denied)

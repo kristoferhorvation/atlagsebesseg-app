@@ -4019,6 +4019,129 @@
         }
       }
     },
+    "ios.geo.help.1" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nastavení › Soukromí a zabezpečení › Polohové služby: zapněte je."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Einstellungen › Datenschutz & Sicherheit › Ortungsdienste: einschalten."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Settings › Privacy & Security › Location Services: turn it on."
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Beállítások › Adatvédelem és biztonság › Helymeghatározás: legyen bekapcsolva."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ustawienia › Prywatność i ochrona › Usługi lokalizacji: włącz je."
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nastavenia › Súkromie a bezpečnosť › Polohové služby: zapnite ich."
+          }
+        }
+      }
+    },
+    "ios.geo.help.2" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "V nastavení aplikace (Otevřít): Poloha › „Při používání aplikace“."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "In den Einstellungen der App (Öffnen): Standort › „Beim Verwenden der App“."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "In the app's own settings (Open): Location › “While Using the App”."
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Az app saját beállításaiban (Megnyitás): Hely › „Az app használata közben”."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "W ustawieniach aplikacji (Otwórz): Lokalizacja › „Podczas używania aplikacji”."
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "V nastaveniach aplikácie (Otvoriť): Poloha › „Pri používaní aplikácie“."
+          }
+        }
+      }
+    },
+    "ios.geo.open" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Otevřít"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Öffnen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Megnyitás"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Otwórz"
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Otvoriť"
+          }
+        }
+      }
+    },
     "ios.locationUsage" : {
       "extractionState" : "manual",
       "localizations" : {

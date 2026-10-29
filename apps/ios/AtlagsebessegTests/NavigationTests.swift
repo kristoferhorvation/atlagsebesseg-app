@@ -52,9 +52,15 @@ private func lineRoute(lengthM: Double = 10_000, durationS: Double = 360, latOff
 }
 
 /// A teszt-útvonal egy pontja (m-ben az elejétől), `crossM` méterrel északra eltolva.
-private func at(_ route: NavRoute, _ alongM: Double, _ crossM: Double = 0, _ t: Double = T0, heading: Double? = 90) -> GpsFix {
+private func at(_ route: NavRoute, _ alongM: Double, _ crossM: Double = 0, _ t: Double = T0, heading: Double? = 90, speed: Double? = 25) -> GpsFix {
     let p = LocalProjection(route.points[0]).fromXY(XY(x: alongM, y: crossM))
-    return GpsFix(lat: p.lat, lon: p.lon, timestamp: t, speed: 25, accuracy: 5, heading: heading)
+    return GpsFix(lat: p.lat, lon: p.lon, timestamp: t, speed: speed, accuracy: 5, heading: heading)
+}
+
+/// A teljes szöveg illeszkedik-e a mintára (a vitest `toMatch(/^…$/)`).
+private func matches(_ s: String?, _ pattern: String) -> Bool {
+    guard let s, let re = try? NSRegularExpression(pattern: pattern) else { return false }
+    return re.firstMatch(in: s, range: NSRange(s.startIndex..., in: s)) != nil
 }
 
 private func ll(_ f: GpsFix) -> LatLon { LatLon(lat: f.lat, lon: f.lon) }
@@ -81,19 +87,19 @@ private func makeSection(_ route: NavRoute, _ fromM: Double, _ toM: Double, limi
 /// Munkamenet kézzel léptetett órával; a `fetchRoutes` hívásait rögzíti, a választ a teszt adja.
 @MainActor
 private final class Harness {
-    var calls: [(reason: RouteRequestReason, from: LatLon)] = []
+    var calls: [(reason: RouteRequestReason, from: LatLon, to: LatLon)] = []
     var t = T0
     var next: Result<[NavRoute], Error>
     var session: NavigationSession!
 
-    init(_ route: NavRoute, voice: Bool = true) {
+    init(_ route: NavRoute, voice: Bool = true, routable: LatLon? = nil) {
         next = .success([route])
         let dest = route.points.last!
         session = NavigationSession(
             route: route,
-            destination: NavDestination(name: "Cél", lat: dest.lat, lon: dest.lon),
-            fetchRoutes: { [unowned self] from, _, ctx in
-                self.calls.append((ctx.reason, from))
+            destination: NavDestination(name: "Cél", lat: dest.lat, lon: dest.lon, routable: routable),
+            fetchRoutes: { [unowned self] from, to, ctx in
+                self.calls.append((ctx.reason, from, to))
                 let r = self.next
                 return Task { try r.get() }
             },
@@ -378,6 +384,9 @@ private struct Fixture {
         let p = core.pointAt(alongM)
         return GpsFix(lat: p.lat, lon: p.lon, timestamp: t, speed: 25, accuracy: 5, heading: nil)
     }
+
+    /// A lehajtó helye a fő útvonal mentén, ha az ajánlat az 1000 m-es pozíción érkezik.
+    var exitAlong: Double { 1000 + firstNewManeuver(main, alt)!.distanceM }
 }
 
 @Suite("alternatíva-figyelés")
@@ -405,22 +414,18 @@ struct AlternativeTests {
         return h.session.view().offer
     }
 
-    @Test("legalább 5 percet nyer → ajánlat")
-    func otPerc() async throws {
-        let offer = try #require(await offerWith(1800 - 360))
-        #expect(offer.gainS >= 300)
+    @Test("legalább 2 perc nyereség → ajánlat (AW12: a 15%-os szabály nincs)")
+    func ketPercNyereseg() async throws {
+        let offer = try #require(await offerWith(3600 - ALT_OFFER.minGainS, 3600))
+        #expect(offer.gainS >= 120)
         #expect(offer.route.id == "alt")
     }
 
-    @Test("4 perc (és < 15%) → nincs ajánlat")
-    func negyPerc() async {
-        #expect(await offerWith(3600 - 240, 3600) == nil)
-    }
-
-    @Test("15%-ot nyer 5 perc alatt is → ajánlat (rövid út)")
-    func tizenotSzazalek() async {
-        // 20 perces út: 15% = 3 perc; a nyereség 3,5 perc
-        #expect(await offerWith(1200 - 210, 1200) != nil)
+    @Test("2 percnél kevesebb nyereség → nincs ajánlat, rövid úton sem")
+    func ketPercAlatt() async {
+        #expect(await offerWith(3600 - 110, 3600) == nil)
+        // 10 perces út, 1,8 perc (18%) – régen ajánlat lett volna
+        #expect(await offerWith(600 - 108, 600) == nil)
     }
 
     private func measuringOn(_ sectionToM: Double) async throws -> (Harness, Fixture) {
@@ -494,7 +499,7 @@ struct AlternativeTests {
         #expect(offer.expiresAt == T0 + 120_000 + NAV_CONFIG.offerTtlMs)
         let voice = h.session.drainVoice().filter { $0.kind == .faster }
         #expect(voice.count == 1)
-        #expect(voice.first?.text.contains(offer.exitKm) == true)
+        #expect(voice.first?.text == altOfferVoice(altWorth(offer.gainS, offer.extraM, routeAvgKmh(offer.route)), exitKm: offer.exitKm, lang: .hu))
         // a mérés végén a forma nem kompakt, az ajánlat marad
         h.session.setMeasuring(false)
         #expect(h.session.view().offer?.compact == false)
@@ -1052,5 +1057,516 @@ struct NavDictionaryTests {
         #expect(Settings.default.hangosUtasitasok)
         #expect(Settings.parse(#"{"hangos_utasitasok":false}"#).hangosUtasitasok == false)
         #expect(Settings.parse("{}").hangosUtasitasok)
+    }
+}
+
+// MARK: alternatív útvonal a térképen (A8d / AW11)
+
+@Suite("alternatív útvonal a térképen: címke és kiválasztás (A8d)")
+struct AltLabelTests {
+    @Test("a címke szövege: „+1 perc” / „−2 perc”, egy percen belül „Ugyanannyi idő”")
+    func cimkeSzoveg() {
+        #expect(altDeltaText(60, lang: .hu) == "+1 perc")
+        #expect(altDeltaText(-120, lang: .hu) == "−2 perc")
+        #expect(altDeltaText(-95, lang: .hu) == "−2 perc")
+        #expect(altDeltaText(25, lang: .hu) == "Ugyanannyi idő")
+        #expect(altDeltaText(180, lang: .en) == "+3 min")
+    }
+
+    @Test("a leágazás az alternatíva első, a kiválasztott sávján kívüli pontja; önmagától nem ágazik le")
+    func leagazas() throws {
+        let routes = try fixtureRoutes()
+        let (main, alt) = (routes[0], routes[1])
+        let d = try #require(divergenceAlongM(main, alt))
+        #expect(d > 0)
+        let core = coreRoute(main)!
+        let a = coreRoute(alt)!
+        #expect(core.project(a.pointAt(d)).crossM > ROUTE_MATCH_M)
+        #expect(core.project(a.pointAt(max(0, d - 25))).crossM <= ROUTE_MATCH_M)
+        #expect(divergenceAlongM(main, main) == nil)
+    }
+
+    @Test("címke csak az alternatíván, a leágazás után ~300 m-rel, a kártya menetidejével számolva")
+    func cimkeHelye() throws {
+        let routes = try fixtureRoutes()
+        let labels = altLabels(routes, [3600, 3660], 0, lang: .hu)
+        #expect(labels.count == 1)
+        let l = try #require(labels.first)
+        #expect(l.routeId == routes[1].id)
+        #expect(l.index == 1)
+        #expect(l.deltaS == 60)
+        #expect(l.text == "+1 perc")
+        let p = coreRoute(routes[1])!.project(l.at)
+        #expect(p.crossM < 1)
+        #expect(close(p.alongM - divergenceAlongM(routes[0], routes[1])!, ALT_LABEL_AFTER_M, -1))
+    }
+
+    @Test("kiválasztás-váltás: az érintett alternatíva lesz a kiválasztott, a címke a másikra kerül, előjelet vált")
+    func valtas() throws {
+        let routes = try fixtureRoutes()
+        let sel = selectRouteById(routes, 0, routes[1].id)
+        #expect(sel == 1)
+        let labels = altLabels(routes, [3600, 3720], sel, lang: .hu)
+        #expect(labels.map(\.routeId) == [routes[0].id])
+        #expect(labels.map(\.text) == ["−2 perc"])
+        // ismeretlen azonosító (pl. elavult érintés): marad a régi
+        #expect(selectRouteById(routes, sel, "nincs") == 1)
+        // egyetlen útvonalnál nincs címke
+        #expect(altLabels([routes[0]], [3600], 0).isEmpty)
+    }
+}
+
+// MARK: AW12 – az első éles navi-teszt javításai
+
+@Suite("AW12: „megéri”-szabály a gyorsabb útra")
+@MainActor
+struct WorthTests {
+    private let cityKmh = 30.0
+    private let motorwayKmh = 120.0
+    private func verdict(_ min: Double, _ km: Double, _ kmh: Double) -> AltVerdict { altWorth(min * 60, km * 1000, kmh).verdict }
+
+    @Test("a kerülő ára az alternatíva átlagsebességéből: ≤ 40 km/h → 1,0, ≥ 110 → 0,3, között lineáris")
+    func keruloAra() {
+        #expect(detourCostPerKm(20) == 1)
+        #expect(detourCostPerKm(40) == 1)
+        #expect(close(detourCostPerKm(75), 0.65, 10))
+        #expect(detourCostPerKm(110) == 0.3)
+        #expect(detourCostPerKm(140) == 0.3)
+        #expect(detourCostPerKm(.nan) == 1)
+        // a Directions duration / distance: 10 km 10 perc alatt = 60 km/h
+        #expect(close(routeAvgKmh(lineRoute(lengthM: 10_000, durationS: 600)), 60, 10))
+    }
+
+    @Test("példa-táblázat, város: 1 perc / 1 km nem, 3/1 igen, 7/4 igen, 10/20 nem")
+    func varos() {
+        #expect(verdict(1, 1, cityKmh) == .not)
+        #expect(1 * 60 < ALT_OFFER.minGainS) // ajánlat sem lesz belőle
+        #expect(verdict(3, 1, cityKmh) == .worth)
+        #expect(verdict(7, 4, cityKmh) == .worth)
+        #expect(verdict(10, 20, cityKmh) == .not)
+    }
+
+    @Test("példa-táblázat, autópálya: 20/50 igen, 20/100 nem, 10/20 igen, 100/100 igen")
+    func autopalya() {
+        #expect(verdict(20, 50, motorwayKmh) == .worth)
+        #expect(verdict(20, 100, motorwayKmh) == .not)
+        #expect(verdict(10, 20, motorwayKmh) == .worth)
+        #expect(verdict(100, 100, motorwayKmh) == .worth)
+    }
+
+    @Test("a nettó nyereség határai: net ≥ 2 → megéri, 0 < net < 2 → lehet, net ≤ 0 → nem éri meg")
+    func hatarok() {
+        let a = altWorth(120, 0, cityKmh)
+        #expect(a.net == 2 && a.verdict == .worth)
+        let b = altWorth(120, 1000, cityKmh)
+        #expect(b.net == 1 && b.verdict == .maybe)
+        let c = altWorth(120, 2000, cityKmh)
+        #expect(c.net == 0 && c.verdict == .not)
+        // rövidebb alternatíva: a megtakarított km is nyereség
+        #expect(altWorth(120, -1000, cityKmh).net == 3)
+    }
+
+    /// A városi teszt-útvonal (10 km, 30 perc) és egy alternatíva a megadott többlet-távval és nyereséggel.
+    private func categoryOffer(_ gainMin: Double, _ extraKm: Double) async throws -> (h: Harness, route: NavRoute, offer: AlternativeOffer, voice: [String]) {
+        let route = lineRoute(lengthM: 10_000, durationS: 1800)
+        let alt = scaleDurations(lineRoute(lengthM: 10_000 + extraKm * 1000, durationS: 1800, id: "alt"), 1800 - gainMin * 60, "alt", latOffset: 0.003)
+        let h = Harness(route)
+        h.respond([route, alt])
+        h.feed(at(route, 300, 0, T0 + 120_000))
+        await h.session.settle()
+        let offer = try #require(h.session.view().offer)
+        return (h, route, offer, h.session.drainVoice().filter { $0.kind == .faster }.map(\.text))
+    }
+
+    @Test("három kategória: kártya és bemondás (megéri / lehet / nem éri meg)")
+    func haromKategoria() async throws {
+        let worth = try await categoryOffer(7, 4)
+        #expect(worth.offer.verdict == .worth)
+        #expect(worth.offer.title == "Megéri · −7 perc, +4 km")
+        // AW13: a „megéri” bemondás a lehajtó távolságával
+        #expect(worth.voice.count == 1)
+        #expect(matches(worth.voice.first, #"^Gyorsabb út, 7 perc megtakarítás, lehajtó \d+,\d kilométernél$"#))
+
+        let maybe = try await categoryOffer(2, 1)
+        #expect(maybe.offer.verdict == .maybe)
+        #expect(maybe.offer.title == "Lehet · −2 perc, +1 km")
+        #expect(maybe.voice == ["Gyorsabb út, 2 perc, 1 kilométer kerülő, te döntesz"])
+
+        let not = try await categoryOffer(10, 20)
+        #expect(not.offer.verdict == .not)
+        #expect(not.offer.title == "Nem éri meg · +20 km kerülő, −10 perc")
+        #expect(not.voice == ["Gyorsabb út, de nem éri meg, 20 kilométer kerülő"])
+    }
+
+    @Test("a kártya-szöveg rövidebb alternatívánál „−km”, egyező távnál km nélkül; mind a 6 nyelven van szöveg")
+    func kartyaSzoveg() {
+        #expect(altOfferTitle(AltWorth(gainMin: 5, extraKm: -2, verdict: .worth), lang: .hu) == "Megéri · −5 perc, −2 km")
+        #expect(altOfferTitle(AltWorth(gainMin: 5, extraKm: 0.2, verdict: .worth), lang: .hu) == "Megéri · −5 perc")
+        for lang in Lang.allCases {
+            for v in [AltVerdict.worth, .maybe, .not] {
+                let w = AltWorth(gainMin: 7, extraKm: 4, verdict: v)
+                #expect(matches(altOfferTitle(w, lang: lang), "7|4"), "\(lang) \(v)")
+                #expect(!matches(altOfferVoice(w, lang: lang), "[{}]"), "\(lang) \(v)")
+            }
+        }
+    }
+
+    @Test("lejáratkor (45 s) a „megéri” elfogadódik, a „lehet” és a „nem éri meg” esetén marad a régi")
+    func lejaratkor() async throws {
+        for (gain, km, accepted) in [(7.0, 4.0, true), (2, 1, false), (10, 20, false)] {
+            let c = try await categoryOffer(gain, km)
+            c.h.feed(at(c.route, 400, 0, T0 + 120_000 + NAV_CONFIG.offerTtlMs - 1))
+            #expect(c.h.session.view().offer != nil)
+            c.h.feed(at(c.route, 500, 0, T0 + 120_000 + NAV_CONFIG.offerTtlMs))
+            #expect(c.h.session.view().offer == nil)
+            #expect(c.h.session.view().route.id == (accepted ? "alt" : "line"), "\(gain)/\(km)")
+        }
+    }
+
+    @Test("több jelölt közül a legnagyobb nettó nyereségű (nem a leggyorsabb)")
+    func legjobbJelolt() async {
+        let route = lineRoute(lengthM: 10_000, durationS: 1800)
+        let fast = scaleDurations(lineRoute(lengthM: 30_000, durationS: 1800, id: "fast"), 1800 - 600, "fast", latOffset: 0.003)
+        let short = scaleDurations(lineRoute(lengthM: 11_000, durationS: 1800, id: "short"), 1800 - 300, "short", latOffset: -0.003)
+        let h = Harness(route)
+        h.respond([route, fast, short])
+        h.feed(at(route, 300, 0, T0 + 120_000))
+        await h.session.settle()
+        #expect(h.session.view().offer?.route.id == "short")
+    }
+}
+
+@Suite("AW13: mérés közben a kapu utáni közeli lehajtó azonnal")
+@MainActor
+struct ExitAfterGateTests {
+    private func measuring(_ endBeforeExitM: Double) async throws -> (Harness, Fixture) {
+        let f = try Fixture()
+        let h = Harness(f.main)
+        h.session.setData(EnforcementData(sections: [f.sectionOn(400, f.exitAlong - endBeforeExitM)]))
+        h.respond([f.main, f.alt])
+        h.session.setMeasuring(true)
+        h.feed(f.fix(1000, T0 + 120_000))
+        await h.session.settle()
+        return (h, f)
+    }
+
+    @Test("a lehajtó a végkapu után 1 km-en belül → azonnal, kompakt ajánlat bemondással (mint a kapu előtti esetben)")
+    func kapuUtanAzonnal() async throws {
+        let (h, _) = try await measuring(500)
+        let offer = try #require(h.session.view().offer)
+        #expect(offer.compact)
+        #expect(h.session.drainVoice().filter { $0.kind == .faster }.count == 1)
+        // a mérés végén az ajánlat marad, teljes formában
+        h.session.setMeasuring(false)
+        #expect(h.session.view().offer?.compact == false)
+    }
+
+    @Test("a határ: a végkapu után pontosan 1 km → azonnal; 1 km-nél messzebb → visszatartva, a mérés végén megjelenik")
+    func hatar() async throws {
+        let (at1km, _) = try await measuring(ALT_OFFER.exitAfterGateM)
+        #expect(at1km.session.view().offer?.compact == true)
+        let (h, _) = try await measuring(ALT_OFFER.exitAfterGateM + 300)
+        #expect(h.session.view().offer == nil)
+        #expect(!h.session.drainVoice().contains { $0.kind == .faster })
+        h.session.setMeasuring(false)
+        #expect(h.session.view().offer != nil)
+        #expect(h.session.drainVoice().filter { $0.kind == .faster }.count == 1)
+    }
+
+    @Test("a már látható ajánlat marad (kompakt formában), ha mérés kezdődik és a lehajtó a kapu után 1 km-en belül van")
+    func lathatoMarad() async throws {
+        let f = try Fixture()
+        let h = Harness(f.main)
+        h.session.setData(EnforcementData(sections: [f.sectionOn(400, f.exitAlong - 200)]))
+        h.respond([f.main, f.alt])
+        h.feed(f.fix(1000, T0 + 120_000))
+        await h.session.settle()
+        let id = try #require(h.session.view().offer).id
+        h.session.setMeasuring(true)
+        #expect(h.session.view().offer?.id == id)
+        #expect(h.session.view().offer?.compact == true)
+    }
+
+    @Test("a már látható ajánlat visszatartódik, ha mérés kezdődik és a lehajtó a kaputól 1 km-nél messzebb van")
+    func lathatoVisszatartva() async throws {
+        let f = try Fixture()
+        let h = Harness(f.main)
+        h.session.setData(EnforcementData(sections: [f.sectionOn(400, f.exitAlong - ALT_OFFER.exitAfterGateM - 300)]))
+        h.respond([f.main, f.alt])
+        h.feed(f.fix(1000, T0 + 120_000))
+        await h.session.settle()
+        #expect(h.session.view().offer != nil)
+        h.session.setMeasuring(true)
+        #expect(h.session.view().offer == nil)
+        h.session.setMeasuring(false)
+        #expect(h.session.view().offer != nil)
+    }
+
+    @Test("a munkamenet „megéri” bemondása a lehajtó távolságával (a Budapest→Győr fixtúrán)")
+    func megeriBemondas() async throws {
+        let f = try Fixture()
+        let h = Harness(f.main)
+        h.session.setData(EnforcementData())
+        h.respond([f.main, f.alt])
+        h.feed(f.fix(1000, T0 + 120_000))
+        await h.session.settle()
+        let offer = try #require(h.session.view().offer)
+        #expect(offer.verdict == .worth)
+        let voice = try #require(h.session.drainVoice().first { $0.kind == .faster })
+        #expect(matches(voice.text, #"^Gyorsabb út, \d+ perc megtakarítás, lehajtó \d+,\d kilométernél$"#))
+        #expect(voice.text.contains(offer.exitKm))
+    }
+
+    @Test("timeLeft (a fogyó csík): 1-ről a lejáratig fogy")
+    func timeLeft() async throws {
+        let f = try Fixture()
+        let h = Harness(f.main)
+        h.session.setData(EnforcementData())
+        h.respond([f.main, f.alt])
+        h.feed(f.fix(1000, T0 + 120_000))
+        await h.session.settle()
+        #expect(h.session.view().offer?.timeLeft == 1)
+        h.feed(f.fix(1100, T0 + 120_000 + NAV_CONFIG.offerTtlMs / 3))
+        #expect(close(h.session.view().offer?.timeLeft, 2.0 / 3, 5))
+    }
+}
+
+@Suite("AW13: „megéri” bemondás a lehajtóval")
+struct WorthVoiceTests {
+    @Test("„Gyorsabb út, {perc} perc megtakarítás, lehajtó {km} kilométernél”; ismeretlen lehajtónál a lehajtó nélkül; 6 nyelven")
+    func bemondas() {
+        let w = AltWorth(gainMin: 7, extraKm: 4, verdict: .worth)
+        #expect(altOfferVoice(w, exitKm: "5,2", lang: .hu) == "Gyorsabb út, 7 perc megtakarítás, lehajtó 5,2 kilométernél")
+        #expect(altOfferVoice(w, lang: .hu) == "Gyorsabb út, 7 perc megtakarítás")
+        // a „lehet” és a „nem éri meg” szövege nem változik
+        #expect(altOfferVoice(AltWorth(gainMin: 7, extraKm: 4, verdict: .maybe), exitKm: "5,2", lang: .hu) == "Gyorsabb út, 7 perc, 4 kilométer kerülő, te döntesz")
+        #expect(altOfferVoice(AltWorth(gainMin: 7, extraKm: 4, verdict: .not), exitKm: "5,2", lang: .hu) == "Gyorsabb út, de nem éri meg, 4 kilométer kerülő")
+        for lang in Lang.allCases {
+            let text = altOfferVoice(w, exitKm: "5,2", lang: lang)
+            #expect(text.contains("7"), "\(lang)")
+            #expect(text.contains("5,2"), "\(lang)")
+            #expect(!matches(text, "[{}]"), "\(lang)")
+        }
+    }
+}
+
+@Suite("AW13: kétsoros kompakt ajánlat")
+struct CompactOfferTests {
+    @Test("„Kijárat 56” / „2,1 km · −7 perc”; név nélkül „Lehajtó 2,1 km-nél” / „−7 perc”; ismeretlen lehajtónál a cím")
+    func ketSor() {
+        let title = "Megéri · −7 perc, +4 km"
+        let lines = { (gainS: Double, exitAlongM: Double?, exitName: String?, lang: Lang) in
+            altOfferCompactLines(title: title, gainS: gainS, exitAlongM: exitAlongM, exitName: exitName, exitKm: "2,1", lang: lang)
+        }
+        let gain = 7.0 * 60 + 10
+        #expect(lines(gain, 12_000, "Kijárat 56", .hu) == ("Kijárat 56", "2,1 km · −7 perc"))
+        #expect(lines(gain, 12_000, nil, .hu) == ("Lehajtó 2,1 km-nél", "−7 perc"))
+        #expect(lines(gain, 12_000, "", .hu) == ("Lehajtó 2,1 km-nél", "−7 perc"))
+        #expect(lines(gain, nil, "Kijárat 56", .hu) == (title, nil))
+        #expect(lines(20, 12_000, "Kijárat 56", .hu).1 == "2,1 km · −1 perc")
+        for lang in Lang.allCases {
+            #expect(matches(lines(gain, 12_000, "Kijárat 56", lang).1, #"^2,1 km · −7 \S+$"#), "\(lang)")
+        }
+    }
+}
+
+/// Az Építész utca 11 valódi Directions-válaszának vége (2026-10-29): a cél a sarki mellékutcára (Abádi utca) illesztve.
+private func epiteszUtca(_ lastStepM: Double = 8.039) -> [String: Any] {
+    [
+        "code": "Ok",
+        "routes": [[
+            "distance": 300 + 162.746 + lastStepM,
+            "duration": 80,
+            "geometry": ["coordinates": [[19.0337, 47.4482], [19.037655, 47.448162], [19.039807, 47.448023], [19.039796, 47.447951]]],
+            "legs": [[
+                "annotation": ["maxspeed": [Any](), "congestion": [Any](), "duration": [Any]()],
+                "steps": [
+                    [
+                        "distance": 300, "duration": 40, "name": "Bártfai utca",
+                        "maneuver": ["type": "depart", "location": [19.0337, 47.4482], "instruction": "Hajtson keletre."],
+                        "bannerInstructions": [["distanceAlongGeometry": 300, "primary": ["text": "Építész utca", "type": "turn", "modifier": "left"]]],
+                        "voiceInstructions": [Any](),
+                    ],
+                    [
+                        "distance": 162.746, "duration": 35, "name": "Építész utca",
+                        "maneuver": ["type": "turn", "modifier": "left", "location": [19.037655, 47.448162], "instruction": "Forduljon balra az Építész utcára."],
+                        "bannerInstructions": [["distanceAlongGeometry": 162.746, "primary": ["text": "Abádi utca", "type": "turn", "modifier": "right"]]],
+                        "voiceInstructions": [
+                            ["distanceAlongGeometry": 146.079, "announcement": "200 méter múlva, Forduljon jobbra az Abádi utcára."],
+                            ["distanceAlongGeometry": 61.75, "announcement": "Forduljon jobbra az Abádi utcára. Utána Az Ön úti célja balra lesz."],
+                        ],
+                    ],
+                    [
+                        "distance": lastStepM, "duration": 5, "name": "Abádi utca",
+                        "maneuver": ["type": "turn", "modifier": "right", "location": [19.039807, 47.448023], "instruction": "Forduljon jobbra az Abádi utcára."],
+                        "bannerInstructions": [["distanceAlongGeometry": lastStepM, "primary": ["text": "Az úti célja balra van", "type": "arrive", "modifier": "left"]]],
+                        "voiceInstructions": [["distanceAlongGeometry": 4.039, "announcement": "Az Ön úti célja balra van."]],
+                    ],
+                    [
+                        "distance": 0, "duration": 0, "name": "Abádi utca",
+                        "maneuver": ["type": "arrive", "modifier": "left", "location": [19.039796, 47.447951], "instruction": "Az úti célja balra van."],
+                    ],
+                ],
+            ]],
+        ]],
+    ]
+}
+
+@Suite("AW12: újratervezés, kamera, „Utána”, érkezés, követő zoom, mentett címek")
+@MainActor
+struct Aw12Tests {
+    @Test("az „Újratervezés” a letéréskor szól (a kiírással együtt), az új útvonal érkezése előtt, és egyszer")
+    func ujratervezesHang() async {
+        let route = lineRoute()
+        let h = Harness(route)
+        h.feed(at(route, 2000, 0, T0))
+        _ = h.session.drainVoice()
+        let v1 = h.feed(at(route, 2050, 300, T0 + 1000))
+        #expect(v1.offRoute)
+        #expect(h.session.drainVoice().map(\.kind) == [.reroute])
+        #expect(h.calls.isEmpty) // még nincs új útvonal-kérés
+        for s in 2...7 { h.feed(at(route, 2050, 300, T0 + Double(s) * 1000)) }
+        #expect(h.reasons == [.reroute])
+        await h.session.settle()
+        #expect(h.session.drainVoice().filter { $0.kind == .reroute }.isEmpty)
+    }
+
+    @Test("kamera-közeledés: max(250 m, 10 s × sebesség) – 60 km/h → 250 m, 130 km/h → 361 m; elhaladás után eltűnik")
+    func kamera() {
+        #expect(cameraAlertM(60 / 3.6) == 250)
+        #expect(close(cameraAlertM(130 / 3.6), 361.1, 1))
+        #expect(cameraAlertM(nil) == CAMERA_ALERT.minM)
+        let route = lineRoute()
+        let cam = camera("cam", "HU", at(route, 5000, 10), heading: nil, limit: 50)
+        let h = Harness(route)
+        h.session.setData(EnforcementData(cameras: [cam]))
+        let v60 = 60 / 3.6
+        #expect(h.feed(at(route, 4700, 0, T0, speed: v60)).cameraNear == nil)
+        #expect(h.feed(at(route, 4760, 0, T0 + 1000, speed: v60)).cameraNear?.item.id == "cam")
+        // gyorsan már 360 m-ről
+        #expect(close(h.feed(at(route, 4650, 0, T0 + 2000, speed: 130 / 3.6)).cameraNear?.distanceM, 350, 0))
+        #expect(h.feed(at(route, 5010, 0, T0 + 3000, speed: v60)).cameraNear == nil)
+        // a távoli jelzés (kis sor) közben megmarad
+        #expect(h.feed(at(route, 3500, 0, T0 + 4000, speed: v60)).upcoming?.item.kind == .camera)
+    }
+
+    @Test("az „Utána” sor: manőver-ikon + utcanév, név nélkül rövid manőver-szó – nem a teljes Directions-mondat")
+    func utana() throws {
+        func step(_ instruction: String, _ bannerText: String, _ type: String = "turn", _ modifier: String = "right") -> NavStep {
+            NavStep(
+                index: 0, distanceM: 100, durationS: 10, startM: 0, name: "",
+                endManeuver: NavManeuver(type: type, modifier: modifier, instruction: instruction, location: ORIGIN),
+                banners: [NavBanner(distanceAlongM: 100, primary: BannerText(text: bannerText, type: type, modifier: modifier))],
+                voice: []
+            )
+        }
+        func after(_ name: String) -> NavStep {
+            var s = step("", "")
+            s.name = name
+            return s
+        }
+        // a szalag a mondat (név nélküli manőver): az utcanév kerül a helyére, ha van; különben a manőver-szó
+        #expect(thenText(step("Forduljon jobbra, hogy a bekötőútra hajtson.", "Forduljon jobbra, hogy a bekötőútra hajtson"), after("Fő utca"), .right, lang: .hu) == "Fő utca")
+        #expect(thenText(step("Forduljon jobbra, hogy ráhajtson a bekötőútra.", "Forduljon jobbra, hogy a bekötőútra"), after(""), .right, lang: .hu) == "Jobbra")
+        #expect(thenText(step("Forduljon jobbra.", "Forduljon jobbra"), nil, .right, lang: .hu) == "Jobbra")
+        // valódi utcanév / útszám a szalagon: az marad
+        #expect(thenText(step("Forduljon balra az 1 irányába.", "1"), after(""), .left, lang: .hu) == "1")
+        #expect(thenText(step("Forduljon jobbra az Abádi utcára.", "Abádi utca"), after("Abádi utca"), .right, lang: .hu) == "Abádi utca")
+        #expect(thenText(step("Megérkezett.", "Megérkezett", "arrive", ""), nil, .arrive, lang: .hu) == "Cél")
+        // a fixtúrán: egyik „Utána” sem a teljes mondat
+        let main = try fixtureRoutes()[0]
+        let h = Harness(main)
+        let core = coreRoute(main)!
+        for s in main.steps.dropLast(2) {
+            let p = core.pointAt(s.startM + 1)
+            let v = h.feed(GpsFix(lat: p.lat, lon: p.lon, timestamp: T0, speed: 10, accuracy: 5, heading: nil))
+            if let then = v.then { #expect(!matches(then.text, "^(Forduljon|Tartson|Hajtson|Megérkezett)"), "\(s.index)") }
+        }
+    }
+
+    @Test("érkezés (Építész utca 11): az érkezési küszöbnél rövidebb utolsó kanyar beolvad az érkezésbe")
+    func erkezesCsonka() throws {
+        let r = try #require(try parseDirections(epiteszUtca(), idPrefix: "ep").first)
+        // a „Forduljon jobbra az Abádi utcára” (8 m) nem önálló manőver: az Építész utca lépés vége már az érkezés
+        #expect(r.steps.map(\.endManeuver.type) == ["turn", "arrive", "arrive"])
+        let last = r.steps[1]
+        #expect(last.name == "Építész utca")
+        #expect(close(last.distanceM, 162.746 + 8.039, 6))
+        #expect(last.banners.first?.primary.type == "arrive")
+        #expect(last.banners.first?.primary.text == "Az úti célja balra van")
+        #expect(last.voice.map(\.text) == ["Az Ön úti célja balra van."])
+        #expect((last.voice.first?.distanceAlongM ?? 0) > NAV_CONFIG.arriveM)
+        #expect(r.steps.map(\.index) == [0, 1, 2])
+        // a lépések összhossza továbbra is az útvonal hossza
+        #expect(close(r.steps.reduce(0) { $0 + $1.distanceM }, r.distanceM, 6))
+        // a kanyar előtt a felső kártya már az érkezést mutatja, nem a mellékutcát
+        let h = Harness(r)
+        let p = coreRoute(r)!.pointAt(320)
+        let v = h.feed(GpsFix(lat: p.lat, lon: p.lon, timestamp: T0, speed: 8, accuracy: 5, heading: nil))
+        #expect(v.next.icon == .arrive)
+        #expect(v.then == nil)
+        // a küszöbnél hosszabb utolsó lépés valódi manőver: marad
+        let long = try #require(try parseDirections(epiteszUtca(60), idPrefix: "ep").first)
+        #expect(long.steps.map(\.endManeuver.type) == ["turn", "turn", "arrive", "arrive"])
+        var steps = long.steps
+        absorbArrivalStub(&steps, maxM: 30)
+        #expect(steps.count == 4)
+    }
+
+    @Test("érkezés: a tervezés a cím útra illesztett pontjára (routable point) megy, a jelölő a címen marad")
+    func routablePoint() async throws {
+        let places = parseGeocode([
+            "features": [
+                [
+                    "geometry": ["coordinates": [19.039894, 47.447944]],
+                    "properties": ["mapbox_id": "ep11", "name": "Építész utca 11", "place_formatted": "Budapest, 1116", "coordinates": ["routable_points": [["name": "default", "latitude": 47.448016, "longitude": 19.039905]]]],
+                ],
+                ["geometry": ["coordinates": [19.04, 47.45]], "properties": ["name": "Építész utca", "coordinates": [String: Any]()]],
+            ],
+        ])
+        let routable = LatLon(lat: 47.448016, lon: 19.039905)
+        #expect(places[0].lat == 47.447944 && places[0].lon == 19.039894)
+        #expect(places[0].routable == routable)
+        #expect(places[0].routeTarget == routable)
+        #expect(places[1].routable == nil)
+        #expect(places[1].routeTarget == LatLon(lat: 47.45, lon: 19.04))
+        // a tárolt utolsó célok és mentett helyek megtartják
+        #expect(parseRecents(serializeRecents(addRecent([], places[0]))).first?.routable == routable)
+        // az újratervezés is oda tervez
+        let route = lineRoute()
+        let target = LatLon(lat: 47.6, lon: 19.2)
+        let h = Harness(route, routable: target)
+        for s in 0...6 { h.feed(at(route, 2000, 300, T0 + Double(s) * 1000)) }
+        await h.session.settle()
+        #expect(h.calls.first?.to == target)
+        #expect(h.session.view().destination.lat == route.points.last!.lat)
+    }
+
+    @Test("követő zoom a sebességgel: < 40 km/h 17, 90 km/h 15,5, 130 km/h 14,5, között lineáris")
+    func kovetoZoom() {
+        #expect(navFollowZoom(0) == 17)
+        #expect(navFollowZoom(40) == 17)
+        #expect(close(navFollowZoom(65), 16.25, 10))
+        #expect(navFollowZoom(90) == 15.5)
+        #expect(close(navFollowZoom(110), 15, 10))
+        #expect(navFollowZoom(130) == 14.5)
+        #expect(navFollowZoom(180) == 14.5)
+        #expect(navFollowZoom(.nan) == 17)
+    }
+
+    @Test("mentett címek: Haza, Munka, továbbiak – chip-sorrend, nem duplázódik, törölhető, tárolódik")
+    func mentettCimek() {
+        func p(_ i: Int, _ name: String? = nil) -> Place { Place(id: "p\(i)", name: name ?? "Hely \(i)", address: "", lat: 47 + Double(i), lon: 19) }
+        var saved = SavedPlaces(home: p(1, "Otthon utca"), work: nil, others: [])
+        saved = addSavedOther(saved, p(2, "Edzőterem"))
+        saved = addSavedOther(saved, p(3, "Nagymama"))
+        var dup = p(2)
+        dup.id = "masik"
+        #expect(addSavedOther(saved, dup) == saved)
+        let chips = savedChips(saved, lang: .hu)
+        #expect(chips.map(\.icon) == [.home, .pin, .pin])
+        #expect(chips.map(\.label) == ["Haza", "Edzőterem", "Nagymama"])
+        #expect(parseSaved(serializeSaved(saved)).others.map(\.name) == ["Edzőterem", "Nagymama"])
+        #expect(removeSavedOther(saved, "p2").others.map(\.id) == ["p3"])
     }
 }

@@ -11,8 +11,13 @@ nonisolated struct Place: Identifiable, Hashable, Codable, Sendable {
     var address: String
     var lat: Double
     var lon: Double
+    /// Az útvonal célpontja, ha eltér a címtől: a Geocoding `routable_points` (a ház útra eső bejárata). A ház pontját a
+    /// Directions a legközelebbi útra illeszti – sarki háznál a mellékutcára –, ezért a tervezés ide megy, a jelölő a címen marad.
+    var routable: LatLon? = nil
 
     var latLon: LatLon { LatLon(lat: lat, lon: lon) }
+    /// A tervezés célpontja: a cím útra illesztett pontja, ha van, különben maga a cím.
+    var routeTarget: LatLon { routable ?? latLon }
 }
 
 nonisolated enum Congestion: String, Sendable {
@@ -82,8 +87,11 @@ nonisolated struct NavDestination: Hashable, Sendable {
     var name: String
     var lat: Double
     var lon: Double
+    var routable: LatLon? = nil
 
     var latLon: LatLon { LatLon(lat: lat, lon: lon) }
+    /// A tervezés célpontja (`Place.routeTarget`): a jelölő a címen, az útvonal az útra illesztett ponthoz.
+    var routeTarget: LatLon { routable ?? latLon }
 }
 
 nonisolated enum EnforcementKind: String, Sendable {
@@ -115,12 +123,7 @@ nonisolated struct NavConfig: Sendable {
     var directionsMinGapMs: Double
     /// Alternatíva-figyelés gyakorisága (ms).
     var altCheckEveryMs: Double
-    /// Egy alternatíva ajánlásához legalább ennyi nyereség (s) VAGY a hátralévő idő ekkora hányada.
-    /// AW12: a weben az `ALT_OFFER` („megéri”-szabály, ≥ 2 perc) váltotta; a generált `NAV_CONFIG` már nem adja – az
-    /// alapérték a régi szabály, amíg az iOS-port át nem veszi (utána törlendő).
-    var altMinGainS: Double = 300
-    var altMinGainFraction: Double = 0.15
-    /// Az ajánlat ennyi ideig áll nyitva, utána elvetettnek számít (ms).
+    /// Az ajánlat ennyi ideig áll nyitva, utána az alapértelmezés szerint dől el (`ALT_OFFER`) (ms).
     var offerTtlMs: Double
     /// Az útvonal ennyire közel lévő szakaszt / kamerát / mérést veszünk az útvonalra (m); alapból `ROUTE_MATCH_M`.
     var enforcementBandM: Double

@@ -23,6 +23,12 @@ final class AppModel {
     private(set) var view = SessionView()
     private(set) var started = false
     private(set) var geo: GeoStatus = .off
+    /// A helymeghatározás engedélye (a GPS-pill koppintásához, AOS12).
+    private(set) var permission: LocationPermission = .notDetermined
+    /// A tiltott helyhozzáférés lapja (a GPS-pill nyitja).
+    var geoHelpOpen = false
+    /// Az alsó kártya-csoport felső éle a képernyőn (pt) – a követő kamera ehhez igazítja a pozíció helyét (AW12).
+    var hudTop: CGFloat = 0
     private(set) var sections: [Section] = BundledData.sections
     private(set) var cameras: [FixedCamera] = BundledData.cameras
     /// Az összes betöltött tervezett mérés (a megjelenítéshez: `plannedShown`).
@@ -65,6 +71,8 @@ final class AppModel {
 
     /// A felső keresőmező nyitva (a kereső-pill nyitja).
     var searchOpen = false
+    /// Mire választunk helyet a keresővel: úti cél, vagy mentendő hely (Haza / Munka / további – a Beállításokból).
+    var pickFor: PlaceSlot = .dest
     var searchQuery = ""
     var searchState: SearchState = .idle
     /// Az utolsó 10 úti cél és a mentett helyek (a weben tárolttal azonos kulcs és alak).
@@ -111,6 +119,8 @@ final class AppModel {
         if let raw = args.string(forKey: "sim"), let scenario = SimScenario(rawValue: raw) {
             simPanel = args.object(forKey: "simPanel") == nil || args.bool(forKey: "simPanel")
             startSim(scenario, speed: args.object(forKey: "simSpeed") == nil ? 4 : args.double(forKey: "simSpeed"), seek: args.double(forKey: "simSeek"))
+            // `-geoHelp YES`: a tiltott helyhozzáférés lapja (a képernyőképhez; szimulátorban a GPS-pill nem kér)
+            geoHelpOpen = args.bool(forKey: "geoHelp")
         }
     }
 
@@ -160,7 +170,11 @@ final class AppModel {
         attach(s)
         if let navData = fixture.nav {
             // a navigációs szimulátor (mint a webes `/?navsim`): indulás előtt áll a kiindulópontnál, a lejátszás a navigáció indításakor kezdődik
-            simFetcher = (try? NavSim.mainRoutes()).flatMap(\.first).map { NavSim.fetcher(main: $0, detour: navData.detour) }
+            // `-alt worth|maybe|not|aftergate`: a szimulált gyorsabb út kategóriája (a webes `?navsim&alt=…`); alapból „megéri”
+            // (`-alt off`: nincs alternatíva – a kamera-sáv képernyőképéhez)
+            let raw = UserDefaults.standard.string(forKey: "alt")
+            let alt: NavSim.AltMode? = raw == "off" ? nil : raw.flatMap(NavSim.AltMode.init(rawValue:)) ?? .worth
+            simFetcher = (try? NavSim.mainRoutes()).flatMap(\.first).map { NavSim.fetcher(main: $0, nav: navData, alt: alt) }
             s.hold(at: navData.from)
             runNavStage()
         } else {
@@ -192,6 +206,10 @@ final class AppModel {
         s.onLocation = { [weak self] l in self?.onLocation(l) }
         s.onGap = { [weak self] in self?.tick() }
         s.onStatus = { [weak self] st in self?.geo = st }
+        if let c = s as? CoreLocationSource {
+            permission = c.permission
+            c.onPermission = { [weak self] p in self?.permission = p }
+        }
         // a kijelző mérés közben ne aludjon el
         UIApplication.shared.isIdleTimerDisabled = true
     }
@@ -207,6 +225,15 @@ final class AppModel {
         ticker?.invalidate()
         ticker = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] _ in
             MainActor.assumeIsolated { self?.tick() }
+        }
+    }
+
+    /// A GPS-pill koppintása (AW13): nem eldöntött engedélynél kérés, tiltottnál a lap a Beállítások-megnyitással.
+    func gpsPillTapped() {
+        switch gpsPillAction(permission, geo) {
+        case .request: (source as? CoreLocationSource)?.requestAccess()
+        case .deniedHelp: geoHelpOpen = true
+        case .none: break
         }
     }
 

@@ -28,3 +28,29 @@ nonisolated let NAV_CONFIG = NavConfig(
 )
 /// Az országok, ahol keresünk és tervezünk (Geocoding `country`).
 nonisolated let NAV_COUNTRIES = ["HU", "AT", "SK", "SI", "HR", "RO", "IT", "PL", "DE", "CZ"]
+
+/// A „Gyorsabb út” ajánlat szabálya (AW12/AW13) – a webes `ALT_OFFER`: legalább `minGainS` nyereség;
+/// `net = Δperc − k · Δkm`, `k` az alternatíva átlagsebességéből (`slowKmh`-ig `kSlow`, `fastKmh`-tól `kFast`);
+/// mérés közben a végkapu után `exitAfterGateM`-en belüli lehajtó azonnali ajánlatot kap.
+nonisolated enum ALT_OFFER {
+    static let minGainS = 120.0
+    static let worthNetMin = 2.0
+    static let slowKmh = 40.0
+    static let fastKmh = 110.0
+    static let kSlow = 1.0
+    static let kFast = 0.3
+    static let exitAfterGateM = 1000.0
+}
+/// Kamera-közeledés a felső sávon (AW12): `max(minM, leadS × sebesség)` távolságon belül.
+nonisolated enum CAMERA_ALERT {
+    static let minM = 250.0
+    static let leadS = 10.0
+}
+/// Követő kamera navigáció közben (AW12): zoom a sebességből (km/h → zoom), irány-követés ideje (ms), a pozíció
+/// helye a képernyőn (0 = fent, 1 = lent) és a távolsága az alsó kártyától (pt).
+nonisolated enum NAV_FOLLOW {
+    static let zoomStops: [(kmh: Double, zoom: Double)] = [(40.0, 17.0), (90.0, 15.5), (130.0, 14.5)]
+    static let bearingMs = 400.0
+    static let focusY = 0.72
+    static let focusGapPx = 56.0
+}

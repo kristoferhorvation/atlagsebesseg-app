@@ -37,7 +37,10 @@ nonisolated func parseGeocode(_ json: Any?) -> [Place] {
         if name.isEmpty { return nil }
         let address = (str(p["place_formatted"]) ?? str(p["full_address"]) ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
         let id = str(p["mapbox_id"]) ?? str(f["id"]) ?? "\(lat),\(lon)"
-        return Place(id: id, name: name, address: address, lat: lat, lon: lon)
+        // a cím útra illesztett pontja (AW12): ide tervezünk, a jelölő a címen marad
+        let rp = ((p["coordinates"] as? JSONObj)?["routable_points"] as? [Any])?.first as? JSONObj
+        let routable = rp.flatMap { r in jsonNum(r["latitude"]).flatMap { la in jsonNum(r["longitude"]).map { LatLon(lat: la, lon: $0) } } }
+        return Place(id: id, name: name, address: address, lat: lat, lon: lon, routable: routable)
     }
 }
 
@@ -158,14 +161,21 @@ nonisolated let SAVED_KEY = "nav:saved:v1"
 nonisolated struct SavedPlaces: Equatable, Sendable {
     var home: Place?
     var work: Place?
+    /// További mentett címek (a Haza / Munka mellett), a mentés sorrendjében.
+    var others: [Place] = []
 
     static let none = SavedPlaces()
 }
 
+/// Legfeljebb ennyi további mentett cím.
+nonisolated let SAVED_OTHERS_MAX = 10
+
 /// Érvényes hely-e a tárolt (laza) JSON-elem; ha igen, a tisztított alakja.
 nonisolated private func cleanPlace(_ v: Any?) -> Place? {
     guard let o = v as? JSONObj, let name = o["name"] as? String, let lat = jsonNum(o["lat"]), let lon = jsonNum(o["lon"]) else { return nil }
-    return Place(id: str(o["id"]) ?? "\(lat),\(lon)", name: name, address: (o["address"] as? String) ?? "", lat: lat, lon: lon)
+    let r = o["routable"] as? JSONObj
+    let routable = r.flatMap { r in jsonNum(r["lat"]).flatMap { la in jsonNum(r["lon"]).map { LatLon(lat: la, lon: $0) } } }
+    return Place(id: str(o["id"]) ?? "\(lat),\(lon)", name: name, address: (o["address"] as? String) ?? "", lat: lat, lon: lon, routable: routable)
 }
 
 nonisolated private func jsonValue(_ raw: String?) -> Any? {
@@ -187,12 +197,50 @@ nonisolated func addRecent(_ list: [Place], _ place: Place, max: Int = NAV_CONFI
 
 nonisolated func parseSaved(_ raw: String?) -> SavedPlaces {
     guard let o = jsonValue(raw ?? "null") as? JSONObj else { return .none }
-    return SavedPlaces(home: cleanPlace(o["home"]), work: cleanPlace(o["work"]))
+    let others = ((o["others"] as? [Any]) ?? []).compactMap(cleanPlace)
+    return SavedPlaces(home: cleanPlace(o["home"]), work: cleanPlace(o["work"]), others: Array(others.prefix(SAVED_OTHERS_MAX)))
+}
+
+/// Új további mentett cím a lista végére; ugyanaz a hely (azonos azonosító vagy 100 m-en belül) nem duplázódik.
+nonisolated func addSavedOther(_ saved: SavedPlaces, _ place: Place) -> SavedPlaces {
+    if saved.others.contains(where: { $0.id == place.id || haversineM($0.latLon, place.latLon) <= 100 }) { return saved }
+    var s = saved
+    s.others = Array((saved.others + [place]).prefix(SAVED_OTHERS_MAX))
+    return s
+}
+
+nonisolated func removeSavedOther(_ saved: SavedPlaces, _ id: String) -> SavedPlaces {
+    var s = saved
+    s.others.removeAll { $0.id == id }
+    return s
+}
+
+/// A kereső egy mentett-cím chipje.
+nonisolated struct SavedChip: Identifiable, Equatable, Sendable {
+    enum Kind: String, Sendable { case home, work, pin }
+    var id: String
+    var icon: Kind
+    var label: String
+    var place: Place
+}
+
+/// A kereső chip-sora: Haza, Munka (ha be vannak állítva), majd a további mentett címek a nevükkel.
+nonisolated func savedChips(_ saved: SavedPlaces, lang: Lang? = nil) -> [SavedChip] {
+    var out: [SavedChip] = []
+    if let h = saved.home { out.append(SavedChip(id: "home", icon: .home, label: t(.navPlaceHome, lang: lang), place: h)) }
+    if let w = saved.work { out.append(SavedChip(id: "work", icon: .work, label: t(.navPlaceWork, lang: lang), place: w)) }
+    return out + saved.others.map { SavedChip(id: "other:\($0.id)", icon: .pin, label: $0.name, place: $0) }
 }
 
 /// A helyek JSON-alakja (a weben tárolttal azonos mezők).
 nonisolated func placesJSON(_ places: [Place?]) -> [Any] {
-    places.map { p in p.map { ["id": $0.id, "name": $0.name, "address": $0.address, "lat": $0.lat, "lon": $0.lon] as [String: Any] } ?? NSNull() }
+    places.map { p in
+        p.map { p -> [String: Any] in
+            var o: [String: Any] = ["id": p.id, "name": p.name, "address": p.address, "lat": p.lat, "lon": p.lon]
+            if let r = p.routable { o["routable"] = ["lat": r.lat, "lon": r.lon] }
+            return o
+        } ?? NSNull()
+    }
 }
 
 nonisolated func serializeRecents(_ list: [Place]) -> String {
@@ -202,6 +250,7 @@ nonisolated func serializeRecents(_ list: [Place]) -> String {
 
 nonisolated func serializeSaved(_ s: SavedPlaces) -> String {
     let parts = placesJSON([s.home, s.work])
-    let data = (try? JSONSerialization.data(withJSONObject: ["home": parts[0], "work": parts[1]], options: [.sortedKeys])) ?? Data("{}".utf8)
+    let obj: [String: Any] = ["home": parts[0], "work": parts[1], "others": placesJSON(s.others)]
+    let data = (try? JSONSerialization.data(withJSONObject: obj, options: [.sortedKeys])) ?? Data("{}".utf8)
     return String(decoding: data, as: UTF8.self)
 }

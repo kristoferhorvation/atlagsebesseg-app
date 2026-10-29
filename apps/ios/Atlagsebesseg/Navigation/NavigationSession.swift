@@ -1,7 +1,8 @@
 import AtlagsebessegCore
 import Foundation
 
-// A packages/app-logic/src/navigation/session.ts portja (A11) – ugyanaz az állapotgép, ugyanazokkal a küszöbökkel.
+// A packages/app-logic/src/navigation/session.ts portja (A11; AOS12: az AW12/AW13-szabályok) – ugyanaz az állapotgép,
+// ugyanazokkal a küszöbökkel.
 
 nonisolated enum VoiceKind: String, Sendable {
     case instruction, section, tooFast, reroute, faster
@@ -24,11 +25,40 @@ nonisolated struct ManeuverView: Equatable, Sendable {
     var distanceM: Double
 }
 
+/// Kamera-közeledés: ennyi méteren belül (de legalább 250 m) borostyán sáv: `max(minM, leadS × sebesség)`.
+nonisolated func cameraAlertM(_ speedMps: Double?) -> Double {
+    max(CAMERA_ALERT.minM, CAMERA_ALERT.leadS * max(0, speedMps ?? 0))
+}
+
+/// Az „Utána” sor szövege: a Directions szalagja, ha az nem a teljes utasítás-mondat (név nélküli manővernél az), különben
+/// az utcanév / kijárat / rövid manőver-szó.
+nonisolated func thenText(_ step: NavStep, _ after: NavStep?, _ icon: ManeuverIcon, lang: Lang? = nil) -> String {
+    let banner = step.banners.last
+    var instr = step.endManeuver.instruction.trimmingCharacters(in: .whitespacesAndNewlines)
+    if instr.hasSuffix(".") || instr.hasSuffix("!") { instr.removeLast() }
+    let text = banner?.primary.text.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+    let firstWord = { (s: String) in s.split(separator: " ", omittingEmptySubsequences: false).first.map(String.init) ?? "" }
+    // név nélküli manővernél a Directions a szalagra is a mondatot teszi (esetleg kissé átfogalmazva)
+    let sentence = text.isEmpty || (!instr.isEmpty && (instr.hasPrefix(text) || (text.contains(",") && firstWord(instr) == firstWord(text))))
+    if icon != .arrive {
+        if !sentence { return text }
+        if let name = after?.name.trimmingCharacters(in: .whitespacesAndNewlines), !name.isEmpty { return name }
+        if let exit = banner?.primary.exit, !exit.isEmpty { return exit }
+    }
+    return L10nKey(rawValue: "nav.man.\(icon.rawValue)").map { t($0, lang: lang) } ?? ""
+}
+
 nonisolated struct AlternativeOffer: Equatable, Sendable {
     var id: String
     var route: NavRoute
     /// Nyereség a jelenlegi útvonalhoz képest (s).
     var gainS: Double
+    /// Többlet-táv a jelenlegi útvonal hátralévő részéhez képest (m; negatív = rövidebb).
+    var extraM: Double
+    /// Megéri / lehet / nem éri meg (a „megéri”-szabály, `ALT_OFFER`); lejáratkor csak a „megéri” fogadódik el.
+    var verdict: AltVerdict
+    /// A kártya címe („Megéri · −7 perc, +4 km”).
+    var title: String
     var expiresAt: Double
     /// A lehajtó (az alternatíva első új manővere) helye az aktuális útvonal mentén (m); `nil`, ha nem állapítható meg.
     var exitAlongM: Double?
@@ -40,12 +70,16 @@ nonisolated struct AlternativeOffer: Equatable, Sendable {
     var exitKm: String
     /// Mérés közben megjelenő, kompakt forma.
     var compact: Bool
+    /// A lejáratig hátralévő idő aránya (1 → 0) – a kiemelt gomb alatti fogyó csík (AW13).
+    var timeLeft: Double
 }
 
 /// Az ajánlat jelöltje: az alternatíva és a lehajtója.
 nonisolated private struct Candidate {
     var route: NavRoute
     var gainS: Double
+    var extraM: Double
+    var worth: AltWorth
     var exitAlongM: Double?
     var exitName: String?
 }
@@ -77,6 +111,8 @@ nonisolated struct NavView: Sendable {
     var limitKmh: Double?
     /// A legközelebbi, még nem érintett szakasz / kamera / mérés az előre jelzési távolságon belül.
     var upcoming: NavUpcoming?
+    /// A kamera a `cameraAlertM` távolságon belül (a felső sáv borostyán); elhaladás után `nil`.
+    var cameraNear: NavUpcoming?
     var enforcement: [EnforcementItem]
     var offRoute: Bool
     var rerouting: Bool
@@ -117,6 +153,8 @@ final class NavigationSession {
     private var arrived = false
 
     private var offSince: Double?
+    /// Az „Újratervezés” ennél a letérésnél már elhangzott (a letérés kezdetén, a kiírással együtt).
+    private var rerouteSaid = false
     private var rerouting = false
     private var rerouteFailed = false
     private var lastRerouteAt: Double?
@@ -188,12 +226,13 @@ final class NavigationSession {
         say(.tooFast, t(.navVoiceTooFast, lang: lang))
     }
 
-    /// Aktív mérés (szakasz vagy kézi): az ajánlat addig nem jelenik meg, a mérés végén indul a TTL.
+    /// Aktív mérés (szakasz vagy kézi): a végkaputól 1 km-nél távolabbi lehajtójú ajánlat a mérés végéig vár (a TTL
+    /// akkor indul); a közelebbi azonnal, kompakt formában jelenik meg (AW13).
     func setMeasuring(_ measuring: Bool) {
         if measuring == self.measuring { return }
         self.measuring = measuring
-        if measuring, let o = offer, !exitBeforeSectionEnd(o.exitAlongM) {
-            held = Candidate(route: o.route, gainS: o.gainS, exitAlongM: o.exitAlongM, exitName: o.exitName)
+        if measuring, let o = offer, !exitNearSectionEnd(o.exitAlongM) {
+            held = Candidate(route: o.route, gainS: o.gainS, extraM: o.extraM, worth: altWorth(o.gainS, o.extraM, routeAvgKmh(o.route)), exitAlongM: o.exitAlongM, exitName: o.exitName)
             offer = nil
         } else if !measuring, let h = held {
             held = nil
@@ -253,22 +292,31 @@ final class NavigationSession {
 
         // letérés: 50 m-nél távolabb, 5 mp-ig (nagyon pontatlan fixnél nem ítélünk)
         if accuracy == nil || accuracy! <= 80 {
-            if cross > cfg.offRouteM {
-                if offSince == nil { offSince = t0 }
-            } else {
+            if cross <= cfg.offRouteM {
                 offSince = nil
+                rerouteSaid = false
+            } else if offSince == nil {
+                offSince = t0
+                // a hang a sárga „Újratervezés” kiírással együtt szól, nem az új útvonal megérkezésekor
+                if !rerouting && !rerouteSaid {
+                    rerouteSaid = true
+                    say(.reroute, t(.navVoiceRerouting, lang: lang))
+                }
             }
         }
         if let since = offSince, t0 - since >= cfg.offRouteMs, !rerouting, let fix = lastFix, canRoute(t0, lastRerouteAt, cfg.rerouteMinGapMs) {
             startReroute(fix, t0)
         }
 
-        if let o = offer, t0 >= o.expiresAt { declineOffer() }
+        // lejárat: a „megéri” magától elfogadódik, a „lehet” / „nem éri meg” esetén marad a régi
+        if let o = offer, t0 >= o.expiresAt {
+            if o.verdict == .worth { acceptOffer() } else { declineOffer() }
+        }
         // a leágazást elhagytuk: az ajánlat érvénytelen
         if let x = offer?.exitAlongM, along > x + 50 { offer = nil }
         if let x = held?.exitAlongM, along > x + 50 { held = nil }
         // Waze-minta: a lehajtó előtt 500 m-nél még egyszer
-        if let o = offer, let x = o.exitAlongM, exit500For != o.id, x - along <= 500 {
+        if let o = offer, o.verdict != .not, let x = o.exitAlongM, exit500For != o.id, x - along <= 500 {
             exit500For = o.id
             say(.faster, t(.navVoiceFasterExit500, lang: lang))
         }
@@ -294,8 +342,11 @@ final class NavigationSession {
         lastCallAt = t0
         offer = nil
         held = nil
-        say(.reroute, t(.navVoiceRerouting, lang: lang))
-        let req = fetchRoutes(LatLon(lat: fix.lat, lon: fix.lon), destination.latLon, RouteRequestContext(heading: fix.heading, reason: .reroute))
+        if !rerouteSaid {
+            rerouteSaid = true
+            say(.reroute, t(.navVoiceRerouting, lang: lang))
+        }
+        let req = fetchRoutes(LatLon(lat: fix.lat, lon: fix.lon), destination.routeTarget, RouteRequestContext(heading: fix.heading, reason: .reroute))
         track { [weak self] in
             let result = await req.result
             guard let self, !self.disposed else { return }
@@ -303,6 +354,7 @@ final class NavigationSession {
             if case .success(let routes) = result, let r = routes.first {
                 self.install(r)
                 self.offSince = nil
+                self.rerouteSaid = false
                 self.lastAltAt = self.clock()
             } else {
                 self.rerouteFailed = true
@@ -317,7 +369,7 @@ final class NavigationSession {
         lastAltAt = t0
         lastCallAt = t0
         let version = routeVersion
-        let req = fetchRoutes(LatLon(lat: fix.lat, lon: fix.lon), destination.latLon, RouteRequestContext(heading: fix.heading, reason: .alternatives))
+        let req = fetchRoutes(LatLon(lat: fix.lat, lon: fix.lon), destination.routeTarget, RouteRequestContext(heading: fix.heading, reason: .alternatives))
         track { [weak self] in
             let result = await req.result
             guard let self, !self.disposed else { return }
@@ -351,46 +403,50 @@ final class NavigationSession {
         // a jelenlegi útvonal friss (forgalmas) idejét a vele egyező útvonal adja; ha nincs ilyen, a saját becslésünk
         let sameIndex = routes.firstIndex { routeOverlap(route, $0) >= 0.9 }
         let baseline = sameIndex.map { durationOf(routes[$0]) } ?? remainingS()
-        var best: (route: NavRoute, gainS: Double)?
+        let baseM = sameIndex.map { routes[$0].distanceM } ?? route.distanceM - along
+        // legalább 2 perc nyereség; a jelöltek közül a „megéri”-szabály szerint legjobb (legnagyobb nettó nyereség)
+        var best: (route: NavRoute, gainS: Double, extraM: Double, worth: AltWorth)?
         for (i, r) in routes.enumerated() {
             if i == sameIndex || declined.contains(routeSignature(r)) { continue }
             let gainS = baseline - durationOf(r)
-            if gainS >= cfg.altMinGainS || gainS >= baseline * cfg.altMinGainFraction {
-                if best == nil || gainS > best!.gainS { best = (r, gainS) }
-            }
+            if gainS < ALT_OFFER.minGainS { continue }
+            let extraM = r.distanceM - baseM
+            let worth = altWorth(gainS, extraM, routeAvgKmh(r))
+            if best == nil || worth.net > best!.worth.net { best = (r, gainS, extraM, worth) }
         }
         guard let best else { return }
         let exit = firstNewManeuver(route, best.route)
-        present(Candidate(route: best.route, gainS: best.gainS, exitAlongM: exit.map { along + $0.distanceM }, exitName: exit?.name))
+        present(Candidate(route: best.route, gainS: best.gainS, extraM: best.extraM, worth: best.worth, exitAlongM: exit.map { along + $0.distanceM }, exitName: exit?.name))
     }
 
-    /// A mérés alatt álló szakasz végkapuja előtt van-e a leágazás (kézi mérésnél nincs végkapu → nem).
-    private func exitBeforeSectionEnd(_ exitAlongM: Double?) -> Bool {
-        guard let x = exitAlongM else { return false }
-        guard let sec = items.first(where: { $0.kind == .section && $0.startM <= along && along <= $0.endM }) else { return false }
-        return x < sec.endM
+    /// A mérés alatt álló szakasz (a pozíció a kapui között); kézi mérésnél nincs.
+    private func measuredSection() -> EnforcementItem? {
+        items.first { $0.kind == .section && $0.startM <= along && along <= $0.endM }
     }
 
-    /// Az ajánlat megjelenítése (és bemondása); mérés közben visszatartjuk.
+    /// A leágazás a mérés alatt álló szakasz végkapuja előtt vagy utána legfeljebb `exitAfterGateM`-rel van-e (AW13):
+    /// ilyenkor mérés közben is azonnal ajánlunk. Kézi mérésnél nincs végkapu → nem.
+    private func exitNearSectionEnd(_ exitAlongM: Double?) -> Bool {
+        guard let x = exitAlongM, let sec = measuredSection() else { return false }
+        return x <= sec.endM + ALT_OFFER.exitAfterGateM
+    }
+
+    /// Az ajánlat megjelenítése (és bemondása); mérés közben a végkaputól 1 km-nél távolabbi lehajtót visszatartjuk.
     private func present(_ best: Candidate) {
-        if measuring && !exitBeforeSectionEnd(best.exitAlongM) {
+        if measuring && !exitNearSectionEnd(best.exitAlongM) {
             held = best
             return
         }
         voiceSeq += 1
+        let w = best.worth
         let o = AlternativeOffer(
-            id: "offer-\(voiceSeq)", route: best.route, gainS: best.gainS, expiresAt: clock() + cfg.offerTtlMs,
-            exitAlongM: best.exitAlongM, exitName: best.exitName, exitInM: 0, exitKm: "", compact: false
+            id: "offer-\(voiceSeq)", route: best.route, gainS: best.gainS, extraM: best.extraM, verdict: w.verdict, title: altOfferTitle(w, lang: lang),
+            expiresAt: clock() + cfg.offerTtlMs, exitAlongM: best.exitAlongM, exitName: best.exitName, exitInM: 0, exitKm: "", compact: false, timeLeft: 1
         )
         offer = o
         // a második (500 m-es) bemondás fölösleges, ha az első is 600 m-en belül hangzik el
         exit500For = best.exitAlongM.map { $0 - along <= 600 } == true ? o.id : nil
-        if let x = best.exitAlongM {
-            // AW13: „Gyorsabb út, {n} perc megtakarítás, lehajtó {km} kilométernél” (a régi `nav.voice.fasterExit` törölve)
-            say(.faster, t(.navVoiceFasterWorthExit, ["n": "\(wholeMinutes(best.gainS))", "km": exitKm(x - along)], lang: lang))
-        } else {
-            say(.faster, t(.navVoiceFaster, ["n": "\(wholeMinutes(best.gainS))"], lang: lang))
-        }
+        say(.faster, altOfferVoice(w, exitKm: best.exitAlongM.map { exitKm($0 - along) }, lang: lang))
     }
 
     private func offerView(_ o: AlternativeOffer) -> AlternativeOffer {
@@ -398,6 +454,7 @@ final class NavigationSession {
         v.exitInM = o.exitAlongM.map { max(0, $0 - along) } ?? 0
         v.exitKm = exitKm(v.exitInM)
         v.compact = measuring
+        v.timeLeft = min(1, max(0, (o.expiresAt - clock()) / cfg.offerTtlMs))
         return v
     }
 
@@ -514,9 +571,15 @@ final class NavigationSession {
             let step = steps[idx]
             let left = max(0, step.startM + step.distanceM - along)
             next = maneuverOf(step, left, left)
-            if idx + 1 < steps.count, step.endManeuver.type != "arrive" { then = maneuverOf(steps[idx + 1], steps[idx + 1].distanceM, 0) }
+            if idx + 1 < steps.count, step.endManeuver.type != "arrive" {
+                var m = maneuverOf(steps[idx + 1], steps[idx + 1].distanceM, 0)
+                m.text = thenText(steps[idx + 1], idx + 2 < steps.count ? steps[idx + 2] : nil, m.icon, lang: lang)
+                then = m
+            }
         }
         let up = items.first { $0.startM > along && $0.startM - along <= cfg.enforcementWarnM }
+        let camM = cameraAlertM(lastFix?.speed)
+        let cam = arrived ? nil : items.first { $0.kind == .camera && $0.startM > along && $0.startM - along <= camM }
         let remainingS = arrived ? 0 : remainingS()
         let v = NavView(
             phase: arrived ? .arrived : .navigating,
@@ -532,6 +595,7 @@ final class NavigationSession {
             then: then,
             limitKmh: limitAt(route, along),
             upcoming: up.map { NavUpcoming(item: $0, distanceM: $0.startM - along) },
+            cameraNear: cam.map { NavUpcoming(item: $0, distanceM: $0.startM - along) },
             enforcement: items,
             offRoute: offSince != nil && cross > cfg.offRouteM,
             rerouting: rerouting,

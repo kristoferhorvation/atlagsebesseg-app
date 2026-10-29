@@ -48,6 +48,11 @@ final class AlertPlayer: NSObject, AlertSink, AVSpeechSynthesizerDelegate {
         synth.stopSpeaking(at: .immediate)
     }
 
+    /// Egyetlen rezgés (AW12: a közeli kamera borostyán sávja mellé, egyszer).
+    func pulse() {
+        vibrate()
+    }
+
     private func vibrate() {
         AudioServicesPlaySystemSound(kSystemSoundID_Vibrate)
     }

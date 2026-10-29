@@ -331,5 +331,8 @@
   "ios.settings.alertMode.sound": "Dźwięk",
   "ios.settings.alertMode.vibrate": "Tylko wibracje",
   "ios.settings.alertMode.off": "Wyłączone",
-  "ios.settings.alertModeHint": "Dźwięk odtwarzany jest niezależnie od przełącznika wyciszenia, także przy zablokowanym ekranie; muzyka jest w tym czasie ściszana."
+  "ios.settings.alertModeHint": "Dźwięk odtwarzany jest niezależnie od przełącznika wyciszenia, także przy zablokowanym ekranie; muzyka jest w tym czasie ściszana.",
+  "ios.geo.help.1": "Ustawienia › Prywatność i ochrona › Usługi lokalizacji: włącz je.",
+  "ios.geo.help.2": "W ustawieniach aplikacji (Otwórz): Lokalizacja › „Podczas używania aplikacji”.",
+  "ios.geo.open": "Otwórz"
 }

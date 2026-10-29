@@ -6,7 +6,9 @@ import SwiftUI
 /// tervezett mérések halvány sárga vonalként / zónaként (a webes A7 kinézet), kamerák ikonként a láthatósági
 /// szabály szerint, saját pozíció; a kamera követi a pozíciót. A11: tervezett / navigációs útvonal (a kiválasztott
 /// kékkel, dugó-színezéssel; az alternatíva tömör szürkéskéken, casinggel, „+/− perc” címkével, koppintásra vált – A8d),
-/// a cél jelölője; navigációban 3D-s döntésű követés.
+/// a cél jelölője; navigációban 3D-s döntésű követés. AOS12: az AW11-es útvonal-tokenek (nappal / éjjel), a címke a
+/// leágazás után 300 m-rel (`altLabels`), az AW12-es követő kamera (a pozíció a képernyő 72 %-án, sebességfüggő zoom,
+/// irány 400 ms alatt), érkezéskor a vonal eltűnik.
 struct MapScreen: View {
     let model: AppModel
     @Binding var follow: Bool
@@ -19,6 +21,13 @@ struct MapScreen: View {
     @State private var mapBearing: Double = 0
     @State private var routesFC = FeatureCollection(features: [])
     @State private var altLabels: [AltLabel] = []
+    /// A követő kamera simított értékei (AW12): zoom és a pozíció helye a képernyőn (0 = fent, 1 = lent).
+    @State private var zoomShown: Double?
+    @State private var focusShown: Double = NAV_FOLLOW.focusY
+    @State private var focusAt: Double = 0
+    @State private var lastCenter: CLLocationCoordinate2D?
+    @State private var lastFixAt: Double = 0
+    @State private var cameraSeq = 0
     @Environment(\.colorScheme) private var scheme
 
     private var view: SessionView { model.view }
@@ -30,35 +39,41 @@ struct MapScreen: View {
         }
     }
 
+    /// A térkép fény-előbeállítása; az alternatíva színe ehhez igazodik (hajnal = nappali, alkony = éjjeli, mint a weben).
+    private var preset: LightPreset { lightPresetAt(model.nowMs(), view.lastFix, dark: systemDark) }
+    private var dayLike: Bool { preset == .day || preset == .dawn }
+    private var altColor: Color { dayLike ? Tokens.Colors.routeAltDay : Tokens.Colors.routeAltNight }
+    private var altCasing: Color { dayLike ? Tokens.Colors.routeAltCasingDay : Tokens.Colors.routeAltCasingNight }
+
     var body: some View {
         Map(viewport: $viewport) {
             // útvonalak (A8/A11): legalul, hogy a szakaszok és a mérés fölöttük látszódjanak; az alternatíva alul
             GeoJSONSource(id: "routes").data(.featureCollection(routesFC))
+            // AW11 (A8d): a kiválasztott 7 pt erős kék + 2 × 2 pt fehér kontúr, az alternatíva 5 pt + 2 × 1,5 pt kontúr –
+            // nappal (hajnal is) 55/45 sötét kontúrral, éjjel (alkony is) 70/30 világos kontúrral
             LineLayer(id: "route-alt-casing", source: "routes")
                 .slot(.middle)
                 .filter(Exp(.eq) { Exp(.get) { "selected" }; false })
                 .lineCap(.round)
                 .lineJoin(.round)
-                .lineColor(UIColor(Tokens.Colors.bg))
-                .lineWidth(Exp(.interpolate) { Exp(.linear); Exp(.zoom); 6; 7; 16; 18 })
-                .lineOpacity(0.7)
+                .lineColor(UIColor(altCasing))
+                .lineWidth(Self.routeAltW + 2 * Self.routeAltCasingW)
                 .lineEmissiveStrength(1)
             LineLayer(id: "route-alt", source: "routes")
                 .slot(.middle)
                 .filter(Exp(.eq) { Exp(.get) { "selected" }; false })
                 .lineCap(.round)
                 .lineJoin(.round)
-                .lineColor(UIColor(Tokens.Colors.idle))
-                .lineWidth(Exp(.interpolate) { Exp(.linear); Exp(.zoom); 6; 4; 16; 12 })
+                .lineColor(UIColor(altColor))
+                .lineWidth(Self.routeAltW)
                 .lineEmissiveStrength(1)
             LineLayer(id: "route-casing", source: "routes")
                 .slot(.middle)
                 .filter(Exp(.eq) { Exp(.get) { "selected" }; true })
                 .lineCap(.round)
                 .lineJoin(.round)
-                .lineColor(UIColor(Tokens.Colors.bg))
-                .lineWidth(Exp(.interpolate) { Exp(.linear); Exp(.zoom); 6; 6; 16; 20 })
-                .lineOpacity(0.6)
+                .lineColor(UIColor(Tokens.Colors.routeCasing))
+                .lineWidth(Self.routeW + 2 * Self.routeCasingW)
                 .lineEmissiveStrength(1)
             LineLayer(id: "route-main", source: "routes")
                 .slot(.middle)
@@ -69,9 +84,9 @@ struct MapScreen: View {
                     Exp(.get) { "level" }
                     "heavy"; UIColor(Tokens.Colors.over)
                     "moderate"; UIColor(Tokens.Colors.near)
-                    UIColor(Tokens.Colors.accent)
+                    UIColor(Tokens.Colors.route)
                 })
-                .lineWidth(Exp(.interpolate) { Exp(.linear); Exp(.zoom); 6; 4; 16; 13 })
+                .lineWidth(Self.routeW)
                 .lineEmissiveStrength(1)
 
             GeoJSONSource(id: "sections").data(.featureCollection(sectionsFC))
@@ -152,7 +167,7 @@ struct MapScreen: View {
                             .padding(.horizontal, Tokens.Space.s3)
                             .frame(height: 34)
                             .background(Tokens.Colors.surfaceStrong, in: Capsule())
-                            .overlay(Capsule().strokeBorder(Tokens.Colors.idle, lineWidth: 2))
+                            .overlay(Capsule().strokeBorder(altColor, lineWidth: 2))
                             .frame(minWidth: Tokens.Size.touch, minHeight: Tokens.Size.touch)
                             .contentShape(Rectangle())
                     }
@@ -192,7 +207,7 @@ struct MapScreen: View {
         }
         .mapStyle(.standard(
             theme: model.settings.terkep == .visszafogott ? .monochrome : .default,
-            lightPreset: StandardLightPreset(rawValue: lightPresetAt(model.nowMs(), view.lastFix, dark: systemDark).rawValue),
+            lightPreset: StandardLightPreset(rawValue: preset.rawValue),
             showPointOfInterestLabels: false
         ))
         // attribúció a felső sarkokban (a kártya ne takarja), mint a weben
@@ -233,30 +248,76 @@ struct MapScreen: View {
         .onChange(of: follow) { _, on in
             if on, let fix = view.lastFix { recenter(fix, animated: true) }
         }
+        // a kártya méretváltásakor a pozíció helye is követi (időalapú simítással)
+        .onChange(of: model.hudTop) {
+            if follow, model.nav != nil, let fix = view.lastFix { recenter(fix, animated: true) }
+        }
     }
 
     /// A rendszer világos/sötét módja (a kártyák mindig sötétek; a térkép előbeállítása ebből és a napszakból).
     private var systemDark: Bool { UITraitCollection.current.userInterfaceStyle == .dark || scheme == .dark }
 
+    /// Útvonal-vonalak (AW11, pt): a kiválasztott 7 + 2 × 2 kontúr, az alternatíva 5 + 2 × 1,5 kontúr (mint a weben).
+    private static let routeW = 7.0
+    private static let routeCasingW = 2.0
+    private static let routeAltW = 5.0
+    private static let routeAltCasingW = 1.5
+    /// A pozíció képernyő-helyének (focusY) simítási időállandója (ms; a webes `FOCUS_TAU_MS`).
+    private static let focusTauMs = 150.0
+
     private func recenter(_ fix: GpsFix, animated: Bool) {
-        // navigációban közelebb és döntöttebb (3D-s követés), a haladási irányba forgatva
         let navigating = model.nav != nil
-        // a lépés-kártya felül csak mérésen kívül látszik (mérés közben egysoros sáv a mérőkártya fölött)
-        let navTop = navigating && view.phase != .meres && view.phase != .kezi
-        let target = Viewport.camera(
-            center: CLLocationCoordinate2D(latitude: fix.lat, longitude: fix.lon),
-            zoom: navigating ? 16 : 15.2,
-            bearing: fix.heading ?? mapBearing,
-            pitch: navigating ? 58 : 45
-        )
-        // a saját pozíció a kártya fölötti, látható térképrészre kerül (ne takarja a mérőkártya); navigációban a felső
-        // lépés-kártya alá (a kettő közé)
-        .padding(.top, navTop ? 250 : 0)
-        .padding(.bottom, UIScreen.main.bounds.height * (navTop ? 0.36 : 0.45))
-        if animated {
-            withViewportAnimation(.easeOut(duration: Tokens.Motion.data)) { viewport = target }
-        } else {
+        let center = CLLocationCoordinate2D(latitude: fix.lat, longitude: fix.lon)
+        let h = UIScreen.main.bounds.height
+        guard navigating else {
+            zoomShown = nil
+            // a saját pozíció a kártya fölötti, látható térképrészre kerül (ne takarja a mérőkártya)
+            let bearing = fix.heading ?? mapBearing
+            move(center, animated: animated, split: false) { Viewport.camera(center: $0, zoom: 15.2, bearing: bearing, pitch: 45).padding(.bottom, h * 0.45) }
+            return
+        }
+        // AW12: zoom a sebességből (a GPS-sebesség zaját simítva), a pozíció a képernyő 72 %-án – de legalább 56 pt-tel
+        // az alsó kártya fölött –, az út előre látszik; a dőlés marad
+        let kmh = (fix.speed ?? 0) * 3.6
+        let zoom = zoomShown.map { $0 + (navFollowZoom(kmh) - $0) * 0.35 } ?? navFollowZoom(kmh)
+        zoomShown = zoom
+        let wanted = model.hudTop > 0 ? max(0.18, min(NAV_FOLLOW.focusY, (model.hudTop - NAV_FOLLOW.focusGapPx) / h)) : NAV_FOLLOW.focusY
+        // időalapú simítás (a frissítések ütemétől független)
+        let now = Date().timeIntervalSince1970 * 1000
+        let dt = focusAt > 0 ? min(1000, now - focusAt) : 1000
+        focusAt = now
+        focusShown += (wanted - focusShown) * (1 - exp(-dt / Self.focusTauMs))
+        let bearing = fix.heading ?? mapBearing
+        let (top, bottom) = (max(0, 2 * focusShown * h - h), max(0, h - 2 * focusShown * h))
+        move(center, animated: animated, split: true) { Viewport.camera(center: $0, zoom: zoom, bearing: bearing, pitch: 58).padding(.top, top).padding(.bottom, bottom) }
+    }
+
+    /// A kamera a célra: navigációban (`split`) az irány `NAV_FOLLOW.bearingMs` alatt áll be, a pozíció a fixek közti
+    /// idő alatt egyenletesen halad (két lépésben: a 400 ms-os fordulás alatt a táv egy része, utána a maradék).
+    private func move(_ center: CLLocationCoordinate2D, animated: Bool, split: Bool, camera: @escaping (CLLocationCoordinate2D) -> Viewport) {
+        let target = camera(center)
+        cameraSeq += 1
+        let seq = cameraSeq
+        let now = Date().timeIntervalSince1970
+        let interval = min(1.2, max(0.2, now - lastFixAt))
+        lastFixAt = now
+        let from = lastCenter
+        lastCenter = center
+        guard animated else {
             viewport = target
+            return
+        }
+        let turn = NAV_FOLLOW.bearingMs / 1000
+        guard split, interval > turn, let from else {
+            withViewportAnimation(.easeOut(duration: split ? min(turn, interval) : Tokens.Motion.data)) { viewport = target }
+            return
+        }
+        let k = turn / interval
+        let mid = CLLocationCoordinate2D(latitude: from.latitude + (center.latitude - from.latitude) * k, longitude: from.longitude + (center.longitude - from.longitude) * k)
+        withViewportAnimation(.easeOut(duration: turn)) { viewport = camera(mid) }
+        DispatchQueue.main.asyncAfter(deadline: .now() + turn) {
+            guard seq == cameraSeq, follow else { return }
+            withViewportAnimation(.linear(duration: interval - turn)) { viewport = target }
         }
     }
 
@@ -271,7 +332,7 @@ struct MapScreen: View {
 
     /// Mikor kell újrarajzolni: más útvonalak, más kiválasztás, új navigációs útvonal, megjött az összefoglaló.
     private var routeKey: String {
-        if let n = model.nav { return "nav:\(n.routeVersion):\(n.route.id)" }
+        if let n = model.nav { return "nav:\(n.routeVersion):\(n.route.id):\(n.phase.rawValue)" }
         if let p = model.plan, p.status == .ready { return "plan:\(p.routes.map(\.id).joined(separator: ",")):\(p.selected):\(model.summaries.map { Int($0.durationS) })" }
         return ""
     }
@@ -286,7 +347,8 @@ struct MapScreen: View {
             }
         }
         if let n = model.nav {
-            routesFC = FeatureCollection(features: features(n.route, selected: true))
+            // érkezéskor az útvonal maradéka eltűnik (a jelölő a házon marad)
+            routesFC = FeatureCollection(features: n.phase == .arrived ? [] : features(n.route, selected: true))
             altLabels = []
             return
         }
@@ -298,25 +360,8 @@ struct MapScreen: View {
         // a kiválasztott a végére: a GeoJSON-sorrendben is fölül
         let order = p.routes.indices.filter { $0 != p.selected } + [p.selected]
         routesFC = FeatureCollection(features: order.flatMap { features(p.routes[$0], selected: $0 == p.selected) })
-        let sel = p.routes[p.selected]
-        let selCore = coreRoute(sel)
-        altLabels = p.routes.indices.compactMap { i in
-            guard i != p.selected, i < model.summaries.count, p.selected < model.summaries.count else { return nil }
-            let r = p.routes[i]
-            // a címke ott, ahol az alternatíva a legmesszebb van a kiválasztottól (ott egyértelmű, melyik vonalé)
-            var best = r.points[r.points.count / 2]
-            var bestD = -1.0
-            if let selCore {
-                for k in stride(from: 0, to: r.points.count, by: max(1, r.points.count / 60)) {
-                    let d = selCore.project(r.points[k]).crossM
-                    if d > bestD {
-                        bestD = d
-                        best = r.points[k]
-                    }
-                }
-            }
-            return AltLabel(id: r.id, index: i, at: best, text: altDeltaText(model.summaries[i].durationS - model.summaries[p.selected].durationS))
-        }
+        // a címke a leágazás után 300 m-rel, a kártya menetidejével (a webes `altLabels`, AW11)
+        altLabels = model.summaries.count == p.routes.count ? Atlagsebesseg.altLabels(p.routes, model.summaries.map(\.durationS), p.selected) : []
     }
 
     /// Tervezéskor a térkép az összes útvonalra igazodik (a kártya fölötti részre).
@@ -400,14 +445,6 @@ struct MapScreen: View {
         }
         cameraPoints = points.filter { haversineM(fix, LatLon(lat: $0.lat, lon: $0.lon)) <= 25_000 }
     }
-}
-
-/// Az alternatív útvonal címkéje a térképen.
-private struct AltLabel: Identifiable, Equatable {
-    let id: String
-    let index: Int
-    let at: LatLon
-    let text: String
 }
 
 /// Kamera-jelölő: kerek üveg-korong a típus ikonjával (a webes `.camera-pin`).

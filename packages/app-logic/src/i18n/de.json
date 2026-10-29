@@ -331,5 +331,8 @@
   "ios.settings.alertMode.sound": "Ton",
   "ios.settings.alertMode.vibrate": "Nur Vibration",
   "ios.settings.alertMode.off": "Aus",
-  "ios.settings.alertModeHint": "Der Ton erklingt unabhängig vom Stummschalter, auch bei gesperrtem Bildschirm; Musik wird währenddessen leiser."
+  "ios.settings.alertModeHint": "Der Ton erklingt unabhängig vom Stummschalter, auch bei gesperrtem Bildschirm; Musik wird währenddessen leiser.",
+  "ios.geo.help.1": "Einstellungen › Datenschutz & Sicherheit › Ortungsdienste: einschalten.",
+  "ios.geo.help.2": "In den Einstellungen der App (Öffnen): Standort › „Beim Verwenden der App“.",
+  "ios.geo.open": "Öffnen"
 }

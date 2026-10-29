@@ -331,5 +331,8 @@
   "ios.settings.alertMode.sound": "Sound",
   "ios.settings.alertMode.vibrate": "Vibrate only",
   "ios.settings.alertMode.off": "Off",
-  "ios.settings.alertModeHint": "The sound plays regardless of the silent switch, even with the screen locked; music is lowered meanwhile."
+  "ios.settings.alertModeHint": "The sound plays regardless of the silent switch, even with the screen locked; music is lowered meanwhile.",
+  "ios.geo.help.1": "Settings › Privacy & Security › Location Services: turn it on.",
+  "ios.geo.help.2": "In the app's own settings (Open): Location › “While Using the App”.",
+  "ios.geo.open": "Open"
 }

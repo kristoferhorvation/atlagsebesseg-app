@@ -84,21 +84,23 @@ Gyökér: `npm test` és `npm run typecheck` minden csomagra; `npm run test:all`
   (`Generated/AppLogicConstants.swift`), a manőver-ikonok a webes `ManeuverIcon.tsx`-ből (`Generated/ManeuverIcons.swift`).
   Az `RouteFetcher` szinkron indul és `Task`-ot ad (a költségvédelem azonnal érvényes, mint a weben a Promise első
   lépése); a tesztek a `settle()`-lel várják be a választ (a webes `flush()`).
-- Navigációs UI (AOS11): a kereső **pill** felül, a GPS/Kijelző pillek jobb oldalán (csak az üres nézeten); érintésre
-  teljes szélességű keresőmező nyílik a térkép tetején (billentyűzet, az utolsó 10 cím), alul nincs kereső
-  (Kristof, 2026-10-29). **Alternatív útvonal (AW11, Kristof 2026-10-29):** tömör szürkéskék vonal (`idle` token) casinggel,
-  „+/− perc” címkével a kiválasztotthoz képest, érintésre (vonal vagy címke) arra vált. Mérés közben a mérőkártya a fő,
+- Navigációs UI (AOS11): a kereső **pill** felül, a GPS-pill jobb oldalán (csak az üres nézeten; AOS12: a „Kijelző ébren”
+  pill iOS-en nincs); érintésre teljes szélességű keresőmező nyílik a térkép tetején (billentyűzet, mentett címek
+  chip-sora, az utolsó 10 cím), alul nincs kereső (Kristof, 2026-10-29). **Alternatív útvonal (AW11, AOS12-ben portolva):**
+  a kiválasztott `route` 7 pt + 2 × 2 pt `routeCasing`, az alternatíva 5 pt `routeAltDay`/`routeAltNight` + 1,5 pt
+  kontúr (nappal / hajnal 55/45 sötét, éjjel / alkony 70/30 világos), „+/− perc” címke a leágazás után 300 m-rel
+  (`altLabels`), érintésre (vonal vagy címke) arra vált. Mérés közben a mérőkártya a fő,
   a navigációs lépés egysoros sáv fölötte; a „Lassíts” sáv e fölé kerül. Hang: az `AlertPlayer` szintetizátora
   (`announce`), a fontos mondat (szakasz, túl gyors, újratervezés, gyorsabb út) megszakítja a fordulót.
-- **AW12 (első éles navi-teszt, Kristof 2026-10-29), weben kész, iOS-port hátra:** „Gyorsabb út” ≥ 2 perc nyereségtől,
+- **AW12 (első éles navi-teszt, Kristof 2026-10-29), weben és iOS-en (AOS12) kész:** „Gyorsabb út” ≥ 2 perc nyereségtől,
   `net = Δperc − k·Δkm` (k az alternatíva átlagsebességéből, 40 km/h-ig 1,0, 110-től 0,3) → Megéri (45 s után elfogad) /
   Lehet / Nem éri meg (45 s után marad); ~~mérés közben a végkapu utáni 1 km-en belüli lehajtóra nincs ajánlat~~ (hibás
   volt, az AW13 javította, lásd lent); az „Újratervezés” hang a letérés kezdetén; kamera `max(250 m, 10 s × v)`-n belül borostyán felső sáv + egy rezgés;
   „Utána” sor: ikon + utcanév / rövid manőver-szó (`thenText`); érkezés: a Geocoding `routable_points`-ra tervezünk, az
   `arriveM`-nél rövidebb utolsó lépés beolvad az érkezésbe (`absorbArrivalStub`); követő zoom `navFollowZoom`, az autó az
-  alsó harmadban (`NAV_FOLLOW`). Konstansok: `ALT_OFFER`, `CAMERA_ALERT`, `NAV_FOLLOW` (`navigation/config.ts`). A Swift
-  `NavConfig` `altMinGainS`/`altMinGainFraction` mezője átmenetileg alapértékes (a generált `NAV_CONFIG` már nem adja).
-- **AW13 (Kristof 2026-10-29), weben kész, iOS-port hátra – ezt vegye át az AOS-port:**
+  alsó harmadban (`NAV_FOLLOW`). Konstansok: `ALT_OFFER`, `CAMERA_ALERT`, `NAV_FOLLOW` (`navigation/config.ts`; iOS-re
+  generálva a `Generated/AppLogicConstants.swift`-be). A régi `altMinGainS`/`altMinGainFraction` mindkét nyelvből törölve.
+- **AW13 (Kristof 2026-10-29), weben és iOS-en (AOS12) kész:**
   - **Gyorsabb út mérés közben:** ha a lehajtó a mért szakasz végkapuja **előtt**, vagy a végkapu **után legfeljebb 1 km-rel**
     van (`ALT_OFFER.exitAfterGateM` = 1000 m, a határ még azonnali), az ajánlat **azonnal** megjelenik kompakt kártyával
     és bemondással, mint a kapu előtti esetben. Csak az 1 km-nél távolabbi lehajtó vár a mérés végéig (visszatartva, a
@@ -115,11 +117,20 @@ Gyökér: `npm test` és `npm run typecheck` minden csomagra; `npm run test:all`
     érintés / kattintás bárhol újra kér, ha nincs pozíció és az engedély eldöntetlen (Mac Safari gesztus nélkül nem
     kérdez); a GPS-pill `gpsPillAction`: `prompt` → kérés, `denied` → kis lap („A helyhozzáférés le van tiltva” + a
     bekapcsolás útja: `deniedHelpSteps(detectBrowser(ua, maxTouchPoints))` – iOS Safari / Mac Safari / Chrome / Android
-    Chrome / egyéb), `granted` → csak pontosság, koppintásra semmi. iOS-en a megfelelő: `notDetermined` → kérés,
-    `denied`/`restricted` → lap a Beállítások-megnyitással.
+    Chrome / egyéb), `granted` → csak pontosság, koppintásra semmi. iOS-en (`Location/LocationAccess.swift`):
+    `notDetermined` → kérés, `denied`/`restricted` → lap (`GeoBlockedSheet`, `ios.geo.*`) a „Megnyitás” gombbal – ez
+    az app saját beállításait nyitja (`openSettingsURLString`; az Adatvédelem › Helymeghatározás oldalra nyilvános API
+    nem visz), `granted` → semmi. A `retryOnGesture` iOS-en nem kell.
+- **Paritási tartozás (AW12 + AW13 → iOS) lezárva az AOS12-ben (2026-10-29):** a `NavigationTests.swift` újra a
+  `navigation.test.ts` teljes párja (86 = 86 `it`, azonos névvel), a webes `navSim.test.ts` 6 esete a `SimTests.swift`-ben.
+  A közös Budapest→Győr fixtúra AOS12-ben újra felvéve méteres hangegységgel (`voice_units=metric`); az élő válasz csak
+  egy útvonalat adott, ezért a második (M1 + 1-es főút) útvonal a régi felvételből maradt – annak hangszövegei még
+  mérföldesek.
 - Navigációs szimulátor: `-sim navsim` indulás előtt a kiindulóponton áll, a lejátszás a navigáció indításakor kezdődik
   (mint a webes `/?navsim`); `-navStage search|picker|nav` (és `-navQuery`) egy állapotba ugrik, a `-simSeek` az
-  ugrás előtti utolsó ablak elejéről játszik le. A bemondások szimulátorban a naplóba is mennek (`NAV-VOICE`).
+  ugrás előtti utolsó ablak elejéről játszik le. A bemondások szimulátorban a naplóba is mennek (`NAV-VOICE`). AOS12:
+  `-alt worth|maybe|not|aftergate|off` (a webes `?alt=`; az adat a generált navsim-fixtúrából: `sectionEndM`, `alts`),
+  `-geoHelp YES` (a tiltott-lap a képernyőképhez).
 
 ## Kör-rendszer
 - Kör-számozás (2026-10-29-től): **AW<n>** = web, **AOS<n>** = iOS; a sorszám az eddigi A1–A10-et folytatja

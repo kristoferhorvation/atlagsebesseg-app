@@ -68,6 +68,17 @@ nonisolated struct SimFixture: Decodable, Sendable {
         var detour: Detour
         /// Az ablakok (indulás + letérés, szakasz + kamera, érkezés) kezdő mintaindexei.
         var windows: [Int]
+        /// A mért szakasz végkapuja a fő útvonal mentén (m) – a kapu utáni lehajtóhoz (AOS12).
+        var sectionEndM: Double
+        /// A szimulált gyorsabb út kategóriánként (a webes `SIM_ALTS`): nyereség (s) és többlet-táv (m).
+        var alts: [String: Alt]
+        /// A kapu utáni lehajtó ennyivel a végkapu után (m; a webes `SIM_EXIT_AFTER_GATE_M`).
+        var exitAfterGateM: Double
+
+        struct Alt: Decodable, Sendable {
+            var gainS: Double
+            var extraM: Double
+        }
     }
 
     let id: String

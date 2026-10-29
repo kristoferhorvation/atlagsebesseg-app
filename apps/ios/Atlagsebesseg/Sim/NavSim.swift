@@ -23,19 +23,33 @@ enum NavSim {
         return places.filter { plain($0.name).contains(q) || plain($0.address).contains(q) }
     }
 
+    /// A szimulált alternatíva fajtája (`-alt worth|maybe|not|aftergate`, a webes `?navsim&alt=…`): a „megéri”-szabály
+    /// három kategóriája, illetve egy, a mérés végkapuja után 500 m-rel lehajtó (megéri-kategóriájú) alternatíva – erre
+    /// mérés közben is azonnal, kompakt kártyával és bemondással kell ajánlani (AW13).
+    enum AltMode: String, CaseIterable, Sendable {
+        case worth, maybe, not, aftergate
+    }
+
     /// A szimulátor Directions-szolgáltatója: tervezés a fixtúrából, újratervezés / alternatíva a fixtúra útvonalából.
-    static func fetcher(main: NavRoute, detour: SimFixture.Nav.Detour) -> RouteFetcher {
+    /// `alt == nil` (`-alt off`, csak a képernyőképekhez): nincs szimulált alternatíva.
+    static func fetcher(main: NavRoute, nav: SimFixture.Nav, alt: AltMode? = .worth) -> RouteFetcher {
         var n = 0
+        let core = coreRoute(main)
         return { from, _, ctx in
             if ctx.reason != .plan { n += 1 }
             let k = n
             return Task {
                 try await Task.sleep(nanoseconds: 120_000_000)
                 if ctx.reason == .plan { return try mainRoutes() }
-                let here = routeFrom(main, detour, from, id: "sim-\(ctx.reason.rawValue)-\(k)")
-                if ctx.reason == .reroute { return [here] }
-                // alternatíva-figyelés: a jelenlegi útvonal frissített változata + egy 7 perccel gyorsabb
-                return [here, fasterAlternative(here, id: "sim-fast-\(k)")]
+                let here = routeFrom(main, nav.detour, from, id: "sim-\(ctx.reason.rawValue)-\(k)")
+                guard ctx.reason == .alternatives, let alt else { return [here] }
+                // alternatíva-figyelés: a jelenlegi útvonal frissített változata + egy gyorsabb, a kért kategóriával
+                let a = nav.alts[alt.rawValue] ?? SimFixture.Nav.Alt(gainS: 420, extraM: 4000)
+                let id = "sim-fast-\(alt.rawValue)-\(k)"
+                if alt != .aftergate { return [here, fasterAlternative(here, id: id, gainS: a.gainS, extraM: a.extraM)] }
+                // a kapu utáni lehajtó helyhez kötött: ha már elhagytuk, nincs ilyen alternatíva
+                let exitM = nav.sectionEndM + nav.exitAfterGateM - (core?.project(from).alongM ?? 0)
+                return exitM > 100 ? [here, fasterAlternative(here, id: id, gainS: a.gainS, extraM: a.extraM, exitM: exitM)] : [here]
             }
         }
     }
@@ -119,7 +133,7 @@ enum NavSim {
     }
 
     /// A szimulált lehajtó távolsága az alternatíva elejétől (m): a mérés közbeni ajánlatnál a szakaszon belül van.
-    private static let exitM = 400.0
+    static let defaultExitM = 400.0
 
     /// Az első lépést a lehajtó helyén kettévágja: a lehajtó-manőver az, ami a jelenlegi útvonalon nincs meg.
     private static func withExit(_ steps: [NavStep], _ route: Route, _ exitM: Double) -> [NavStep] {
@@ -143,15 +157,19 @@ enum NavSim {
         }
     }
 
-    /// Gyorsabb (de más vonalú) alternatíva: a fő útvonal ívesen eltolva, a hátralévő időnél 7 perccel rövidebb.
-    static func fasterAlternative(_ base: NavRoute, id: String, gainS: Double = 420) -> NavRoute {
+    /// Gyorsabb (de más vonalú) alternatíva: a fő útvonal ívesen eltolva, a hátralévő időnél `gainS`-sel rövidebb,
+    /// `extraM`-rel hosszabb; a lehajtó az elejétől `exitM` méterre.
+    static func fasterAlternative(_ base: NavRoute, id: String, gainS: Double = 420, extraM: Double = 0, exitM: Double = defaultExitM) -> NavRoute {
         let n = base.points.count
         let points = base.points.enumerated().map { i, p in LatLon(lat: p.lat + 0.0042 * sin(Double.pi * Double(i) / Double(n - 1)), lon: p.lon) }
         let lens = lengths(points)
-        var cum = 0.0
+        let geom = lens.reduce(0, +)
+        // a névleges hossz (mint a Directions `distance`): a fő útvonal + a kerülő; a geometriát erre skálázzuk
+        let cum = base.distanceM + extraM
+        var acc = 0.0
         let segStartM = lens.map { l -> Double in
-            let s = cum
-            cum += l
+            let s = acc
+            acc += l * cum / geom
             return s
         }
         let total = base.segDurationS.reduce(0, +)

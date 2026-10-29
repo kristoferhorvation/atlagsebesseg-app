@@ -62,6 +62,16 @@ xcrun simctl launch booted hu.atlagsebesseg.app -sim navsim -navStage picker    
 xcrun simctl launch booted hu.atlagsebesseg.app -sim navsim -navStage nav -simSeek 0.45      # navigáció, az ablak elejéről
 ```
 
+Gyorsabb út (AOS12, a webes `?navsim&alt=…`): `-alt worth|maybe|not|aftergate` a szimulált alternatíva kategóriája
+(alapból `worth`), `-alt off` nincs alternatíva; `-geoHelp YES` a tiltott helyhozzáférés lapja. A képernyőképek
+(`docs/nav-offer-*.png`, `nav-camera-near.png`, `nav-search-chips.png`, `geo-blocked.png`):
+
+```bash
+… -sim navsim -navStage nav -simSeek 0.157 -simSpeed 0.05 -alt maybe       # ajánlat mérésen kívül (worth / maybe / not)
+… -sim navsim -navStage nav -simSeek 0.606 -simSpeed 0.05 -alt aftergate   # mérés közben, lehajtó a végkapu után 500 m-rel
+… -sim navsim -navStage nav -simSeek 0.775 -simSpeed 0.05 -alt off         # kamera-közeledés (borostyán felső kártya)
+```
+
 A `-simSeek` alatti ugrás közben jelzés nem szól (csak az állapot frissül); nagyon kis `-simSpeed` (pl. `0.05`)
 gyakorlatilag megállítja a lejátszást – a képernyőképekhez.
 A minták `CLLocation`-ként jönnek, így a mérés ugyanazon az úton fut, mint valódi GPS-sel.

@@ -1,9 +1,9 @@
-import { DICTIONARIES, LANGUAGES, NAV_CONFIG, NAV_COUNTRIES, PLANNED_MATCH_M, PLANNED_OFF_FIXES, ROUTE_MATCH_M, type FixedCamera, type PlannedCheck, type TKey } from '@atlagsebesseg/app-logic';
+import { ALT_OFFER, CAMERA_ALERT, DICTIONARIES, LANGUAGES, NAV_CONFIG, NAV_COUNTRIES, NAV_FOLLOW, PLANNED_MATCH_M, PLANNED_OFF_FIXES, ROUTE_MATCH_M, type FixedCamera, type PlannedCheck, type TKey } from '@atlagsebesseg/app-logic';
 import { Route, type LatLon } from '@atlagsebesseg/core';
 import { testCourse } from '@atlagsebesseg/core/test/helpers/trace';
 import { toSwift } from '@atlagsebesseg/design-tokens';
 import { PATHS } from '../../web/src/ui/Icon';
-import { buildNavSim, SIM_FROM, SIM_PLACES } from '../../web/src/sim/navSim';
+import { buildNavSim, SIM_ALTS, SIM_EXIT_AFTER_GATE_M, SIM_FROM, SIM_PLACES } from '../../web/src/sim/navSim';
 import { MANEUVER_PATHS } from '../../web/src/ui/ManeuverIcon';
 import { iconsSwift, maneuverIconsSwift } from './icons';
 import { buildSimulation, simCameras, simPlannedChecks, type SimScenario } from '../../web/src/sim/scenarios';
@@ -62,6 +62,25 @@ function appLogicConstants(): string {
     ')',
     '/// Az országok, ahol keresünk és tervezünk (Geocoding `country`).',
     `nonisolated let NAV_COUNTRIES = [${NAV_COUNTRIES.map((c) => JSON.stringify(c)).join(', ')}]`,
+    '',
+    '/// A „Gyorsabb út” ajánlat szabálya (AW12/AW13) – a webes `ALT_OFFER`: legalább `minGainS` nyereség;',
+    '/// `net = Δperc − k · Δkm`, `k` az alternatíva átlagsebességéből (`slowKmh`-ig `kSlow`, `fastKmh`-tól `kFast`);',
+    '/// mérés közben a végkapu után `exitAfterGateM`-en belüli lehajtó azonnali ajánlatot kap.',
+    'nonisolated enum ALT_OFFER {',
+    ...Object.entries(ALT_OFFER).map(([k, v]) => `    static let ${k} = ${num(v)}`),
+    '}',
+    '/// Kamera-közeledés a felső sávon (AW12): `max(minM, leadS × sebesség)` távolságon belül.',
+    'nonisolated enum CAMERA_ALERT {',
+    ...Object.entries(CAMERA_ALERT).map(([k, v]) => `    static let ${k} = ${num(v)}`),
+    '}',
+    '/// Követő kamera navigáció közben (AW12): zoom a sebességből (km/h → zoom), irány-követés ideje (ms), a pozíció',
+    '/// helye a képernyőn (0 = fent, 1 = lent) és a távolsága az alsó kártyától (pt).',
+    'nonisolated enum NAV_FOLLOW {',
+    `    static let zoomStops: [(kmh: Double, zoom: Double)] = [${NAV_FOLLOW.zoomStops.map(([s, z]) => `(${num(s)}, ${num(z)})`).join(', ')}]`,
+    `    static let bearingMs = ${num(NAV_FOLLOW.bearingMs)}`,
+    `    static let focusY = ${num(NAV_FOLLOW.focusY)}`,
+    `    static let focusGapPx = ${num(NAV_FOLLOW.focusGapPx)}`,
+    '}',
     '',
   ].join('\n');
 }
@@ -223,7 +242,16 @@ function simFixtures(): [string, string][] {
         cameras: [cameraRow(nav.camera)],
         planned: [plannedRow(navPlanned)],
         // A11: a navigáció bejátszásához – indulási pont, helyi „keresés”, a letérés mellékútja, az ablakok mintaindexei
-        nav: { from: SIM_FROM, places: SIM_PLACES, detour: nav.detour, windows: nav.windows },
+        // AOS12: a webes `?navsim&alt=…` forgatókönyvei – a végkapu helye és az alternatívák kategóriánként
+        nav: {
+          from: SIM_FROM,
+          places: SIM_PLACES,
+          detour: nav.detour,
+          windows: nav.windows,
+          sectionEndM: nav.sectionEndM,
+          alts: SIM_ALTS,
+          exitAfterGateM: SIM_EXIT_AFTER_GATE_M,
+        },
       },
       nav.samples,
     ),

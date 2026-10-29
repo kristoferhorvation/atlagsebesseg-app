@@ -25,49 +25,36 @@ struct ManeuverGlyph: View {
 
 // MARK: állapot-pillek + kereső-pill
 
-/// Felső állapotsor (a webes `StatusPills`): GPS és kijelző; jobbra mellettük a kereső-pill (csak az üres nézeten).
-/// Vezetés közben (`compact`) csak ikon – nincs apró szöveg; a szín beszél.
+/// Felső állapotsor (a webes `StatusPills`): a GPS-pill, jobbra mellette a kereső-pill (csak az üres nézeten). AOS12: a
+/// „Kijelző ébren” pill nincs (a kijelző mérés közben mindig ébren marad); a GPS-pill koppintható (`onGps`): nem
+/// eldöntött engedélynél kér, tiltottnál a lapot nyitja. Vezetés közben (`compact`) csak ikon – nincs apró szöveg.
 struct StatusPills: View {
     let geo: GeoStatus
     let accuracy: Double?
-    let awake: Bool
     var compact = false
+    var onGps: (() -> Void)?
     var onSearch: (() -> Void)?
 
-    private struct Pill: Identifiable {
-        let id: String
-        let color: Color
-        let icon: IconName
-        let text: String
-    }
-
-    private var pills: [Pill] {
+    private var gps: (color: Color, text: String) {
         let acc = accuracy.map { Int(jsRound($0)) }
-        let gps: Pill
         switch geo {
-        case .off: gps = Pill(id: "gps", color: Tokens.StatusColors.semleges, icon: .gps, text: t(.pillGpsOff))
-        case .searching: gps = Pill(id: "gps", color: Tokens.StatusColors.hataron, icon: .gps, text: t(.pillGpsSearching))
+        case .off: return (Tokens.StatusColors.semleges, t(.pillGpsOff))
+        case .searching: return (Tokens.StatusColors.hataron, t(.pillGpsSearching))
         case .active, .sim:
-            if let acc, acc > 25 {
-                gps = Pill(id: "gps", color: Tokens.StatusColors.hataron, icon: .gps, text: t(.pillGpsAccuracy, ["m": String(acc)]))
-            } else {
-                gps = Pill(id: "gps", color: Tokens.StatusColors.jo, icon: .gps, text: acc.map { t(.pillGpsAccuracy, ["m": String($0)]) } ?? t(.pillGpsActive))
-            }
-        case .denied: gps = Pill(id: "gps", color: Tokens.StatusColors.tul, icon: .gps, text: t(.pillGpsDenied))
-        case .unavailable: gps = Pill(id: "gps", color: Tokens.StatusColors.tul, icon: .gps, text: t(.pillGpsUnavailable))
-        case .error: gps = Pill(id: "gps", color: Tokens.StatusColors.tul, icon: .gps, text: t(.pillGpsError))
+            if let acc, acc > 25 { return (Tokens.StatusColors.hataron, t(.pillGpsAccuracy, ["m": String(acc)])) }
+            return (Tokens.StatusColors.jo, acc.map { t(.pillGpsAccuracy, ["m": String($0)]) } ?? t(.pillGpsActive))
+        case .denied: return (Tokens.StatusColors.tul, t(.pillGpsDenied))
+        case .unavailable: return (Tokens.StatusColors.tul, t(.pillGpsUnavailable))
+        case .error: return (Tokens.StatusColors.tul, t(.pillGpsError))
         }
-        let wake = awake
-            ? Pill(id: "wake", color: Tokens.StatusColors.jo, icon: .screen, text: t(.pillWakeOn))
-            : Pill(id: "wake", color: Tokens.StatusColors.semleges, icon: .screen, text: t(.pillWakeOff))
-        return [gps, wake]
     }
 
     var body: some View {
         HStack(spacing: Tokens.Space.s2) {
-            ForEach(pills) { p in
+            let p = gps
+            Button { onGps?() } label: {
                 HStack(spacing: Tokens.Space.s2) {
-                    Icon(name: p.icon, size: 18).foregroundStyle(p.color)
+                    Icon(name: .gps, size: 18).foregroundStyle(p.color)
                     if !compact {
                         Text(p.text)
                             .font(.inter(Tokens.Typography.caption.size, 580))
@@ -79,9 +66,14 @@ struct StatusPills: View {
                 .padding(.trailing, compact ? 11 : 13)
                 .frame(height: 36)
                 .pillBackground()
-                .accessibilityElement(children: .ignore)
-                .accessibilityLabel(p.text)
+                // a látható 36 pt köré 56 pt-es érintési cél
+                .frame(minHeight: Tokens.Size.touch)
+                .contentShape(Rectangle())
             }
+            .buttonStyle(.plain)
+            .disabled(onGps == nil)
+            .padding(.vertical, -10)
+            .accessibilityLabel(p.text)
             if let onSearch {
                 Button(action: onSearch) {
                     Icon(name: .search, size: 20)
@@ -98,6 +90,35 @@ struct StatusPills: View {
             }
             Spacer(minLength: 0)
         }
+    }
+}
+
+/// A tiltott helyhozzáférés lapja (AW13, a webes `GeoBlockedSheet` iOS-változata): mi a gond, a bekapcsolás útja, és a
+/// „Megnyitás” gomb az app saját beállításaira (Hely › „Az app használata közben”).
+struct GeoBlockedSheet: View {
+    @Environment(\.openURL) private var openURL
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: Tokens.Space.s4) {
+            Text(t(.geoBlockedTitle)).typeStyle(Tokens.Typography.title).foregroundStyle(Tokens.Colors.text)
+            Text(t(.geoBlockedIntro)).font(.inter(Tokens.Typography.caption.size + 2, 520)).foregroundStyle(Tokens.Colors.textMuted)
+            ForEach(Array([t(.iosGeoHelp1), t(.iosGeoHelp2)].enumerated()), id: \.offset) { i, step in
+                HStack(alignment: .firstTextBaseline, spacing: Tokens.Space.s3) {
+                    Text(String(i + 1))
+                        .font(.num(15, 700))
+                        .foregroundStyle(Tokens.Colors.signText)
+                        .frame(width: 26, height: 26)
+                        .background(Tokens.Colors.text, in: Circle())
+                    Text(step).font(.inter(17, 540)).foregroundStyle(Tokens.Colors.text).fixedSize(horizontal: false, vertical: true)
+                }
+            }
+            Button(t(.iosGeoOpen)) {
+                if let url = URL(string: UIApplication.openSettingsURLString) { openURL(url) }
+            }
+            .buttonStyle(WideButtonStyle(kind: .primary))
+        }
+        .padding(Tokens.Space.s5)
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 }
 
@@ -122,7 +143,7 @@ struct SearchPanel: View {
         VStack(spacing: Tokens.Space.s2) {
             HStack(spacing: Tokens.Space.s3) {
                 Icon(name: .search, size: 22).foregroundStyle(Tokens.Colors.textMuted)
-                TextField(t(.navSearchPlaceholder), text: Binding(get: { model.searchQuery }, set: { model.searchInput($0) }))
+                TextField(placeholder, text: Binding(get: { model.searchQuery }, set: { model.searchInput($0) }))
                     .font(.inter(Tokens.Typography.body.size, 560))
                     .foregroundStyle(Tokens.Colors.text)
                     .focused($focused)
@@ -144,6 +165,32 @@ struct SearchPanel: View {
             .frame(height: 56)
             .glass(radius: 22, fill: Tokens.Colors.surfaceStrong)
 
+            // AW12: a mentett címek vékony chip-sora a mező és a találatok között (csak úti cél keresésekor)
+            if model.pickFor == .dest, !chips.isEmpty {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: Tokens.Space.s2) {
+                        ForEach(chips) { c in
+                            Button { model.choose(c.place) } label: {
+                                HStack(spacing: 6) {
+                                    Icon(name: c.icon == .home ? .home : c.icon == .work ? .work : .pin, size: 18).foregroundStyle(Tokens.Colors.accent)
+                                    Text(c.label).font(.inter(Tokens.Typography.caption.size, 600)).foregroundStyle(Tokens.Colors.text).lineLimit(1)
+                                }
+                                .padding(.leading, 11)
+                                .padding(.trailing, 14)
+                                .frame(height: 36)
+                                .frame(maxWidth: UIScreen.main.bounds.width * 0.6)
+                                .pillBackground()
+                            }
+                            .buttonStyle(.plain)
+                            .accessibilityLabel(c.place.address.isEmpty ? c.label : "\(c.label), \(c.place.address)")
+                        }
+                    }
+                    .padding(.horizontal, 2)
+                }
+                .scrollBounceBehavior(.basedOnSize, axes: .horizontal)
+                .accessibilityLabel(t(.navSearchSaved))
+            }
+
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) { content }
                     .padding(.vertical, Tokens.Space.s2)
@@ -154,6 +201,18 @@ struct SearchPanel: View {
             .glass(radius: 22, fill: Tokens.Colors.surfaceStrong)
         }
         .onAppear { focused = true }
+    }
+
+    private var chips: [SavedChip] { savedChips(model.saved) }
+
+    /// A mező szövege: úti cél, vagy (a Beállításokból) a mentendő hely.
+    private var placeholder: String {
+        switch model.pickFor {
+        case .dest: t(.navSearchPlaceholder)
+        case .home: t(.navSearchPickHome)
+        case .work: t(.navSearchPickWork)
+        case .other: t(.navSearchPickOther)
+        }
     }
 
     @ViewBuilder private var content: some View {
@@ -168,8 +227,6 @@ struct SearchPanel: View {
             if !q.isEmpty && q.count < NAV_CONFIG.geocodeMinChars {
                 note(t(.navSearchHint, ["n": String(NAV_CONFIG.geocodeMinChars)]))
             }
-            if let home = model.saved.home { row(.home, t(.navPlaceHome), home.name) { model.choose(home) } }
-            if let work = model.saved.work { row(.work, t(.navPlaceWork), work.name) { model.choose(work) } }
             Text(t(.navSearchRecent))
                 .font(.inter(Tokens.Typography.caption.size, 600))
                 .foregroundStyle(Tokens.Colors.textFaint)
@@ -331,7 +388,16 @@ func upcomingText(_ view: NavView, _ unit: SpeedUnit) -> String? {
     return t(u.item.kind == .section ? .navUpcomingSection : .navUpcomingPlanned, ["d": d, "x": x])
 }
 
+/// Közeli kamera (AW12): „Kamera 270 m · max 130” (határ nélkül csak a távolság).
+func cameraNearText(_ view: NavView, _ unit: SpeedUnit) -> String? {
+    guard let c = view.cameraNear else { return nil }
+    let d = dist(c.distanceM, unit)
+    if let x = c.item.limitKmh.flatMap({ speedIn($0, unit) }) { return t(.navCameraNear, ["d": d, "x": String(x)]) }
+    return t(.navUpcomingCamera, ["d": d])
+}
+
 /// Felső kártya: következő manőver (ikon + távolság + út), alatta a közeledő szakasz és a rákövetkező manőver.
+/// Közeli kameránál (AW12) a kártya borostyánra vált, nagy kamera-ikonnal; elhaladás után vissza.
 struct NavTopCard: View {
     let view: NavView
     let unit: SpeedUnit
@@ -339,6 +405,8 @@ struct NavTopCard: View {
     var body: some View {
         let arrived = view.phase == .arrived
         let busy = view.rerouting || view.offRoute
+        let cam = busy || arrived ? nil : cameraNearText(view, unit)
+        let ink = cam == nil ? Tokens.Colors.text : Tokens.Colors.bg
         VStack(alignment: .leading, spacing: Tokens.Space.s3) {
             if busy || view.rerouteFailed {
                 HStack(spacing: Tokens.Space.s3) {
@@ -366,7 +434,14 @@ struct NavTopCard: View {
                     Spacer(minLength: 0)
                 }
             }
-            if let up = upcomingText(view, unit), !arrived {
+            if let cam {
+                HStack(spacing: Tokens.Space.s3) {
+                    Icon(name: .cam_speed, size: 40)
+                    Text(cam).font(.num(Tokens.Typography.title.size, 700)).tracking(-0.3).lineLimit(1).minimumScaleFactor(0.8)
+                }
+                .padding(.top, 2)
+                .accessibilityAddTraits(.updatesFrequently)
+            } else if let up = upcomingText(view, unit), !arrived {
                 HStack(spacing: Tokens.Space.s2) {
                     Icon(name: view.upcoming?.item.kind == .camera ? .cam_speed : .rendorseg, size: 20)
                     Text(up).font(.inter(Tokens.Typography.caption.size + 1, 620)).lineLimit(1)
@@ -377,29 +452,48 @@ struct NavTopCard: View {
                 .background((view.upcoming?.item.kind == .planned ? Tokens.Colors.planned : Tokens.Colors.near).opacity(0.16), in: Capsule())
             }
             if let then = view.then, !arrived, !busy {
+                // „Utána” – ikon + utcanév / rövid manőver-szó (AW12, `thenText`)
                 HStack(spacing: Tokens.Space.s2) {
-                    Text(t(.navThen)).font(.inter(Tokens.Typography.caption.size, 560)).foregroundStyle(Tokens.Colors.textMuted)
+                    Text(t(.navThen)).font(.inter(Tokens.Typography.caption.size, 560)).foregroundStyle(cam == nil ? Tokens.Colors.textMuted : ink)
                     ManeuverGlyph(icon: then.icon, size: 24)
                     Text(then.text).font(.inter(Tokens.Typography.caption.size, 600)).lineLimit(1)
                 }
-                .foregroundStyle(Tokens.Colors.text)
+                .foregroundStyle(ink)
             }
         }
-        .foregroundStyle(Tokens.Colors.text)
+        .foregroundStyle(ink)
         .padding(Tokens.Space.s4)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .glass(radius: 28, fill: Tokens.Colors.surfaceStrong)
+        .glass(radius: 28, fill: cam == nil ? Tokens.Colors.surfaceStrong : Tokens.Colors.near)
+        .animation(.easeOut(duration: Tokens.Motion.base), value: cam == nil)
         .accessibilityElement(children: .combine)
         .accessibilityLabel(view.next.instruction.isEmpty ? t(.navAria) : view.next.instruction)
     }
 }
 
-/// Mérés közben a navigációs lépés egysoros sávvá zsugorodik a mérőkártya fölött.
+/// Mérés közben a navigációs lépés egysoros sávvá zsugorodik a mérőkártya fölött; közeli kameránál borostyán kamera-sor.
 struct NavStrip: View {
     let view: NavView
     let unit: SpeedUnit
 
     var body: some View {
+        if view.phase != .arrived, let cam = cameraNearText(view, unit) {
+            HStack(spacing: Tokens.Space.s3) {
+                Icon(name: .cam_speed, size: 32)
+                Text(cam).font(.num(20, 720)).lineLimit(1).minimumScaleFactor(0.8)
+                Spacer(minLength: 0)
+            }
+            .foregroundStyle(Tokens.Colors.bg)
+            .padding(.horizontal, Tokens.Space.s4)
+            .frame(height: 56)
+            .glass(radius: 22, fill: Tokens.Colors.near)
+            .accessibilityElement(children: .combine)
+        } else {
+            step
+        }
+    }
+
+    private var step: some View {
         HStack(spacing: Tokens.Space.s3) {
             ManeuverGlyph(icon: view.phase == .arrived ? .arrive : view.next.icon, size: 32)
             Text(dist(view.next.distanceM, unit)).font(.num(20, 720))
@@ -456,68 +550,112 @@ struct NavBottomBar: View {
     }
 }
 
-/// „Gyorsabb út: −7 perc” – Elvet / Elfogad (56 pt-es gombok); mérés közben egysoros, a mérőkártya fölött, a lehajtó
-/// nevével és távolságával (a webes `OfferCard` kinézete).
+/// Felugró ajánlat (AW12): „Megéri · −7 perc, +4 km” / „Lehet · −2 perc, +1 km” / „Nem éri meg · +20 km kerülő, −10 perc”,
+/// alatta a lehajtó; Elvet / Elfogad (56 pt-es gombok). A kiemelt gomb az, ami 45 s után magától történik; alatta vékony,
+/// fogyó csík mutatja a hátralévő időt, szám nélkül (AW13). Mérés közben kompakt, kétsoros: „Kijárat 56” / „2,1 km · −7
+/// perc” (a kategória a sor színéből látszik). A webes `OfferCard` kinézete.
 struct OfferCard: View {
     let offer: AlternativeOffer
     let onAccept: () -> Void
     let onDecline: () -> Void
 
-    private var minutes: String { String(wholeMinutes(offer.gainS)) }
+    /// A „megéri” lejáratkor elfogadódik, a másik kettő elvetődik – a kiemelt gomb ezt mutatja.
+    private var acceptByDefault: Bool { offer.verdict == .worth }
+
+    /// A kategória színe: megéri zöld, lehet borostyán, nem éri meg halvány.
+    private var tint: Color {
+        switch offer.verdict {
+        case .worth: Tokens.Colors.ok
+        case .maybe: Tokens.Colors.near
+        case .not: Tokens.Colors.textMuted
+        }
+    }
+
+    private var border: Color {
+        switch offer.verdict {
+        case .worth: Tokens.Colors.ok.opacity(0.55)
+        case .maybe: Tokens.Colors.near.opacity(0.55)
+        case .not: Tokens.Colors.strokeStrong
+        }
+    }
+
+    /// A lehajtó sora: „Lehajtó: Kijárat 56 · 5,2 km” / „Lehajtó 5,2 km-nél”; ismeretlen lehajtónál nincs.
+    private var exitLine: String? {
+        guard offer.exitAlongM != nil else { return nil }
+        if let name = offer.exitName, !name.isEmpty { return t(.navOfferExitAtNamed, ["name": name, "km": offer.exitKm]) }
+        return t(.navOfferExitAt, ["km": offer.exitKm])
+    }
 
     var body: some View {
         if offer.compact {
-            let title = offer.exitName.map { t(.navOfferExitNamed, ["name": $0, "km": offer.exitKm, "n": minutes]) }
-                ?? t(.navOfferExit, ["km": offer.exitKm, "n": minutes])
+            let (line1, line2) = altOfferCompactLines(title: offer.title, gainS: offer.gainS, exitAlongM: offer.exitAlongM, exitName: offer.exitName, exitKm: offer.exitKm)
             HStack(spacing: Tokens.Space.s2) {
-                Text(title)
-                    .font(.inter(15, 650))
-                    .foregroundStyle(Tokens.Colors.ok)
-                    .lineLimit(2)
-                    .minimumScaleFactor(0.85)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                small(t(.navOfferDecline), primary: false, action: onDecline)
-                small(t(.navOfferAccept), primary: true, action: onAccept)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(line1).font(.inter(Tokens.Typography.caption.size, 650)).foregroundStyle(tint).lineLimit(1).minimumScaleFactor(0.8)
+                    if let line2 {
+                        Text(line2).font(.num(13, 560)).foregroundStyle(Tokens.Colors.textMuted).lineLimit(1).minimumScaleFactor(0.8)
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                small(t(.navOfferDecline), primary: !acceptByDefault, action: onDecline)
+                small(t(.navOfferAccept), primary: acceptByDefault, action: onAccept)
             }
             .padding(.leading, Tokens.Space.s4)
             .padding(.trailing, 10)
             .padding(.vertical, Tokens.Space.s2)
             .glass(radius: 22, fill: Tokens.Colors.surfaceStrong)
-            .overlay(RoundedRectangle(cornerRadius: 22, style: .continuous).strokeBorder(Tokens.Colors.ok.opacity(0.55), lineWidth: 1))
+            .overlay(RoundedRectangle(cornerRadius: 22, style: .continuous).strokeBorder(border, lineWidth: 1))
             .accessibilityElement(children: .contain)
-            .accessibilityLabel(title)
+            .accessibilityLabel(offer.title)
         } else {
-            let title = t(.navOfferTitle, ["n": minutes])
             VStack(alignment: .leading, spacing: Tokens.Space.s3) {
-                Text(title).typeStyle(Tokens.Typography.title).foregroundStyle(Tokens.Colors.ok)
-                HStack(spacing: Tokens.Space.s3) {
-                    Button(t(.navOfferDecline), action: onDecline).buttonStyle(WideButtonStyle())
-                    Button(t(.navOfferAccept), action: onAccept).buttonStyle(WideButtonStyle(kind: .primary))
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(offer.title).typeStyle(Tokens.Typography.title).foregroundStyle(tint).lineLimit(2).minimumScaleFactor(0.8)
+                    if let exitLine {
+                        Text(exitLine).font(.num(Tokens.Typography.caption.size, 560)).foregroundStyle(Tokens.Colors.textMuted).lineLimit(1)
+                    }
                 }
+                HStack(spacing: Tokens.Space.s3) {
+                    Button(t(.navOfferDecline), action: onDecline)
+                        .buttonStyle(WideButtonStyle(kind: acceptByDefault ? .plain : .primary))
+                        .overlay(alignment: .bottom) { if !acceptByDefault { timer } }
+                    Button(t(.navOfferAccept), action: onAccept)
+                        .buttonStyle(WideButtonStyle(kind: acceptByDefault ? .primary : .plain))
+                        .overlay(alignment: .bottom) { if acceptByDefault { timer } }
+                }
+                .padding(.bottom, 4)
             }
             .padding(.horizontal, Tokens.Space.s4)
             .padding(.top, 14)
             .padding(.bottom, Tokens.Space.s4)
             .glass(radius: 26, fill: Tokens.Colors.surfaceStrong)
-            .overlay(RoundedRectangle(cornerRadius: 26, style: .continuous).strokeBorder(Tokens.Colors.ok.opacity(0.55), lineWidth: 1))
+            .overlay(RoundedRectangle(cornerRadius: 26, style: .continuous).strokeBorder(border, lineWidth: 1))
             .accessibilityElement(children: .contain)
-            .accessibilityLabel(title)
+            .accessibilityLabel(offer.title)
         }
+    }
+
+    /// AW13: a kiemelt (45 s után magától történő) gomb alatt fogyó csík; a nézet másodpercenként frissül, az átmenet simít.
+    private var timer: some View {
+        Capsule()
+            .fill(Tokens.Colors.text.opacity(0.7))
+            .frame(height: 3)
+            .scaleEffect(x: offer.timeLeft, y: 1, anchor: .leading)
+            .animation(.linear(duration: 1), value: offer.timeLeft)
+            .padding(.horizontal, 14)
+            .offset(y: 7)
+            .accessibilityHidden(true)
     }
 
     private func small(_ title: String, primary: Bool, action: @escaping () -> Void) -> some View {
         Button(title, action: action)
             .font(.inter(16, 620))
+            .lineLimit(1)
+            .fixedSize()
             .foregroundStyle(primary ? Tokens.Colors.signText : Tokens.Colors.text)
             .padding(.horizontal, 14)
             .frame(height: 48)
             .background(primary ? Tokens.Colors.text : Color.white.opacity(0.1), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+            .overlay(alignment: .bottom) { if primary { timer.padding(.horizontal, -8).offset(y: -1) } }
     }
-}
-
-/// Az alternatív útvonal címkéje a térképen: „+4 perc” / „−3 perc” a kiválasztotthoz képest (A8d).
-func altDeltaText(_ deltaS: Double) -> String {
-    let n = Int(jsRound(abs(deltaS) / 60))
-    if n == 0 { return t(.navAltSame) }
-    return deltaS > 0 ? t(.navAltSlower, ["n": String(n)]) : t(.navAltFaster, ["n": String(n)])
 }

@@ -8,6 +8,11 @@ nonisolated enum PlanStatus: Sendable {
     case nogps, loading, ready, error, ratelimited
 }
 
+/// A kereső célja: úti cél, vagy mentendő hely a Beállításokból (a webes `SearchKind`).
+nonisolated enum PlaceSlot: Sendable {
+    case dest, home, work, other
+}
+
 nonisolated struct PlanState: Sendable {
     var dest: Place
     var status: PlanStatus
@@ -40,7 +45,8 @@ extension AppModel {
 
     // MARK: keresés
 
-    func openSearch() {
+    func openSearch(for slot: PlaceSlot = .dest) {
+        pickFor = slot
         searchQuery = ""
         searchState = .idle
         searchController?.dispose()
@@ -71,10 +77,35 @@ extension AppModel {
         return geocodeSearch(q, lang: L10n.lang, token: token, near: near)
     }
 
-    /// Koppintás egy találatra / utolsó célra: a hely a célpont.
+    /// Koppintás egy találatra / utolsó célra / chipre: a hely a célpont – vagy (a Beállításokból) a mentett hely.
     func choose(_ place: Place) {
+        let slot = pickFor
         closeSearch()
-        requestPlan(place)
+        pickFor = .dest
+        switch slot {
+        case .dest: requestPlan(place)
+        case .home: updateSaved { $0.home = place }
+        case .work: updateSaved { $0.work = place }
+        case .other: updateSaved { $0 = addSavedOther($0, place) }
+        }
+    }
+
+    // MARK: mentett helyek
+
+    func clearSaved(_ slot: PlaceSlot) {
+        updateSaved {
+            if slot == .home { $0.home = nil }
+            if slot == .work { $0.work = nil }
+        }
+    }
+
+    func removeSavedOther(_ id: String) {
+        updateSaved { $0 = Atlagsebesseg.removeSavedOther($0, id) }
+    }
+
+    private func updateSaved(_ edit: (inout SavedPlaces) -> Void) {
+        edit(&saved)
+        placesStore.setItem(SAVED_KEY, serializeSaved(saved))
     }
 
     // MARK: tervezés (útvonalválasztó)
@@ -90,7 +121,8 @@ extension AppModel {
         summaries = []
         routeData = .none
         follow = false
-        let req = fetchRoutes(LatLon(lat: fix.lat, lon: fix.lon), dest.latLon, RouteRequestContext(heading: fix.heading, reason: .plan))
+        // a cím útra illesztett pontjára tervezünk (AW12: sarki háznál különben a mellékutcára illesztene)
+        let req = fetchRoutes(LatLon(lat: fix.lat, lon: fix.lon), dest.routeTarget, RouteRequestContext(heading: fix.heading, reason: .plan))
         Task { [weak self] in
             let result = await req.result
             guard let self, seq == self.planSeq else { return }
@@ -148,7 +180,7 @@ extension AppModel {
         navSession?.dispose()
         let s = NavigationSession(
             route: route,
-            destination: NavDestination(name: p.dest.name, lat: p.dest.lat, lon: p.dest.lon),
+            destination: NavDestination(name: p.dest.name, lat: p.dest.lat, lon: p.dest.lon, routable: p.dest.routable),
             fetchRoutes: fetchRoutes,
             now: { [weak self] in self?.nowMs() ?? Date().timeIntervalSince1970 * 1000 },
             unit: settings.egyseg,
@@ -183,7 +215,10 @@ extension AppModel {
     /// A munkamenet változott: új nézet, és a sorban várakozó mondatok felolvasása.
     private func navChanged() {
         guard let s = navSession else { return }
+        let camBefore = nav?.cameraNear?.item.id
         nav = s.view()
+        // AW12: a közeli kamera borostyán sávja mellé egyetlen rezgés (a „ki” jelzés-módban nincs)
+        if let cam = nav?.cameraNear?.item.id, cam != camBefore, settings.jelzesMod != .ki, sim?.seeking != true { player.pulse() }
         let quiet = sim?.seeking == true
         for v in s.drainVoice() {
             // a szimulátor ugrása (seek) alatt nem szól; a bemondás a naplóba is kerül (a végigjátszás ellenőrzéséhez)

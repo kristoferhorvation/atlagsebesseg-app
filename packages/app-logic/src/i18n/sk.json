@@ -331,5 +331,8 @@
   "ios.settings.alertMode.sound": "Zvuk",
   "ios.settings.alertMode.vibrate": "Len vibrácia",
   "ios.settings.alertMode.off": "Vypnuté",
-  "ios.settings.alertModeHint": "Zvuk znie bez ohľadu na prepínač tichého režimu, aj pri zamknutej obrazovke; hudba sa medzitým stíši."
+  "ios.settings.alertModeHint": "Zvuk znie bez ohľadu na prepínač tichého režimu, aj pri zamknutej obrazovke; hudba sa medzitým stíši.",
+  "ios.geo.help.1": "Nastavenia › Súkromie a bezpečnosť › Polohové služby: zapnite ich.",
+  "ios.geo.help.2": "V nastaveniach aplikácie (Otvoriť): Poloha › „Pri používaní aplikácie“.",
+  "ios.geo.open": "Otvoriť"
 }

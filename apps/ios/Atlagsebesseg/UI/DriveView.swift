@@ -30,7 +30,8 @@ struct DriveView: View {
                         RoutePickerCard(model: model, plan: plan)
                             .transition(.move(edge: .bottom).combined(with: .opacity))
                     } else {
-                        hud
+                        VStack(spacing: Tokens.Space.s3) { hud }
+                            .onGeometryChange(for: CGFloat.self) { $0.frame(in: .global).minY } action: { model.hudTop = $0 }
                     }
                 }
             }
@@ -49,8 +50,8 @@ struct DriveView: View {
                         StatusPills(
                             geo: model.geo,
                             accuracy: view.lastFix?.accuracy,
-                            awake: model.started,
                             compact: driving || model.nav != nil,
+                            onGps: model.gpsPillTapped,
                             onSearch: model.nav == nil && model.plan == nil && !driving ? { model.openSearch() } : nil
                         )
                     }
@@ -77,6 +78,11 @@ struct DriveView: View {
             .animation(.easeOut(duration: Tokens.Motion.base), value: model.alert)
             .animation(.easeOut(duration: Tokens.Motion.base), value: model.searchOpen)
             .animation(.easeOut(duration: Tokens.Motion.base), value: measuring)
+        }
+        .sheet(isPresented: $model.geoHelpOpen) {
+            GeoBlockedSheet()
+                .presentationDetents([.medium])
+                .presentationBackground(Tokens.Colors.surfaceStrong)
         }
         .sheet(isPresented: $settingsOpen) {
             SettingsSheet(model: model)

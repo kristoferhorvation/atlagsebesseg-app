@@ -1,8 +1,8 @@
 import AtlagsebessegCore
 import SwiftUI
 
-/// Beállítások: kijelző (tűrés, egység, térkép), jelzések (kamera, tervezett mérés, mód), állapot, fejlesztés
-/// (szimulátor), attribúció.
+/// Beállítások: kijelző (tűrés, egység, térkép), jelzések (kamera, tervezett mérés, mód), mentett helyek (Haza, Munka,
+/// továbbiak – AW12), állapot, fejlesztés (szimulátor), attribúció.
 struct SettingsSheet: View {
     @Bindable var model: AppModel
     @Environment(\.dismiss) private var dismiss
@@ -45,6 +45,20 @@ struct SettingsSheet: View {
                     Toggle(t(.settingsVoiceInstructions), isOn: $model.settings.hangosUtasitasok)
                     Text(t(.settingsVoiceInstructionsHint)).font(.footnote).foregroundStyle(Tokens.Colors.textMuted)
                 }
+                SwiftUI.Section(t(.settingsGroupPlaces)) {
+                    slotRow(t(.navPlaceHome), model.saved.home, .home)
+                    slotRow(t(.navPlaceWork), model.saved.work, .work)
+                    ForEach(model.saved.others) { p in
+                        HStack {
+                            placeText(p.name, p.address)
+                            Spacer(minLength: Tokens.Space.s2)
+                            Button(t(.navPlaceRemove), role: .destructive) { model.removeSavedOther(p.id) }
+                                .buttonStyle(.borderless)
+                        }
+                    }
+                    // „Új hely mentése”: a kereső kiválasztó módban nyílik, a választott hely a listába kerül
+                    Button(t(.navPlaceAdd)) { pick(.other) }
+                }
                 SwiftUI.Section(t(.settingsGroupStatus)) {
                     LabeledContent(t(.settingsGps), value: model.geo.label)
                     LabeledContent(t(.settingsWake), value: model.started ? t(.geoActive) : t(.geoOff))
@@ -79,5 +93,32 @@ struct SettingsSheet: View {
                 }
             }
         }
+    }
+
+    /// Haza / Munka: a mentett hely neve (vagy „nincs beállítva”), Beállítás és Törlés.
+    private func slotRow(_ label: String, _ place: Place?, _ slot: PlaceSlot) -> some View {
+        HStack {
+            placeText(label, place?.name ?? t(.navPlaceUnset))
+            Spacer(minLength: Tokens.Space.s2)
+            Button(t(.navPlaceSet)) { pick(slot) }
+                .buttonStyle(.borderless)
+            if place != nil {
+                Button(t(.navPlaceRemove), role: .destructive) { model.clearSaved(slot) }
+                    .buttonStyle(.borderless)
+            }
+        }
+    }
+
+    private func placeText(_ title: String, _ hint: String) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(title).lineLimit(1)
+            if !hint.isEmpty { Text(hint).font(.footnote).foregroundStyle(Tokens.Colors.textMuted).lineLimit(1) }
+        }
+    }
+
+    /// A kereső kiválasztó módban nyílik a térkép tetején (a lap bezárul).
+    private func pick(_ slot: PlaceSlot) {
+        dismiss()
+        model.openSearch(for: slot)
     }
 }

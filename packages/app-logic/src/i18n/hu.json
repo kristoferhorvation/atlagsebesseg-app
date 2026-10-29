@@ -331,5 +331,8 @@
   "ios.settings.alertMode.sound": "Hang",
   "ios.settings.alertMode.vibrate": "Csak rezgés",
   "ios.settings.alertMode.off": "Ki",
-  "ios.settings.alertModeHint": "A hang a némítás-kapcsolótól függetlenül, zárolt képernyőn is szól; közben a zene halkabb."
+  "ios.settings.alertModeHint": "A hang a némítás-kapcsolótól függetlenül, zárolt képernyőn is szól; közben a zene halkabb.",
+  "ios.geo.help.1": "Beállítások › Adatvédelem és biztonság › Helymeghatározás: legyen bekapcsolva.",
+  "ios.geo.help.2": "Az app saját beállításaiban (Megnyitás): Hely › „Az app használata közben”.",
+  "ios.geo.open": "Megnyitás"
 }

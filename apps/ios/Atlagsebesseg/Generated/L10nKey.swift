@@ -311,4 +311,7 @@ enum L10nKey: String, CaseIterable, Sendable {
     case iosSettingsAlertModeVibrate = "ios.settings.alertMode.vibrate"
     case iosSettingsAlertModeOff = "ios.settings.alertMode.off"
     case iosSettingsAlertModeHint = "ios.settings.alertModeHint"
+    case iosGeoHelp1 = "ios.geo.help.1"
+    case iosGeoHelp2 = "ios.geo.help.2"
+    case iosGeoOpen = "ios.geo.open"
 }

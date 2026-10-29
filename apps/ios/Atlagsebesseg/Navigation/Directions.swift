@@ -162,6 +162,7 @@ nonisolated private func parseRoute(_ r: JSONObj, id: String) throws -> NavRoute
         ))
         startM += dist
     }
+    absorbArrivalStub(&steps)
 
     return NavRoute(
         id: id,
@@ -175,6 +176,30 @@ nonisolated private func parseRoute(_ r: JSONObj, id: String) throws -> NavRoute
         segCongestion: pad(congestion) { _ in .unknown },
         segDurationS: pad(durations, avgDur)
     )
+}
+
+/// Az érkezés előtti csonka lépés (az érkezési küszöbnél rövidebb kanyar – pl. a sarki ház címét a Directions a
+/// mellékutcára illeszti: „Forduljon jobbra az Abádi utcára” 8 m-rel a cél előtt) beolvad az érkezésbe: az előző lépés
+/// vége már az érkezés, a szalagja és a hangja az érkezésé. Erre a manőverre úgysem érnénk oda (`arriveM`-nél megérkeztünk).
+nonisolated func absorbArrivalStub(_ steps: inout [NavStep], maxM: Double = NAV_CONFIG.arriveM) {
+    guard let a = steps.firstIndex(where: { $0.endManeuver.type == "arrive" }), a > 0 else { return }
+    let stub = steps[a]
+    let prev = steps[a - 1]
+    guard stub.distanceM > 0, stub.distanceM < maxM else { return }
+    let total = prev.distanceM + stub.distanceM
+    var merged = prev
+    merged.distanceM = total
+    merged.durationS = prev.durationS + stub.durationS
+    merged.endManeuver = stub.endManeuver
+    merged.banners = stub.banners.map { b in
+        var c = b
+        c.distanceAlongM = min(total, b.distanceAlongM + prev.distanceM)
+        return c
+    }
+    // az érkezés bemondása még az érkezési küszöb előtt
+    merged.voice = stub.voice.map { NavVoice(distanceAlongM: min(total, max($0.distanceAlongM, 2 * maxM)), text: $0.text) }
+    steps.replaceSubrange((a - 1)...a, with: [merged])
+    for i in steps.indices { steps[i].index = i }
 }
 
 /// Szakaszindex az útvonal menti távolsághoz (bináris keresés).
