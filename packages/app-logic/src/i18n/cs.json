@@ -275,8 +275,8 @@
 
   "ios.alert.camera": "Kamera za {d} metrů, maximálně {x}",
   "ios.alert.cameraNoLimit": "Kamera za {d} metrů",
-  "ios.alert.plannedLine": "Plánovaná policejní kontrola, maximálně {x}",
-  "ios.alert.plannedZone": "Policejní kontrola – {place}",
+  "ios.alert.plannedLine": "Plánovaná kontrola, maximálně {x}",
+  "ios.alert.plannedZone": "Plánovaná kontrola – {place}",
   "ios.settings.groupAlerts": "Upozornění",
   "ios.settings.cameraAlert": "Upozornění na kamery",
   "ios.settings.cameraAlertHint": "Pokud je ve směru jízdy do 600 m kamera nebo začátek úsekového měření: krátký tón, hlášení a vibrace – u každé kamery jednou.",

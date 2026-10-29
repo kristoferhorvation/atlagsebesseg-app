@@ -180,3 +180,75 @@ struct AlertSettingsTests {
         #expect(Settings.parse(#"{"jelzes_mod":"harsona"}"#).jelzesMod == .hang)
     }
 }
+
+/// Felvevő hang-réteg: mit kapott volna a valódi AlertPlayer.
+private final class RecordingSink: AlertSink {
+    var got: [(AlertEvent, AlertDelivery)] = []
+    func deliver(_ event: AlertEvent, _ delivery: AlertDelivery) { got.append((event, delivery)) }
+}
+
+@Suite("jelzés-kézbesítés (sáv + hang-réteg)")
+struct AlertDispatchTests {
+    private let cam = AlertEvent(kind: .camera, targetId: "c1", text: "Kamera 500 méterre, maximum 90")
+    private let planned = AlertEvent(kind: .planned, targetId: "p1", text: "Tervezett mérés, maximum 90")
+
+    @Test("„Jelzés módja: ki”: a sáv megjelenik, a hang-réteg semmit nem kap (se hang, se rezgés)")
+    func kiMod() {
+        let sink = RecordingSink()
+        let d = AlertDispatcher(sink: sink)
+        var s = Settings.default
+        s.jelzesMod = .ki
+        d.emit(cam, settings: s, now: 0)
+        d.emit(planned, settings: s, now: 100)
+        #expect(d.current == planned)
+        #expect(sink.got.isEmpty)
+    }
+
+    @Test("hang és csak rezgés: a sáv és a hang-réteg is megkapja")
+    func hangRezges() {
+        let sink = RecordingSink()
+        let d = AlertDispatcher(sink: sink)
+        d.emit(cam, settings: .default, now: 0)
+        var s = Settings.default
+        s.jelzesMod = .rezges
+        d.emit(planned, settings: s, now: 10)
+        #expect(sink.got.map(\.1) == [.sound, .vibrate])
+        #expect(d.current == planned)
+    }
+
+    @Test("kikapcsolt fajta: se sáv, se hang; a sáv 8 s után eltűnik; ugrás (quiet) alatt csak a sáv")
+    func kikapcsolvaLejarat() {
+        let sink = RecordingSink()
+        let d = AlertDispatcher(sink: sink)
+        var s = Settings.default
+        s.kameraJelzes = false
+        d.emit(cam, settings: s, now: 0)
+        #expect(d.current == nil)
+        d.emit(cam, settings: .default, now: 1000, quiet: true)
+        #expect(d.current == cam)
+        #expect(sink.got.isEmpty)
+        d.expire(now: 1000 + AlertDispatcher.showMs)
+        #expect(d.current == cam)
+        d.expire(now: 1001 + AlertDispatcher.showMs)
+        #expect(d.current == nil)
+    }
+
+    @Test("a tervezett mérés bemondása „Tervezett mérés, maximum X” – a „rendőrségi” szó nélkül, mind a 6 nyelven")
+    func plannedSzoveg() {
+        let line = PlannedCheck(
+            id: "p", country: "HU", county: "Fejér", settlement: "Székesfehérvár", roadRef: "7", description: "", lines: [], zones: [],
+            speedLimitKmh: 90, limitSource: .osm, validFrom: 0, validTo: 1, timeWindow: nil, sourceUrl: "https://www.police.hu/"
+        )
+        var zone = line
+        zone.zones = [[[LatLon(lat: 0, lon: 0), LatLon(lat: 0, lon: 1), LatLon(lat: 1, lon: 0)]]]
+        #expect(plannedAlertText(line, unit: .kmh, lang: .hu) == "Tervezett mérés, maximum 90")
+        #expect(plannedAlertText(zone, unit: .kmh, lang: .hu) == "Tervezett mérés Székesfehérvár területén")
+        #expect(plannedAlertText(line, unit: .kmh, lang: .en) == "Planned check, maximum 90")
+        let police = ["rendőr", "police", "polizei", "policajn", "policejn", "policji"]
+        for lang in Lang.allCases {
+            for text in [plannedAlertText(line, unit: .kmh, lang: lang), plannedAlertText(zone, unit: .kmh, lang: lang)] {
+                #expect(!police.contains { text.lowercased().contains($0) }, "\(lang.rawValue): \(text)")
+            }
+        }
+    }
+}

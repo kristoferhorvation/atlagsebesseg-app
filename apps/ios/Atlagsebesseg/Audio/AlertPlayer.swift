@@ -20,6 +20,7 @@ final class AlertPlayer: NSObject, AlertSink, AVSpeechSynthesizerDelegate {
     func deliver(_ event: AlertEvent, _ delivery: AlertDelivery) {
         switch delivery {
         case .silent:
+            // a kézbesítő ilyenkor nem is hív (csak a sáv látszik)
             return
         case .vibrate:
             vibrate()

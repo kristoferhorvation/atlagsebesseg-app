@@ -275,8 +275,8 @@
 
   "ios.alert.camera": "Camera in {d} metres, maximum {x}",
   "ios.alert.cameraNoLimit": "Camera in {d} metres",
-  "ios.alert.plannedLine": "Planned police check, maximum {x}",
-  "ios.alert.plannedZone": "Police check in {place}",
+  "ios.alert.plannedLine": "Planned check, maximum {x}",
+  "ios.alert.plannedZone": "Planned check in {place}",
   "ios.settings.groupAlerts": "Alerts",
   "ios.settings.cameraAlert": "Camera alerts",
   "ios.settings.cameraAlertHint": "When a camera or the start of a section control is within 600 m ahead: a short tone, an announcement and a vibration – once per camera.",

@@ -1,7 +1,8 @@
 import AtlagsebessegCore
 import Foundation
 
-// A packages/app-logic/src/plannedChecks.ts portja (ugyanaz a `planned_checks_in_bbox` lekérdezés és szótár).
+// A packages/app-logic/src/plannedChecks.ts portja (ugyanaz a `planned_checks_in_bbox` lekérdezés és szótár; a tűrés
+// és a letérés-küszöb a generált AppLogicConstants.swift-ből, a webbel közös forrásból).
 
 nonisolated enum PlannedLimitSource: String, Codable, Sendable {
     case osm
@@ -86,11 +87,6 @@ nonisolated func parseTimestampMs(_ s: String) -> Double? {
     guard let d = plain.date(from: s) ?? fractional.date(from: s) else { return nil }
     return (d.timeIntervalSince1970 * 1000).rounded()
 }
-
-/// A vonalon haladás tűrése az iOS-en: 100 m (A10-döntés; a weben a core `entryCrossM`, 40 m).
-nonisolated let PLANNED_MATCH_M = 100.0
-/// Ennyi egymás utáni, vonalon kívüli fix után tűnik el a sáv (egy kiugró GPS-pont nem tünteti el).
-nonisolated let PLANNED_OFF_FIXES = 2
 
 /// Érvényes-e most, és látszhat-e az országban (a jogi láthatóság szerint).
 nonisolated func plannedCheckActive(_ c: PlannedCheck, now: Double, rules: VisibilityRules = .bundled) -> Bool {

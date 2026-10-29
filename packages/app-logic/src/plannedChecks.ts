@@ -1,4 +1,4 @@
-import { DEFAULT_TRACKER_OPTIONS, Route, type GpsFix, type LatLon } from '@atlagsebesseg/core';
+import { Route, type GpsFix, type LatLon } from '@atlagsebesseg/core';
 import { budapestOffsetH } from '@atlagsebesseg/data/planned-parse';
 import { cameraVisibility } from './cameras';
 import { t, type TKey } from './i18n';
@@ -70,8 +70,11 @@ export function rowToPlannedCheck(r: PlannedCheckRow): PlannedCheck {
   };
 }
 
-/** Ugyanaz a tűrés, mint a szakaszokra illesztésnél (core `entryCrossM`, 40 m). */
-export const PLANNED_MATCH_M = DEFAULT_TRACKER_OPTIONS.entryCrossM;
+/**
+ * A tervezett mérés vonalának tűrése: ennyi méteren belül számít a pozíció a vonalon lévőnek (A10-döntés: 100 m,
+ * a webben és az iOS-en közösen – az iOS a generált `AppLogicConstants.swift`-ből olvassa).
+ */
+export const PLANNED_MATCH_M = 100;
 /** Ennyi egymás utáni, vonalon kívüli fix után tűnik el a sáv (egy kiugró GPS-pont nem tünteti el). */
 export const PLANNED_OFF_FIXES = 2;
 
@@ -94,7 +97,7 @@ function routesOf(c: PlannedCheck): Route[] {
   return r;
 }
 
-/** A pont a vonalon van-e (≤ 40 m, a két vég között – a meghosszabbításon nem). */
+/** A pont a vonalon van-e (≤ {@link PLANNED_MATCH_M}, a két vég között – a meghosszabbításon nem). */
 export function onPlannedLine(p: LatLon, c: PlannedCheck, toleranceM = PLANNED_MATCH_M): boolean {
   return routesOf(c).some((route) => {
     const proj = route.project(p);
@@ -120,7 +123,7 @@ export function inPlannedZone(p: LatLon, c: PlannedCheck): boolean {
   return c.zones.some(([outer, ...holes]) => !!outer && inRing(p, outer) && !holes.some((h) => inRing(p, h)));
 }
 
-/** A pont a mérés helyén van-e: vonalnál ≤ 40 m, zónánál a határon belül. */
+/** A pont a mérés helyén van-e: vonalnál ≤ {@link PLANNED_MATCH_M}, zónánál a határon belül. */
 export const onPlannedCheck = (p: LatLon, c: PlannedCheck): boolean => (plannedIsZone(c) ? inPlannedZone(p, c) : onPlannedLine(p, c));
 
 /**

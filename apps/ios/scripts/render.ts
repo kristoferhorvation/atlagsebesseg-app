@@ -1,4 +1,4 @@
-import { DICTIONARIES, LANGUAGES, type FixedCamera, type PlannedCheck, type TKey } from '@atlagsebesseg/app-logic';
+import { DICTIONARIES, LANGUAGES, PLANNED_MATCH_M, PLANNED_OFF_FIXES, type FixedCamera, type PlannedCheck, type TKey } from '@atlagsebesseg/app-logic';
 import { Route, type LatLon } from '@atlagsebesseg/core';
 import { testCourse } from '@atlagsebesseg/core/test/helpers/trace';
 import { toSwift } from '@atlagsebesseg/design-tokens';
@@ -13,6 +13,7 @@ import { buildSimulation, simCameras, simPlannedChecks, type SimScenario } from 
  * - `Resources/Localizable.xcstrings` és `Generated/L10nKey.swift` a 6 nyelvű szótárból,
  * - `Resources/InfoPlist.xcstrings` (helyhozzáférés-szöveg, app-név) ugyanonnan,
  * - `Generated/Icons.swift` a webes Icon.tsx vonalikonjaiból,
+ * - `Generated/AppLogicConstants.swift` az app-logic közös konstansaiból (A10: a tervezett mérés tűrése),
  * - `Resources/Sim/*.json` a webes szimulátor vezetéseiből (`/?sim` és `/?navsim`).
  * A kulcs → fájl térkép az `apps/ios`-hoz relatív.
  */
@@ -27,8 +28,24 @@ export function renderAll(): Map<string, string> {
   out.set('Atlagsebesseg/Generated/L10nKey.swift', l10nKeys());
   // a webes Icon.tsx szerint a `play` és a `stop` kitöltött
   out.set('Atlagsebesseg/Generated/Icons.swift', iconsSwift(PATHS, ['play', 'stop']));
+  out.set('Atlagsebesseg/Generated/AppLogicConstants.swift', appLogicConstants());
   for (const [name, content] of simFixtures()) out.set(`Atlagsebesseg/Resources/Sim/${name}`, content);
   return out;
+}
+
+/** A webbel közös app-logic konstansok – egy forrás, hogy a két platform ne térjen el. */
+function appLogicConstants(): string {
+  const num = (x: number) => (Number.isInteger(x) ? `${x}.0` : String(x));
+  return [
+    '// GENERÁLT FÁJL – kézzel ne szerkeszd.',
+    '// Forrás: packages/app-logic/src/plannedChecks.ts; újragenerálás: npm run generate -w @atlagsebesseg/ios',
+    '',
+    '/// A tervezett mérés vonalának tűrése (m): ennyi méteren belül számít a pozíció a vonalon lévőnek.',
+    `nonisolated let PLANNED_MATCH_M = ${num(PLANNED_MATCH_M)}`,
+    '/// Ennyi egymás utáni, vonalon kívüli fix után tűnik el a sáv (egy kiugró GPS-pont nem tünteti el).',
+    `nonisolated let PLANNED_OFF_FIXES = ${PLANNED_OFF_FIXES}`,
+    '',
+  ].join('\n');
 }
 
 // ---------------------------------------------------------------------------

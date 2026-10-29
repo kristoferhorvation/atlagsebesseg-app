@@ -5,6 +5,7 @@ import { cameraSourceText, cameraVisibility, cameraWarning, visibleCameras, type
 import {
   inPlannedZone,
   onPlannedLine,
+  PLANNED_MATCH_M,
   PlannedCheckWatch,
   plannedBandText,
   plannedIsZone,
@@ -48,12 +49,14 @@ const check = (extra: Partial<PlannedCheck> = {}): PlannedCheck => ({
 
 const NOW = Date.parse('2026-10-28T10:00:00Z');
 
-describe('tervezett mérés – a vonalon haladás (40 m tűrés)', () => {
-  it('a vonalon / 40 m-en belül igen, azon túl és a végeken túl nem', () => {
+describe('tervezett mérés – a vonalon haladás (100 m tűrés)', () => {
+  it('a vonalon / 100 m-en belül igen, azon túl és a végeken túl nem', () => {
     const c = check();
+    expect(PLANNED_MATCH_M).toBe(100);
     expect(onPlannedLine(at(500, 0), c)).toBe(true);
-    expect(onPlannedLine(at(500, 35), c)).toBe(true);
-    expect(onPlannedLine(at(500, 60), c)).toBe(false);
+    expect(onPlannedLine(at(500, 60), c)).toBe(true);
+    expect(onPlannedLine(at(500, 95), c)).toBe(true);
+    expect(onPlannedLine(at(500, 130), c)).toBe(false);
     expect(onPlannedLine(at(2300, 0), c)).toBe(false);
     expect(onPlannedLine(at(-300, 0), c)).toBe(false);
   });
@@ -63,7 +66,7 @@ describe('tervezett mérés – a vonalon haladás (40 m tűrés)', () => {
     const c = [check()];
     expect(w.update(fix(-500, 0), c, NOW)).toBeNull();
     expect(w.update(fix(100, 0), c, NOW)?.id).toBe('pc-1');
-    expect(w.update(fix(600, 80), c, NOW)?.id).toBe('pc-1'); // egy kiugró pont
+    expect(w.update(fix(600, 180), c, NOW)?.id).toBe('pc-1'); // egy kiugró pont
     expect(w.update(fix(900, 0), c, NOW)?.id).toBe('pc-1');
     expect(w.update(fix(1200, 200), c, NOW)?.id).toBe('pc-1');
     expect(w.update(fix(1300, 400), c, NOW)).toBeNull(); // letért

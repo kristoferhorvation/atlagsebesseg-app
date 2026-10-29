@@ -101,8 +101,8 @@ biztonsági zóna fölött lebeg.
   körzet kamerái kerülnek a térképre. `zone` láthatóságnál (FR) szaggatott szélű, halvány kör
   (±1 km), pont nélkül; `hide`-nál (CH) semmi.
 - **Tervezett rendőrségi mérés (A7):** a vonal halvány sárga (`planned`, 42% átlátszóság, a
-  most érintett vonal 75%), a szakaszok alatt. A vonalon haladva (ugyanaz a 40 m-es illesztés,
-  mint a szakaszoknál) felül, a pillek alatt **pulzáló sáv**: sárga pont táguló gyűrűvel
+  most érintett vonal 75%), a szakaszok alatt. A vonalon haladva (100 m-es tűrés, `PLANNED_MATCH_M` – A10,
+  web és iOS közösen) felül, a pillek alatt **pulzáló sáv**: sárga pont táguló gyűrűvel
   (transform + opacity), „Tervezett rendőrségi mérés” (22 px, `planned`), alatta „okt 27–nov 2 ·
   **max 90**” (20 px); KRESZ-alapértéknél „max ~90”, időszaknál „· ápr 15. 6:00 – ápr 16. 6:00”.
   Mérés közben (szakasz / kézi) kisebb, egysoros (20 px) – a nagy szám marad a fókusz.

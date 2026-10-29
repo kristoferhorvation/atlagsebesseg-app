@@ -3410,37 +3410,37 @@
         "cs" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Plánovaná policejní kontrola, maximálně {x}"
+            "value" : "Plánovaná kontrola, maximálně {x}"
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Geplante Polizeikontrolle, maximal {x}"
+            "value" : "Geplante Kontrolle, maximal {x}"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Planned police check, maximum {x}"
+            "value" : "Planned check, maximum {x}"
           }
         },
         "hu" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Tervezett rendőrségi mérés, maximum {x}"
+            "value" : "Tervezett mérés, maximum {x}"
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Planowana kontrola policji, maksimum {x}"
+            "value" : "Planowana kontrola, maksimum {x}"
           }
         },
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Plánovaná policajná kontrola, maximum {x}"
+            "value" : "Plánovaná kontrola, maximum {x}"
           }
         }
       }
@@ -3451,37 +3451,37 @@
         "cs" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Policejní kontrola – {place}"
+            "value" : "Plánovaná kontrola – {place}"
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Polizeikontrolle in {place}"
+            "value" : "Geplante Kontrolle in {place}"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Police check in {place}"
+            "value" : "Planned check in {place}"
           }
         },
         "hu" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Rendőrségi mérés {place} területén"
+            "value" : "Tervezett mérés {place} területén"
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Kontrola policji – {place}"
+            "value" : "Planowana kontrola – {place}"
           }
         },
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Policajná kontrola – {place}"
+            "value" : "Plánovaná kontrola – {place}"
           }
         }
       }

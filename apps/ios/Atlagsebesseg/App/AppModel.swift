@@ -22,8 +22,6 @@ final class AppModel {
     private(set) var planned: [PlannedCheck] = []
     /// A tervezett mérés, amelynek vonalán / zónájában a pozíció van (a felső sáv).
     private(set) var activePlanned: PlannedCheck?
-    /// Az utolsó jelzés a képernyőn (néhány másodpercig látszik).
-    private(set) var alert: AlertEvent?
     private(set) var serverStatus: String = "–"
     /// Nő, ha a szakasz- vagy kameralista változik (a térkép csak ekkor építi újra a rétegeit).
     private(set) var dataVersion = 0
@@ -51,11 +49,8 @@ final class AppModel {
     @ObservationIgnored private var simPlanned: [PlannedCheck] = []
     @ObservationIgnored private let plannedWatch = PlannedCheckWatch()
     @ObservationIgnored private let approach = ApproachWatch()
-    /// A hang-réteg (a tesztekben felvevő).
-    @ObservationIgnored var alertSink: AlertSink = AlertPlayer()
-    /// Mikor jött az utolsó jelzés (az óra szerint, ms) – a sáv ennyi után tűnik el.
-    @ObservationIgnored private var alertAt: Double = 0
-    static let alertShowMs = 8000.0
+    /// A jelzések kézbesítése (sáv + hang-réteg).
+    @ObservationIgnored let alerts = AlertDispatcher(sink: AlertPlayer())
 
     init() {
         let wallClock = { Date().timeIntervalSince1970 * 1000 }
@@ -173,7 +168,7 @@ final class AppModel {
 
     private func tick() {
         view = session.tick()
-        if alert != nil, nowMs() - alertAt > Self.alertShowMs { alert = nil }
+        alerts.expire(now: nowMs())
     }
 
     // MARK: tervezett mérések és jelzések
@@ -194,19 +189,19 @@ final class AppModel {
         for e in events { emit(e) }
     }
 
+    /// Az utolsó jelzés a képernyőn (néhány másodpercig látszik).
+    var alert: AlertEvent? { alerts.current }
+
     private func emit(_ e: AlertEvent) {
-        guard let delivery = alertDelivery(e.kind, settings) else { return }
-        alert = e
-        alertAt = nowMs()
         // a szimulátor ugrása (seek) alatt csak az állapot frissül, hang nem szól
-        if sim?.seeking != true { alertSink.deliver(e, delivery) }
+        alerts.emit(e, settings: settings, now: nowMs(), quiet: sim?.seeking == true)
     }
 
     private func resetAlerts() {
         plannedWatch.reset()
         approach.reset()
         activePlanned = nil
-        alert = nil
+        alerts.clear()
     }
 
     func startManual() { view = session.startManual() }

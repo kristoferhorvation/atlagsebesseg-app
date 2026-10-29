@@ -63,7 +63,12 @@ Gyökér: `npm test` és `npm run typecheck` minden csomagra; `npm run test:all`
   Az iOS 27.1 runtime csak az „iPhone Duo”-t támogatja.
 - Jelzések (A10): a logika (`Logic/Alerts.swift`, `Logic/PlannedChecks.swift`) hang nélkül, eseményeket ad
   (`AlertEvent`); a hang-réteg (`Audio/AlertPlayer.swift`) csak lejátszik. Új jelzés-szabály teszttel az
-  eseményszinten. A `.playback` munkamenet a némítás-kapcsolót nem követi – ezt a „Jelzés módja” beállítás adja.
+  eseményszinten. A `.playback` munkamenet a némítás-kapcsolót nem követi – ezt a „Jelzés módja” beállítás adja;
+  „ki” módban a sáv marad, csak hang és rezgés nincs (`AlertDispatcher`). **Döntés (2026-10-29):** iránnyal
+  megadott kamera ellenirányban nem szól (nem a mi irányunkat méri); a visszaforduláskori újrajelzés csak irány
+  nélküli kamerára és a szakaszkapura igaz.
+- Közös konstansok a webbel: a tervezett mérés tűrése (`PLANNED_MATCH_M`, 100 m) és a letérés-küszöb az
+  app-logicban van; az iOS a generált `Generated/AppLogicConstants.swift`-ből olvassa.
 - Betű: **Inter** (mint a weben) – `Resources/Fonts/InterVariable.ttf` (OFL, `Inter-OFL.txt`), `UIAppFonts`;
   a nézetekben `Font.inter(méret, súly)` / `.num(…)` a token pontos súlyával. Rendszerbetű (`.system(size:)`)
   nem kerülhet a kódba (AppTests-őr).

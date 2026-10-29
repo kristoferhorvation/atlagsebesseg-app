@@ -275,8 +275,8 @@
 
   "ios.alert.camera": "Kamera za {d} metrów, maksimum {x}",
   "ios.alert.cameraNoLimit": "Kamera za {d} metrów",
-  "ios.alert.plannedLine": "Planowana kontrola policji, maksimum {x}",
-  "ios.alert.plannedZone": "Kontrola policji – {place}",
+  "ios.alert.plannedLine": "Planowana kontrola, maksimum {x}",
+  "ios.alert.plannedZone": "Planowana kontrola – {place}",
   "ios.settings.groupAlerts": "Ostrzeżenia",
   "ios.settings.cameraAlert": "Ostrzeżenia o kamerach",
   "ios.settings.cameraAlertHint": "Gdy kamera lub początek odcinkowego pomiaru jest do 600 m przed tobą: krótki dźwięk, komunikat i wibracja – raz dla każdej kamery.",

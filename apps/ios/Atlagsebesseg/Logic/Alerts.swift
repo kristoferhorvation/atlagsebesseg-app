@@ -1,5 +1,6 @@
 import AtlagsebessegCore
 import Foundation
+import Observation
 
 // Kamera-közeledés és tervezett mérés jelzése (A10). A logika hang nélkül fut: jelzés-eseményeket ad, amelyeket
 // a hang-réteg (AlertPlayer) játszik le – így a döntések (irány, távolság, egyszeriség) tesztelhetők.
@@ -181,4 +182,39 @@ nonisolated func alertDelivery(_ kind: AlertKind, _ s: Settings) -> AlertDeliver
 /// A hang-réteg felülete (a tesztekben felvevő; az appban az AVFoundation-os AlertPlayer).
 protocol AlertSink: AnyObject {
     func deliver(_ event: AlertEvent, _ delivery: AlertDelivery)
+}
+
+/// A jelzések kézbesítése: ha a jelzés fajtája be van kapcsolva, a sáv (a képernyőn) mindig megjelenik, néhány
+/// másodpercig; a hang-réteg csak hangot vagy rezgést kap – „ki” módban és a szimulátor ugrása alatt semmit.
+@Observable
+final class AlertDispatcher {
+    /// Ennyi ideig (ms, az app órája szerint) látszik a sáv.
+    static let showMs = 8000.0
+
+    /// A képernyőn látható jelzés.
+    private(set) var current: AlertEvent?
+    @ObservationIgnored private var shownAt = 0.0
+    @ObservationIgnored var sink: AlertSink?
+
+    init(sink: AlertSink? = nil) {
+        self.sink = sink
+    }
+
+    /// `quiet`: csak az állapot frissül (a szimulátor ugrása alatt), hang és rezgés nincs.
+    func emit(_ e: AlertEvent, settings: Settings, now: Double, quiet: Bool = false) {
+        guard let delivery = alertDelivery(e.kind, settings) else { return }
+        current = e
+        shownAt = now
+        guard !quiet, delivery != .silent else { return }
+        sink?.deliver(e, delivery)
+    }
+
+    /// Óraütés: a sáv lejárt-e.
+    func expire(now: Double) {
+        if current != nil, now - shownAt > Self.showMs { current = nil }
+    }
+
+    func clear() {
+        current = nil
+    }
 }

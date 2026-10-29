@@ -3,7 +3,7 @@ import Foundation
 import Testing
 @testable import Atlagsebesseg
 
-// packages/app-logic/test/planned.test.ts – az iOS-re portolt részek (A10). Eltérés: a vonal tűrése 100 m (A10-döntés).
+// packages/app-logic/test/planned.test.ts – az iOS-re portolt részek (A10). A tűrés a webbel közös (PLANNED_MATCH_M, generált).
 
 private let proj = LocalProjection(LatLon(lat: 47.2, lon: 18.4))
 private func at(_ x: Double, _ y: Double) -> LatLon { proj.fromXY(XY(x: x, y: y)) }
@@ -47,6 +47,7 @@ struct PlannedLineTests {
     @Test("a vonalon / 100 m-en belül igen, azon túl és a végeken túl nem")
     func vonal() {
         let r = plannedRoutes(check())
+        #expect(PLANNED_MATCH_M == 100)
         #expect(onPlannedLine(at(500, 0), routes: r))
         #expect(onPlannedLine(at(500, 60), routes: r))
         #expect(onPlannedLine(at(500, 95), routes: r))

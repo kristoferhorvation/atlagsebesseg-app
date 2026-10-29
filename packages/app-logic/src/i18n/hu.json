@@ -275,8 +275,8 @@
 
   "ios.alert.camera": "Kamera {d} méterre, maximum {x}",
   "ios.alert.cameraNoLimit": "Kamera {d} méterre",
-  "ios.alert.plannedLine": "Tervezett rendőrségi mérés, maximum {x}",
-  "ios.alert.plannedZone": "Rendőrségi mérés {place} területén",
+  "ios.alert.plannedLine": "Tervezett mérés, maximum {x}",
+  "ios.alert.plannedZone": "Tervezett mérés {place} területén",
   "ios.settings.groupAlerts": "Jelzések",
   "ios.settings.cameraAlert": "Kamera-jelzés",
   "ios.settings.cameraAlertHint": "Ha az útirányban 600 m-en belül kamera vagy szakaszellenőrzés kezdete van: rövid hang, bemondás és rezgés – kameránként egyszer.",
