@@ -18,7 +18,7 @@ nonisolated struct Settings: Equatable, Sendable {
     var terkep: MapLook = .szines
     /// A rendőrség által előre közzétett mérési helyszínek (vonal / zóna a térképen + felső sáv).
     var tervezettMeresek = true
-    /// Navigáció hangja (A11+ az iOS-en; a beállítás megmarad).
+    /// Navigáció hangja (A11: fordulók, szakaszellenőrzés, „túl gyors”, gyorsabb út bemondása).
     var hangosUtasitasok = true
     /// Kamera- és szakaszkapu-közeledés jelzése (A10, csak iOS).
     var kameraJelzes = true

@@ -41,12 +41,16 @@ struct SettingsSheet: View {
                     }
                     .pickerStyle(.segmented)
                     Text(t(.iosSettingsAlertModeHint)).font(.footnote).foregroundStyle(Tokens.Colors.textMuted)
+                    // A11: a navigáció bemondásai (fordulók, szakaszellenőrzés, „túl gyors”, gyorsabb út)
+                    Toggle(t(.settingsVoiceInstructions), isOn: $model.settings.hangosUtasitasok)
+                    Text(t(.settingsVoiceInstructionsHint)).font(.footnote).foregroundStyle(Tokens.Colors.textMuted)
                 }
                 SwiftUI.Section(t(.settingsGroupStatus)) {
                     LabeledContent(t(.settingsGps), value: model.geo.label)
                     LabeledContent(t(.settingsWake), value: model.started ? t(.geoActive) : t(.geoOff))
                     LabeledContent(t(.settingsSections), value: String(model.sections.count))
                     LabeledContent(t(.settingsServer), value: model.serverStatus)
+                    LabeledContent(t(.settingsRequests), value: String(model.requestsToday))
                 }
                 SwiftUI.Section(t(.settingsGroupDev)) {
                     if model.sim == nil {

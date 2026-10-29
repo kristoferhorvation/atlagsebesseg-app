@@ -199,3 +199,25 @@ export function iconsSwift(paths: Record<string, readonly string[]>, filled: rea
   L.push('        }', '        return p', '    }', '}', '');
   return L.join('\n');
 }
+
+/** A navigáció manőver-ikonjai (a webes ManeuverIcon.tsx `MANEUVER_PATHS`-e): `extension ManeuverIcon { var path }`. */
+export function maneuverIconsSwift(paths: Record<string, readonly string[]>): string {
+  const L = [
+    '// GENERÁLT FÁJL – kézzel ne szerkeszd.',
+    '// Forrás: apps/web/src/ui/ManeuverIcon.tsx (MANEUVER_PATHS); újragenerálás: npm run generate -w @atlagsebesseg/ios',
+    '',
+    'import SwiftUI',
+    '',
+    '/// A manőver-ikonok vonalrajzai (24 × 24, az autó lentről halad felfelé; stroke 2,2, kerek végek).',
+    'extension ManeuverIcon {',
+    '    var path: Path {',
+    '        var p = Path()',
+    '        switch self {',
+  ];
+  for (const n of Object.keys(paths)) {
+    L.push(`        case .${n}:`);
+    for (const d of paths[n]!) for (const line of swiftPath(parsePath(d))) L.push(`            ${line}`);
+  }
+  L.push('        }', '        return p', '    }', '}', '');
+  return L.join('\n');
+}

@@ -46,6 +46,10 @@ targets:
         group: SharedData
         type: folder
         buildPhase: resources
+      # A11: a navigáció közös fixtúrája (Budapest → Győr Directions-válasz) – a szimulátor és a tesztek is ebből
+      - path: ../../packages/app-logic/src/navigation/fixtures/budapest-gyor.directions.json
+        group: SharedData
+        buildPhase: resources
     dependencies:
       - package: AtlagsebessegCore
         product: AtlagsebessegCore

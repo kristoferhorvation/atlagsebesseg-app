@@ -11,13 +11,14 @@ kerül, a web (`apps/web`) hibajavítás szintjén marad.
 | `Config/App.xcconfig` | közös beállítások; `#include? "../Secrets.xcconfig"` |
 | `Secrets.example.xcconfig` | minta a titkokhoz (a valódi `Secrets.xcconfig` gitignore-ban) |
 | `Atlagsebesseg/Logic` | az app-logic portja: mérés-munkamenet, kijelző-formázás, beállítások, kamera-láthatóság, tervezett mérések, csempe-cache, i18n; jelzés-logika (`Alerts.swift`, A10) |
-| `Atlagsebesseg/Audio` | a jelzések hang-rétege (`AlertPlayer`: csipogás + bemondás + rezgés, ducking, `audio` háttér-mód) |
+| `Atlagsebesseg/Navigation` | navigáció (A11): a `packages/app-logic/src/navigation` portja – Directions + Geocoding, útvonal menti szakaszok / kamerák / mérések, `NavigationSession` (illesztés, letérés → újratervezés, alternatíva-figyelés, lehajtó, szakasz-tudatos ETA, bemondások) |
+| `Atlagsebesseg/Audio` | a jelzések hang-rétege (`AlertPlayer`: csipogás + bemondás + rezgés, ducking, `audio` háttér-mód); a navigáció bemondásai is (`announce`) |
 | `Atlagsebesseg/Location` | CoreLocation (When In Use + `location` háttér-mód) |
 | `Atlagsebesseg/Backend` | Supabase (ugyanazok az RPC-k, mint a weben), beépített adat |
 | `Atlagsebesseg/Map` | Mapbox Maps SDK (Standard stílus, szakaszok, kamerák, saját pozíció) |
-| `Atlagsebesseg/UI` | mérőkártya, „Lassíts” sáv, tervezett-mérés sáv, jelzés-sáv, kezdőképernyő, beállítások |
+| `Atlagsebesseg/UI` | mérőkártya, „Lassíts” sáv, tervezett-mérés sáv, jelzés-sáv, kezdőképernyő, beállítások; navigáció (`NavViews.swift`: pillek + kereső-pill, keresőmező, útvonalkártya, lépés-kártya, egysoros sáv, érkezés-sáv, „Gyorsabb út”) |
 | `Atlagsebesseg/Sim` | szimulátor-mód: a webes `/?sim` és `/?navsim` vezetések CoreLocation-mockkal |
-| `Atlagsebesseg/Generated` | **generált**: `DesignTokens.swift`, `L10nKey.swift`, `Icons.swift` |
+| `Atlagsebesseg/Generated` | **generált**: `DesignTokens.swift`, `L10nKey.swift`, `Icons.swift`, `ManeuverIcons.swift`, `AppLogicConstants.swift` (`NAV_CONFIG` is) |
 | `Atlagsebesseg/Resources` | **generált**: `Localizable.xcstrings`, `InfoPlist.xcstrings`, `Sim/*.json`; ikon |
 | `AtlagsebessegTests` | AppTests (Swift Testing) |
 | `scripts/` | generátorok (`npm run generate`), titok-kitöltő (`npm run secrets`) |
@@ -51,7 +52,16 @@ xcrun simctl launch booted hu.atlagsebesseg.app -sim lassit -simSeek 0.5 -simSpe
 ```
 
 Forgatókönyvek: `jo`, `tul`, `lassit`, `alagut`, `tervezett` (tervezett mérés + 3 kamera), `zona` (települészóna) – a
-webes tesztpálya –, és `navsim` (Budapest → Győr, M1: szakaszkapu-jelzés, kamera-elhaladás, a végén tervezett mérés).
+webes tesztpálya –, és `navsim` (Budapest → Győr, M1: letérés + újratervezés, szakaszkapu-jelzés, mérés, gyorsabb út,
+kamera-elhaladás, a végén tervezett mérés). A `navsim` (A11) a kiindulóponton áll, amíg nem indul navigáció (kereső-pill →
+„Győr” → Indítás); a Directions-válasz a közös fixtúrából jön. Állapotba ugrás:
+
+```bash
+xcrun simctl launch booted hu.atlagsebesseg.app -sim navsim -navStage search -navQuery Győr   # keresőmező
+xcrun simctl launch booted hu.atlagsebesseg.app -sim navsim -navStage picker                 # útvonalkártya
+xcrun simctl launch booted hu.atlagsebesseg.app -sim navsim -navStage nav -simSeek 0.45      # navigáció, az ablak elejéről
+```
+
 A `-simSeek` alatti ugrás közben jelzés nem szól (csak az állapot frissül); nagyon kis `-simSpeed` (pl. `0.05`)
 gyakorlatilag megállítja a lejátszást – a képernyőképekhez.
 A minták `CLLocation`-ként jönnek, így a mérés ugyanazon az úton fut, mint valódi GPS-sel.

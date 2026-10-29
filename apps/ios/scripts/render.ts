@@ -1,10 +1,11 @@
-import { DICTIONARIES, LANGUAGES, PLANNED_MATCH_M, PLANNED_OFF_FIXES, ROUTE_MATCH_M, type FixedCamera, type PlannedCheck, type TKey } from '@atlagsebesseg/app-logic';
+import { DICTIONARIES, LANGUAGES, NAV_CONFIG, NAV_COUNTRIES, PLANNED_MATCH_M, PLANNED_OFF_FIXES, ROUTE_MATCH_M, type FixedCamera, type PlannedCheck, type TKey } from '@atlagsebesseg/app-logic';
 import { Route, type LatLon } from '@atlagsebesseg/core';
 import { testCourse } from '@atlagsebesseg/core/test/helpers/trace';
 import { toSwift } from '@atlagsebesseg/design-tokens';
 import { PATHS } from '../../web/src/ui/Icon';
-import { buildNavSim } from '../../web/src/sim/navSim';
-import { iconsSwift } from './icons';
+import { buildNavSim, SIM_FROM, SIM_PLACES } from '../../web/src/sim/navSim';
+import { MANEUVER_PATHS } from '../../web/src/ui/ManeuverIcon';
+import { iconsSwift, maneuverIconsSwift } from './icons';
 import { buildSimulation, simCameras, simPlannedChecks, type SimScenario } from '../../web/src/sim/scenarios';
 
 /**
@@ -13,7 +14,8 @@ import { buildSimulation, simCameras, simPlannedChecks, type SimScenario } from 
  * - `Resources/Localizable.xcstrings` és `Generated/L10nKey.swift` a 6 nyelvű szótárból,
  * - `Resources/InfoPlist.xcstrings` (helyhozzáférés-szöveg, app-név) ugyanonnan,
  * - `Generated/Icons.swift` a webes Icon.tsx vonalikonjaiból,
- * - `Generated/AppLogicConstants.swift` az app-logic közös konstansaiból (A10: a tervezett mérés tűrése),
+ * - `Generated/AppLogicConstants.swift` az app-logic közös konstansaiból (A10: a tervezett mérés tűrése; A11: `NAV_CONFIG`),
+ * - `Generated/ManeuverIcons.swift` a webes ManeuverIcon.tsx manőver-rajzaiból (A11),
  * - `Resources/Sim/*.json` a webes szimulátor vezetéseiből (`/?sim` és `/?navsim`).
  * A kulcs → fájl térkép az `apps/ios`-hoz relatív.
  */
@@ -29,9 +31,13 @@ export function renderAll(): Map<string, string> {
   // a webes Icon.tsx szerint a `play` és a `stop` kitöltött
   out.set('Atlagsebesseg/Generated/Icons.swift', iconsSwift(PATHS, ['play', 'stop']));
   out.set('Atlagsebesseg/Generated/AppLogicConstants.swift', appLogicConstants());
+  out.set('Atlagsebesseg/Generated/ManeuverIcons.swift', maneuverIconsSwift(MANEUVER_PATHS));
   for (const [name, content] of simFixtures()) out.set(`Atlagsebesseg/Resources/Sim/${name}`, content);
   return out;
 }
+
+/** A `NavConfig` egész típusú mezői (a többi `Double`). */
+const INT_CONFIG = new Set(['geocodeMinChars', 'recentMax']);
 
 /** A webbel közös app-logic konstansok – egy forrás, hogy a két platform ne térjen el. */
 function appLogicConstants(): string {
@@ -47,6 +53,15 @@ function appLogicConstants(): string {
     '/// A navigációs útvonal-elemzés tűrése (m): ennyire közel lévő szakasz / kamera / tervezett mérés kerül az útvonalra.',
     '/// Nem azonos a tervezett mérés sávjának tűrésével (PLANNED_MATCH_M).',
     `nonisolated let ROUTE_MATCH_M = ${num(ROUTE_MATCH_M)}`,
+    '',
+    '/// A navigáció küszöbei (A11) – a webes `NAV_CONFIG` értékei.',
+    'nonisolated let NAV_CONFIG = NavConfig(',
+    Object.entries(NAV_CONFIG)
+      .map(([k, v]) => `    ${k}: ${INT_CONFIG.has(k) ? String(v) : num(v)}`)
+      .join(',\n'),
+    ')',
+    '/// Az országok, ahol keresünk és tervezünk (Geocoding `country`).',
+    `nonisolated let NAV_COUNTRIES = [${NAV_COUNTRIES.map((c) => JSON.stringify(c)).join(', ')}]`,
     '',
   ].join('\n');
 }
@@ -200,7 +215,16 @@ function simFixtures(): [string, string][] {
   files.push([
     'navsim-budapest-gyor.json',
     simFile(
-      { id: 'navsim', label: 'Budapest → Győr (M1)', leadInM: 0, sections: [nav.section], cameras: [cameraRow(nav.camera)], planned: [plannedRow(navPlanned)] },
+      {
+        id: 'navsim',
+        label: 'Budapest → Győr (M1)',
+        leadInM: 0,
+        sections: [nav.section],
+        cameras: [cameraRow(nav.camera)],
+        planned: [plannedRow(navPlanned)],
+        // A11: a navigáció bejátszásához – indulási pont, helyi „keresés”, a letérés mellékútja, az ablakok mintaindexei
+        nav: { from: SIM_FROM, places: SIM_PLACES, detour: nav.detour, windows: nav.windows },
+      },
       nav.samples,
     ),
   ]);

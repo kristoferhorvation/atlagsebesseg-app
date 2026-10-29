@@ -74,7 +74,25 @@ Gyökér: `npm test` és `npm run typecheck` minden csomagra; `npm run test:all`
   a nézetekben `Font.inter(méret, súly)` / `.num(…)` a token pontos súlyával. Rendszerbetű (`.system(size:)`)
   nem kerülhet a kódba (AppTests-őr).
 - Háttér-mérés: a mérés zárolt képernyővel is fut, külön figyelmeztetés nincs (döntés). A zárolt képernyős
-  „fut a mérés” jelzés a Live Activity (A11+) dolga.
+  „fut a mérés” jelzés a Live Activity (A12+) dolga.
+- Navigáció (A11): a logika az `apps/ios/Atlagsebesseg/Navigation/` mappában – a `packages/app-logic/src/navigation`
+  1:1 portja (Directions-feldolgozás, útvonal menti szakasz/kamera/mérés, `NavigationSession`, keresés, helyek,
+  költségvédelem). **Paritási szabály, mint a core-nál:** navigációs logika-változás mindkét nyelvben ugyanabban a
+  körben; a `AtlagsebessegTests/NavigationTests.swift` a `navigation.test.ts` párja (egy TS `it` = egy Swift `@Test`,
+  azonos névvel), ugyanazon a közös fixtúrán (`packages/app-logic/src/navigation/fixtures/budapest-gyor.directions.json`,
+  a `project.yml` erőforrásként hivatkozza, nem másolat). A küszöbök (`NAV_CONFIG`, `NAV_COUNTRIES`) generáltak
+  (`Generated/AppLogicConstants.swift`), a manőver-ikonok a webes `ManeuverIcon.tsx`-ből (`Generated/ManeuverIcons.swift`).
+  Az `RouteFetcher` szinkron indul és `Task`-ot ad (a költségvédelem azonnal érvényes, mint a weben a Promise első
+  lépése); a tesztek a `settle()`-lel várják be a választ (a webes `flush()`).
+- Navigációs UI (A11): a kereső **pill** felül, a GPS/Kijelző pillek jobb oldalán (csak az üres nézeten); érintésre
+  teljes szélességű keresőmező nyílik a térkép tetején (billentyűzet, az utolsó 10 cím), alul nincs kereső
+  (Kristof, 2026-10-29). **Alternatív útvonal (A8d, Kristof 2026-10-29):** tömör szürkéskék vonal (`idle` token) casinggel,
+  „+/− perc” címkével a kiválasztotthoz képest, érintésre (vonal vagy címke) arra vált. Mérés közben a mérőkártya a fő,
+  a navigációs lépés egysoros sáv fölötte; a „Lassíts” sáv e fölé kerül. Hang: az `AlertPlayer` szintetizátora
+  (`announce`), a fontos mondat (szakasz, túl gyors, újratervezés, gyorsabb út) megszakítja a fordulót.
+- Navigációs szimulátor: `-sim navsim` indulás előtt a kiindulóponton áll, a lejátszás a navigáció indításakor kezdődik
+  (mint a webes `/?navsim`); `-navStage search|picker|nav` (és `-navQuery`) egy állapotba ugrik, a `-simSeek` az
+  ugrás előtti utolsó ablak elejéről játszik le. A bemondások szimulátorban a naplóba is mennek (`NAV-VOICE`).
 
 ## Kör-rendszer
 - Minden prompt „A<n> kör”-rel kezdődik; minden commit-üzenet `A<n>: ...` prefixű.
@@ -101,19 +119,23 @@ Gyökér: `npm test` és `npm run typecheck` minden csomagra; `npm run test:all`
 - `packages/data/README.md` – adatforrások, ODbL
 
 ## Mac-specifikus
-Hosszú futás alatt a gép ne aludjon: ezt a **globális** `~/.claude/settings.json`
-SessionStart/SessionEnd hookja intézi (`caffeinate -dims -w <claude PID>`, macOS-ellenőrzéssel).
-A PID-fájl sessionönkénti: `/tmp/claude-caffeinate-<session_id>.pid` (a `session_id` a hook
-stdin-JSON-jából). A SessionStart indítja (ha a sessionnek már fut, nem indít másikat), a
-SessionEnd csak a saját session caffeinate-jét állítja le. A `-w` miatt a caffeinate akkor is kilép, ha a
-session SessionEnd nélkül hal meg (ilyenkor csak egy ártalmatlan, elárvult PID-fájl marad).
+A gép a **munka idejére** marad ébren, nem a session egész élettartamára. Ezt a **globális**
+`~/.claude/settings.json` hookjai intézik (macOS-ellenőrzéssel):
+- `UserPromptSubmit`: ha a sessionhöz nincs élő caffeinate, indít egyet
+  (`caffeinate -dims -t 14400 -w <claude PID>`). SessionStart nem indít caffeinate-et.
+- `Stop`: leállítja a saját session caffeinate-jét; `SessionEnd`: ugyanez, tartaléknak.
+- PID-fájl: `/tmp/claude-caffeinate-<session_id>.pid` (a `session_id` a hook stdin-JSON-jából).
+  A leállítás csak akkor öl, ha a PID-ben lévő folyamat tényleg `caffeinate`, így az elárvult
+  fájl vagy egy újrahasznált PID nem okoz hibát.
+- A `-t 14400` biztonsági határ: ha megszakítás miatt nem fut le a Stop, 4 óra után a caffeinate
+  magától lejár. A `-w` miatt kilép akkor is, ha a Claude-processz meghal.
 
 - A hook globális, ezért **minden sessionben fut, bármelyik mappából indul** (ez a projekt, a
   saját mappa, BookMatch stb.). A projektnek nincs saját `.claude/settings.json`-ja, hogy a
   `caffeinate` ne induljon kétszer. A hook-beállítás változása új sessiontől érvényes.
-- Párhuzamos sessionök nem állítják le egymás caffeinate-jét (mindegyiknek saját példánya és
-  PID-fájlja van; két sessionnel tesztelve).
-- **Ellenőrzés** minden hosszú feladat elején: `pgrep -l caffeinate`.
+- Párhuzamos sessionök nem állítják le egymás caffeinate-jét (sessionönként külön PID-fájl;
+  két sessionnel tesztelve).
+- **Ellenőrzés**: egy prompt alatt `pgrep -l caffeinate` egy sort mutat, a válasz után üres.
 - **Tartalék**, ha üres (a hook nem futott): a Claude Code maga indítja háttérben, és a feladat
   végén leállítja:
   ```bash

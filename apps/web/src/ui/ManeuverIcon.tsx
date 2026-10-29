@@ -1,7 +1,7 @@
 import type { ManeuverIcon as Kind } from '@atlagsebesseg/app-logic';
 
-/** A manőver-ikonok vonalrajzai (24 × 24, az autó lentről halad felfelé). */
-const PATHS: Record<Kind, readonly string[]> = {
+/** A manőver-ikonok vonalrajzai (24 × 24, az autó lentről halad felfelé); az iOS-generátor is innen olvassa (A11). */
+export const MANEUVER_PATHS: Record<Kind, readonly string[]> = {
   straight: ['M12 21V5', 'M7 10l5-5 5 5'],
   depart: ['M12 21V5', 'M7 10l5-5 5 5'],
   right: ['M8 21v-8a4 4 0 0 1 4-4h6', 'M15 5.5 18.5 9 15 12.5'],
@@ -22,7 +22,7 @@ const PATHS: Record<Kind, readonly string[]> = {
 export function ManeuverIcon({ kind, size = 56 }: { kind: Kind; size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      {PATHS[kind].map((d) => (
+      {MANEUVER_PATHS[kind].map((d) => (
         <path key={d} d={d} />
       ))}
     </svg>

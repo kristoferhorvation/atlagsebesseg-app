@@ -6,11 +6,18 @@ import UIKit
 
 /// Az app állapota: helyzetforrás (GPS vagy szimulátor) → mérés-munkamenet → kijelző; szakaszok, kamerák és
 /// tervezett mérések a szerverről (csempénként, cache-sel) a beépített adattal összefésülve; kamera-közeledés és
-/// tervezett mérés jelzése (esemény → hang-réteg).
+/// tervezett mérés jelzése (esemény → hang-réteg); navigáció (A11: keresés → útvonalválasztó → `NavigationSession`,
+/// a műveletek az `AppModel+Navigation.swift`-ben).
 @Observable
 final class AppModel {
     var settings: Settings = .load() {
-        didSet { if settings != oldValue { settings.save() } }
+        didSet {
+            guard settings != oldValue else { return }
+            settings.save()
+            navSession?.setUnit(settings.egyseg)
+            navSession?.setVoice(settings.hangosUtasitasok)
+            if !settings.hangosUtasitasok { player.stopSpeaking() }
+        }
     }
 
     private(set) var view = SessionView()
@@ -33,26 +40,61 @@ final class AppModel {
     private(set) var simPlaying = false
     var simPanel = true
 
-    @ObservationIgnored private let backend = Backend()
+    @ObservationIgnored let backend = Backend()
     @ObservationIgnored private var source: LocationSource?
     @ObservationIgnored private var session: TrackingSession!
     @ObservationIgnored private var serverSections: [Section] = []
-    @ObservationIgnored private var simSections: [Section] = []
+    @ObservationIgnored var simSections: [Section] = []
     @ObservationIgnored private var serverCameras: [FixedCamera] = []
-    @ObservationIgnored private var simCameras: [FixedCamera] = []
+    @ObservationIgnored var simCameras: [FixedCamera] = []
     @ObservationIgnored private var loadedTile: String?
     @ObservationIgnored private var ticker: Timer?
-    @ObservationIgnored private let sectionTiles: TileCache<Section>
-    @ObservationIgnored private let cameraTiles: TileCache<FixedCamera>
-    @ObservationIgnored private let plannedTiles: TileCache<PlannedCheck>
+    @ObservationIgnored let sectionTiles: TileCache<Section>
+    @ObservationIgnored let cameraTiles: TileCache<FixedCamera>
+    @ObservationIgnored let plannedTiles: TileCache<PlannedCheck>
     @ObservationIgnored private var serverPlanned: [PlannedCheck] = []
-    @ObservationIgnored private var simPlanned: [PlannedCheck] = []
+    @ObservationIgnored var simPlanned: [PlannedCheck] = []
     @ObservationIgnored private let plannedWatch = PlannedCheckWatch()
     @ObservationIgnored private let approach = ApproachWatch()
+    /// A hang-réteg (jelzések és navigációs bemondások egy szintetizátoron).
+    @ObservationIgnored let player = AlertPlayer()
     /// A jelzések kézbesítése (sáv + hang-réteg).
-    @ObservationIgnored let alerts = AlertDispatcher(sink: AlertPlayer())
+    @ObservationIgnored let alerts: AlertDispatcher
+
+    // MARK: navigáció (A11)
+
+    /// A felső keresőmező nyitva (a kereső-pill nyitja).
+    var searchOpen = false
+    var searchQuery = ""
+    var searchState: SearchState = .idle
+    /// Az utolsó 10 úti cél és a mentett helyek (a weben tárolttal azonos kulcs és alak).
+    var recents: [Place] = []
+    var saved = SavedPlaces.none
+    /// Az útvonalválasztó állapota (kiválasztott cél → útvonalak).
+    var plan: PlanState?
+    /// Az útvonalválasztó kártya adatai útvonalanként.
+    var summaries: [RouteSummary] = []
+    /// A futó navigáció nézete.
+    var nav: NavView?
+    /// A mai Directions-kérések száma (Beállítások → Állapot).
+    var requestsToday = 0
+    /// Nő, ha az útvonalválasztó a térképet az útvonalakra igazítaná.
+    var fitVersion = 0
+
+    @ObservationIgnored var navSession: NavigationSession?
+    @ObservationIgnored var routeData = EnforcementData.none
+    @ObservationIgnored let placesStore: SyncStore = DefaultsStore()
+    @ObservationIgnored var requestCounter: RequestCounter!
+    @ObservationIgnored var directions: DirectionsClient?
+    @ObservationIgnored var planSeq = 0
+    @ObservationIgnored var searchController: SearchController?
+    /// A navigációs szimulátor útvonal-szolgáltatója (csak `navsim`-ben).
+    @ObservationIgnored var simFetcher: RouteFetcher?
+    /// A szimulátor indítási argumentuma: `-navStage search|picker|nav` (a képernyőképekhez).
+    @ObservationIgnored var navStage: String?
 
     init() {
+        alerts = AlertDispatcher(sink: player)
         let wallClock = { Date().timeIntervalSince1970 * 1000 }
         sectionTiles = TileCache(store: FileStore.caches, prefix: "sections", now: wallClock) { [backend] b in try await backend.sections(in: b) }
         cameraTiles = TileCache(store: FileStore.caches, prefix: "cameras", now: wallClock) { [backend] b in try await backend.cameras(in: b) }
@@ -63,7 +105,9 @@ final class AppModel {
         session = TrackingSession(sections, now: { [weak self] in self?.nowMs() ?? Date().timeIntervalSince1970 * 1000 })
         view = session.view()
         serverStatus = backend.configured ? "…" : "offline"
+        setUpNavigation()
         let args = UserDefaults.standard
+        navStage = args.string(forKey: "navStage")
         if let raw = args.string(forKey: "sim"), let scenario = SimScenario(rawValue: raw) {
             simPanel = args.object(forKey: "simPanel") == nil || args.bool(forKey: "simPanel")
             startSim(scenario, speed: args.object(forKey: "simSpeed") == nil ? 4 : args.double(forKey: "simSpeed"), seek: args.double(forKey: "simSeek"))
@@ -94,6 +138,8 @@ final class AppModel {
 
     /// Szimulátor: a felvett vezetés lejátszása GPS nélkül.
     func startSim(_ scenario: SimScenario, speed: Double = 4, seek: Double = 0) {
+        endNav()
+        cancelPlan()
         stopSource()
         guard let fixture = try? SimFixture.load(scenario) else { return }
         simSections = fixture.sections
@@ -103,7 +149,7 @@ final class AppModel {
         resetAlerts()
         rebuildData()
         session = TrackingSession(sections, now: { [weak self] in self?.nowMs() ?? Date().timeIntervalSince1970 * 1000 })
-        let s = SimLocationSource(fixture, speed: speed, seek: seek)
+        let s = SimLocationSource(fixture, speed: speed, seek: seek, windows: fixture.nav?.windows ?? [])
         s.onProgress = { [weak self, weak s] p in
             self?.simProgress = p
             self?.simPlaying = s?.playing ?? false
@@ -112,11 +158,22 @@ final class AppModel {
         started = true
         follow = true
         attach(s)
-        s.start()
+        if let navData = fixture.nav {
+            // a navigációs szimulátor (mint a webes `/?navsim`): indulás előtt áll a kiindulópontnál, a lejátszás a navigáció indításakor kezdődik
+            simFetcher = (try? NavSim.mainRoutes()).flatMap(\.first).map { NavSim.fetcher(main: $0, detour: navData.detour) }
+            s.hold(at: navData.from)
+            runNavStage()
+        } else {
+            simFetcher = nil
+            s.start()
+        }
         beginTicking()
     }
 
     func exitSim() {
+        endNav()
+        cancelPlan()
+        simFetcher = nil
         stopSource()
         sim = nil
         simSections = []
@@ -158,6 +215,8 @@ final class AppModel {
     private func onLocation(_ l: CLLocation) {
         let fix = GpsFix(location: l)
         view = session.onFix(fix)
+        navSession?.onFix(fix)
+        syncNavMeasure()
         updateAlerts(fix)
         let key = tileKey(fix.lat, fix.lon)
         if key != loadedTile, sim == nil {
@@ -168,6 +227,8 @@ final class AppModel {
 
     private func tick() {
         view = session.tick()
+        navSession?.tick()
+        syncNavMeasure()
         alerts.expire(now: nowMs())
     }
 
@@ -204,9 +265,20 @@ final class AppModel {
         alerts.clear()
     }
 
-    func startManual() { view = session.startManual() }
-    func stopManual() { view = session.stopManual() }
-    func dismiss() { view = session.dismiss() }
+    func startManual() {
+        view = session.startManual()
+        syncNavMeasure()
+    }
+
+    func stopManual() {
+        view = session.stopManual()
+        syncNavMeasure()
+    }
+
+    func dismiss() {
+        view = session.dismiss()
+        syncNavMeasure()
+    }
 
     // MARK: adat
 

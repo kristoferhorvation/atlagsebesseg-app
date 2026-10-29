@@ -5,6 +5,7 @@ import AVFoundation
 /// Az audio-munkamenet csak a jelzés idejére aktív: `.playback` (a némítás-kapcsolótól függetlenül szól – a
 /// felhasználó a beállításokban választhat csak rezgést vagy ki-t), a zene közben halkul (`duckOthers`), és a
 /// `audio` háttér-mód miatt zárolt képernyőn is szól. A bemondás után a többi app hangereje visszaáll.
+/// A11: a navigáció bemondásai (`announce`) ugyanezen a szintetizátoron szólnak, csipogás nélkül.
 final class AlertPlayer: NSObject, AlertSink, AVSpeechSynthesizerDelegate {
     private let synth = AVSpeechSynthesizer()
     private let engine = AVAudioEngine()
@@ -30,6 +31,21 @@ final class AlertPlayer: NSObject, AlertSink, AVSpeechSynthesizerDelegate {
             speak(event.text)
             vibrate()
         }
+    }
+
+    /// Navigációs bemondás az app nyelvén. Fontos mondatnál (szakasz, „túl gyors”, újratervezés, gyorsabb út) a már
+    /// szóló / várakozó utasítás elhagyódik, hogy a figyelmeztetés késedelem nélkül szóljon (mint a weben).
+    func announce(_ text: String, interrupt: Bool) {
+        activateSession()
+        if interrupt, synth.isSpeaking { synth.stopSpeaking(at: .immediate) }
+        let u = AVSpeechUtterance(string: text)
+        u.voice = AVSpeechSynthesisVoice(language: L10n.lang.locale.identifier.replacingOccurrences(of: "_", with: "-"))
+        synth.speak(u)
+    }
+
+    /// A bemondás leállítása (a navigáció vége, a hangos utasítások kikapcsolása).
+    func stopSpeaking() {
+        synth.stopSpeaking(at: .immediate)
     }
 
     private func vibrate() {

@@ -52,16 +52,35 @@ nonisolated struct SimFixture: Decodable, Sendable {
         }
     }
 
+    /// A navigációs szimulátor adatai (csak a `navsim`-ben, A11).
+    struct Nav: Decodable, Sendable {
+        struct Detour: Decodable, Sendable {
+            var points: [LatLon]
+            var fromAlongM: Double
+            var rejoinAlongM: Double
+        }
+
+        /// Indulás előtt itt áll az autó (a webes `SIM_FROM`).
+        var from: LatLon
+        /// A helyi „keresés” találatai (a webes `SIM_PLACES`).
+        var places: [Place]
+        /// A letérés mellékútja (az újratervezés innen számol).
+        var detour: Detour
+        /// Az ablakok (indulás + letérés, szakasz + kamera, érkezés) kezdő mintaindexei.
+        var windows: [Int]
+    }
+
     let id: String
     let label: String
     let leadInM: Double
+    let nav: Nav?
     let sections: [Section]
     let cameras: [CameraRow]
     let planned: [Planned]
     let samples: [Sample]
 
     private enum CodingKeys: String, CodingKey {
-        case id, label, leadInM, sections, cameras, planned, samples
+        case id, label, leadInM, sections, cameras, planned, samples, nav
     }
 
     init(from decoder: Decoder) throws {
@@ -72,6 +91,7 @@ nonisolated struct SimFixture: Decodable, Sendable {
         sections = try c.decode([Section].self, forKey: .sections)
         cameras = try c.decode([CameraRow].self, forKey: .cameras)
         planned = try c.decodeIfPresent([Planned].self, forKey: .planned) ?? []
+        nav = try c.decodeIfPresent(Nav.self, forKey: .nav)
         // soronként: [lat, lon, timestamp, speed, accuracy, heading, s, dropped]
         samples = try c.decode([[Double?]].self, forKey: .samples).map { r in
             Sample(lat: r[0]!, lon: r[1]!, t: r[2]!, speed: r[3], accuracy: r[4], heading: r[5], dropped: r[7] == 1)
@@ -99,16 +119,29 @@ final class SimLocationSource: LocationSource {
     private var offsetMs: Double = 0
     private var timer: Timer?
     private var seek: Double
+    /// Az ablakok kezdő mintaindexei (navsim): az ugrás a cél előtti utolsó ablak elejéről játszik le, mint a weben.
+    private let windows: [Int]
     private(set) var clockMs: Double = Date().timeIntervalSince1970 * 1000
     /// A lejátszás kezdete (Unix ms) – ehhez tolódnak a fixtúra időpontjai.
     private(set) var startMs: Double = Date().timeIntervalSince1970 * 1000
     /// Igaz, amíg a `seek` a kezdőpontig azonnal lejátssza a mintákat (ilyenkor nem szól jelzés).
     private(set) var seeking = false
 
-    init(_ fixture: SimFixture, speed: Double = 4, seek: Double = 0) {
+    init(_ fixture: SimFixture, speed: Double = 4, seek: Double = 0, windows: [Int] = []) {
         self.fixture = fixture
         self.speed = speed
         self.seek = min(1, max(0, seek))
+        self.windows = windows
+    }
+
+    /// Indulás előtt: egyetlen álló fix a megadott helyen (a webes `simIdleFix`), lejátszás nélkül.
+    func hold(at p: LatLon) {
+        clockMs = Date().timeIntervalSince1970 * 1000
+        onStatus?(.sim)
+        onLocation?(CLLocation(
+            coordinate: CLLocationCoordinate2D(latitude: p.lat, longitude: p.lon), altitude: 0, horizontalAccuracy: 5, verticalAccuracy: -1,
+            course: -1, courseAccuracy: -1, speed: 0, speedAccuracy: 0.5, timestamp: Date(timeIntervalSince1970: clockMs / 1000)
+        ))
     }
 
     var progress: Double { fixture.samples.isEmpty ? 0 : Double(index) / Double(fixture.samples.count) }
@@ -122,6 +155,10 @@ final class SimLocationSource: LocationSource {
         onStatus?(.sim)
         // ugrás a `seek` hányadig (egy adott állapot azonnali megnézéséhez, mint a webes `?seek=`)
         let until = Int((seek * Double(fixture.samples.count)).rounded(.down))
+        index = windows.last { $0 <= until } ?? 0
+        // az óra az ugrás kezdőmintájához igazodik (a lejátszás ideje a mostani pillanattól folytatódik)
+        if index > 0 { offsetMs -= fixture.samples[index].t }
+        startMs = offsetMs
         seek = 0
         seeking = true
         while index < until { emit() }
