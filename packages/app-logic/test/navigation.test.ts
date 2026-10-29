@@ -449,11 +449,11 @@ describe('alternatíva-figyelés', () => {
     const { main, alt } = fixture();
     const exit = firstNewManeuver(main, alt);
     expect(exit).not.toBeNull();
-    expect(exit!.distanceM).toBeGreaterThan(54_000);
-    expect(exit!.distanceM).toBeLessThan(57_000);
-    // a sáv/pajzs-jelzés („1”) nem tapad a kijárat nevére
-    expect(exit!.name).toBe('Kijárat 56');
-    expect(alt.steps.some((s) => s.banners[0]?.primary.text === 'Kijárat 56 1')).toBe(true);
+    expect(exit!.distanceM).toBeGreaterThan(66_000);
+    expect(exit!.distanceM).toBeLessThan(68_000);
+    // a banner többi része (itt a cél-név, „Tata”) nem tapad a kijárat nevére
+    expect(exit!.name).toBe('Kijárat 67');
+    expect(alt.steps.some((s) => s.banners[0]?.primary.text === 'Kijárat 67 Tata')).toBe(true);
     // önmagával nincs eltérés
     expect(firstNewManeuver(main, main)).toBeNull();
   });
@@ -481,22 +481,24 @@ describe('alternatíva-figyelés', () => {
     const { main, alt } = fixture();
     const withBanner = (edit: (b: NavRoute['steps'][number]['banners'][number]) => void): NavRoute => {
       const copy: NavRoute = structuredClone(alt);
-      const step = copy.steps.find((s) => s.banners[0]?.primary.exit === 'Kijárat 56')!;
+      const step = copy.steps.find((s) => s.banners[0]?.primary.exit === 'Kijárat 67')!;
       edit(step.banners[0]!);
       return copy;
     };
-    expect(firstNewManeuver(main, alt)!.name).toBe('Kijárat 56');
-    expect(firstNewManeuver(main, withBanner((b) => (b.primary.exit = null)))!.name).toBe('Tatabánya-Óváros');
+    expect(firstNewManeuver(main, alt)!.name).toBe('Kijárat 67');
+    // a felvételben ennek a lehajtónak nincs második sora: a cél-nevet a teszt adja
+    const dest = { text: 'Tata', type: 'off ramp', modifier: 'right', exit: null };
+    expect(firstNewManeuver(main, withBanner((b) => ((b.primary.exit = null), (b.secondary = dest))))!.name).toBe('Tata');
     expect(firstNewManeuver(main, withBanner((b) => ((b.primary.exit = null), (b.secondary = null))))!.name).toBeNull();
   });
 
   it('mérés közben: a lehajtó a szakasz vége előtt → azonnal, kompakt ajánlat a lehajtó nevével és távolságával', async () => {
-    const { h } = await measuringOn(60_000);
+    const { h } = await measuringOn(70_000);
     const offer = h.session.view().offer;
     expect(offer).not.toBeNull();
     expect(offer!.compact).toBe(true);
-    expect(offer!.exitName).toBe('Kijárat 56');
-    expect(offer!.exitInM).toBeGreaterThan(54_000);
+    expect(offer!.exitName).toBe('Kijárat 67');
+    expect(offer!.exitInM).toBeGreaterThan(66_000);
     expect(offer!.expiresAt).toBe(T0 + 120_000 + NAV_CONFIG.offerTtlMs);
     const voice = h.session.drainVoice().filter((v) => v.kind === 'faster');
     expect(voice).toHaveLength(1);
@@ -515,7 +517,7 @@ describe('alternatíva-figyelés', () => {
   });
 
   it('bemondás Waze-mintára: azonnal, majd 500 m-nél még egyszer', async () => {
-    const { h, f } = await measuringOn(60_000);
+    const { h, f } = await measuringOn(70_000);
     const exitAlong = 1000 + firstNewManeuver(f.main, f.alt)!.distanceM;
     expect(h.session.drainVoice().filter((v) => v.kind === 'faster')).toHaveLength(1);
     feed(h, f.fix(exitAlong - 2000, T0 + 125_000));
@@ -528,7 +530,7 @@ describe('alternatíva-figyelés', () => {
   });
 
   it('a lehajtót 50 m-rel elhagyva az ajánlat eltűnik', async () => {
-    const { h, f } = await measuringOn(60_000);
+    const { h, f } = await measuringOn(70_000);
     const exitAlong = 1000 + firstNewManeuver(f.main, f.alt)!.distanceM;
     feed(h, f.fix(exitAlong - 100, T0 + 130_000));
     expect(h.session.view().offer).not.toBeNull();
@@ -1140,7 +1142,8 @@ describe('AW13: mérés közben a kapu utáni közeli lehajtó azonnal', () => {
   });
 
   it('a határ: a végkapu után pontosan 1 km → azonnal; 1 km-nél messzebb → visszatartva, a mérés végén megjelenik', async () => {
-    const at = await measuring(ALT_OFFER.exitAfterGateM);
+    // 1 cm-rel a határon belül: a kapu és a lehajtó helye két vetítésből jön, a különbségük ~1e-9 m-t ingadozik
+    const at = await measuring(ALT_OFFER.exitAfterGateM - 0.01);
     expect(at.h.session.view().offer?.compact).toBe(true);
     const { h } = await measuring(ALT_OFFER.exitAfterGateM + 300);
     expect(h.session.view().offer).toBeNull();

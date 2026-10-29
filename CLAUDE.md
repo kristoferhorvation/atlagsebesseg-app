@@ -127,9 +127,10 @@ Gyökér: `npm test` és `npm run typecheck` minden csomagra; `npm run test:all`
     nem visz), `granted` → semmi. A `retryOnGesture` iOS-en nem kell.
 - **Paritási tartozás (AW12 + AW13 → iOS) lezárva az AOS12-ben (2026-10-29):** a `NavigationTests.swift` újra a
   `navigation.test.ts` teljes párja (86 = 86 `it`, azonos névvel), a webes `navSim.test.ts` 6 esete a `SimTests.swift`-ben.
-  A közös Budapest→Győr fixtúra AOS12-ben újra felvéve méteres hangegységgel (`voice_units=metric`); az élő válasz csak
-  egy útvonalat adott, ezért a második (M1 + 1-es főút) útvonal a régi felvételből maradt – annak hangszövegei még
-  mérföldesek.
+  A közös Budapest→Győr fixtúra **AOS13-ban teljesen újra felvéve** méteres hangegységgel (`voice_units=metric`, mindkét
+  útvonal élő, egy hívásból; 2026-10-29 18:57): fő útvonal M1 + M19, 121,3 km / 16 lépés, alternatíva M1 + 8136, 128,6 km,
+  lehajtó „Kijárat 67” ~67 km-nél. Felvétel: `npx tsx apps/web/scripts/record-directions-fixture.mjs` (az app
+  `directionsUrl`-je; egy útvonalnál nem ír, `--keep-alt`-tal a régi 2. útvonalat tartja, a mérföldes lépései hang nélkül).
 - Navigációs szimulátor: `-sim navsim` indulás előtt a kiindulóponton áll, a lejátszás a navigáció indításakor kezdődik
   (mint a webes `/?navsim`); `-navStage search|picker|nav` (és `-navQuery`) egy állapotba ugrik, a `-simSeek` az
   ugrás előtti utolsó ablak elejéről játszik le. A bemondások szimulátorban a naplóba is mennek (`NAV-VOICE`). AOS12:

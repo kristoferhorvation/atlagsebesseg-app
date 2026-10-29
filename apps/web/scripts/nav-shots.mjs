@@ -257,16 +257,17 @@ try {
     await o.goto(`/?navsim&stage=nav&speed=8&alt=${alt}&panel=0`);
     await o.waitFor(MAP_READY, 60_000, 'térkép');
     await o.waitFor(q('.nav-offer'), 120_000, `ajánlat (${alt})`);
+    // AW13: fogyó csík a kiemelt gomb alatt, szám nélkül; csak egy van, és a kiemelt gombban. A beállított (nem a
+    // kirajzolt) értéket mérjük: headless Chrome-ban az átmenet képkockái ritkák. AOS13: az első mérés rögtön az ajánlat
+    // megjelenésekor – 8×-os lejátszásnál a 400 m-es lehajtót az autó néhány másodperc alatt elhagyja (és az ajánlat eltűnik)
+    const TIMER = `(() => { const e = ${q('.nav-offer-timer')}; if (!e) return null; const m = new DOMMatrix(e.style.transform); const b = e.closest('.btn').getBoundingClientRect(); const r = e.getBoundingClientRect(); return { scale: m.a, inPrimary: e.closest('.btn').classList.contains('primary'), n: document.querySelectorAll('.nav-offer-timer').length, below: r.top >= b.bottom - 1, h: r.height, txt: e.innerText }; })()`;
+    const t1 = await o.evaluate(TIMER);
     await sleep(700);
     const card = await o.evaluate(`(() => { const e = ${q('.nav-offer')}; return { txt: e.innerText.replace(/\s+/g, ' ').trim(), verdict: e.dataset.verdict, primary: e.querySelector('.btn.primary')?.innerText }; })()`);
     const v = await o.evaluate(`(window.__navVoice ?? []).filter((x) => x.kind === 'faster').map((x) => x.text)`);
     check(`ajánlat „${alt}”: kártya`, title.test(card.txt) && card.verdict === alt, card.txt);
     check(`ajánlat „${alt}”: bemondás`, said.test(v[0] ?? ''), v[0]);
     check(`ajánlat „${alt}”: a kiemelt gomb a 45 s utáni alapértelmezés`, card.primary === (alt === 'worth' ? 'Elfogad' : 'Elvet'), card.primary);
-    // AW13: fogyó csík a kiemelt gomb alatt, szám nélkül; csak egy van, és a kiemelt gombban. A beállított (nem a
-    // kirajzolt) értéket mérjük: headless Chrome-ban az átmenet képkockái ritkák
-    const TIMER = `(() => { const e = ${q('.nav-offer-timer')}; if (!e) return null; const m = new DOMMatrix(e.style.transform); const b = e.closest('.btn').getBoundingClientRect(); const r = e.getBoundingClientRect(); return { scale: m.a, inPrimary: e.closest('.btn').classList.contains('primary'), n: document.querySelectorAll('.nav-offer-timer').length, below: r.top >= b.bottom - 1, h: r.height, txt: e.innerText }; })()`;
-    const t1 = await o.evaluate(TIMER);
     // 8×-os lejátszás: legfeljebb 2 s ≈ 16 s szimulált idő (a közeli lehajtó elhagyása előtt)
     await o.waitFor(`(${TIMER})?.scale < ${t1?.scale ?? 0}`, 2000, 'a csík fogy').catch(() => undefined);
     const t2 = await o.evaluate(TIMER);

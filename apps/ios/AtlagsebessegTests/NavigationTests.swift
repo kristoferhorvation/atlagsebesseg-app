@@ -443,11 +443,11 @@ struct AlternativeTests {
     func lehajto() throws {
         let f = try Fixture()
         let exit = try #require(firstNewManeuver(f.main, f.alt))
-        #expect(exit.distanceM > 54_000)
-        #expect(exit.distanceM < 57_000)
-        // a sáv/pajzs-jelzés („1”) nem tapad a kijárat nevére
-        #expect(exit.name == "Kijárat 56")
-        #expect(f.alt.steps.contains { $0.banners.first?.primary.text == "Kijárat 56 1" })
+        #expect(exit.distanceM > 66_000)
+        #expect(exit.distanceM < 68_000)
+        // a banner többi része (itt a cél-név, „Tata”) nem tapad a kijárat nevére
+        #expect(exit.name == "Kijárat 67")
+        #expect(f.alt.steps.contains { $0.banners.first?.primary.text == "Kijárat 67 Tata" })
         // önmagával nincs eltérés
         #expect(firstNewManeuver(f.main, f.main) == nil)
     }
@@ -476,12 +476,17 @@ struct AlternativeTests {
         let f = try Fixture()
         func withBanner(_ edit: (inout NavBanner) -> Void) -> NavRoute {
             var copy = f.alt
-            let i = copy.steps.firstIndex { $0.banners.first?.primary.exit == "Kijárat 56" }!
+            let i = copy.steps.firstIndex { $0.banners.first?.primary.exit == "Kijárat 67" }!
             edit(&copy.steps[i].banners[0])
             return copy
         }
-        #expect(firstNewManeuver(f.main, f.alt)?.name == "Kijárat 56")
-        #expect(firstNewManeuver(f.main, withBanner { $0.primary.exit = nil })?.name == "Tatabánya-Óváros")
+        #expect(firstNewManeuver(f.main, f.alt)?.name == "Kijárat 67")
+        // a felvételben ennek a lehajtónak nincs második sora: a cél-nevet a teszt adja
+        let dest = BannerText(text: "Tata", type: "off ramp", modifier: "right", exit: nil)
+        #expect(firstNewManeuver(f.main, withBanner {
+            $0.primary.exit = nil
+            $0.secondary = dest
+        })?.name == "Tata")
         let none = try #require(firstNewManeuver(f.main, withBanner {
             $0.primary.exit = nil
             $0.secondary = nil
@@ -491,11 +496,11 @@ struct AlternativeTests {
 
     @Test("mérés közben: a lehajtó a szakasz vége előtt → azonnal, kompakt ajánlat a lehajtó nevével és távolságával")
     func meresKozbenAzonnal() async throws {
-        let (h, _) = try await measuringOn(60_000)
+        let (h, _) = try await measuringOn(70_000)
         let offer = try #require(h.session.view().offer)
         #expect(offer.compact)
-        #expect(offer.exitName == "Kijárat 56")
-        #expect(offer.exitInM > 54_000)
+        #expect(offer.exitName == "Kijárat 67")
+        #expect(offer.exitInM > 66_000)
         #expect(offer.expiresAt == T0 + 120_000 + NAV_CONFIG.offerTtlMs)
         let voice = h.session.drainVoice().filter { $0.kind == .faster }
         #expect(voice.count == 1)
@@ -516,7 +521,7 @@ struct AlternativeTests {
 
     @Test("bemondás Waze-mintára: azonnal, majd 500 m-nél még egyszer")
     func waze() async throws {
-        let (h, f) = try await measuringOn(60_000)
+        let (h, f) = try await measuringOn(70_000)
         let exitAlong = 1000 + firstNewManeuver(f.main, f.alt)!.distanceM
         #expect(h.session.drainVoice().filter { $0.kind == .faster }.count == 1)
         h.feed(f.fix(exitAlong - 2000, T0 + 125_000))
@@ -530,7 +535,7 @@ struct AlternativeTests {
 
     @Test("a lehajtót 50 m-rel elhagyva az ajánlat eltűnik")
     func elhagyva() async throws {
-        let (h, f) = try await measuringOn(60_000)
+        let (h, f) = try await measuringOn(70_000)
         let exitAlong = 1000 + firstNewManeuver(f.main, f.alt)!.distanceM
         h.feed(f.fix(exitAlong - 100, T0 + 130_000))
         #expect(h.session.view().offer != nil)
@@ -1263,7 +1268,8 @@ struct ExitAfterGateTests {
 
     @Test("a határ: a végkapu után pontosan 1 km → azonnal; 1 km-nél messzebb → visszatartva, a mérés végén megjelenik")
     func hatar() async throws {
-        let (at1km, _) = try await measuring(ALT_OFFER.exitAfterGateM)
+        // 1 cm-rel a határon belül: a kapu és a lehajtó helye két vetítésből jön, a különbségük ~1e-9 m-t ingadozik
+        let (at1km, _) = try await measuring(ALT_OFFER.exitAfterGateM - 0.01)
         #expect(at1km.session.view().offer?.compact == true)
         let (h, _) = try await measuring(ALT_OFFER.exitAfterGateM + 300)
         #expect(h.session.view().offer == nil)
