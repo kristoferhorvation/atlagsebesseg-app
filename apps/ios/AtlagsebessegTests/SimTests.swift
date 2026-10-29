@@ -257,4 +257,12 @@ struct LocationAccessTests {
         #expect(gpsPillAction(.notDetermined, .off) == .none)
         #expect(gpsPillAction(.denied, .sim) == .none)
     }
+
+    @Test("a helyzet-állapot nyer: van pozíció vagy szimulátor → semmi, akármit mond az engedély (AW14)")
+    func positionWins() {
+        for p in [LocationPermission.notDetermined, .denied, .granted] {
+            #expect(gpsPillAction(p, .active) == .none)
+            #expect(gpsPillAction(p, .sim) == .none)
+        }
+    }
 }

@@ -33,17 +33,17 @@ export function detectBrowser(ua: string, maxTouchPoints = 0): BrowserKind {
 }
 
 /**
- * A GPS-pill koppintása. Ismert engedélynél az dönt: `prompt` → kérés, `denied` → tiltott-lap, `granted` → semmi (a pill a
- * pontosságot mutatja). Ismeretlen engedélynél az állapot: elutasítva → tiltott-lap, aktív → semmi, különben kérés.
- * HTTPS nélkül (nem elérhető) nincs mit kérni.
+ * A GPS-pill koppintása (AW14). A helyzet-állapot nyer a Permissions API felett: ha van pozíció (aktív), a hozzáférés
+ * megvan – a pill a pontosságot mutatja, koppintásra semmi, akármit mond az API (iOS Safarin élesben „denied”-et adott
+ * ±8 m-es pozíció mellett). Az engedély csak pozíció nélkül számít: `granted` → semmi, `denied` → tiltott-lap, `prompt`
+ * → kérés; ha az API nincs vagy hibát ad (`unknown`), „prompt”-nak vesszük – a kérés kideríti, nem a lap állítja.
+ * HTTPS nélkül (nem elérhető) és kikapcsolva nincs mit kérni.
  */
 export function gpsPillAction(permission: GeoPermission, status: GeoStatus): GpsPillAction {
-  if (status === 'nem_elerheto' || status === 'ki') return 'none';
+  if (status === 'nem_elerheto' || status === 'ki' || status === 'aktiv') return 'none';
   if (permission === 'granted') return 'none';
-  if (permission === 'prompt') return 'request';
   if (permission === 'denied') return 'deniedHelp';
-  if (status === 'elutasitva') return 'deniedHelp';
-  return status === 'aktiv' ? 'none' : 'request';
+  return 'request';
 }
 
 /**

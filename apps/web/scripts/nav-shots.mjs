@@ -6,6 +6,7 @@
 // AW13: kapu utáni (≤ 1 km) lehajtó → azonnali kompakt ajánlat, fogyó csík a kiemelt gomb alatt, „megéri” bemondás a
 // lehajtóval, helyhozzáférés: GPS-pill (prompt → kérés, denied → tiltott-lap a böngészőre, granted → semmi), első gesztus.
 // AOS13: a mérés eredménye navigáció közben kompakt, és nem ér a felső kártya alá.
+// AW14: van pozíció → a pill koppintása semmit nem nyit, akármit mond a Permissions API.
 //
 //   npm run dev -w @atlagsebesseg/web            # másik terminálban (a Mapbox-token az apps/web/.env-ben)
 //   npm run nav-shots -w @atlagsebesseg/web
@@ -317,12 +318,16 @@ try {
   // ------------------------------------------------------------------
   const UA_MAC_SAFARI = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0 Safari/605.1.15';
   const UA_IPHONE = 'Mozilla/5.0 (iPhone; CPU iPhone OS 26_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0 Mobile/15E148 Safari/604.1';
-  /** `state`: a Permissions API válasza; `mode`: a watchPosition – `deny` (azonnali elutasítás), `wait` (nincs válasz), `fix`. */
+  /**
+   * `state`: a Permissions API válasza (`none`: a lekérdezés hibát ad, mint ahol az API nincs); `mode`: a watchPosition –
+   * `deny` (azonnali elutasítás), `wait` (nincs válasz), `fix`.
+   */
   const fakeGeo = (state, mode) => `(() => {
     const cfg = (window.__geoFake = { calls: 0 });
     const ps = { state: ${JSON.stringify(state)}, onchange: null, addEventListener() {}, removeEventListener() {} };
     const query = navigator.permissions.query.bind(navigator.permissions);
-    navigator.permissions.query = (d) => (d && d.name === 'geolocation' ? Promise.resolve(ps) : query(d));
+    navigator.permissions.query = (d) =>
+      d && d.name === 'geolocation' ? (ps.state === 'none' ? Promise.reject(new TypeError('geolocation')) : Promise.resolve(ps)) : query(d);
     navigator.geolocation.watchPosition = (ok, err) => {
       cfg.calls++;
       if (${JSON.stringify(mode)} === 'deny') setTimeout(() => err({ code: 1, PERMISSION_DENIED: 1, POSITION_UNAVAILABLE: 2, TIMEOUT: 3, message: 'denied' }), 50);
@@ -393,9 +398,33 @@ try {
   const gr = await geoPage('granted', 'fix');
   await gr.waitFor(`/±/.test(${GPS_PILL}.innerText)`, 10_000, 'pontosság');
   const gr0 = await pill(gr);
-  check('granted: a pill a pontosságot mutatja, koppintásra semmi', gr0.tag === 'DIV' && /^GPS ±8 m$/.test(gr0.txt), JSON.stringify(gr0));
+  check('granted: a pill a pontosságot mutatja, nem gomb', gr0.tag === 'DIV' && /^GPS ±8 m$/.test(gr0.txt), JSON.stringify(gr0));
+  await gr.evaluate(`${GPS_PILL}.click(); true`);
+  await sleep(300);
+  check('granted: koppintásra nem nyílik lap és nincs újrakérés', !(await gr.evaluate(`!!${q('.sheet')}`)) && (await pill(gr)).calls === gr0.calls);
   check('nincs kezeletlen JS-kivétel (helyhozzáférés)', gr.logs.length === 0, gr.logs.join(' | '));
   gr.close();
+
+  // AW14 (élesben, iPhone Safari): zöld pill ±8 m-rel, a Permissions API mégis „denied” → a pozíció nyer, nincs lap
+  for (const [state, name] of [['denied', 'API „denied”'], ['none', 'nincs Permissions API']]) {
+    const ip = await geoPage(state, 'fix', UA_IPHONE);
+    await ip.waitFor(`/±/.test(${GPS_PILL}.innerText)`, 10_000, 'pontosság');
+    const ip0 = await pill(ip);
+    await ip.evaluate(`${GPS_PILL}.click(); true`);
+    await sleep(300);
+    const sheet = await ip.evaluate(`!!${q('.sheet')}`);
+    check(`iOS Safari, ${name}, van pozíció: zöld pill ±8 m, koppintásra nincs tiltott-lap`, ip0.tag === 'DIV' && ip0.tone === 'jo' && /^GPS ±8 m$/.test(ip0.txt) && !sheet, JSON.stringify({ ...ip0, sheet }));
+    ip.close();
+  }
+  // iOS Safari, nincs Permissions API, nincs pozíció (elutasítva): a pill kér, nem a tiltott-lapot nyitja
+  const nx = await geoPage('none', 'deny', UA_IPHONE);
+  const nx0 = await pill(nx);
+  await nx.evaluate(`${GPS_PILL}.click(); true`);
+  await sleep(300);
+  const nx1 = await pill(nx);
+  check('iOS Safari, nincs Permissions API, nincs pozíció: a pill kér, nincs tiltott-lap', nx0.tag === 'BUTTON' && nx1.calls === nx0.calls + 1 && !(await nx.evaluate(`!!${q('.sheet')}`)), `${JSON.stringify(nx0)} → ${nx1.calls}`);
+  check('nincs kezeletlen JS-kivétel (AW14)', nx.logs.length === 0, nx.logs.join(' | '));
+  nx.close();
 
   // ------------------------------------------------------------------
   // 3. marketing-képernyőképek (1×-es lejátszás, szimulátor-panel nélkül)

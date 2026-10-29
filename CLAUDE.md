@@ -125,6 +125,9 @@ Gyökér: `npm test` és `npm run typecheck` minden csomagra; `npm run test:all`
     `notDetermined` → kérés, `denied`/`restricted` → lap (`GeoBlockedSheet`, `ios.geo.*`) a „Megnyitás” gombbal – ez
     az app saját beállításait nyitja (`openSettingsURLString`; az Adatvédelem › Helymeghatározás oldalra nyilvános API
     nem visz), `granted` → semmi. A `retryOnGesture` iOS-en nem kell.
+  - **AW14 (élesben iPhone Safarin: zöld pill ±8 m, mégis tiltott-lap):** a GPS-pillnél a **helyzet-állapot nyer** a
+    Permissions API / az engedély felett – van pozíció (`aktiv`; iOS-en `active`/`sim`) → semmi, lap soha. Az engedély
+    csak pozíció nélkül számít; ha az API nincs vagy hibát ad (`unknown`), „prompt”-nak vesszük (kérés), nem tiltottnak.
 - **Paritási tartozás (AW12 + AW13 → iOS) lezárva az AOS12-ben (2026-10-29):** a `NavigationTests.swift` újra a
   `navigation.test.ts` teljes párja (86 = 86 `it`, azonos névvel), a webes `navSim.test.ts` 6 esete a `SimTests.swift`-ben.
   A közös Budapest→Győr fixtúra **AOS13-ban teljesen újra felvéve** méteres hangegységgel (`voice_units=metric`, mindkét

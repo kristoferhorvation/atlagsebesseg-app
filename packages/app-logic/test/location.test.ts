@@ -26,19 +26,29 @@ describe('helyhozzáférés (AW13)', () => {
     for (const ua of [UA.winEdge, UA.firefox, '']) expect(detectBrowser(ua), ua).toBe('other');
   });
 
-  it('GPS-pill: „prompt” → kérés, „denied” → tiltott-lap, „granted” → semmi', () => {
-    for (const s of ['kereses', 'aktiv', 'elutasitva', 'hiba'] as GeoStatus[]) {
+  it('GPS-pill pozíció nélkül: „prompt” → kérés, „denied” → tiltott-lap, „granted” → semmi', () => {
+    for (const s of ['kereses', 'elutasitva', 'hiba'] as GeoStatus[]) {
       expect(gpsPillAction('prompt', s), s).toBe('request');
       expect(gpsPillAction('denied', s), s).toBe('deniedHelp');
       expect(gpsPillAction('granted', s), s).toBe('none');
     }
   });
 
-  it('GPS-pill ismeretlen engedélynél az állapotból; HTTPS nélkül és kikapcsolva nincs teendő', () => {
-    expect(gpsPillAction('unknown', 'elutasitva')).toBe('deniedHelp');
+  it('GPS-pill: a helyzet-állapot nyer – van pozíció → semmi, akármit mond a Permissions API (AW14)', () => {
+    for (const p of ['prompt', 'denied', 'granted', 'unknown'] as GeoPermission[]) expect(gpsPillAction(p, 'aktiv'), p).toBe('none');
+  });
+
+  it('GPS-pill iOS Safari (nincs Permissions API): van pozíció → semmi, nincs pozíció → kérés, sosem tiltott-lap (AW14)', () => {
     expect(gpsPillAction('unknown', 'aktiv')).toBe('none');
-    expect(gpsPillAction('unknown', 'kereses')).toBe('request');
-    expect(gpsPillAction('unknown', 'hiba')).toBe('request');
+    for (const s of ['kereses', 'elutasitva', 'hiba'] as GeoStatus[]) expect(gpsPillAction('unknown', s), s).toBe('request');
+  });
+
+  it('GPS-pill Chrome (API „denied”, nincs pozíció) → tiltott-lap (AW14)', () => {
+    expect(gpsPillAction('denied', 'elutasitva')).toBe('deniedHelp');
+    expect(gpsPillAction('denied', 'kereses')).toBe('deniedHelp');
+  });
+
+  it('GPS-pill: HTTPS nélkül és kikapcsolva nincs teendő', () => {
     for (const p of ['prompt', 'denied', 'granted', 'unknown'] as GeoPermission[]) {
       expect(gpsPillAction(p, 'nem_elerheto'), p).toBe('none');
       expect(gpsPillAction(p, 'ki'), p).toBe('none');
