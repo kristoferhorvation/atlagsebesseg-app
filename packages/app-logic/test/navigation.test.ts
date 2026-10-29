@@ -6,6 +6,10 @@ import { BUDAPEST_GYOR_DIRECTIONS } from '../src/navigation/fixtures';
 import {
   addRecent,
   adjustedDurations,
+  ALT_LABEL_AFTER_M,
+  altDeltaText,
+  altLabels,
+  divergenceAlongM,
   congestionRuns,
   cumulative,
   DirectionsClient,
@@ -26,6 +30,7 @@ import {
   routeEnforcement,
   routeSummary,
   SearchController,
+  selectRouteById,
   shouldSearch,
   trafficDelayS,
   type NavRoute,
@@ -909,6 +914,52 @@ describe('manőver-ikonok', () => {
     expect(maneuverIcon('on ramp', 'straight')).toBe('straight');
     expect(maneuverIcon('arrive', null)).toBe('arrive');
     expect(maneuverIcon('whatever', 'nonsense')).toBe('straight');
+  });
+});
+
+describe('alternatív útvonal a térképen: címke és kiválasztás (A8d)', () => {
+  const [main, alt] = parseDirections(BUDAPEST_GYOR_DIRECTIONS, 'fx') as [NavRoute, NavRoute];
+  const routes = [main, alt];
+
+  it('a címke szövege: „+1 perc” / „−2 perc”, egy percen belül „≈ ugyanannyi”', () => {
+    expect(altDeltaText(60)).toBe('+1 perc');
+    expect(altDeltaText(-120)).toBe('−2 perc');
+    expect(altDeltaText(-95)).toBe('−2 perc');
+    expect(altDeltaText(25)).toBe('≈ ugyanannyi');
+    setLanguage('en');
+    expect(altDeltaText(180)).toBe('+3 min');
+  });
+
+  it('a leágazás az alternatíva első, a kiválasztott sávján kívüli pontja; önmagától nem ágazik le', () => {
+    const d = divergenceAlongM(main, alt)!;
+    expect(d).toBeGreaterThan(0);
+    const core = new Route(main.points, main.distanceM);
+    const a = new Route(alt.points, alt.distanceM);
+    expect(core.project(a.pointAt(d)).crossM).toBeGreaterThan(ROUTE_MATCH_M);
+    expect(core.project(a.pointAt(Math.max(0, d - 25))).crossM).toBeLessThanOrEqual(ROUTE_MATCH_M);
+    expect(divergenceAlongM(main, main)).toBeNull();
+  });
+
+  it('címke csak az alternatíván, a leágazás után ~300 m-rel, a kártya menetidejével számolva', () => {
+    const labels = altLabels(routes, [3600, 3660], 0);
+    expect(labels).toHaveLength(1);
+    const l = labels[0]!;
+    expect(l).toMatchObject({ routeId: alt.id, index: 1, deltaS: 60, text: '+1 perc' });
+    const a = new Route(alt.points, alt.distanceM);
+    const at = a.project(l.at);
+    expect(at.crossM).toBeLessThan(1);
+    expect(at.alongM - divergenceAlongM(main, alt)!).toBeCloseTo(ALT_LABEL_AFTER_M, -1);
+  });
+
+  it('kiválasztás-váltás: az érintett alternatíva lesz a kiválasztott, a címke a másikra kerül, előjelet vált', () => {
+    const sel = selectRouteById(routes, 0, alt.id);
+    expect(sel).toBe(1);
+    const labels = altLabels(routes, [3600, 3720], sel);
+    expect(labels.map((l) => [l.routeId, l.text])).toEqual([[main.id, '−2 perc']]);
+    // ismeretlen azonosító (pl. elavult érintés): marad a régi
+    expect(selectRouteById(routes, sel, 'nincs')).toBe(1);
+    // egyetlen útvonalnál nincs címke
+    expect(altLabels([main], [3600], 0)).toEqual([]);
   });
 });
 

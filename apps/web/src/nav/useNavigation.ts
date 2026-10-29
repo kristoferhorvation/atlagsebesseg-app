@@ -10,6 +10,7 @@ import {
   RECENTS_KEY,
   routeSummary,
   SAVED_KEY,
+  selectRouteById as pickRouteById,
   type EnforcementData,
   type NavRoute,
   type NavView,
@@ -118,6 +119,8 @@ export function useNavigation(o: NavigationOptions, places: ReturnType<typeof us
 
   const retryPlan = useCallback(() => plan && requestPlan(plan.dest), [plan, requestPlan]);
   const selectRoute = useCallback((i: number) => setPlan((p) => (p ? { ...p, selected: i } : p)), []);
+  /** Érintés a térképen egy alternatív vonalra / címkére (A8d): az lesz a kiválasztott, a kártya átvált. */
+  const selectRouteById = useCallback((id: string) => setPlan((p) => (p ? { ...p, selected: pickRouteById(p.routes, p.selected, id) } : p)), []);
   const cancelPlan = useCallback(() => {
     planSeq.current++;
     setPlan(null);
@@ -186,6 +189,7 @@ export function useNavigation(o: NavigationOptions, places: ReturnType<typeof us
     plan,
     summaries,
     selectRoute,
+    selectRouteById,
     retryPlan,
     cancelPlan,
     start,

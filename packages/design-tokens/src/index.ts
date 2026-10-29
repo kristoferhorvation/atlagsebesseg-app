@@ -20,6 +20,16 @@ export const color = {
   idle: '#8C93A3',
   /** Tervezett rendőrségi mérés: halvány sárga vonal és sáv (A7) – nem státuszszín. */
   planned: '#F2DC82',
+  /** Navigáció (A8d): a kiválasztott útvonal erős kékje és fehér kontúrja. */
+  route: '#1F5BFF',
+  routeCasing: '#FFFFFF',
+  /** Az alternatív útvonal: tömör szürkéskék = `route` 55% + a térkép háttere 45% (nappal / éjjel), sötét kontúrral. */
+  routeAltDay: '#799CF8',
+  routeAltNight: '#1D40A2',
+  routeAltCasing: '#1A2130',
+  /** A Mapbox Standard térkép jellemző háttere (a keverékhez és a kontraszt-teszthez). */
+  mapBgDay: '#E8EBEF',
+  mapBgNight: '#1B2030',
   signRing: '#E5303F',
   signFace: '#FFFFFF',
   signText: '#0B0C10',

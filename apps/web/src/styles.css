@@ -1267,6 +1267,33 @@ a.list-row {
 
 /* ---------- mozgás ---------- */
 
+/* ---------- alternatív útvonal címkéje (A8d): kis fehér buborék, a gomb 56 px-es érintési cél ---------- */
+
+.route-label {
+  min-width: var(--size-touch);
+  min-height: var(--size-touch);
+  display: grid;
+  place-items: center;
+  padding: 0;
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+
+.route-label-bubble {
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-pill);
+  background: var(--color-sign-face);
+  color: var(--color-sign-text);
+  border: 1.5px solid var(--color-route-alt-casing);
+  font-size: var(--type-caption-size);
+  font-weight: 650;
+  line-height: 1.2;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.35);
+}
+
 /* ---------- fix kamerák (A7): kicsi, visszafogott – a bejelentésektől eltérő stílus ---------- */
 
 .camera-pin {

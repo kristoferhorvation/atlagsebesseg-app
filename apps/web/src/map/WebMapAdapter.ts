@@ -32,6 +32,8 @@ export interface MapRoute {
   id: string;
   selected: boolean;
   runs: { points: LatLon[]; level: 'normal' | 'moderate' | 'heavy' }[];
+  /** Alternatívánál a buborék a leágazás után (menetidő-különbség a kiválasztotthoz képest); egyébként `null`. */
+  label: { at: LatLon; text: string; aria: string } | null;
 }
 
 export interface MapFit {
@@ -83,6 +85,8 @@ export interface MapHandlers {
   onReportTap: (id: string | null) => void;
   /** Koppintás egy kamera-ikonra (az üres térképre koppintás az `onReportTap(null)`). */
   onCameraTap: (id: string) => void;
+  /** Koppintás egy alternatív útvonalra (a vonalra vagy a címkéjére): az lesz a kiválasztott. */
+  onRouteTap: (id: string) => void;
   /** A látható terület (a kamera mozgása után, ritkítva). */
   onView: (bbox: BBox) => void;
 }

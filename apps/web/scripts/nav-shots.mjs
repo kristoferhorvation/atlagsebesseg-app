@@ -1,6 +1,6 @@
 // A8 – navigáció végigjátszása headless Chrome-mal, iPhone-méretben, a szimulátorban (rögzített Directions-fixtúra,
 // élő útvonal-hívás nélkül): keresés → útvonalválasztó → indulás → letérés + újratervezés → szakasz-közeledés →
-// mérés közbeni összevont nézet → gyorsabb út ajánlat → érkezés. Ellenőrzések + marketing-PNG-k a docs/screenshots/-ba.
+// mérés közbeni összevont nézet → gyorsabb út ajánlat → érkezés; az alternatíva címkéje és érintése (A8d). Ellenőrzések + marketing-PNG-k a docs/screenshots/-ba.
 //
 //   npm run dev -w @atlagsebesseg/web            # másik terminálban (a Mapbox-token az apps/web/.env-ben)
 //   npm run nav-shots -w @atlagsebesseg/web
@@ -60,6 +60,21 @@ try {
   check('az alternatíva is megjelenik', opts.length >= 2, `${opts.length} útvonal`);
   await sleep(1800);
   if (!CHECK_ONLY) await p.shot(`${DATE}-nav-utvonalvalaszto.png`);
+
+  // A8d: címke az alternatíván; érintésre az lesz a kiválasztott, a kártya átvált
+  const checked = `[...document.querySelectorAll('.route-opt')].findIndex((e) => e.getAttribute('aria-checked') === 'true')`;
+  await p.waitFor(q('.route-label'), 10_000, 'alternatíva-címke');
+  const label0 = await p.evaluate(`(() => { const e = ${q('.route-label')}; const r = e.getBoundingClientRect(); return { txt: e.innerText.trim(), id: e.dataset.routeId, h: r.height, w: r.width }; })()`);
+  check('címke az alternatíván: „+N perc” / „−N perc”', /^([+−]\d+ perc|≈ ugyanannyi)$/.test(label0.txt), label0.txt);
+  check('a címke érintési célja ≥ 56 px', label0.h >= 56 && label0.w >= 56, `${label0.w}×${label0.h} px`);
+  check('egyetlen címke (csak az alternatíván)', (await p.evaluate(`document.querySelectorAll('.route-label').length`)) === opts.length - 1);
+  await click(p, '.route-label');
+  await p.waitFor(`${checked} === 1`, 3000, 'kiválasztás-váltás');
+  const label1 = await p.evaluate(`(() => { const e = ${q('.route-label')}; return { txt: e.innerText.trim(), id: e.dataset.routeId }; })()`);
+  check('érintésre az alternatíva lesz a kiválasztott, a kártya átvált', label1.id !== label0.id, `${label0.id} → ${label1.id}`);
+  check('a címke a másik útvonalra kerül, ellentétes előjellel', label0.txt === '≈ ugyanannyi' || label0.txt[0] !== label1.txt[0], `${label0.txt} → ${label1.txt}`);
+  await click(p, '.route-opt');
+  await p.waitFor(`${checked} === 0`, 3000, 'vissza az ajánlottra');
 
   await click(p, '.picker-start');
   await p.waitFor(q('.nav-top'), 10_000, 'felső kártya');
@@ -145,6 +160,17 @@ try {
     const { windows, length } = await info.evaluate(`window.__navSim`);
     info.close();
     console.log(`  ablakok: ${windows.join(', ')} / ${length}`);
+
+    // A8d: az alternatíva a színes és a visszafogott térképen (útvonalválasztó)
+    for (const terkep of ['szines', 'visszafogott']) {
+      const v = await mk();
+      await v.goto('/?navsim&stage=picker&speed=1&panel=0', { terkep });
+      await v.waitFor(MAP_READY, 60_000, 'térkép');
+      await v.waitFor(q('.route-label'), 30_000, 'alternatíva-címke');
+      await sleep(4000);
+      await v.shot(`${DATE}-nav-alternativa-${terkep}.png`);
+      v.close();
+    }
 
     // navigáció felső kártyával (az 1. ablak eleje, a belvárosból indulás)
     const a = await mk();

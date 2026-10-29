@@ -18,6 +18,15 @@ const RECENTER_MS = 900;
 /** Mozdulat közben a jelzés és a nézet-frissítés ritkítása. */
 const GESTURE_THROTTLE_MS = 250;
 const VIEW_DEBOUNCE_MS = 500;
+/** Útvonal-vonalak (A8d, px): a kiválasztott 7 + 2 × 2 fehér kontúr, az alternatíva 5 + 2 × 1,5 sötét kontúr. */
+const ROUTE_W = 7;
+const ROUTE_CASING_W = 2;
+const ROUTE_ALT_W = 5;
+const ROUTE_ALT_CASING_W = 1.5;
+/** Az alternatíva érintési sávja (px). */
+const ROUTE_HIT_W = 28;
+/** Az alternatíva színe a napálláshoz illő térkép-háttérrel kevert kék (DESIGN.md). */
+const altColor = (p: LightPreset) => (p === 'day' || p === 'dawn' ? color.routeAltDay : color.routeAltNight);
 
 /** Mapbox GL JS v3 – Mapbox Standard stílus, autót követő 3D-s kamera. */
 export class MapboxWebAdapter implements WebMapAdapter {
@@ -39,7 +48,7 @@ export class MapboxWebAdapter implements WebMapAdapter {
     destination: null,
     fit: null,
   });
-  private readonly handlers: MapHandlers = { onGesture: () => {}, onReportTap: () => {}, onCameraTap: () => {}, onView: () => {} };
+  private readonly handlers: MapHandlers = { onGesture: () => {}, onReportTap: () => {}, onCameraTap: () => {}, onRouteTap: () => {}, onView: () => {} };
   readonly MapView: (props: { className?: string }) => React.JSX.Element;
 
   constructor(accessToken: string) {
@@ -138,6 +147,7 @@ class MapController {
   private destMarker: mapboxgl.Marker | null = null;
   private readonly pins = new Map<string, { marker: mapboxgl.Marker; el: HTMLButtonElement; key: string }>();
   private readonly cams = new Map<string, { marker: mapboxgl.Marker; el: HTMLButtonElement; key: string }>();
+  private readonly routeLabels = new Map<string, { marker: mapboxgl.Marker; el: HTMLButtonElement }>();
 
   constructor(
     container: HTMLElement,
@@ -187,6 +197,16 @@ class MapController {
     this.map.on('move', this.onUserMove);
     this.map.on('moveend', this.onMoveEnd);
     this.map.on('click', () => this.handlers.onReportTap(null));
+    this.map.on('click', 'route-alt-hit', (e) => {
+      // a közös szakaszon (a leágazás előtt) a kiválasztott vonal is ott van: ilyenkor nincs váltás
+      const near: [mapboxgl.PointLike, mapboxgl.PointLike] = [
+        [e.point.x - ROUTE_W, e.point.y - ROUTE_W],
+        [e.point.x + ROUTE_W, e.point.y + ROUTE_W],
+      ];
+      if (this.map.queryRenderedFeatures(near, { layers: ['route-casing'] }).length) return;
+      const id = e.features?.[0]?.properties?.id;
+      if (typeof id === 'string') this.handlers.onRouteTap(id);
+    });
     this.unsubscribe = store.subscribe(() => this.apply(store.getState()));
     this.raf = requestAnimationFrame(this.frame);
   }
@@ -197,6 +217,7 @@ class MapController {
     this.unsubscribe();
     for (const p of this.pins.values()) p.marker.remove();
     for (const p of this.cams.values()) p.marker.remove();
+    for (const l of this.routeLabels.values()) l.marker.remove();
     this.marker.remove();
     this.destMarker?.remove();
     this.map.remove();
@@ -204,17 +225,30 @@ class MapController {
 
   private addLayers(): void {
     const m = this.map;
+    const s = this.store.getState();
     const layout = { 'line-cap': 'round', 'line-join': 'round' } as const;
-    // tervezett útvonalak (A8): alul, hogy a szakaszok és a mérés fölötte látszódjanak; az alternatívák halványan
+    // tervezett útvonalak (A8, A8d): alul, hogy a szakaszok és a mérés fölötte látszódjanak. Az alternatíva tömör
+    // szürkéskék sötét kontúrral, a kiválasztott ALATT; a kiválasztott erős kék fehér kontúrral.
     m.addSource('routes', { type: 'geojson', data: routesGeoJson([]) });
+    const alt: mapboxgl.FilterSpecification = ['==', ['get', 'selected'], false];
+    const sel: mapboxgl.FilterSpecification = ['==', ['get', 'selected'], true];
+    m.addLayer({
+      id: 'route-alt-casing',
+      type: 'line',
+      source: 'routes',
+      slot: 'middle',
+      layout,
+      filter: alt,
+      paint: { 'line-color': color.routeAltCasing, 'line-width': ROUTE_ALT_W + 2 * ROUTE_ALT_CASING_W, 'line-emissive-strength': 1 },
+    });
     m.addLayer({
       id: 'route-alt',
       type: 'line',
       source: 'routes',
       slot: 'middle',
       layout,
-      filter: ['==', ['get', 'selected'], false],
-      paint: { 'line-color': color.idle, 'line-width': ['interpolate', ['linear'], ['zoom'], 6, 3, 16, 9], 'line-opacity': 0.42, 'line-emissive-strength': 1 },
+      filter: alt,
+      paint: { 'line-color': altColor(s.lightPreset), 'line-width': ROUTE_ALT_W, 'line-emissive-strength': 1 },
     });
     m.addLayer({
       id: 'route-casing',
@@ -222,8 +256,8 @@ class MapController {
       source: 'routes',
       slot: 'middle',
       layout,
-      filter: ['==', ['get', 'selected'], true],
-      paint: { 'line-color': color.bg, 'line-width': ['interpolate', ['linear'], ['zoom'], 6, 6, 16, 20], 'line-opacity': 0.6, 'line-emissive-strength': 1 },
+      filter: sel,
+      paint: { 'line-color': color.routeCasing, 'line-width': ROUTE_W + 2 * ROUTE_CASING_W, 'line-emissive-strength': 1 },
     });
     m.addLayer({
       id: 'route-main',
@@ -231,12 +265,22 @@ class MapController {
       source: 'routes',
       slot: 'middle',
       layout,
-      filter: ['==', ['get', 'selected'], true],
+      filter: sel,
       paint: {
-        'line-color': ['match', ['get', 'level'], 'heavy', color.over, 'moderate', color.near, color.accent],
-        'line-width': ['interpolate', ['linear'], ['zoom'], 6, 4, 16, 13],
+        'line-color': ['match', ['get', 'level'], 'heavy', color.over, 'moderate', color.near, color.route],
+        'line-width': ROUTE_W,
         'line-emissive-strength': 1,
       },
+    });
+    // az érintés célja az alternatíván: széles, láthatatlan sáv (≥ 28 px, vezetés közben is eltalálható)
+    m.addLayer({
+      id: 'route-alt-hit',
+      type: 'line',
+      source: 'routes',
+      slot: 'middle',
+      layout,
+      filter: alt,
+      paint: { 'line-color': color.bg, 'line-width': ROUTE_HIT_W, 'line-opacity': 0.01 },
     });
     // tervezett mérés (A7): halvány sárga, a szakaszok alatt; a most érintett vonal teltebb
     m.addSource('planned', { type: 'geojson', data: plannedGeoJson([]) });
@@ -375,6 +419,37 @@ class MapController {
     }
   }
 
+  /** Az alternatívák címkéi: kis fehér buborék (DOM-jelölő); érintésre az lesz a kiválasztott útvonal. */
+  private syncRouteLabels(routes: readonly MapRoute[]): void {
+    const keep = new Set<string>();
+    for (const r of routes) {
+      if (!r.label) continue;
+      keep.add(r.id);
+      let l = this.routeLabels.get(r.id);
+      if (!l) {
+        const el = document.createElement('button');
+        el.className = 'route-label';
+        el.innerHTML = '<span class="route-label-bubble"></span>';
+        el.addEventListener('click', (ev) => {
+          ev.stopPropagation();
+          this.handlers.onRouteTap(r.id);
+        });
+        const marker = new mapboxgl.Marker({ element: el, rotationAlignment: 'viewport', pitchAlignment: 'viewport' });
+        l = { marker, el };
+        this.routeLabels.set(r.id, l);
+      }
+      l.el.dataset.routeId = r.id;
+      l.el.firstElementChild!.textContent = r.label.text;
+      l.el.setAttribute('aria-label', r.label.aria);
+      l.marker.setLngLat([r.label.at.lon, r.label.at.lat]).addTo(this.map);
+    }
+    for (const [id, l] of this.routeLabels) {
+      if (keep.has(id)) continue;
+      l.marker.remove();
+      this.routeLabels.delete(id);
+    }
+  }
+
   /** Fix kamerák: kis, visszafogott DOM-jelölők (56 px-es érintési cél, 30 px-es korong). */
   private syncCameras(cameras: readonly MapCamera[], selectedId: string | null): void {
     const keep = new Set<string>();
@@ -447,9 +522,13 @@ class MapController {
     if (s.fit && s.fit !== p?.fit) this.fit(s.fit);
     if (s.reports !== p?.reports || s.selectedReportId !== p?.selectedReportId) this.syncPins(s.reports, s.selectedReportId);
     if (s.cameras !== p?.cameras || s.selectedCameraId !== p?.selectedCameraId) this.syncCameras(s.cameras, s.selectedCameraId);
+    if (s.routes !== p?.routes) this.syncRouteLabels(s.routes);
     if (!this.styleReady) return;
     const m = this.map;
-    if (s.lightPreset !== p?.lightPreset) m.setConfigProperty('basemap', 'lightPreset', s.lightPreset);
+    if (s.lightPreset !== p?.lightPreset) {
+      m.setConfigProperty('basemap', 'lightPreset', s.lightPreset);
+      m.setPaintProperty('route-alt', 'line-color', altColor(s.lightPreset));
+    }
     if (s.look !== p?.look) m.setConfigProperty('basemap', 'theme', THEME[s.look]);
     if (s.sections !== p?.sections) (m.getSource('sections') as GeoJSONSource | undefined)?.setData(toGeoJson(s.sections));
     if (s.planned !== p?.planned || s.activePlannedId !== p?.activePlannedId) {

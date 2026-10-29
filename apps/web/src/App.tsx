@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import {
+  altLabels,
   congestionRuns,
   cameraLabel,
   cameraVisibility,
@@ -209,12 +210,21 @@ function Drive({ map }: { map: WebMapAdapter }) {
   useEffect(() => nav.session?.setMeasuring(measuring), [nav.session, measuring]);
 
   // tervezett útvonalak és a cél a térképen; navigáció közben csak a jelenlegi útvonal
+  // az alternatívákon címke a leágazás után (A8d): menetidő-különbség a kiválasztotthoz képest
   const routesShown = useMemo<{ routes: MapRoute[]; dest: LatLon | null }>(() => {
-    const toMap = (r: NavRoute, selected: boolean): MapRoute => ({ id: r.id, selected, runs: congestionRuns(r) });
+    const toMap = (r: NavRoute, selected: boolean, label: MapRoute['label'] = null): MapRoute => ({ id: r.id, selected, runs: congestionRuns(r), label });
     if (nav.view) return { routes: [toMap(nav.view.route, true)], dest: nav.view.destination };
-    if (nav.plan?.status === 'ready') return { routes: nav.plan.routes.map((r, i) => toMap(r, i === nav.plan!.selected)), dest: nav.plan.dest };
+    if (nav.plan?.status === 'ready') {
+      const { routes, selected } = nav.plan;
+      const labels = altLabels(routes, nav.summaries.map((x) => x.durationS), selected);
+      const labelOf = (i: number): MapRoute['label'] => {
+        const l = labels.find((x) => x.index === i);
+        return l ? { at: l.at, text: l.text, aria: t('nav.alt.aria', { delta: l.text }) } : null;
+      };
+      return { routes: routes.map((r, i) => toMap(r, i === selected, labelOf(i))), dest: nav.plan.dest };
+    }
     return { routes: [], dest: null };
-  }, [nav.view?.route, nav.view?.destination, nav.plan]);
+  }, [nav.view?.route, nav.view?.destination, nav.plan, nav.summaries, lang]);
   useEffect(() => map.showRoutes(routesShown.routes, routesShown.dest), [map, routesShown]);
   const planRoutes = nav.plan?.status === 'ready' ? nav.plan.routes : null;
   useEffect(() => {
@@ -300,8 +310,9 @@ function Drive({ map }: { map: WebMapAdapter }) {
           setSelectedCamId(id);
           setSelectedId(null);
         },
+        onRouteTap: nav.selectRouteById,
       }),
-    [map],
+    [map, nav.selectRouteById],
   );
   useEffect(() => {
     if (!selectedCamId || !measuring) return;

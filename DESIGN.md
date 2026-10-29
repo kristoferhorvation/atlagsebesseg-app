@@ -29,6 +29,8 @@ változókká alakítja, a natív app közvetlenül importálja.
 | `over` | `#FF4D61` | **Túl gyors** (`tul_gyors`) – a várható végső a határ felett |
 | `idle` | `#8C93A3` | megszakadt / nincs adat |
 | `planned` | `#F2DC82` | tervezett rendőrségi mérés: vonal és sáv (A7) – nem státuszszín |
+| `route` / `routeCasing` | `#1F5BFF` / `#FFFFFF` | navigáció (A8d): a kiválasztott útvonal, 7 px, 2 px-es fehér kontúrral (dugónál a szakasz `near`/`over`) |
+| `routeAltDay` / `routeAltNight` | `#799CF8` / `#1D40A2` | az alternatív útvonal: **tömör**, a `route` 55% + a térkép háttere (`mapBgDay` `#E8EBEF` / `mapBgNight` `#1B2030`) 45%; 5 px, `routeAltCasing` `#1A2130` kontúr, a kiválasztott ALATT |
 
 A státuszszín a nagy számot, a chipet, a sávot, a progress kitöltését, a kártya háttér-
 árnyalatát és fényívét, valamint a térképen az aktív szakasz vonalát színezi – **mindig ugyanabból
