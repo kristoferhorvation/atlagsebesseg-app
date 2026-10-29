@@ -75,7 +75,7 @@ Gyökér: `npm test` és `npm run typecheck` minden csomagra; `npm run test:all`
   nem kerülhet a kódba (AppTests-őr).
 - Háttér-mérés: a mérés zárolt képernyővel is fut, külön figyelmeztetés nincs (döntés). A zárolt képernyős
   „fut a mérés” jelzés a Live Activity (A12+) dolga.
-- Navigáció (A11): a logika az `apps/ios/Atlagsebesseg/Navigation/` mappában – a `packages/app-logic/src/navigation`
+- Navigáció (AOS11): a logika az `apps/ios/Atlagsebesseg/Navigation/` mappában – a `packages/app-logic/src/navigation`
   1:1 portja (Directions-feldolgozás, útvonal menti szakasz/kamera/mérés, `NavigationSession`, keresés, helyek,
   költségvédelem). **Paritási szabály, mint a core-nál:** navigációs logika-változás mindkét nyelvben ugyanabban a
   körben; a `AtlagsebessegTests/NavigationTests.swift` a `navigation.test.ts` párja (egy TS `it` = egy Swift `@Test`,
@@ -84,9 +84,9 @@ Gyökér: `npm test` és `npm run typecheck` minden csomagra; `npm run test:all`
   (`Generated/AppLogicConstants.swift`), a manőver-ikonok a webes `ManeuverIcon.tsx`-ből (`Generated/ManeuverIcons.swift`).
   Az `RouteFetcher` szinkron indul és `Task`-ot ad (a költségvédelem azonnal érvényes, mint a weben a Promise első
   lépése); a tesztek a `settle()`-lel várják be a választ (a webes `flush()`).
-- Navigációs UI (A11): a kereső **pill** felül, a GPS/Kijelző pillek jobb oldalán (csak az üres nézeten); érintésre
+- Navigációs UI (AOS11): a kereső **pill** felül, a GPS/Kijelző pillek jobb oldalán (csak az üres nézeten); érintésre
   teljes szélességű keresőmező nyílik a térkép tetején (billentyűzet, az utolsó 10 cím), alul nincs kereső
-  (Kristof, 2026-10-29). **Alternatív útvonal (A8d, Kristof 2026-10-29):** tömör szürkéskék vonal (`idle` token) casinggel,
+  (Kristof, 2026-10-29). **Alternatív útvonal (AW11, Kristof 2026-10-29):** tömör szürkéskék vonal (`idle` token) casinggel,
   „+/− perc” címkével a kiválasztotthoz képest, érintésre (vonal vagy címke) arra vált. Mérés közben a mérőkártya a fő,
   a navigációs lépés egysoros sáv fölötte; a „Lassíts” sáv e fölé kerül. Hang: az `AlertPlayer` szintetizátora
   (`announce`), a fontos mondat (szakasz, túl gyors, újratervezés, gyorsabb út) megszakítja a fordulót.
@@ -95,8 +95,11 @@ Gyökér: `npm test` és `npm run typecheck` minden csomagra; `npm run test:all`
   ugrás előtti utolsó ablak elejéről játszik le. A bemondások szimulátorban a naplóba is mennek (`NAV-VOICE`).
 
 ## Kör-rendszer
-- Minden prompt „A<n> kör”-rel kezdődik; minden commit-üzenet `A<n>: ...` prefixű.
-- A kör végén frissül a `ROUNDS.md` (dátum, modell, fő commit, 1 mondat).
+- Kör-számozás (2026-10-29-től): **AW<n>** = web, **AOS<n>** = iOS; a sorszám az eddigi A1–A10-et folytatja
+  (az első ilyen kör a web AW11 és a vele párhuzamos iOS-navigáció AOS11). Az A1–A10 sorok neve marad.
+- Minden prompt „AW<n> kör” vagy „AOS<n> kör”-rel kezdődik; minden commit-üzenet `AW<n>: ...` / `AOS<n>: ...` prefixű.
+- A kör végén frissül a `ROUNDS.md` (dátum, modell, fő commit, 1 mondat); **minden sor végén** `(local)` vagy
+  `(cloud)` – hol készült a kör (felhőben készült, helyben lezárt kör: `(cloud, lezárás local)`).
 
 ## Zárójelentés (minden kör végén)
 1. **Mi készült**
