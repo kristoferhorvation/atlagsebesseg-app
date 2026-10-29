@@ -1,4 +1,4 @@
-import { formatClock, formatDistance, formatTripDuration, speedIn, t, unitLabel, type AlternativeOffer, type NavView, type SpeedUnit } from '@atlagsebesseg/app-logic';
+import { altOfferCompactLines, formatClock, formatDistance, formatTripDuration, speedIn, t, unitLabel, type AlternativeOffer, type NavView, type SpeedUnit } from '@atlagsebesseg/app-logic';
 import { Icon } from './Icon';
 import { ManeuverIcon } from './ManeuverIcon';
 
@@ -131,7 +131,7 @@ const exitLine = (o: AlternativeOffer): string | null =>
 /**
  * Felugró ajánlat (AW12): „Megéri · −7 perc, +4 km” / „Lehet · −2 perc, +1 km” / „Nem éri meg · +20 km kerülő, −10 perc”,
  * alatta a lehajtó; Elfogad / Elvet (56 px-es gombok). A kiemelt gomb az, ami 45 s után magától történik; alatta vékony,
- * fogyó csík mutatja a hátralévő időt, szám nélkül (AW13).
+ * fogyó csík mutatja a hátralévő időt, szám nélkül (AW13). Mérés közben kompakt, kétsoros: „Kijárat 56” / „2,1 km · −7 perc”.
  */
 export function OfferCard({ offer, onAccept, onDecline }: { offer: AlternativeOffer; onAccept: () => void; onDecline: () => void }) {
   const exit = exitLine(offer);
@@ -155,14 +155,19 @@ export function OfferCard({ offer, onAccept, onDecline }: { offer: AlternativeOf
       {exit && <div className="nav-offer-exit num">{exit}</div>}
     </div>
   );
-  // mérés közben: kompakt, a mérőkártya (státusz) fölött
-  if (offer.compact)
+  // mérés közben: kompakt, a mérőkártya (státusz) fölött, két sorban: „Kijárat 56” / „2,1 km · −7 perc”
+  if (offer.compact) {
+    const [line1, line2] = altOfferCompactLines(offer);
     return (
       <section className="nav-offer nav-offer-compact glass" data-verdict={offer.verdict} role="alertdialog" aria-label={offer.title}>
-        {head}
+        <div className="nav-offer-head">
+          <div className="title nav-offer-title">{line1}</div>
+          {line2 && <div className="nav-offer-exit num">{line2}</div>}
+        </div>
         {buttons}
       </section>
     );
+  }
   return (
     <section className="nav-offer glass" data-verdict={offer.verdict} role="alertdialog" aria-label={offer.title}>
       {head}

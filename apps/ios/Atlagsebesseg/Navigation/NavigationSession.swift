@@ -386,7 +386,8 @@ final class NavigationSession {
         // a második (500 m-es) bemondás fölösleges, ha az első is 600 m-en belül hangzik el
         exit500For = best.exitAlongM.map { $0 - along <= 600 } == true ? o.id : nil
         if let x = best.exitAlongM {
-            say(.faster, t(.navVoiceFasterExit, ["km": exitKm(x - along)], lang: lang))
+            // AW13: „Gyorsabb út, {n} perc megtakarítás, lehajtó {km} kilométernél” (a régi `nav.voice.fasterExit` törölve)
+            say(.faster, t(.navVoiceFasterWorthExit, ["n": "\(wholeMinutes(best.gainS))", "km": exitKm(x - along)], lang: lang))
         } else {
             say(.faster, t(.navVoiceFaster, ["n": "\(wholeMinutes(best.gainS))"], lang: lang))
         }

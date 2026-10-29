@@ -120,6 +120,23 @@ export function altOfferTitle(w: Pick<AltWorth, 'gainMin' | 'extraKm' | 'verdict
 }
 
 /**
+ * A kompakt (mérés közbeni) ajánlat két sora: „Kijárat 56” / „2,1 km · −7 perc”; név nélküli lehajtónál „Lehajtó 2,1
+ * km-nél” / „−7 perc”, ismeretlen lehajtónál csak a cím. `exitKm`: a lehajtóig hátralévő táv a nyelv tizedesjelével.
+ */
+export function altOfferCompactLines(o: {
+  title: string;
+  gainS: number;
+  exitAlongM: number | null;
+  exitName: string | null;
+  exitKm: string;
+}): [string, string | null] {
+  const n = Math.max(1, Math.round(o.gainS / 60));
+  if (o.exitAlongM === null) return [o.title, null];
+  if (!o.exitName) return [t('nav.offer.exitAt', { km: o.exitKm }), t('nav.alt.faster', { n })];
+  return [o.exitName, t('nav.offer.compactDetail', { km: o.exitKm, n })];
+}
+
+/**
  * A bemondás: „Gyorsabb út, 7 perc megtakarítás, lehajtó 5,2 kilométernél” (megéri; ismeretlen lehajtónál a lehajtó
  * nélkül) / „…, 2 perc, 1 kilométer kerülő, te döntesz” / „…, de nem éri meg, 20 kilométer kerülő”. `exitKm`: a lehajtóig
  * hátralévő táv a nyelv tizedesjelével.

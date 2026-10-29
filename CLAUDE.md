@@ -105,6 +105,9 @@ Gyökér: `npm test` és `npm run typecheck` minden csomagra; `npm run test:all`
     mérés végén jelenik meg). Ugyanez érvényes, ha már látható ajánlat mellett kezdődik mérés: 1 km-en belül → marad
     (kompakt), azon túl → visszatartva. Kézi mérésnél nincs végkapu → visszatartva. (`NavigationSession.exitNearSectionEnd`.)
   - A kiemelt (45 s után magától történő) gomb alatt vékony, fogyó csík, szám nélkül: `AlternativeOffer.timeLeft` (1 → 0).
+  - A kompakt (mérés közbeni) kártya **kétsoros**, 390 px-en sem vágódik le: „Kijárat 56” / „2,1 km · −7 perc”
+    (`altOfferCompactLines`, `nav.offer.compactDetail`); név nélküli lehajtónál „Lehajtó 2,1 km-nél” / „−7 perc”,
+    ismeretlen lehajtónál a cím egy sorban. A kategória a sor színéből látszik.
   - „Megéri” bemondás a lehajtóval: `nav.voice.fasterWorthExit` („Gyorsabb út, {n} perc megtakarítás, lehajtó {km}
     kilométernél”, a km a lehajtóig, egy tizedessel); ismeretlen lehajtónál a régi `nav.voice.faster`. A „Lehet” és a
     „Nem éri meg” szövege nem változott.

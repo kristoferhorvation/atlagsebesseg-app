@@ -5987,6 +5987,47 @@
         }
       }
     },
+    "nav.offer.compactDetail" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "{km} km · −{n} min"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "{km} km · −{n} Min."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "{km} km · −{n} min"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "{km} km · −{n} perc"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "{km} km · −{n} min"
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "{km} km · −{n} min"
+          }
+        }
+      }
+    },
     "nav.offer.decline" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -7910,47 +7951,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Rýchlejšia trasa, úspora {n} min"
-          }
-        }
-      }
-    },
-    "nav.voice.fasterExit" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "cs" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Rychlejší trasa, sjezd za {km} kilometrů"
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Schnellere Route, Abfahrt in {km} Kilometern"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Faster route, exit in {km} kilometres"
-          }
-        },
-        "hu" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Gyorsabb út, lehajtó {km} kilométernél"
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Szybsza trasa, zjazd za {km} kilometrów"
-          }
-        },
-        "sk" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Rýchlejšia trasa, zjazd o {km} kilometrov"
           }
         }
       }

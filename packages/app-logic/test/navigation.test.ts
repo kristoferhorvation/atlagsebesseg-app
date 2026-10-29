@@ -9,6 +9,7 @@ import {
   addSavedOther,
   adjustedDurations,
   ALT_OFFER,
+  altOfferCompactLines,
   altOfferTitle,
   altOfferVoice,
   altWorth,
@@ -1214,6 +1215,22 @@ describe('AW13: „megéri” bemondás a lehajtóval', () => {
       expect(text, lang).toMatch(/7/);
       expect(text, lang).toContain('5,2');
       expect(text, lang).not.toMatch(/[{}]/);
+    }
+  });
+});
+
+describe('AW13: kétsoros kompakt ajánlat', () => {
+  it('„Kijárat 56” / „2,1 km · −7 perc”; név nélkül „Lehajtó 2,1 km-nél” / „−7 perc”; ismeretlen lehajtónál a cím', () => {
+    const o = { title: 'Megéri · −7 perc, +4 km', gainS: 7 * 60 + 10, exitAlongM: 12_000, exitName: 'Kijárat 56', exitKm: '2,1' };
+    expect(altOfferCompactLines(o)).toEqual(['Kijárat 56', '2,1 km · −7 perc']);
+    expect(altOfferCompactLines({ ...o, exitName: null })).toEqual(['Lehajtó 2,1 km-nél', '−7 perc']);
+    expect(altOfferCompactLines({ ...o, exitName: '' })).toEqual(['Lehajtó 2,1 km-nél', '−7 perc']);
+    expect(altOfferCompactLines({ ...o, exitAlongM: null })).toEqual(['Megéri · −7 perc, +4 km', null]);
+    expect(altOfferCompactLines({ ...o, gainS: 20 })[1]).toBe('2,1 km · −1 perc');
+    for (const lang of LANGUAGES) {
+      setLanguage(lang);
+      const [, detail] = altOfferCompactLines(o);
+      expect(detail, lang).toMatch(/^2,1 km · −7 \S+$/);
     }
   });
 });

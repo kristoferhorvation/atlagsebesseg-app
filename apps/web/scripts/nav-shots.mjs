@@ -289,12 +289,18 @@ try {
   await g.waitFor(MAP_READY, 60_000, 'térkép');
   await g.waitFor(q('.nav-strip'), 120_000, 'mérés');
   await g.waitFor(q('.nav-offer-compact'), 120_000, 'kompakt ajánlat mérés közben');
-  const ga = await g.evaluate(`({ strip: !!${q('.nav-strip')}, txt: ${text('.nav-offer')}, exit: ${text('.nav-offer-exit')} })`);
+  const ga = await g.evaluate(`({ strip: !!${q('.nav-strip')}, l1: ${text('.nav-offer-compact .nav-offer-title')}, l2: ${text('.nav-offer-compact .nav-offer-exit')} })`);
   // a cím és a lehajtó ténylegesen látszik (az innerText a nullára nyomott szöveget is visszaadná)
   const head = await g.evaluate(`(() => { const h = ${q('.nav-offer-compact .nav-offer-head')}.getBoundingClientRect(); const c = ${q('.nav-offer-compact')}.getBoundingClientRect(); return { w: Math.round(h.width), card: Math.round(c.width) }; })()`);
   check('kompakt ajánlat: a cím és a lehajtó látszik (a gombok mellett)', head.w >= 120, `${head.w} / ${head.card} px`);
   const gVoice = await g.evaluate(`(window.__navVoice ?? []).filter((x) => x.kind === 'faster').map((x) => x.text)`);
-  check('kapu utáni (1 km-en belüli) lehajtó: mérés közben azonnal kompakt ajánlat', ga.strip && /^Megéri · −7 perc, \+4 km/.test(ga.txt), ga.txt);
+  check('kapu utáni (1 km-en belüli) lehajtó: mérés közben azonnal kompakt ajánlat', ga.strip && !!ga.l1, `${ga.l1} / ${ga.l2}`);
+  // kétsoros: „Kijárat 56” / „2,1 km · −7 perc”; 390 px-en egyik sor sem vágódik le
+  check('kompakt ajánlat kétsoros: lehajtó neve / „2,1 km · −7 perc”', !/Megéri|Lehajtó/.test(ga.l1) && /^\d+,\d km · −7 perc$/.test(ga.l2), `${ga.l1} / ${ga.l2}`);
+  const clip = await g.evaluate(
+    `[...document.querySelectorAll('.nav-offer-compact .nav-offer-head > *')].map((e) => ({ t: e.textContent, sw: e.scrollWidth, cw: e.clientWidth }))`,
+  );
+  check('kompakt ajánlat: 390 px-en sincs levágott sor', clip.length === 2 && clip.every((c) => c.sw <= c.cw), clip.map((c) => `${c.t} ${c.sw}/${c.cw}`).join(' | '));
   check('kapu utáni lehajtó: bemondás a lehajtó távolságával', gVoice.length === 1 && /^Gyorsabb út, 7 perc megtakarítás, lehajtó \d+,\d kilométernél$/.test(gVoice[0]), gVoice.join(' | '));
   await sleep(600);
   if (!CHECK_ONLY) await g.shot(`${DATE}-nav-ajanlat-kapu-utan.png`);
