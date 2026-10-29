@@ -23,10 +23,14 @@ export const color = {
   /** Navigáció (A8d): a kiválasztott útvonal erős kékje és fehér kontúrja. */
   route: '#1F5BFF',
   routeCasing: '#FFFFFF',
-  /** Az alternatív útvonal: tömör szürkéskék = `route` 55% + a térkép háttere 45% (nappal / éjjel), sötét kontúrral. */
+  /**
+   * Az alternatív útvonal, tömör: nappal (hajnal is) `route` 55% + a térkép háttere 45%, sötét kontúrral; éjjel
+   * (alkony is) `route` 70% + háttér 30%, világos (`mapBgDay` 60%) kontúrral, hogy a sötét térképen is kiváljon.
+   */
   routeAltDay: '#799CF8',
-  routeAltNight: '#1D40A2',
-  routeAltCasing: '#1A2130',
+  routeAltNight: '#1E49C1',
+  routeAltCasingDay: '#1A2130',
+  routeAltCasingNight: 'rgba(232,235,239,0.6)',
   /** A Mapbox Standard térkép jellemző háttere (a keverékhez és a kontraszt-teszthez). */
   mapBgDay: '#E8EBEF',
   mapBgNight: '#1B2030',

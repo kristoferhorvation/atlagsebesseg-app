@@ -30,7 +30,7 @@ változókká alakítja, a natív app közvetlenül importálja.
 | `idle` | `#8C93A3` | megszakadt / nincs adat |
 | `planned` | `#F2DC82` | tervezett rendőrségi mérés: vonal és sáv (A7) – nem státuszszín |
 | `route` / `routeCasing` | `#1F5BFF` / `#FFFFFF` | navigáció (A8d): a kiválasztott útvonal, 7 px, 2 px-es fehér kontúrral (dugónál a szakasz `near`/`over`) |
-| `routeAltDay` / `routeAltNight` | `#799CF8` / `#1D40A2` | az alternatív útvonal: **tömör**, a `route` 55% + a térkép háttere (`mapBgDay` `#E8EBEF` / `mapBgNight` `#1B2030`) 45%; 5 px, `routeAltCasing` `#1A2130` kontúr, a kiválasztott ALATT |
+| `routeAltDay` / `routeAltNight` | `#799CF8` / `#1E49C1` | az alternatív útvonal: **tömör**, 5 px, a kiválasztott ALATT. Nappal (hajnal is): `route` 55% + a térkép háttere (`mapBgDay` `#E8EBEF`) 45%, `routeAltCasingDay` `#1A2130` sötét kontúr. Éjjel (alkony is, AW11): `route` 70% + háttér (`mapBgNight` `#1B2030`) 30%, `routeAltCasingNight` világos kontúr (`#E8EBEF`, 60%) – éjjel a kiválasztottól a kontúr (fehér vs. 60%) és a vastagság választja el |
 
 A státuszszín a nagy számot, a chipet, a sávot, a progress kitöltését, a kártya háttér-
 árnyalatát és fényívét, valamint a térképen az aktív szakasz vonalát színezi – **mindig ugyanabból

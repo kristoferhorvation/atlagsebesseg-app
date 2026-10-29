@@ -36,6 +36,22 @@ enum Tokens {
         static let idle = Color(.sRGB, red: 0.54902, green: 0.576471, blue: 0.639216, opacity: 1)
         /// `#F2DC82`
         static let planned = Color(.sRGB, red: 0.94902, green: 0.862745, blue: 0.509804, opacity: 1)
+        /// `#1F5BFF`
+        static let route = Color(.sRGB, red: 0.121569, green: 0.356863, blue: 1, opacity: 1)
+        /// `#FFFFFF`
+        static let routeCasing = Color(.sRGB, red: 1, green: 1, blue: 1, opacity: 1)
+        /// `#799CF8`
+        static let routeAltDay = Color(.sRGB, red: 0.47451, green: 0.611765, blue: 0.972549, opacity: 1)
+        /// `#1E49C1`
+        static let routeAltNight = Color(.sRGB, red: 0.117647, green: 0.286275, blue: 0.756863, opacity: 1)
+        /// `#1A2130`
+        static let routeAltCasingDay = Color(.sRGB, red: 0.101961, green: 0.129412, blue: 0.188235, opacity: 1)
+        /// `rgba(232,235,239,0.6)`
+        static let routeAltCasingNight = Color(.sRGB, red: 0.909804, green: 0.921569, blue: 0.937255, opacity: 0.6)
+        /// `#E8EBEF`
+        static let mapBgDay = Color(.sRGB, red: 0.909804, green: 0.921569, blue: 0.937255, opacity: 1)
+        /// `#1B2030`
+        static let mapBgNight = Color(.sRGB, red: 0.105882, green: 0.12549, blue: 0.188235, opacity: 1)
         /// `#E5303F`
         static let signRing = Color(.sRGB, red: 0.898039, green: 0.188235, blue: 0.247059, opacity: 1)
         /// `#FFFFFF`

@@ -18,15 +18,17 @@ const RECENTER_MS = 900;
 /** Mozdulat közben a jelzés és a nézet-frissítés ritkítása. */
 const GESTURE_THROTTLE_MS = 250;
 const VIEW_DEBOUNCE_MS = 500;
-/** Útvonal-vonalak (A8d, px): a kiválasztott 7 + 2 × 2 fehér kontúr, az alternatíva 5 + 2 × 1,5 sötét kontúr. */
+/** Útvonal-vonalak (A8d, px): a kiválasztott 7 + 2 × 2 fehér kontúr, az alternatíva 5 + 2 × 1,5 kontúr (nappal sötét, éjjel világos). */
 const ROUTE_W = 7;
 const ROUTE_CASING_W = 2;
 const ROUTE_ALT_W = 5;
 const ROUTE_ALT_CASING_W = 1.5;
 /** Az alternatíva érintési sávja (px). */
 const ROUTE_HIT_W = 28;
-/** Az alternatíva színe a napálláshoz illő térkép-háttérrel kevert kék (DESIGN.md). */
-const altColor = (p: LightPreset) => (p === 'day' || p === 'dawn' ? color.routeAltDay : color.routeAltNight);
+/** Az alternatíva színe és kontúrja a napálláshoz illő térképhez: hajnal = nappali, alkony = éjjeli (DESIGN.md). */
+const isDayLike = (p: LightPreset) => p === 'day' || p === 'dawn';
+const altColor = (p: LightPreset) => (isDayLike(p) ? color.routeAltDay : color.routeAltNight);
+const altCasing = (p: LightPreset) => (isDayLike(p) ? color.routeAltCasingDay : color.routeAltCasingNight);
 
 /** Mapbox GL JS v3 – Mapbox Standard stílus, autót követő 3D-s kamera. */
 export class MapboxWebAdapter implements WebMapAdapter {
@@ -228,7 +230,7 @@ class MapController {
     const s = this.store.getState();
     const layout = { 'line-cap': 'round', 'line-join': 'round' } as const;
     // tervezett útvonalak (A8, A8d): alul, hogy a szakaszok és a mérés fölötte látszódjanak. Az alternatíva tömör
-    // szürkéskék sötét kontúrral, a kiválasztott ALATT; a kiválasztott erős kék fehér kontúrral.
+    // szürkéskék, nappal sötét, éjjel világos kontúrral, a kiválasztott ALATT; a kiválasztott erős kék fehér kontúrral.
     m.addSource('routes', { type: 'geojson', data: routesGeoJson([]) });
     const alt: mapboxgl.FilterSpecification = ['==', ['get', 'selected'], false];
     const sel: mapboxgl.FilterSpecification = ['==', ['get', 'selected'], true];
@@ -239,7 +241,7 @@ class MapController {
       slot: 'middle',
       layout,
       filter: alt,
-      paint: { 'line-color': color.routeAltCasing, 'line-width': ROUTE_ALT_W + 2 * ROUTE_ALT_CASING_W, 'line-emissive-strength': 1 },
+      paint: { 'line-color': altCasing(s.lightPreset), 'line-width': ROUTE_ALT_W + 2 * ROUTE_ALT_CASING_W, 'line-emissive-strength': 1 },
     });
     m.addLayer({
       id: 'route-alt',
@@ -528,6 +530,7 @@ class MapController {
     if (s.lightPreset !== p?.lightPreset) {
       m.setConfigProperty('basemap', 'lightPreset', s.lightPreset);
       m.setPaintProperty('route-alt', 'line-color', altColor(s.lightPreset));
+      m.setPaintProperty('route-alt-casing', 'line-color', altCasing(s.lightPreset));
     }
     if (s.look !== p?.look) m.setConfigProperty('basemap', 'theme', THEME[s.look]);
     if (s.sections !== p?.sections) (m.getSource('sections') as GeoJSONSource | undefined)?.setData(toGeoJson(s.sections));

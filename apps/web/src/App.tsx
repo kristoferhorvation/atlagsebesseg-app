@@ -219,7 +219,7 @@ function Drive({ map }: { map: WebMapAdapter }) {
       const labels = altLabels(routes, nav.summaries.map((x) => x.durationS), selected);
       const labelOf = (i: number): MapRoute['label'] => {
         const l = labels.find((x) => x.index === i);
-        return l ? { at: l.at, text: l.text, aria: t('nav.alt.aria', { delta: l.text }) } : null;
+        return l ? { at: l.at, text: l.text, aria: t('nav.alt.aria', { d: l.text }) } : null;
       };
       return { routes: routes.map((r, i) => toMap(r, i === selected, labelOf(i))), dest: nav.plan.dest };
     }

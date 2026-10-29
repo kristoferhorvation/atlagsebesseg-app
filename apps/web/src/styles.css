@@ -1285,7 +1285,7 @@ a.list-row {
   border-radius: var(--radius-pill);
   background: var(--color-sign-face);
   color: var(--color-sign-text);
-  border: 1.5px solid var(--color-route-alt-casing);
+  border: 1.5px solid var(--color-route-alt-casing-day);
   font-size: var(--type-caption-size);
   font-weight: 650;
   line-height: 1.2;

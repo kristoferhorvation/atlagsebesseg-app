@@ -65,14 +65,14 @@ try {
   const checked = `[...document.querySelectorAll('.route-opt')].findIndex((e) => e.getAttribute('aria-checked') === 'true')`;
   await p.waitFor(q('.route-label'), 10_000, 'alternatíva-címke');
   const label0 = await p.evaluate(`(() => { const e = ${q('.route-label')}; const r = e.getBoundingClientRect(); return { txt: e.innerText.trim(), id: e.dataset.routeId, h: r.height, w: r.width }; })()`);
-  check('címke az alternatíván: „+N perc” / „−N perc”', /^([+−]\d+ perc|≈ ugyanannyi)$/.test(label0.txt), label0.txt);
+  check('címke az alternatíván: „+N perc” / „−N perc”', /^([+−]\d+ perc|Ugyanannyi idő)$/.test(label0.txt), label0.txt);
   check('a címke érintési célja ≥ 56 px', label0.h >= 56 && label0.w >= 56, `${label0.w}×${label0.h} px`);
   check('egyetlen címke (csak az alternatíván)', (await p.evaluate(`document.querySelectorAll('.route-label').length`)) === opts.length - 1);
   await click(p, '.route-label');
   await p.waitFor(`${checked} === 1`, 3000, 'kiválasztás-váltás');
   const label1 = await p.evaluate(`(() => { const e = ${q('.route-label')}; return { txt: e.innerText.trim(), id: e.dataset.routeId }; })()`);
   check('érintésre az alternatíva lesz a kiválasztott, a kártya átvált', label1.id !== label0.id, `${label0.id} → ${label1.id}`);
-  check('a címke a másik útvonalra kerül, ellentétes előjellel', label0.txt === '≈ ugyanannyi' || label0.txt[0] !== label1.txt[0], `${label0.txt} → ${label1.txt}`);
+  check('a címke a másik útvonalra kerül, ellentétes előjellel', label0.txt === 'Ugyanannyi idő' || label0.txt[0] !== label1.txt[0], `${label0.txt} → ${label1.txt}`);
   await click(p, '.route-opt');
   await p.waitFor(`${checked} === 0`, 3000, 'vissza az ajánlottra');
 
@@ -96,8 +96,8 @@ try {
   await p.waitFor(q('.nav-offer'), 120_000, 'gyorsabb út ajánlat');
   const offer = await p.evaluate(text('.nav-offer'));
   check('felugró ajánlat: „Gyorsabb út: −N perc”', /Gyorsabb út: −\d+ perc/.test(offer) && /Elfogad/.test(offer) && /Elvet/.test(offer), offer);
-  await sleep(500); // a megjelenési animáció lecsengése
-  const btnH = await p.evaluate(`Math.min(...[...document.querySelectorAll('.nav-offer .btn')].map((b) => b.getBoundingClientRect().height))`);
+  // elrendezési magasság: a megjelenési animáció (rise, scale 0,985) a getBoundingClientRect-et még összenyomhatja
+  const btnH = await p.evaluate(`Math.min(...[...document.querySelectorAll('.nav-offer .btn')].map((b) => b.offsetHeight))`);
   check('az Elfogad / Elvet gomb ≥ 56 px', btnH >= 55.9, `${btnH} px`);
   await click(p, '.nav-offer .btn:first-child');
   await sleep(300);
@@ -161,15 +161,19 @@ try {
     info.close();
     console.log(`  ablakok: ${windows.join(', ')} / ${length}`);
 
-    // A8d: az alternatíva a színes és a visszafogott térképen (útvonalválasztó)
+    // A8d, AW11: az alternatíva a színes és a visszafogott térképen (útvonalválasztó); sötét rendszer-módban a térkép
+    // alkony/éjjel (éjjeli szín, világos kontúr), világosban – nappali órában – nappal (sötét kontúr)
     for (const terkep of ['szines', 'visszafogott']) {
-      const v = await mk();
-      await v.goto('/?navsim&stage=picker&speed=1&panel=0', { terkep });
-      await v.waitFor(MAP_READY, 60_000, 'térkép');
-      await v.waitFor(q('.route-label'), 30_000, 'alternatíva-címke');
-      await sleep(4000);
-      await v.shot(`${DATE}-nav-alternativa-${terkep}.png`);
-      v.close();
+      for (const [mod, suffix] of [['dark', ''], ['light', '-nappal']]) {
+        const v = await mk();
+        await v.send('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-color-scheme', value: mod }] });
+        await v.goto('/?navsim&stage=picker&speed=1&panel=0', { terkep });
+        await v.waitFor(MAP_READY, 60_000, 'térkép');
+        await v.waitFor(q('.route-label'), 30_000, 'alternatíva-címke');
+        await sleep(4000);
+        await v.shot(`${DATE}-nav-alternativa-${terkep}${suffix}.png`);
+        v.close();
+      }
     }
 
     // navigáció felső kártyával (az 1. ablak eleje, a belvárosból indulás)

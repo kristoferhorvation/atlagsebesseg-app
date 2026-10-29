@@ -921,11 +921,11 @@ describe('alternatív útvonal a térképen: címke és kiválasztás (A8d)', ()
   const [main, alt] = parseDirections(BUDAPEST_GYOR_DIRECTIONS, 'fx') as [NavRoute, NavRoute];
   const routes = [main, alt];
 
-  it('a címke szövege: „+1 perc” / „−2 perc”, egy percen belül „≈ ugyanannyi”', () => {
+  it('a címke szövege: „+1 perc” / „−2 perc”, egy percen belül „Ugyanannyi idő”', () => {
     expect(altDeltaText(60)).toBe('+1 perc');
     expect(altDeltaText(-120)).toBe('−2 perc');
     expect(altDeltaText(-95)).toBe('−2 perc');
-    expect(altDeltaText(25)).toBe('≈ ugyanannyi');
+    expect(altDeltaText(25)).toBe('Ugyanannyi idő');
     setLanguage('en');
     expect(altDeltaText(180)).toBe('+3 min');
   });
