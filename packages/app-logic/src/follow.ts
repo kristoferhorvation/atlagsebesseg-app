@@ -1,3 +1,5 @@
+import { NAV_FOLLOW } from './navigation/config';
+
 /** Mérés közben ennyi tétlenség után a kamera magától visszaáll a követésre. */
 export const FOLLOW_RESUME_MS = 5000;
 
@@ -31,4 +33,17 @@ export function followReducer(s: FollowState, e: FollowEvent, resumeMs = FOLLOW_
     case 'tick':
       return !s.following && e.measuring && e.at - s.lastGestureAt >= resumeMs ? { ...s, following: true } : s;
   }
+}
+
+/** Navigáció közbeni követő zoom a sebességből (km/h): a `NAV_FOLLOW.zoomStops` között lineáris, a széleken állandó. */
+export function navFollowZoom(kmh: number, stops = NAV_FOLLOW.zoomStops): number {
+  const v = Number.isFinite(kmh) ? Math.max(0, kmh) : 0;
+  const first = stops[0]!;
+  if (v <= first[0]) return first[1];
+  for (let i = 1; i < stops.length; i++) {
+    const [s1, z1] = stops[i]!;
+    const [s0, z0] = stops[i - 1]!;
+    if (v <= s1) return z0 + ((v - s0) / (s1 - s0)) * (z1 - z0);
+  }
+  return stops.at(-1)![1];
 }

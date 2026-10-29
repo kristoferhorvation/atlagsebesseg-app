@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import {
   addRecent,
+  addSavedOther,
   DirectionsError,
   NavigationSession,
   NO_ENFORCEMENT_DATA,
@@ -8,7 +9,9 @@ import {
   parseRecents,
   parseSaved,
   RECENTS_KEY,
+  removeSavedOther,
   routeSummary,
+  routeTarget,
   SAVED_KEY,
   selectRouteById as pickRouteById,
   type EnforcementData,
@@ -34,8 +37,8 @@ export interface PlanState {
   selected: number;
 }
 
-/** Mit keresünk: úti célt, vagy a Haza / Munka mentett helyet (Beállításokból). */
-export type SearchFor = 'dest' | 'home' | 'work';
+/** Mit keresünk: úti célt, a Haza / Munka mentett helyet, vagy egy további mentett címet (Beállításokból). */
+export type SearchFor = 'dest' | 'home' | 'work' | 'other';
 
 export interface NavigationOptions {
   fix: GpsFix | null;
@@ -48,7 +51,7 @@ export interface NavigationOptions {
   simMode: boolean;
 }
 
-/** Mentett helyek (Haza / Munka) és az utolsó 10 cél: localStorage, try/catch-csel. */
+/** Mentett helyek (Haza / Munka / továbbiak) és az utolsó 10 cél: localStorage, try/catch-csel. */
 export function usePlaces() {
   const [recents, setRecents] = useState<Place[]>(() => parseRecents(syncStore.getItem(RECENTS_KEY)));
   const [saved, setSavedState] = useState<SavedPlaces>(() => parseSaved(syncStore.getItem(SAVED_KEY)));
@@ -59,14 +62,17 @@ export function usePlaces() {
       return next;
     });
   }, []);
-  const setSaved = useCallback((kind: 'home' | 'work', place: Place | null) => {
+  const update = useCallback((f: (prev: SavedPlaces) => SavedPlaces) => {
     setSavedState((prev) => {
-      const next = { ...prev, [kind]: place };
+      const next = f(prev);
       syncStore.setItem(SAVED_KEY, JSON.stringify(next));
       return next;
     });
   }, []);
-  return { recents, saved: saved ?? NO_SAVED, pushRecent, setSaved };
+  const setSaved = useCallback((kind: 'home' | 'work', place: Place | null) => update((prev) => ({ ...prev, [kind]: place })), [update]);
+  const addOther = useCallback((place: Place) => update((prev) => addSavedOther(prev, place)), [update]);
+  const removeOther = useCallback((id: string) => update((prev) => removeSavedOther(prev, id)), [update]);
+  return { recents, saved: saved ?? NO_SAVED, pushRecent, setSaved, addOther, removeOther };
 }
 
 /**
@@ -91,7 +97,8 @@ export function useNavigation(o: NavigationOptions, places: ReturnType<typeof us
       return;
     }
     setPlan({ dest, status: 'loading', routes: [], selected: 0 });
-    fetchRoutes({ lat: fix.lat, lon: fix.lon }, dest, { heading: fix.heading, reason: 'plan' }).then(
+    // a cím útra illesztett pontjára tervezünk (sarki háznál különben a mellékutcára vinne), a jelölő a címen marad
+    fetchRoutes({ lat: fix.lat, lon: fix.lon }, routeTarget(dest), { heading: fix.heading, reason: 'plan' }).then(
       (routes) => {
         if (seq !== planSeq.current) return;
         setPlan({ dest, status: 'ready', routes, selected: 0 });
@@ -112,6 +119,7 @@ export function useNavigation(o: NavigationOptions, places: ReturnType<typeof us
       const kind = searchFor;
       setSearchFor(null);
       if (kind === 'home' || kind === 'work') places.setSaved(kind, place);
+      else if (kind === 'other') places.addOther(place);
       else requestPlan(place);
     },
     [searchFor, places, requestPlan],
@@ -136,7 +144,7 @@ export function useNavigation(o: NavigationOptions, places: ReturnType<typeof us
     const route = p.routes[p.selected]!;
     unlockSpeech();
     places.pushRecent(p.dest);
-    const s = new NavigationSession(route, { name: p.dest.name, lat: p.dest.lat, lon: p.dest.lon }, {
+    const s = new NavigationSession(route, { name: p.dest.name, lat: p.dest.lat, lon: p.dest.lon, ...(p.dest.routable ? { routable: p.dest.routable } : {}) }, {
       fetchRoutes,
       now: () => opts.current.now(),
       unit: opts.current.unit,

@@ -116,8 +116,10 @@ nonisolated struct NavConfig: Sendable {
     /// Alternatíva-figyelés gyakorisága (ms).
     var altCheckEveryMs: Double
     /// Egy alternatíva ajánlásához legalább ennyi nyereség (s) VAGY a hátralévő idő ekkora hányada.
-    var altMinGainS: Double
-    var altMinGainFraction: Double
+    /// AW12: a weben az `ALT_OFFER` („megéri”-szabály, ≥ 2 perc) váltotta; a generált `NAV_CONFIG` már nem adja – az
+    /// alapérték a régi szabály, amíg az iOS-port át nem veszi (utána törlendő).
+    var altMinGainS: Double = 300
+    var altMinGainFraction: Double = 0.15
     /// Az ajánlat ennyi ideig áll nyitva, utána elvetettnek számít (ms).
     var offerTtlMs: Double
     /// Az útvonal ennyire közel lévő szakaszt / kamerát / mérést veszünk az útvonalra (m); alapból `ROUTE_MATCH_M`.

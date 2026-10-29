@@ -10,10 +10,7 @@ export interface NavConfig {
   directionsMinGapMs: number;
   /** Alternatíva-figyelés gyakorisága (ms). */
   altCheckEveryMs: number;
-  /** Egy alternatíva ajánlásához legalább ennyi nyereség (s) VAGY a hátralévő idő ekkora hányada. */
-  altMinGainS: number;
-  altMinGainFraction: number;
-  /** Az ajánlat ennyi ideig áll nyitva, utána elvetettnek számít (ms). */
+  /** Az ajánlat ennyi ideig áll nyitva, utána az alapértelmezés szerint dől el ({@link ALT_OFFER}) (ms). */
   offerTtlMs: number;
   /** Az útvonal ennyire közel lévő szakaszt / kamerát / mérést veszünk az útvonalra (m); alapból {@link ROUTE_MATCH_M}. */
   enforcementBandM: number;
@@ -44,8 +41,6 @@ export const NAV_CONFIG: NavConfig = {
   rerouteMinGapMs: 20_000,
   directionsMinGapMs: 5_000,
   altCheckEveryMs: 120_000,
-  altMinGainS: 300,
-  altMinGainFraction: 0.15,
   offerTtlMs: 45_000,
   enforcementBandM: ROUTE_MATCH_M,
   enforcementWarnM: 2000,
@@ -59,3 +54,43 @@ export const NAV_CONFIG: NavConfig = {
 
 /** Az országok, ahol keresünk és tervezünk (Geocoding `country`). */
 export const NAV_COUNTRIES = ['HU', 'AT', 'SK', 'SI', 'HR', 'RO', 'IT', 'PL', 'DE', 'CZ'] as const;
+
+/**
+ * A „Gyorsabb út” ajánlat szabálya (AW12, az első éles navi-teszt után). Ajánlat csak legalább `minGainS` nyereségnél;
+ * a „megéri”-e: `net = Δperc − k · Δkm`, ahol `k` (perc/km) az alternatíva várható átlagsebességéből
+ * (Directions duration/distance) jön: `slowKmh`-ig `kSlow`, `fastKmh`-tól `kFast`, között lineáris.
+ * `net ≥ worthNetMin` → „Megéri” (lejáratkor elfogadja), `0 < net < worthNetMin` → „Lehet”, `net ≤ 0` → „Nem éri meg”
+ * (mindkettőnél lejáratkor marad a régi).
+ */
+export const ALT_OFFER = {
+  minGainS: 120,
+  worthNetMin: 2,
+  slowKmh: 40,
+  fastKmh: 110,
+  kSlow: 1.0,
+  kFast: 0.3,
+  /** Mérés közben a végkapu UTÁN, de ennyin belül lévő lehajtóra nem ajánlunk (se közben, se a mérés végén) (m). */
+  exitAfterGateM: 1000,
+} as const;
+
+/** Kamera-közeledés a felső sávon: `max(minM, leadS × sebesség)` távolságon belül borostyán sáv + egy rezgés. */
+export const CAMERA_ALERT = {
+  minM: 250,
+  leadS: 10,
+} as const;
+
+/**
+ * Követő kamera navigáció közben: zoom a sebességgel (km/h → zoom, között lineáris, a széleken állandó), a
+ * haladási irány követésének ideje (ms), és az autó helye a képernyőn (0 = fent, 1 = lent: az alsó harmadban, hogy az
+ * út előre látsszon), legalább `focusGapPx`-szel az alsó kártya fölött.
+ */
+export const NAV_FOLLOW = {
+  zoomStops: [
+    [40, 17],
+    [90, 15.5],
+    [130, 14.5],
+  ] as readonly (readonly [number, number])[],
+  bearingMs: 400,
+  focusY: 0.72,
+  focusGapPx: 56,
+} as const;

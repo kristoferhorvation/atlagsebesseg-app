@@ -1,6 +1,8 @@
 // A8 – navigáció végigjátszása headless Chrome-mal, iPhone-méretben, a szimulátorban (rögzített Directions-fixtúra,
 // élő útvonal-hívás nélkül): keresés → útvonalválasztó → indulás → letérés + újratervezés → szakasz-közeledés →
 // mérés közbeni összevont nézet → gyorsabb út ajánlat → érkezés; az alternatíva címkéje és érintése (A8d). Ellenőrzések + marketing-PNG-k a docs/screenshots/-ba.
+// AW12: „megéri”-kategóriák (?alt=worth|maybe|not), kapu utáni lehajtó (?alt=aftergate), azonnali újratervezés-hang,
+// borostyán kamera-sáv + rezgés, pozíció-jel az alsó harmadban, „Utána” sor, mentett címek chip-sora.
 //
 //   npm run dev -w @atlagsebesseg/web            # másik terminálban (a Mapbox-token az apps/web/.env-ben)
 //   npm run nav-shots -w @atlagsebesseg/web
@@ -25,6 +27,8 @@ const q = (sel) => `document.querySelector(${JSON.stringify(sel)})`;
 const text = (sel) => `(${q(sel)}?.innerText ?? '').replace(/\\s+/g, ' ').trim()`;
 const MAP_READY = `document.querySelector('.mapboxgl-canvas') && document.querySelector('.puck')`;
 const click = (p, sel) => p.evaluate(`${q(sel)}.click(); true`);
+/** A név nélküli manőver teljes Directions-mondata (ez nem kerülhet az „Utána” sorba). */
+const SENTENCE = /^(Forduljon|Tartson|Hajtson|Válassza|Menjen|Térjen|Megérkezett)/;
 
 const chrome = await launchChrome();
 const mk = () => openPage({ port: chrome.port, base: BASE, outDir: OUT });
@@ -33,7 +37,8 @@ try {
   // 1. végigjátszás gyorsítva: keresés → útvonal → indulás → ... → érkezés
   // ------------------------------------------------------------------
   const p = await mk();
-  await p.goto('/?navsim&speed=12&panel=0');
+  // a fő végigjátszásban a „lehet” kategória: 45 s után marad a régi (a „megéri” elfogadása letérést okozna a szimulátorban)
+  await p.goto('/?navsim&speed=12&alt=maybe&panel=0');
   await p.waitFor(MAP_READY, 60_000, 'térkép');
   await p.waitFor(`document.querySelector('button[aria-label="Úti cél keresése"]')`, 20_000, 'lupa gomb');
   check('a lupa gomb a jobb alsó gombsorban', await p.evaluate(`(() => { const r = ${q('button[aria-label="Úti cél keresése"]')}.getBoundingClientRect(); return r.bottom > innerHeight * 0.7 && r.left > innerWidth * 0.1; })()`));
@@ -83,10 +88,26 @@ try {
   check('felső kártya: távolság + út/irány', /\d+(,\d)? ?(m|km)/.test(top0), top0);
   const bottom0 = await p.evaluate(text('.nav-bottom'));
   check('alsó sáv: érkezés, hátralévő idő, táv, Befejezés', /\d{1,2}:\d{2}/.test(bottom0) && /km/.test(bottom0) && /Befejezés/.test(bottom0), bottom0);
+  // AW12: navigáció közben a pozíció-jel az alsó harmadban (az út előre látszik); az „Utána” sor nem a teljes mondat
+  // a kamera fókusza képkockánként közelít (headless Chrome-ban ritka a rAF): a beállást várjuk, legfeljebb 10 s-ig
+  const PUCK_Y = `(() => { const r = ${q('.puck')}.getBoundingClientRect(); return (r.top + r.height / 2) / innerHeight; })()`;
+  await p.waitFor(`${PUCK_Y} > 0.69`, 10_000, 'pozíció-jel az alsó harmadban').catch(() => undefined);
+  const puckY = await p.evaluate(PUCK_Y);
+  check('követő kamera: a pozíció-jel a képernyő alsó harmadában', puckY > 0.68, `${(puckY * 100).toFixed(0)}% magasságban`);
+  const thenTexts = new Set();
+  const sampleThen = async () => {
+    const x = await p.evaluate(`${q('.nav-then-text')}?.innerText ?? null`);
+    if (x) thenTexts.add(x);
+  };
+  await sampleThen();
   const sign = await p.evaluate(`(() => { const e = ${q('.sign-slot .sign')}; if (!e) return null; const r = e.getBoundingClientRect(); return { txt: e.innerText, left: r.left, bottom: r.bottom }; })()`);
   check('a sebességhatár-tábla a bal alsó sarokban (maxspeed-annotációból)', !!sign && sign.left < 40 && sign.bottom > 600, JSON.stringify(sign));
 
   // letérés → újratervezés
+  for (let i = 0; i < 20 && !(await p.evaluate(`${q('.nav-top')}?.dataset.busy === 'true'`)); i++) {
+    await sampleThen();
+    await sleep(400);
+  }
   await p.waitFor(`${q('.nav-top')}?.dataset.busy === 'true'`, 90_000, 'újratervezés jelzés');
   check('letéréskor „Újratervezés…” jelzés', /Újratervezés/.test(await p.evaluate(text('.nav-top'))));
   await p.waitFor(`${q('.nav-top')} && ${q('.nav-top')}.dataset.busy === 'false'`, 30_000, 'új útvonal átvette');
@@ -95,7 +116,7 @@ try {
   // gyorsabb út ajánlat (a 2 percenkénti figyelésből)
   await p.waitFor(q('.nav-offer'), 120_000, 'gyorsabb út ajánlat');
   const offer = await p.evaluate(text('.nav-offer'));
-  check('felugró ajánlat: „Gyorsabb út: −N perc”', /Gyorsabb út: −\d+ perc/.test(offer) && /Elfogad/.test(offer) && /Elvet/.test(offer), offer);
+  check('felugró ajánlat (lehet): „Lehet · −3 perc, +5 km” + lehajtó', /^Lehet · −3 perc, \+5 km Lehajtó/.test(offer) && /Elfogad/.test(offer) && /Elvet/.test(offer), offer);
   // elrendezési magasság: a megjelenési animáció (rise, scale 0,985) a getBoundingClientRect-et még összenyomhatja
   const btnH = await p.evaluate(`Math.min(...[...document.querySelectorAll('.nav-offer .btn')].map((b) => b.offsetHeight))`);
   check('az Elfogad / Elvet gomb ≥ 56 px', btnH >= 55.9, `${btnH} px`);
@@ -116,6 +137,20 @@ try {
   await p.waitFor(`${q('.nav-top')} && !${q('.nav-strip')}`, 120_000, 'mérés után vissza a teljes nézet');
   check('mérés után vissza a teljes navigációs nézet', true);
 
+  // AW12: közeli kamera – a felső kártya borostyán, „Kamera N m · max 130”, egy rezgés; elhaladás után vissza
+  await p.waitFor(`${q('.nav-top')}?.dataset.camera === 'true'`, 120_000, 'kamera-közeledés');
+  const camTxt = await p.evaluate(text('.nav-camera'));
+  check('kamera-közeledés: borostyán felső sáv, „Kamera N m · max 130”', /^Kamera \d+ m · max 130$/.test(camTxt), camTxt);
+  // a háttér átmenete (motion-base) alatt pollozunk; 12×-es lejátszásnál a sáv csak ~1 s-ig látszik
+  const AMBER = `getComputedStyle(${q('.nav-top')}).backgroundColor.replace(/\\s/g, '') === 'rgb(255,178,36)'`;
+  const amber = await p.waitFor(AMBER, 2000, 'borostyán háttér').then(() => true, () => false);
+  check('a felső sáv háttere borostyán (near token)', amber, await p.evaluate(`getComputedStyle(${q('.nav-top')}).backgroundColor`));
+  await p.waitFor(`${q('.nav-top')}?.dataset.camera === 'false'`, 30_000, 'kamera után vissza');
+  check('elhaladás után a felső sáv visszaáll', true);
+  const vib = await p.evaluate(`window.__navVibrate ?? []`);
+  // a fő útvonalon valódi (beépített) kamera is lehet: mindegyikre pontosan egy
+  check('kameránként egy rezgés', vib.filter((id) => id === 'sim-nav-cam').length === 1 && new Set(vib).size === vib.length, JSON.stringify(vib));
+
   // érkezés
   await p.waitFor(q('.nav-arrived'), 240_000, 'érkezés');
   check('érkezés: „Megérkeztél”', /Megérkeztél/.test(await p.evaluate(text('.nav-top'))));
@@ -127,7 +162,8 @@ try {
   check('hang: újratervezés', kinds.has('reroute'));
   check('hang: szakaszellenőrzés közeledése a határral', voice.some((v) => v.kind === 'section' && /Szakaszellenőrzés kezdődik, maximum 110/.test(v.text)), voice.find((v) => v.kind === 'section')?.text);
   check('hang: „Túl gyors”', voice.some((v) => v.kind === 'tooFast'));
-  check('hang: gyorsabb út', kinds.has('faster'));
+  check('hang: gyorsabb út („lehet”: „…, te döntesz”)', voice.some((v) => v.kind === 'faster' && v.text === 'Gyorsabb út, 3 perc, 5 kilométer kerülő, te döntesz'), voice.find((v) => v.kind === 'faster')?.text);
+  check('„Utána” sor: utcanév / rövid manőver-szó, nem a teljes mondat', thenTexts.size > 0 && [...thenTexts].every((x) => !SENTENCE.test(x)), [...thenTexts].join(' | '));
 
   // befejezés
   await click(p, '.nav-end');
@@ -148,7 +184,98 @@ try {
   const sheet = await s.evaluate(text('.sheet'));
   check('Beállítások: Hangos utasítások, Mentett helyek (Haza, Munka), Útvonal-kérések ma', /Hangos utasítások/.test(sheet) && /Haza/.test(sheet) && /Munka/.test(sheet) && /Útvonal-kérések ma/.test(sheet));
   check('a hangos utasítások alapból be vannak', (await s.evaluate(`document.querySelector('[role=switch][aria-label="Hangos utasítások"]').getAttribute('aria-checked')`)) === 'true');
+  check('Beállítások: „Új hely mentése”', /Új hely mentése/.test(sheet));
   s.close();
+
+  // ------------------------------------------------------------------
+  // AW12: mentett címek chip-sora, újratervezés-hang, ajánlat-kategóriák, kapu utáni lehajtó
+  // ------------------------------------------------------------------
+  const info0 = await mk();
+  await info0.goto('/?navsim&panel=0');
+  await info0.waitFor(`window.__navSim`, 60_000, 'szimulátor-adat');
+  const { windows } = await info0.evaluate(`window.__navSim`);
+  info0.close();
+
+  const c = await mk();
+  await c.goto('/?navsim&speed=12&panel=0');
+  await c.waitFor(MAP_READY, 60_000, 'térkép');
+  const SAVED = {
+    home: { id: 'h', name: 'Budapest', address: 'Magyarország', lat: 47.4979, lon: 19.0402 },
+    work: { id: 'w', name: 'Győr', address: 'Győr-Moson-Sopron', lat: 47.6875, lon: 17.6504 },
+    others: [
+      { id: 'o1', name: 'Gyöngyös', address: 'Heves', lat: 47.7827, lon: 19.9279 },
+      { id: 'o2', name: 'Wien', address: 'Österreich', lat: 48.2082, lon: 16.3738 },
+    ],
+  };
+  await c.evaluate(`localStorage.setItem('nav:saved:v1', ${JSON.stringify(JSON.stringify(SAVED))}); location.reload(); true`);
+  await sleep(500);
+  await c.waitFor(`document.querySelector('button[aria-label="Úti cél keresése"]')`, 60_000, 'lupa gomb');
+  await click(c, 'button[aria-label="Úti cél keresése"]');
+  await c.waitFor(q('.saved-chips'), 5000, 'chip-sor');
+  const chips = await c.evaluate(`(() => {
+    const row = ${q('.saved-chips')}.getBoundingClientRect();
+    const field = ${q('.search-field')}.getBoundingClientRect();
+    const body = ${q('.search-body')}.getBoundingClientRect();
+    const place = document.querySelector('.search-body .place-row')?.getBoundingClientRect().height ?? 64;
+    const items = [...document.querySelectorAll('.saved-chip')];
+    return { labels: items.map((e) => e.innerText.trim()), h: items[0].getBoundingClientRect().height, place, between: row.top >= field.bottom && row.bottom <= body.top + 1 };
+  })()`);
+  check('kereső: mentett címek chip-sora (Haza, Munka, továbbiak)', chips.labels.join(',') === 'Haza,Munka,Gyöngyös,Wien', chips.labels.join(', '));
+  check('a chip-sor a keresőmező és a találatok között, kisebb a találat-soroknál', chips.between && chips.h < chips.place && chips.h <= 40, `${chips.h} px vs. ${chips.place} px`);
+  await sleep(600);
+  if (!CHECK_ONLY) await c.shot(`${DATE}-nav-kereso-chipek.png`);
+  await click(c, '.saved-chip:nth-child(3)');
+  await c.waitFor(`${q('.picker')} && /Gyöngyös/.test(${q('.picker')}.innerText)`, 15_000, 'chip → útvonalválasztó');
+  check('chipre koppintva a mentett cím a célpont', true);
+  c.close();
+
+  // az „Újratervezés” hang a sárga kiírással együtt (a letérés kezdetén), nem az új útvonal megérkezésekor
+  const r = await mk();
+  await r.goto('/?navsim&stage=nav&speed=1&at=120&alt=maybe&panel=0');
+  await r.waitFor(MAP_READY, 60_000, 'térkép');
+  await r.waitFor(`${q('.nav-top')}?.dataset.busy === 'true'`, 90_000, 'letérés');
+  const atBusy = await r.evaluate(`({ voice: (window.__navVoice ?? []).filter((v) => v.kind === 'reroute').length, spinning: !!document.querySelector('.nav-reroute .spin') })`);
+  check('újratervezés: a hang a kiírással együtt szól (a kérés indulása előtt)', atBusy.voice === 1 && !atBusy.spinning, JSON.stringify(atBusy));
+  await r.waitFor(`${q('.nav-top')}?.dataset.busy === 'false'`, 30_000, 'új útvonal');
+  check('újratervezés: egyszer szól, az új útvonalnál nem ismétli', (await r.evaluate(`(window.__navVoice ?? []).filter((v) => v.kind === 'reroute').length`)) === 1);
+  r.close();
+
+  // ajánlat-kategóriák: kártya + bemondás
+  for (const [alt, title, said, name] of [
+    ['worth', /^Megéri · −7 perc, \+4 km/, 'Gyorsabb út, 7 perc megtakarítás', 'megeri'],
+    ['maybe', /^Lehet · −3 perc, \+5 km/, 'Gyorsabb út, 3 perc, 5 kilométer kerülő, te döntesz', 'lehet'],
+    ['not', /^Nem éri meg · \+40 km kerülő, −10 perc/, 'Gyorsabb út, de nem éri meg, 40 kilométer kerülő', 'nem-eri-meg'],
+  ]) {
+    const o = await mk();
+    await o.goto(`/?navsim&stage=nav&speed=8&alt=${alt}&panel=0`);
+    await o.waitFor(MAP_READY, 60_000, 'térkép');
+    await o.waitFor(q('.nav-offer'), 120_000, `ajánlat (${alt})`);
+    await sleep(700);
+    const card = await o.evaluate(`(() => { const e = ${q('.nav-offer')}; return { txt: e.innerText.replace(/\s+/g, ' ').trim(), verdict: e.dataset.verdict, primary: e.querySelector('.btn.primary')?.innerText }; })()`);
+    const v = await o.evaluate(`(window.__navVoice ?? []).filter((x) => x.kind === 'faster').map((x) => x.text)`);
+    check(`ajánlat „${alt}”: kártya`, title.test(card.txt) && card.verdict === alt, card.txt);
+    check(`ajánlat „${alt}”: bemondás`, v[0] === said, v[0]);
+    check(`ajánlat „${alt}”: a kiemelt gomb a 45 s utáni alapértelmezés`, card.primary === (alt === 'worth' ? 'Elfogad' : 'Elvet'), card.primary);
+    if (!CHECK_ONLY) await o.shot(`${DATE}-nav-ajanlat-${name}.png`);
+    o.close();
+  }
+
+  // kapu utáni lehajtó: mérés közben (és a mérés végén) nincs ajánlat
+  const g = await mk();
+  await g.goto(`/?navsim&stage=nav&speed=6&alt=aftergate&at=${windows[1]}&panel=0`);
+  await g.waitFor(MAP_READY, 60_000, 'térkép');
+  await g.waitFor(q('.nav-strip'), 120_000, 'mérés');
+  let sawOffer = false;
+  await g.waitFor(`!${q('.nav-strip')}`, 120_000, 'a mérés vége');
+  // a mérés vége után még 30 s (a lehajtó ~500 m-re a kapu után)
+  for (let i = 0; i < 60; i++) {
+    sawOffer ||= await g.evaluate(`!!${q('.nav-offer')}`);
+    await sleep(500);
+  }
+  const gVoice = await g.evaluate(`(window.__navVoice ?? []).filter((x) => x.kind === 'faster').length`);
+  check('kapu utáni (1 km-en belüli) lehajtó: nincs ajánlat, se közben, se a mérés végén', !sawOffer && gVoice === 0, `ajánlat: ${sawOffer}, bemondás: ${gVoice}`);
+  check('nincs kezeletlen JS-kivétel (AW12-oldalak)', g.logs.length === 0, g.logs.join(' | '));
+  g.close();
 
   // ------------------------------------------------------------------
   // 3. marketing-képernyőképek (1×-es lejátszás, szimulátor-panel nélkül)
@@ -202,6 +329,15 @@ try {
     await sleep(4500);
     await m.shot(`${DATE}-nav-meres-kozben.png`);
     m.close();
+
+    // közeli kamera: a borostyán felső sáv (a B ablakban, a szakasz után)
+    const k = await mk();
+    await k.goto(`/?navsim&stage=nav&speed=1&at=${windows[1] + 245}&alt=maybe&panel=0`);
+    await k.waitFor(MAP_READY, 60_000, 'térkép');
+    await k.waitFor(`${q('.nav-top')}?.dataset.camera === 'true'`, 60_000, 'kamera-közeledés');
+    await sleep(2500);
+    await k.shot(`${DATE}-nav-kamera-kozel.png`);
+    k.close();
 
     // gyorsabb út ajánlat: 4×-es lejátszás, amíg az ajánlat meg nem jelenik
     const o = await mk();

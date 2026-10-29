@@ -17,13 +17,26 @@ export function upcomingText(view: NavView, unit: SpeedUnit): string | null {
   return t(u.item.kind === 'section' ? 'nav.upcoming.section' : 'nav.upcoming.planned', { d, x: x ?? '–' });
 }
 
-/** Felső kártya: következő manőver (ikon + távolság + út), alatta kisebben a rákövetkező, és a közeledő szakasz jelzése. */
+/** Közeli kamera: „Kamera 250 m · max 50” (határ nélkül csak a távolság). */
+export function cameraNearText(view: NavView, unit: SpeedUnit): string | null {
+  const c = view.cameraNear;
+  if (!c) return null;
+  const d = dist(c.distanceM, unit);
+  const x = c.item.limitKmh ? speedIn(c.item.limitKmh, unit) : null;
+  return x ? t('nav.camera.near', { d, x }) : t('nav.upcoming.camera', { d });
+}
+
+/**
+ * Felső kártya: következő manőver (ikon + távolság + út), alatta kisebben a rákövetkező, és a közeledő szakasz jelzése.
+ * Közeli kameránál (AW12) a kártya borostyánra vált, nagy kamera-ikonnal; elhaladás után vissza.
+ */
 export function NavTop({ view, unit }: { view: NavView; unit: SpeedUnit }) {
   const arrived = view.phase === 'arrived';
-  const up = upcomingText(view, unit);
   const busy = view.rerouting || view.offRoute;
+  const cam = busy || arrived ? null : cameraNearText(view, unit);
+  const up = cam ? null : upcomingText(view, unit);
   return (
-    <section className="nav-top glass" data-busy={busy} aria-live="polite" aria-label={view.next.instruction || t('nav.aria')}>
+    <section className="nav-top glass" data-busy={busy} data-camera={cam !== null} aria-live="polite" aria-label={view.next.instruction || t('nav.aria')}>
       {busy || view.rerouteFailed ? (
         <div className="nav-reroute" data-failed={!view.rerouting && view.rerouteFailed}>
           <Icon name="restart" size={34} className={view.rerouting ? 'spin' : undefined} />
@@ -46,6 +59,12 @@ export function NavTop({ view, unit }: { view: NavView; unit: SpeedUnit }) {
           </div>
         </div>
       )}
+      {cam && (
+        <div className="nav-camera" role="alert">
+          <Icon name="cam_speed" size={40} />
+          <b className="num">{cam}</b>
+        </div>
+      )}
       {up && !arrived && (
         <div className="nav-badge" data-kind={view.upcoming!.item.kind}>
           <Icon name={view.upcoming!.item.kind === 'camera' ? 'cam_speed' : 'rendorseg'} size={22} /> {up}
@@ -62,8 +81,16 @@ export function NavTop({ view, unit }: { view: NavView; unit: SpeedUnit }) {
   );
 }
 
-/** Mérés közben a navigációs utasítás egysoros sávvá zsugorodik a mérőkártya fölött. */
+/** Mérés közben a navigációs utasítás egysoros sávvá zsugorodik a mérőkártya fölött; közeli kameránál borostyán kamera-sor. */
 export function NavStrip({ view, unit }: { view: NavView; unit: SpeedUnit }) {
+  const cam = view.phase === 'arrived' ? null : cameraNearText(view, unit);
+  if (cam)
+    return (
+      <div className="nav-strip glass" data-camera="true" role="alert">
+        <Icon name="cam_speed" size={32} />
+        <b className="nav-strip-text num">{cam}</b>
+      </div>
+    );
   return (
     <div className="nav-strip glass" aria-label={view.next.instruction || t('nav.aria')} aria-live="polite">
       <ManeuverIcon kind={view.phase === 'arrived' ? 'arrive' : view.next.icon} size={32} />
@@ -97,35 +124,45 @@ export function NavBottom({ view, unit, currentKmh, onEnd }: { view: NavView; un
   );
 }
 
-/** Felugró ajánlat: „Gyorsabb út: −7 perc” – Elfogad / Elvet (56 px-es gombok). */
+/** A lehajtó sora: „Lehajtó: Kijárat 56 · 5,2 km” / „Lehajtó 5,2 km-nél”; ismeretlen lehajtónál nincs. */
+const exitLine = (o: AlternativeOffer): string | null =>
+  o.exitAlongM === null ? null : o.exitName ? t('nav.offer.exitAtNamed', { name: o.exitName, km: o.exitKm }) : t('nav.offer.exitAt', { km: o.exitKm });
+
+/**
+ * Felugró ajánlat (AW12): „Megéri · −7 perc, +4 km” / „Lehet · −2 perc, +1 km” / „Nem éri meg · +20 km kerülő, −10 perc”,
+ * alatta a lehajtó; Elfogad / Elvet (56 px-es gombok). A kiemelt gomb az, ami 45 s után magától történik.
+ */
 export function OfferCard({ offer, onAccept, onDecline }: { offer: AlternativeOffer; onAccept: () => void; onDecline: () => void }) {
-  if (offer.compact) {
-    // mérés közben: egysoros, a mérőkártya (státusz) fölött
-    const n = Math.max(1, Math.round(offer.gainS / 60));
-    const title = offer.exitName ? t('nav.offer.exitNamed', { name: offer.exitName, km: offer.exitKm, n }) : t('nav.offer.exit', { km: offer.exitKm, n });
+  const exit = exitLine(offer);
+  const acceptByDefault = offer.verdict === 'worth';
+  const buttons = (
+    <>
+      <button className={acceptByDefault ? 'btn' : 'btn primary'} onClick={onDecline}>
+        {t('nav.offer.decline')}
+      </button>
+      <button className={acceptByDefault ? 'btn primary' : 'btn'} onClick={onAccept}>
+        {t('nav.offer.accept')}
+      </button>
+    </>
+  );
+  const head = (
+    <div className="nav-offer-head">
+      <div className="title nav-offer-title">{offer.title}</div>
+      {exit && <div className="nav-offer-exit num">{exit}</div>}
+    </div>
+  );
+  // mérés közben: kompakt, a mérőkártya (státusz) fölött
+  if (offer.compact)
     return (
-      <section className="nav-offer nav-offer-compact glass" role="alertdialog" aria-label={title}>
-        <div className="title nav-offer-title">{title}</div>
-        <button className="btn" onClick={onDecline}>
-          {t('nav.offer.decline')}
-        </button>
-        <button className="btn primary" onClick={onAccept}>
-          {t('nav.offer.accept')}
-        </button>
+      <section className="nav-offer nav-offer-compact glass" data-verdict={offer.verdict} role="alertdialog" aria-label={offer.title}>
+        {head}
+        {buttons}
       </section>
     );
-  }
   return (
-    <section className="nav-offer glass" role="alertdialog" aria-label={t('nav.offer.title', { n: Math.max(1, Math.round(offer.gainS / 60)) })}>
-      <div className="title nav-offer-title">{t('nav.offer.title', { n: Math.max(1, Math.round(offer.gainS / 60)) })}</div>
-      <div className="btn-row">
-        <button className="btn" onClick={onDecline}>
-          {t('nav.offer.decline')}
-        </button>
-        <button className="btn primary" onClick={onAccept}>
-          {t('nav.offer.accept')}
-        </button>
-      </div>
+    <section className="nav-offer glass" data-verdict={offer.verdict} role="alertdialog" aria-label={offer.title}>
+      {head}
+      <div className="btn-row">{buttons}</div>
     </section>
   );
 }

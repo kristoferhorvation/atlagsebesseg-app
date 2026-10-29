@@ -1,6 +1,7 @@
 import type { LatLon } from '@atlagsebesseg/core';
 import { haversineM } from '@atlagsebesseg/core';
 import { directionsLanguage, type Lang } from '../i18n';
+import { NAV_CONFIG } from './config';
 import type { BannerText, Congestion, NavBanner, NavRoute, NavStep, NavVoice } from './types';
 
 const BASE = 'https://api.mapbox.com/directions/v5/mapbox/driving-traffic';
@@ -143,6 +144,7 @@ function parseRoute(r: J, id: string): NavRoute {
     });
     startM += dist;
   });
+  absorbArrivalStub(steps);
 
   return {
     id,
@@ -156,6 +158,30 @@ function parseRoute(r: J, id: string): NavRoute {
     segCongestion: pad(congestion, () => 'unknown'),
     segDurationS: pad(durations, avgDur),
   };
+}
+
+/**
+ * Az érkezés előtti csonka lépés (az érkezési küszöbnél rövidebb kanyar – pl. a sarki ház címét a Directions a
+ * mellékutcára illeszti: „Forduljon jobbra az Abádi utcára” 8 m-rel a cél előtt) beolvad az érkezésbe: az előző lépés
+ * vége már az érkezés, a szalagja és a hangja az érkezésé. Erre a manőverre úgysem érnénk oda (`arriveM`-nél megérkeztünk).
+ * Helyben módosít.
+ */
+export function absorbArrivalStub(steps: NavStep[], maxM = NAV_CONFIG.arriveM): void {
+  const a = steps.findIndex((s) => s.endManeuver.type === 'arrive');
+  const stub = steps[a];
+  const prev = steps[a - 1];
+  if (!stub || !prev || stub.distanceM <= 0 || stub.distanceM >= maxM) return;
+  const total = prev.distanceM + stub.distanceM;
+  steps.splice(a - 1, 2, {
+    ...prev,
+    distanceM: total,
+    durationS: prev.durationS + stub.durationS,
+    endManeuver: stub.endManeuver,
+    banners: stub.banners.map((b) => ({ ...b, distanceAlongM: Math.min(total, b.distanceAlongM + prev.distanceM) })),
+    // az érkezés bemondása még az érkezési küszöb előtt
+    voice: stub.voice.map((v) => ({ ...v, distanceAlongM: Math.min(total, Math.max(v.distanceAlongM, 2 * maxM)) })),
+  });
+  steps.forEach((s, i) => (s.index = i));
 }
 
 /** Szakaszindex az útvonal menti távolsághoz (bináris keresés). */

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import {
   altLabels,
+  NAV_FOLLOW,
   congestionRuns,
   cameraLabel,
   cameraVisibility,
@@ -53,7 +54,7 @@ import { useWakeLock } from './hooks/useWakeLock';
 import { createWebMapAdapter, type MapReport, type MapRoute, type WebMapAdapter } from './map';
 import { simCameras, simPlannedChecks, simReports } from './sim/scenarios';
 import { simStartFromUrl, useSimulator } from './sim/useSimulator';
-import { buildNavSim, simIdleFix, simRouteFetcher, simSearch, SIM_PLACES, type NavSimData } from './sim/navSim';
+import { buildNavSim, simIdleFix, simRouteFetcher, simSearch, SIM_ALT_MODES, SIM_PLACES, type NavSimData, type SimAltMode } from './sim/navSim';
 import { CameraCard } from './ui/CameraCard';
 import { cameraIcon } from './ui/cameraIcon';
 import { Hud, SlowDown, toneOf, type GateReportState } from './ui/Hud';
@@ -72,6 +73,8 @@ import { StatusPills } from './ui/StatusPills';
 
 /** `?navsim`: a navigációs szimulátor (Budapest → Győr, rögzített Directions-fixtúrával). */
 const NAV_SIM = new URLSearchParams(location.search).has('navsim');
+/** `?navsim&alt=worth|maybe|not|aftergate`: a szimulált gyorsabb út kategóriája (AW12); alapból „megéri”. */
+const NAV_SIM_ALT: SimAltMode = (SIM_ALT_MODES as readonly string[]).includes(new URLSearchParams(location.search).get('alt') ?? '') ? (new URLSearchParams(location.search).get('alt') as SimAltMode) : 'worth';
 const SIM_MODE = new URLSearchParams(location.search).has('sim') || NAV_SIM;
 /** `?sim&panel=0`: a szimulátor vezérlője és jelzése nélkül (marketing-képernyőképekhez). */
 const SIM_PANEL = new URLSearchParams(location.search).get('panel') !== '0' && !NAV_SIM;
@@ -151,7 +154,7 @@ function Drive({ map }: { map: WebMapAdapter }) {
   );
   const places = usePlaces();
   const navSim = useMemo<NavSimData | null>(() => (NAV_SIM ? buildNavSim() : null), []);
-  const navFetch = useMemo(() => (navSim ? simRouteFetcher(navSim) : (directionsClient?.routes ?? null)), [navSim]);
+  const navFetch = useMemo(() => (navSim ? simRouteFetcher(navSim, NAV_SIM_ALT) : (directionsClient?.routes ?? null)), [navSim]);
   const loadData = useCallback(
     async (routes: readonly NavRoute[]): Promise<EnforcementData> =>
       navSim ? { sections: [...BUNDLED_SECTIONS, navSim.section], cameras: [...BUNDLED_CAMERAS, navSim.camera], planned: [] } : loadRouteData(routes),
@@ -209,11 +212,26 @@ function Drive({ map }: { map: WebMapAdapter }) {
   useEffect(() => nav.session?.setMeasureStatus(view.phase === 'meres' ? view.status : null), [nav.session, view.phase, view.status]);
   useEffect(() => nav.session?.setMeasuring(measuring), [nav.session, measuring]);
 
+  // AW12: navigáció közben a követő kamera a sebességhez kötött zoommal, gyors irány-követéssel
+  const navFollowOn = nav.view !== null && nav.view.phase === 'navigating';
+  useEffect(() => map.setNavFollow(navFollowOn), [map, navFollowOn]);
+  // közeli kamera: egy rezgés kameránként (hang nélküli módban is; ahol a böngésző támogatja)
+  const nearCamId = nav.view?.cameraNear?.item.id ?? null;
+  useEffect(() => {
+    if (!nearCamId) return;
+    if (SIM_MODE) {
+      const w = window as unknown as { __navVibrate?: string[] };
+      (w.__navVibrate ??= []).push(nearCamId);
+    }
+    navigator.vibrate?.(200);
+  }, [nearCamId]);
+
   // tervezett útvonalak és a cél a térképen; navigáció közben csak a jelenlegi útvonal
   // az alternatívákon címke a leágazás után (A8d): menetidő-különbség a kiválasztotthoz képest
   const routesShown = useMemo<{ routes: MapRoute[]; dest: LatLon | null }>(() => {
     const toMap = (r: NavRoute, selected: boolean, label: MapRoute['label'] = null): MapRoute => ({ id: r.id, selected, runs: congestionRuns(r), label });
-    if (nav.view) return { routes: [toMap(nav.view.route, true)], dest: nav.view.destination };
+    // megérkezve az útvonal maradéka (pl. az útra illesztett végpontig tartó csonk) már nem látszik, csak a cél jelölője
+    if (nav.view) return { routes: nav.view.phase === 'arrived' ? [] : [toMap(nav.view.route, true)], dest: nav.view.destination };
     if (nav.plan?.status === 'ready') {
       const { routes, selected } = nav.plan;
       const labels = altLabels(routes, nav.summaries.map((x) => x.durationS), selected);
@@ -224,7 +242,7 @@ function Drive({ map }: { map: WebMapAdapter }) {
       return { routes: routes.map((r, i) => toMap(r, i === selected, labelOf(i))), dest: nav.plan.dest };
     }
     return { routes: [], dest: null };
-  }, [nav.view?.route, nav.view?.destination, nav.plan, nav.summaries, lang]);
+  }, [nav.view?.route, nav.view?.destination, nav.view?.phase, nav.plan, nav.summaries, lang]);
   useEffect(() => map.showRoutes(routesShown.routes, routesShown.dest), [map, routesShown]);
   const planRoutes = nav.plan?.status === 'ready' ? nav.plan.routes : null;
   useEffect(() => {
@@ -343,7 +361,8 @@ function Drive({ map }: { map: WebMapAdapter }) {
     [map, plannedShown, activePlanned?.id],
   );
 
-  // az autó a HUD feletti szabad terület ~60%-ánál – a kártya magasságát mérjük, nem becsüljük
+  // az autó a HUD feletti szabad terület ~60%-ánál, navigáció közben az alsó harmadban (az út előre látszik) –
+  // a kártya magasságát mérjük, nem becsüljük
   const hudRef = useRef<HTMLDivElement>(null);
   useLayoutEffect(() => {
     const el = hudRef.current;
@@ -353,7 +372,15 @@ function Drive({ map }: { map: WebMapAdapter }) {
     const update = () => {
       const h = window.innerHeight;
       const top = h - el.offsetHeight;
-      map.setFocusY(Math.min(0.5, Math.max(0.18, (top * 0.6) / h)));
+      // navigációban az alsó kártyához (a HUD utolsó eleme) mérünk: a tábla és a gombok a szélén vannak, középen a térkép
+      // látszik; elrendezés szerint (offsetTop), mert a FLIP-animáció transzformja alatt a látszó hely még a régi
+      const last = el.lastElementChild instanceof HTMLElement ? el.lastElementChild : null;
+      const cardTop = last ? top + last.offsetTop : top;
+      map.setFocusY(
+        navFollowOn
+          ? Math.max(0.18, Math.min(NAV_FOLLOW.focusY, (cardTop - NAV_FOLLOW.focusGapPx) / h))
+          : Math.min(0.5, Math.max(0.18, (top * 0.6) / h)),
+      );
       // kompakt ↔ nagy kártya: a gombsor és a kártya a régi helyéről csúszik az újra (FLIP)
       const delta = prevH === null ? 0 : el.offsetHeight - prevH;
       prevH = el.offsetHeight;
@@ -371,7 +398,7 @@ function Drive({ map }: { map: WebMapAdapter }) {
       ro.disconnect();
       window.removeEventListener('resize', update);
     };
-  }, [map]);
+  }, [map, navFollowOn]);
 
   // lapok, visszajelzés
   const [sheet, setSheet] = useState<'report' | 'settings' | null>(null);
@@ -671,6 +698,7 @@ function Drive({ map }: { map: WebMapAdapter }) {
             nav.openSearch(kind);
           }}
           onClearPlace={(kind) => places.setSaved(kind, null)}
+          onRemoveOther={places.removeOther}
           onClose={() => setSheet(null)}
           info={{
             gps: t(SIM_MODE ? 'geo.sim' : GEO_TEXT[geo]),

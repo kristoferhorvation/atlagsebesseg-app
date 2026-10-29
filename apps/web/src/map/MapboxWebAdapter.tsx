@@ -2,7 +2,7 @@ import type { FeatureCollection, LineString, MultiLineString, MultiPolygon, Poly
 import mapboxgl, { type GeoJSONSource, type Map as MbMap } from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { useEffect, useRef } from 'react';
-import { MapStore, type LightPreset, type MapLook } from '@atlagsebesseg/app-logic';
+import { MapStore, NAV_FOLLOW, navFollowZoom, type LightPreset, type MapLook } from '@atlagsebesseg/app-logic';
 import { bearingDeg, haversineM, LocalProjection, type GpsFix, type LatLon, type Section } from '@atlagsebesseg/core';
 import { color } from '@atlagsebesseg/design-tokens';
 import { iconSvg } from '../ui/Icon';
@@ -15,6 +15,8 @@ const PITCH = 60;
 const THEME: Record<MapLook, string> = { szines: 'default', visszafogott: 'monochrome' };
 /** „Vissza a helyemre”: a követő kamera ennyi idő alatt áll vissza. */
 const RECENTER_MS = 900;
+/** Az autó képernyő-helyének (focusY) simítási időállandója (ms). */
+const FOCUS_TAU_MS = 150;
 /** Mozdulat közben a jelzés és a nézet-frissítés ritkítása. */
 const GESTURE_THROTTLE_MS = 250;
 const VIEW_DEBOUNCE_MS = 500;
@@ -37,6 +39,7 @@ export class MapboxWebAdapter implements WebMapAdapter {
     progress: null,
     tone: color.accent,
     focusY: 0.38,
+    navFollow: false,
     lightPreset: 'night',
     look: 'szines',
     reports: [],
@@ -85,6 +88,9 @@ export class MapboxWebAdapter implements WebMapAdapter {
   setFocusY(focusY: number): void {
     this.store.set({ focusY });
   }
+  setNavFollow(navFollow: boolean): void {
+    this.store.set({ navFollow });
+  }
   setLook(look: MapLook): void {
     this.store.set({ look });
   }
@@ -115,6 +121,8 @@ interface Camera {
   bearing: number;
   zoom: number;
   pitch: number;
+  /** A képernyő-közép eltolása: felül / alul ennyi px kitöltés (az autó a felső felében: alul; az alsó harmadban: felül). */
+  padTop: number;
   padBottom: number;
 }
 
@@ -137,6 +145,8 @@ class MapController {
   private to: Pose | null = null;
   private animStart = 0;
   private animDur = 1000;
+  /** A haladási irány átmenetének ideje (ms): navigációban rövidebb, hogy fordulásnál 300–500 ms-on belül forduljon. */
+  private bearingDur = 1000;
   private lastArrival = 0;
   private lastFix: GpsFix | null = null;
   private raf = 0;
@@ -144,6 +154,7 @@ class MapController {
   private recenter: { from: Camera; start: number } | null = null;
   private following = true;
   private focusY = 0.38;
+  private lastFrameT = 0;
   private lastGesture = 0;
   private viewTimer: ReturnType<typeof setTimeout> | undefined;
   private destMarker: mapboxgl.Marker | null = null;
@@ -510,7 +521,8 @@ class MapController {
 
   private camera(): Camera {
     const c = this.map.getCenter();
-    return { lat: c.lat, lon: c.lng, bearing: this.map.getBearing(), zoom: this.map.getZoom(), pitch: this.map.getPitch(), padBottom: this.map.getPadding().bottom ?? 0 };
+    const pad = this.map.getPadding();
+    return { lat: c.lat, lon: c.lng, bearing: this.map.getBearing(), zoom: this.map.getZoom(), pitch: this.map.getPitch(), padTop: pad.top ?? 0, padBottom: pad.bottom ?? 0 };
   }
 
   private apply(s: WebMapState): void {
@@ -568,7 +580,13 @@ class MapController {
     if (bearing === null && prevFix && haversineM(prevFix, fix) > 4) bearing = bearingDeg(prevFix, fix);
     bearing ??= this.to?.bearing ?? 0;
     const kmh = (fix.speed ?? 0) * 3.6;
-    const zoom = clamp(17.3 - Math.max(0, kmh - 40) * 0.017, 15.5, 17.3);
+    const nav = this.store.getState().navFollow;
+    // navigációban a sebességhez kötött zoom (a GPS-sebesség zaját simítva), mérésnél a korábbi görbe
+    const zoom = nav
+      ? this.to
+        ? this.to.zoom + (navFollowZoom(kmh) - this.to.zoom) * 0.35
+        : navFollowZoom(kmh)
+      : clamp(17.3 - Math.max(0, kmh - 40) * 0.017, 15.5, 17.3);
     const target: Pose = { lat: fix.lat, lon: fix.lon, bearing, zoom };
     if (!this.shown) {
       this.shown = target;
@@ -581,6 +599,7 @@ class MapController {
       // az animáció a valódi érkezési ütemhez igazodik (szimulátornál gyorsított is lehet)
       this.animDur = clamp(now - this.lastArrival, 120, 1200);
     }
+    this.bearingDur = nav ? Math.min(this.animDur, NAV_FOLLOW.bearingMs) : this.animDur;
     this.animStart = now;
     this.lastArrival = now;
     this.lastFix = fix;
@@ -590,20 +609,24 @@ class MapController {
     this.raf = requestAnimationFrame(this.frame);
     if (!this.from || !this.to) return;
     const k = clamp((t - this.animStart) / this.animDur, 0, 1);
+    const kb = easeOut(clamp((t - this.animStart) / this.bearingDur, 0, 1));
     const pose: Pose = {
       lat: lerp(this.from.lat, this.to.lat, k),
       lon: lerp(this.from.lon, this.to.lon, k),
-      bearing: lerpAngle(this.from.bearing, this.to.bearing, k),
+      bearing: lerpAngle(this.from.bearing, this.to.bearing, kb),
       zoom: lerp(this.from.zoom, this.to.zoom, k),
     };
     this.shown = pose;
     this.marker.setLngLat([pose.lon, pose.lat]).setRotation(pose.bearing);
     const s = this.store.getState();
-    // a kártya méretváltásakor az autó helye finoman, nem ugrásszerűen követi
-    this.focusY += (s.focusY - this.focusY) * 0.12;
+    // a kártya méretváltásakor az autó helye finoman, nem ugrásszerűen követi (időalapú, a képkocka-sebességtől független)
+    const dt = this.lastFrameT ? Math.min(1000, t - this.lastFrameT) : 16;
+    this.lastFrameT = t;
+    this.focusY += (s.focusY - this.focusY) * (1 - Math.exp(-dt / FOCUS_TAU_MS));
     if (!this.following) return;
     const h = this.map.getContainer().clientHeight;
-    let cam: Camera = { ...pose, pitch: PITCH, padBottom: Math.max(0, h - 2 * this.focusY * h) };
+    // az autó a képernyő focusY magasságában: fölötte alul, alatta (navigáció: alsó harmad) felül tolunk
+    let cam: Camera = { ...pose, pitch: PITCH, padTop: Math.max(0, 2 * this.focusY * h - h), padBottom: Math.max(0, h - 2 * this.focusY * h) };
     if (this.recenter) {
       const k = clamp((t - this.recenter.start) / RECENTER_MS, 0, 1);
       cam = blend(this.recenter.from, cam, easeInOut(k));
@@ -614,13 +637,14 @@ class MapController {
       bearing: cam.bearing,
       pitch: cam.pitch,
       zoom: cam.zoom,
-      padding: { top: 0, bottom: cam.padBottom, left: 0, right: 0 },
+      padding: { top: cam.padTop, bottom: cam.padBottom, left: 0, right: 0 },
     });
   };
 }
 
 const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
 const easeInOut = (k: number) => (k < 0.5 ? 4 * k * k * k : 1 - (-2 * k + 2) ** 3 / 2);
+const easeOut = (k: number) => 1 - (1 - k) ** 2;
 function blend(a: Camera, b: Camera, k: number): Camera {
   return {
     lat: lerp(a.lat, b.lat, k),
@@ -628,6 +652,7 @@ function blend(a: Camera, b: Camera, k: number): Camera {
     bearing: lerpAngle(a.bearing, b.bearing, k),
     zoom: lerp(a.zoom, b.zoom, k),
     pitch: lerp(a.pitch, b.pitch, k),
+    padTop: lerp(a.padTop, b.padTop, k),
     padBottom: lerp(a.padBottom, b.padBottom, k),
   };
 }

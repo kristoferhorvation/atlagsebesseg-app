@@ -1,4 +1,4 @@
-import { NAV_CONFIG, SearchController, t, type Place, type SavedPlaces, type SearchState } from '@atlagsebesseg/app-logic';
+import { NAV_CONFIG, savedChips, SearchController, t, type Place, type SavedPlaces, type SearchState } from '@atlagsebesseg/app-logic';
 import { useEffect, useRef, useState } from 'react';
 import type { SearchFor } from '../nav/useNavigation';
 import { Icon, type IconName } from './Icon';
@@ -18,8 +18,8 @@ function PlaceRow({ icon, name, address, onClick }: { icon: IconName; name: stri
 }
 
 /**
- * Teljes képernyős kereső: gépelés közben találatok (3 karaktertől, 300 ms késleltetéssel), alatta a
- * mentett helyek (Haza / Munka) és az utolsó úti célok. Koppintásra a hely a célpont.
+ * Teljes képernyős kereső: a mező alatt a mentett címek vékony chip-sora (Haza, Munka, továbbiak), alatta gépelés
+ * közben a találatok (3 karaktertől, 300 ms késleltetéssel), üres mezőnél az utolsó úti célok. Koppintásra a hely a célpont.
  */
 export function SearchScreen({
   kind,
@@ -49,8 +49,9 @@ export function SearchScreen({
     return () => window.removeEventListener('keydown', onKey);
   }, [onClose]);
 
-  const title = kind === 'home' ? t('nav.search.pickHome') : kind === 'work' ? t('nav.search.pickWork') : null;
+  const title = kind === 'home' ? t('nav.search.pickHome') : kind === 'work' ? t('nav.search.pickWork') : kind === 'other' ? t('nav.search.pickOther') : null;
   const idle = state.status === 'idle';
+  const chips = kind === 'dest' ? savedChips(saved) : [];
   return (
     <div className="search-screen" role="dialog" aria-modal="true" aria-label={title ?? t('map.search')}>
       <div className="search-head">
@@ -77,6 +78,16 @@ export function SearchScreen({
           <Icon name="close" size={20} />
         </button>
       </div>
+      {chips.length > 0 && (
+        <div className="saved-chips" role="list" aria-label={t('nav.search.saved')}>
+          {chips.map((c) => (
+            <button key={c.key} role="listitem" className="saved-chip" onClick={() => onPick(c.place)} aria-label={c.place.address ? `${c.label}, ${c.place.address}` : c.label}>
+              <Icon name={c.icon} size={16} />
+              <span>{c.label}</span>
+            </button>
+          ))}
+        </div>
+      )}
       <div className="search-body">
         {state.status === 'loading' && <div className="search-note">{t('nav.search.loading')}</div>}
         {state.status === 'error' && <div className="search-note" data-tone="tul">{t('nav.search.error')}</div>}
@@ -86,12 +97,6 @@ export function SearchScreen({
           <>
             {query.trim().length > 0 && query.trim().length < NAV_CONFIG.geocodeMinChars && (
               <div className="search-note">{t('nav.search.hint', { n: NAV_CONFIG.geocodeMinChars })}</div>
-            )}
-            {kind === 'dest' && (saved.home || saved.work) && (
-              <div className="search-saved">
-                {saved.home && <PlaceRow icon="home" name={t('nav.place.home')} address={saved.home.name} onClick={() => onPick(saved.home!)} />}
-                {saved.work && <PlaceRow icon="work" name={t('nav.place.work')} address={saved.work.name} onClick={() => onPick(saved.work!)} />}
-              </div>
             )}
             <div className="group-label">{t('nav.search.recent')}</div>
             {recents.length === 0 && <div className="search-note">{t('nav.search.noRecent')}</div>}

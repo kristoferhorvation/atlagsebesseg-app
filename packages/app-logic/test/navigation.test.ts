@@ -4,8 +4,22 @@ import { PLANNED_MATCH_M, type PlannedCheck } from '../src/plannedChecks';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { BUDAPEST_GYOR_DIRECTIONS } from '../src/navigation/fixtures';
 import {
+  absorbArrivalStub,
   addRecent,
+  addSavedOther,
   adjustedDurations,
+  ALT_OFFER,
+  altOfferTitle,
+  altOfferVoice,
+  altWorth,
+  CAMERA_ALERT,
+  cameraAlertM,
+  detourCostPerKm,
+  removeSavedOther,
+  routeAvgKmh,
+  routeTarget,
+  savedChips,
+  thenText,
   ALT_LABEL_AFTER_M,
   altDeltaText,
   altLabels,
@@ -35,11 +49,13 @@ import {
   trafficDelayS,
   type NavRoute,
   type RouteFetcher,
+  type SavedPlaces,
   type SearchState,
   type SyncStore,
 } from '../src/navigation';
 import { DICTIONARIES, LANGUAGES, setLanguage, t } from '../src/i18n';
 import { DEFAULT_SETTINGS, parseSettings } from '../src/settings';
+import { navFollowZoom } from '../src/follow';
 
 afterEach(() => setLanguage('hu'));
 
@@ -125,23 +141,24 @@ function makeSection(route: NavRoute, fromM: number, toM: number, opts: { limit?
 
 interface Harness {
   session: NavigationSession;
-  calls: { reason: string; from: LatLon }[];
+  calls: { reason: string; from: LatLon; to: LatLon }[];
   clock: { t: number };
   respond: (r: NavRoute[] | Error) => void;
 }
 
 /** Munkamenet kézzel léptetett órával; a `fetchRoutes` hívásait rögzíti, a választ a teszt adja. */
-function harness(route: NavRoute, opts: { voice?: boolean; reply?: () => NavRoute[] } = {}): Harness {
+function harness(route: NavRoute, opts: { voice?: boolean; reply?: () => NavRoute[]; routable?: LatLon } = {}): Harness {
   const clock = { t: T0 };
   const calls: Harness['calls'] = [];
   let next: NavRoute[] | Error = [route];
-  const fetchRoutes: RouteFetcher = async (from, _to, ctx) => {
-    calls.push({ reason: ctx.reason, from });
+  const fetchRoutes: RouteFetcher = async (from, to, ctx) => {
+    calls.push({ reason: ctx.reason, from, to });
     const r = opts.reply ? opts.reply() : next;
     if (r instanceof Error) throw r;
     return r;
   };
-  const session = new NavigationSession(route, { name: 'Cél', ...route.points.at(-1)! }, { fetchRoutes, now: () => clock.t, voice: opts.voice ?? true });
+  const dest = { name: 'Cél', ...route.points.at(-1)!, ...(opts.routable ? { routable: opts.routable } : {}) };
+  const session = new NavigationSession(route, dest, { fetchRoutes, now: () => clock.t, voice: opts.voice ?? true });
   return { session, calls, clock, respond: (r) => (next = r) };
 }
 
@@ -387,21 +404,17 @@ describe('alternatíva-figyelés', () => {
     return h.session.view().offer;
   }
 
-  it('legalább 5 percet nyer → ajánlat', async () => {
-    const offer = await offerWith(1800 - 360);
+  it('legalább 2 perc nyereség → ajánlat (AW12: a 15%-os szabály nincs)', async () => {
+    const offer = await offerWith(3600 - ALT_OFFER.minGainS, 3600);
     expect(offer).not.toBeNull();
-    expect(offer!.gainS).toBeGreaterThanOrEqual(300);
+    expect(offer!.gainS).toBeGreaterThanOrEqual(120);
     expect(offer!.route.id).toBe('alt');
   });
 
-  it('4 perc (és < 15%) → nincs ajánlat', async () => {
-    expect(await offerWith(3600 - 240, 3600)).toBeNull();
-  });
-
-  it('15%-ot nyer 5 perc alatt is → ajánlat (rövid út)', async () => {
-    // 20 perces út: 15% = 3 perc; a nyereség 3,5 perc
-    const offer = await offerWith(1200 - 210, 1200);
-    expect(offer).not.toBeNull();
+  it('2 percnél kevesebb nyereség → nincs ajánlat, rövid úton sem', async () => {
+    expect(await offerWith(3600 - 110, 3600)).toBeNull();
+    // 10 perces út, 1,8 perc (18%) – régen ajánlat lett volna
+    expect(await offerWith(600 - 108, 600)).toBeNull();
   });
 
   /** A Budapest→Győr fixtúra: a jelenlegi útvonal és az igazi alternatíva (gyorsabbra skálázva); a lehajtója a 56. kilométernél van. */
@@ -484,7 +497,7 @@ describe('alternatíva-figyelés', () => {
     expect(offer!.expiresAt).toBe(T0 + 120_000 + NAV_CONFIG.offerTtlMs);
     const voice = h.session.drainVoice().filter((v) => v.kind === 'faster');
     expect(voice).toHaveLength(1);
-    expect(voice[0]!.text).toContain(offer!.exitKm);
+    expect(voice[0]!.text).toBe(altOfferVoice(altWorth(offer!.gainS, offer!.extraM, routeAvgKmh(offer!.route))));
     // a mérés végén a forma nem kompakt, az ajánlat marad
     h.session.setMeasuring(false);
     expect(h.session.view().offer!.compact).toBe(false);
@@ -850,7 +863,7 @@ describe('helyek', () => {
   it('sérült tárolt érték helyett üres lista / üres mentett helyek', () => {
     expect(parseRecents('nem json')).toEqual([]);
     expect(parseRecents('[{"x":1},null]')).toEqual([]);
-    expect(parseSaved('???')).toEqual({ home: null, work: null });
+    expect(parseSaved('???')).toEqual({ home: null, work: null, others: [] });
     expect(parseSaved(JSON.stringify({ home: p(1), work: 'x' }))).toMatchObject({ home: { name: 'Hely 1' }, work: null });
   });
 });
@@ -974,5 +987,353 @@ describe('szótár-teljesség a navigációhoz', () => {
     expect(DEFAULT_SETTINGS.hangos_utasitasok).toBe(true);
     expect(parseSettings(JSON.stringify({ hangos_utasitasok: false })).hangos_utasitasok).toBe(false);
     expect(parseSettings('{}').hangos_utasitasok).toBe(true);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// AW12 – az első éles navi-teszt javításai
+// ---------------------------------------------------------------------------
+
+describe('AW12: „megéri”-szabály a gyorsabb útra', () => {
+  const CITY_KMH = 30;
+  const MOTORWAY_KMH = 120;
+  const verdict = (min: number, km: number, kmh: number) => altWorth(min * 60, km * 1000, kmh).verdict;
+
+  it('a kerülő ára az alternatíva átlagsebességéből: ≤ 40 km/h → 1,0, ≥ 110 → 0,3, között lineáris', () => {
+    expect(detourCostPerKm(20)).toBe(1);
+    expect(detourCostPerKm(40)).toBe(1);
+    expect(detourCostPerKm(75)).toBeCloseTo(0.65, 10);
+    expect(detourCostPerKm(110)).toBe(0.3);
+    expect(detourCostPerKm(140)).toBe(0.3);
+    expect(detourCostPerKm(NaN)).toBe(1);
+    // a Directions duration / distance: 10 km 10 perc alatt = 60 km/h
+    expect(routeAvgKmh(lineRoute({ lengthM: 10_000, durationS: 600 }))).toBeCloseTo(60, 10);
+  });
+
+  it('példa-táblázat, város: 1 perc / 1 km nem, 3/1 igen, 7/4 igen, 10/20 nem', () => {
+    expect(verdict(1, 1, CITY_KMH)).toBe('not');
+    expect(1 * 60).toBeLessThan(ALT_OFFER.minGainS); // ajánlat sem lesz belőle
+    expect(verdict(3, 1, CITY_KMH)).toBe('worth');
+    expect(verdict(7, 4, CITY_KMH)).toBe('worth');
+    expect(verdict(10, 20, CITY_KMH)).toBe('not');
+  });
+
+  it('példa-táblázat, autópálya: 20/50 igen, 20/100 nem, 10/20 igen, 100/100 igen', () => {
+    expect(verdict(20, 50, MOTORWAY_KMH)).toBe('worth');
+    expect(verdict(20, 100, MOTORWAY_KMH)).toBe('not');
+    expect(verdict(10, 20, MOTORWAY_KMH)).toBe('worth');
+    expect(verdict(100, 100, MOTORWAY_KMH)).toBe('worth');
+  });
+
+  it('a nettó nyereség határai: net ≥ 2 → megéri, 0 < net < 2 → lehet, net ≤ 0 → nem éri meg', () => {
+    expect(altWorth(120, 0, CITY_KMH)).toMatchObject({ net: 2, verdict: 'worth' });
+    expect(altWorth(120, 1000, CITY_KMH)).toMatchObject({ net: 1, verdict: 'maybe' });
+    expect(altWorth(120, 2000, CITY_KMH)).toMatchObject({ net: 0, verdict: 'not' });
+    // rövidebb alternatíva: a megtakarított km is nyereség
+    expect(altWorth(120, -1000, CITY_KMH).net).toBe(3);
+  });
+
+  /** A városi teszt-útvonal (10 km, 30 perc) és egy alternatíva a megadott többlet-távval és nyereséggel. */
+  async function categoryOffer(gainMin: number, extraKm: number) {
+    const route = lineRoute({ lengthM: 10_000, durationS: 1800 });
+    const alt = scaleDurations(lineRoute({ lengthM: 10_000 + extraKm * 1000, durationS: 1800, id: 'alt' }), 1800 - gainMin * 60, 'alt', 0.003);
+    const h = harness(route);
+    h.respond([route, alt]);
+    feed(h, at(route, 300, 0, T0 + 120_000));
+    await flush();
+    return { h, route, offer: h.session.view().offer!, voice: h.session.drainVoice().filter((v) => v.kind === 'faster').map((v) => v.text) };
+  }
+
+  it('három kategória: kártya és bemondás (megéri / lehet / nem éri meg)', async () => {
+    const worth = await categoryOffer(7, 4);
+    expect(worth.offer.verdict).toBe('worth');
+    expect(worth.offer.title).toBe('Megéri · −7 perc, +4 km');
+    expect(worth.voice).toEqual(['Gyorsabb út, 7 perc megtakarítás']);
+
+    const maybe = await categoryOffer(2, 1);
+    expect(maybe.offer.verdict).toBe('maybe');
+    expect(maybe.offer.title).toBe('Lehet · −2 perc, +1 km');
+    expect(maybe.voice).toEqual(['Gyorsabb út, 2 perc, 1 kilométer kerülő, te döntesz']);
+
+    const not = await categoryOffer(10, 20);
+    expect(not.offer.verdict).toBe('not');
+    expect(not.offer.title).toBe('Nem éri meg · +20 km kerülő, −10 perc');
+    expect(not.voice).toEqual(['Gyorsabb út, de nem éri meg, 20 kilométer kerülő']);
+  });
+
+  it('a kártya-szöveg rövidebb alternatívánál „−km”, egyező távnál km nélkül; mind a 6 nyelven van szöveg', () => {
+    expect(altOfferTitle({ gainMin: 5, extraKm: -2, verdict: 'worth' })).toBe('Megéri · −5 perc, −2 km');
+    expect(altOfferTitle({ gainMin: 5, extraKm: 0.2, verdict: 'worth' })).toBe('Megéri · −5 perc');
+    for (const lang of LANGUAGES) {
+      setLanguage(lang);
+      for (const v of ['worth', 'maybe', 'not'] as const) {
+        const w = { gainMin: 7, extraKm: 4, verdict: v };
+        expect(altOfferTitle(w), `${lang} ${v}`).toMatch(/7|4/);
+        expect(altOfferVoice(w), `${lang} ${v}`).not.toMatch(/[{}]/);
+      }
+    }
+  });
+
+  it('lejáratkor (45 s) a „megéri” elfogadódik, a „lehet” és a „nem éri meg” esetén marad a régi', async () => {
+    for (const [gain, km, accepted] of [
+      [7, 4, true],
+      [2, 1, false],
+      [10, 20, false],
+    ] as const) {
+      const { h, route } = await categoryOffer(gain, km);
+      feed(h, at(route, 400, 0, T0 + 120_000 + NAV_CONFIG.offerTtlMs - 1));
+      expect(h.session.view().offer).not.toBeNull();
+      feed(h, at(route, 500, 0, T0 + 120_000 + NAV_CONFIG.offerTtlMs));
+      expect(h.session.view().offer).toBeNull();
+      expect(h.session.view().route.id, `${gain}/${km}`).toBe(accepted ? 'alt' : 'line');
+    }
+  });
+
+  it('több jelölt közül a legnagyobb nettó nyereségű (nem a leggyorsabb)', async () => {
+    const route = lineRoute({ lengthM: 10_000, durationS: 1800 });
+    const fast = scaleDurations(lineRoute({ lengthM: 30_000, durationS: 1800, id: 'fast' }), 1800 - 600, 'fast', 0.003);
+    const short = scaleDurations(lineRoute({ lengthM: 11_000, durationS: 1800, id: 'short' }), 1800 - 300, 'short', -0.003);
+    const h = harness(route);
+    h.respond([route, fast, short]);
+    feed(h, at(route, 300, 0, T0 + 120_000));
+    await flush();
+    expect(h.session.view().offer!.route.id).toBe('short');
+  });
+});
+
+describe('AW12: mérés közben a kapu utáni közeli lehajtó', () => {
+  const fixture = () => {
+    const [main, other] = parseDirections(BUDAPEST_GYOR_DIRECTIONS, 'fx') as [NavRoute, NavRoute];
+    const core = new Route(main.points, main.distanceM);
+    const alt = scaleDurations(other, main.durationS - 600, 'alt');
+    const section = (fromM: number, toM: number): Section => ({ ...makeSection(lineRoute(), 0, 1000), start: core.pointAt(fromM), end: core.pointAt(toM), lengthM: toM - fromM });
+    const fix = (alongM: number, t: number): GpsFix => ({ ...core.pointAt(alongM), timestamp: t, speed: 25, accuracy: 5, heading: null });
+    const exitAlong = 1000 + firstNewManeuver(main, alt)!.distanceM;
+    return { main, alt, section, fix, exitAlong };
+  };
+
+  async function measuring(endBeforeExitM: number) {
+    const f = fixture();
+    const h = harness(f.main);
+    h.session.setData({ sections: [f.section(400, f.exitAlong - endBeforeExitM)], cameras: [], planned: [] });
+    h.respond([f.main, f.alt]);
+    h.session.setMeasuring(true);
+    feed(h, f.fix(1000, T0 + 120_000));
+    await flush();
+    return { h, f };
+  }
+
+  it('a lehajtó a végkapu után 1 km-en belül → nincs ajánlat, se közben, se a mérés végén', async () => {
+    const { h } = await measuring(500);
+    expect(h.session.view().offer).toBeNull();
+    h.session.setMeasuring(false);
+    expect(h.session.view().offer).toBeNull();
+    expect(h.session.drainVoice().some((v) => v.kind === 'faster')).toBe(false);
+  });
+
+  it('a végkaputól 1 km-nél messzebb → visszatartva, a mérés végén megjelenik', async () => {
+    const { h } = await measuring(ALT_OFFER.exitAfterGateM + 300);
+    expect(h.session.view().offer).toBeNull();
+    h.session.setMeasuring(false);
+    expect(h.session.view().offer).not.toBeNull();
+  });
+
+  it('a már látható ajánlat eltűnik, ha mérés kezdődik és a lehajtó a kapu után 1 km-en belül van', async () => {
+    const f = fixture();
+    const h = harness(f.main);
+    h.session.setData({ sections: [f.section(400, f.exitAlong - 200)], cameras: [], planned: [] });
+    h.respond([f.main, f.alt]);
+    feed(h, f.fix(1000, T0 + 120_000));
+    await flush();
+    expect(h.session.view().offer).not.toBeNull();
+    h.session.setMeasuring(true);
+    expect(h.session.view().offer).toBeNull();
+    h.session.setMeasuring(false);
+    expect(h.session.view().offer).toBeNull();
+  });
+});
+
+describe('AW12: újratervezés, kamera, „Utána”, érkezés, követő zoom, mentett címek', () => {
+  it('az „Újratervezés” a letéréskor szól (a kiírással együtt), az új útvonal érkezése előtt, és egyszer', async () => {
+    const route = lineRoute();
+    const h = harness(route);
+    feed(h, at(route, 2000, 0, T0));
+    h.session.drainVoice();
+    const v1 = feed(h, at(route, 2050, 300, T0 + 1000));
+    expect(v1.offRoute).toBe(true);
+    expect(h.session.drainVoice().map((v) => v.kind)).toEqual(['reroute']);
+    expect(h.calls).toHaveLength(0); // még nincs új útvonal-kérés
+    for (let s = 2; s <= 7; s++) feed(h, at(route, 2050, 300, T0 + s * 1000));
+    expect(h.calls.map((c) => c.reason)).toEqual(['reroute']);
+    await flush();
+    expect(h.session.drainVoice().filter((v) => v.kind === 'reroute')).toHaveLength(0);
+  });
+
+  it('kamera-közeledés: max(250 m, 10 s × sebesség) – 60 km/h → 250 m, 130 km/h → 361 m; elhaladás után eltűnik', () => {
+    expect(cameraAlertM(60 / 3.6)).toBe(250);
+    expect(cameraAlertM(130 / 3.6)).toBeCloseTo(361.1, 1);
+    expect(cameraAlertM(null)).toBe(CAMERA_ALERT.minM);
+    const route = lineRoute();
+    const cam = at(route, 5000, 10);
+    const camera: FixedCamera = { id: 'cam', country: 'HU', type: 'speed', lat: cam.lat, lon: cam.lon, headingDeg: null, road: 'M1', speedLimitKmh: 50, source: 'teszt', sourceUrl: '', sourceDate: '2026-10', verified: true };
+    const h = harness(route);
+    h.session.setData({ sections: [], cameras: [camera], planned: [] });
+    const v60 = 60 / 3.6;
+    expect(feed(h, at(route, 4700, 0, T0, { speed: v60 })).cameraNear).toBeNull();
+    expect(feed(h, at(route, 4760, 0, T0 + 1000, { speed: v60 })).cameraNear?.item.id).toBe('cam');
+    // gyorsan már 360 m-ről
+    expect(feed(h, at(route, 4650, 0, T0 + 2000, { speed: 130 / 3.6 })).cameraNear?.distanceM).toBeCloseTo(350, 0);
+    expect(feed(h, at(route, 5010, 0, T0 + 3000, { speed: v60 })).cameraNear).toBeNull();
+    // a távoli jelzés (kis sor) közben megmarad
+    expect(feed(h, at(route, 3500, 0, T0 + 4000, { speed: v60 })).upcoming?.item.kind).toBe('camera');
+  });
+
+  it('az „Utána” sor: manőver-ikon + utcanév, név nélkül rövid manőver-szó – nem a teljes Directions-mondat', () => {
+    const step = (instruction: string, bannerText: string, type = 'turn', modifier = 'right'): NavRoute['steps'][number] => ({
+      index: 0,
+      distanceM: 100,
+      durationS: 10,
+      startM: 0,
+      name: '',
+      endManeuver: { type, modifier, instruction, location: ORIGIN },
+      banners: [{ distanceAlongM: 100, primary: { text: bannerText, type, modifier }, secondary: null, sub: null }],
+      voice: [],
+    });
+    const after = (name: string) => ({ ...step('', ''), name });
+    // a szalag a mondat (név nélküli manőver): az utcanév kerül a helyére, ha van; különben a manőver-szó
+    expect(thenText(step('Forduljon jobbra, hogy a bekötőútra hajtson.', 'Forduljon jobbra, hogy a bekötőútra hajtson'), after('Fő utca'), 'right')).toBe('Fő utca');
+    expect(thenText(step('Forduljon jobbra, hogy ráhajtson a bekötőútra.', 'Forduljon jobbra, hogy a bekötőútra'), after(''), 'right')).toBe('Jobbra');
+    expect(thenText(step('Forduljon jobbra.', 'Forduljon jobbra'), undefined, 'right')).toBe('Jobbra');
+    // valódi utcanév / útszám a szalagon: az marad
+    expect(thenText(step('Forduljon balra az 1 irányába.', '1'), after(''), 'left')).toBe('1');
+    expect(thenText(step('Forduljon jobbra az Abádi utcára.', 'Abádi utca'), after('Abádi utca'), 'right')).toBe('Abádi utca');
+    expect(thenText(step('Megérkezett.', 'Megérkezett', 'arrive', ''), undefined, 'arrive')).toBe('Cél');
+    // a fixtúrán: egyik „Utána” sem a teljes mondat
+    const [main] = parseDirections(BUDAPEST_GYOR_DIRECTIONS, 'fx') as [NavRoute];
+    const h = harness(main);
+    const core = new Route(main.points, main.distanceM);
+    for (const s of main.steps.slice(0, -2)) {
+      const v = feed(h, { ...core.pointAt(s.startM + 1), timestamp: T0, speed: 10, accuracy: 5, heading: null });
+      if (v.then) expect(v.then.text, `${s.index}`).not.toMatch(/^(Forduljon|Tartson|Hajtson|Megérkezett)/);
+    }
+  });
+
+  /** Az Építész utca 11 valódi Directions-válaszának vége (2026-10-29): a cél a sarki mellékutcára (Abádi utca) illesztve. */
+  const epiteszUtca = (lastStepM = 8.039) => ({
+    code: 'Ok',
+    routes: [
+      {
+        distance: 300 + 162.746 + lastStepM,
+        duration: 80,
+        geometry: { coordinates: [[19.0337, 47.4482], [19.037655, 47.448162], [19.039807, 47.448023], [19.039796, 47.447951]] },
+        legs: [
+          {
+            annotation: { maxspeed: [], congestion: [], duration: [] },
+            steps: [
+              { distance: 300, duration: 40, name: 'Bártfai utca', maneuver: { type: 'depart', location: [19.0337, 47.4482], instruction: 'Hajtson keletre.' }, bannerInstructions: [{ distanceAlongGeometry: 300, primary: { text: 'Építész utca', type: 'turn', modifier: 'left' } }], voiceInstructions: [] },
+              {
+                distance: 162.746,
+                duration: 35,
+                name: 'Építész utca',
+                maneuver: { type: 'turn', modifier: 'left', location: [19.037655, 47.448162], instruction: 'Forduljon balra az Építész utcára.' },
+                bannerInstructions: [{ distanceAlongGeometry: 162.746, primary: { text: 'Abádi utca', type: 'turn', modifier: 'right' } }],
+                voiceInstructions: [
+                  { distanceAlongGeometry: 146.079, announcement: '200 méter múlva, Forduljon jobbra az Abádi utcára.' },
+                  { distanceAlongGeometry: 61.75, announcement: 'Forduljon jobbra az Abádi utcára. Utána Az Ön úti célja balra lesz.' },
+                ],
+              },
+              {
+                distance: lastStepM,
+                duration: 5,
+                name: 'Abádi utca',
+                maneuver: { type: 'turn', modifier: 'right', location: [19.039807, 47.448023], instruction: 'Forduljon jobbra az Abádi utcára.' },
+                bannerInstructions: [{ distanceAlongGeometry: lastStepM, primary: { text: 'Az úti célja balra van', type: 'arrive', modifier: 'left' } }],
+                voiceInstructions: [{ distanceAlongGeometry: 4.039, announcement: 'Az Ön úti célja balra van.' }],
+              },
+              { distance: 0, duration: 0, name: 'Abádi utca', maneuver: { type: 'arrive', modifier: 'left', location: [19.039796, 47.447951], instruction: 'Az úti célja balra van.' } },
+            ],
+          },
+        ],
+      },
+    ],
+  });
+
+  it('érkezés (Építész utca 11): az érkezési küszöbnél rövidebb utolsó kanyar beolvad az érkezésbe', () => {
+    const [r] = parseDirections(epiteszUtca(), 'ep') as [NavRoute];
+    // a „Forduljon jobbra az Abádi utcára” (8 m) nem önálló manőver: az Építész utca lépés vége már az érkezés
+    expect(r.steps.map((s) => s.endManeuver.type)).toEqual(['turn', 'arrive', 'arrive']);
+    const last = r.steps[1]!;
+    expect(last.name).toBe('Építész utca');
+    expect(last.distanceM).toBeCloseTo(162.746 + 8.039, 6);
+    expect(last.banners[0]!.primary).toMatchObject({ type: 'arrive', text: 'Az úti célja balra van' });
+    expect(last.voice.map((v) => v.text)).toEqual(['Az Ön úti célja balra van.']);
+    expect(last.voice[0]!.distanceAlongM).toBeGreaterThan(NAV_CONFIG.arriveM);
+    expect(r.steps.map((s) => s.index)).toEqual([0, 1, 2]);
+    // a lépések összhossza továbbra is az útvonal hossza
+    expect(r.steps.reduce((a, s) => a + s.distanceM, 0)).toBeCloseTo(r.distanceM, 6);
+    // a kanyar előtt a felső kártya már az érkezést mutatja, nem a mellékutcát
+    const h = harness(r);
+    const core = new Route(r.points, r.distanceM);
+    const v = feed(h, { ...core.pointAt(320), timestamp: T0, speed: 8, accuracy: 5, heading: null });
+    expect(v.next.icon).toBe('arrive');
+    expect(v.then).toBeNull();
+    // a küszöbnél hosszabb utolsó lépés valódi manőver: marad
+    const [long] = parseDirections(epiteszUtca(60), 'ep') as [NavRoute];
+    expect(long.steps.map((s) => s.endManeuver.type)).toEqual(['turn', 'turn', 'arrive', 'arrive']);
+    const steps = structuredClone(long.steps);
+    absorbArrivalStub(steps, 30);
+    expect(steps).toHaveLength(4);
+  });
+
+  it('érkezés: a tervezés a cím útra illesztett pontjára (routable point) megy, a jelölő a címen marad', async () => {
+    const places = parseGeocode({
+      features: [
+        {
+          geometry: { coordinates: [19.039894, 47.447944] },
+          properties: { mapbox_id: 'ep11', name: 'Építész utca 11', place_formatted: 'Budapest, 1116', coordinates: { routable_points: [{ name: 'default', latitude: 47.448016, longitude: 19.039905 }] } },
+        },
+        { geometry: { coordinates: [19.04, 47.45] }, properties: { name: 'Építész utca', coordinates: {} } },
+      ],
+    });
+    expect(places[0]).toMatchObject({ lat: 47.447944, lon: 19.039894, routable: { lat: 47.448016, lon: 19.039905 } });
+    expect(routeTarget(places[0]!)).toEqual({ lat: 47.448016, lon: 19.039905 });
+    expect(places[1]!.routable).toBeUndefined();
+    expect(routeTarget(places[1]!)).toEqual({ lat: 47.45, lon: 19.04 });
+    // a tárolt utolsó célok és mentett helyek megtartják
+    expect(parseRecents(JSON.stringify(addRecent([], places[0]!)))[0]!.routable).toEqual({ lat: 47.448016, lon: 19.039905 });
+    // az újratervezés is oda tervez
+    const route = lineRoute();
+    const routable = { lat: 47.6, lon: 19.2 };
+    const h = harness(route, { routable });
+    for (let s = 0; s <= 6; s++) feed(h, at(route, 2000, 300, T0 + s * 1000));
+    await flush();
+    expect(h.calls[0]!.to).toEqual(routable);
+    expect(h.session.view().destination).toMatchObject({ lat: route.points.at(-1)!.lat });
+  });
+
+  it('követő zoom a sebességgel: < 40 km/h 17, 90 km/h 15,5, 130 km/h 14,5, között lineáris', () => {
+    expect(navFollowZoom(0)).toBe(17);
+    expect(navFollowZoom(40)).toBe(17);
+    expect(navFollowZoom(65)).toBeCloseTo(16.25, 10);
+    expect(navFollowZoom(90)).toBe(15.5);
+    expect(navFollowZoom(110)).toBeCloseTo(15, 10);
+    expect(navFollowZoom(130)).toBe(14.5);
+    expect(navFollowZoom(180)).toBe(14.5);
+    expect(navFollowZoom(NaN)).toBe(17);
+  });
+
+  it('mentett címek: Haza, Munka, továbbiak – chip-sorrend, nem duplázódik, törölhető, tárolódik', () => {
+    const p = (i: number, name = `Hely ${i}`) => ({ id: `p${i}`, name, address: '', lat: 47 + i, lon: 19 });
+    let saved: SavedPlaces = { home: p(1, 'Otthon utca'), work: null, others: [] };
+    saved = addSavedOther(saved, p(2, 'Edzőterem'));
+    saved = addSavedOther(saved, p(3, 'Nagymama'));
+    expect(addSavedOther(saved, { ...p(2), id: 'masik' })).toBe(saved);
+    expect(savedChips(saved).map((c) => [c.icon, c.label])).toEqual([
+      ['home', 'Haza'],
+      ['pin', 'Edzőterem'],
+      ['pin', 'Nagymama'],
+    ]);
+    expect(parseSaved(JSON.stringify(saved)).others.map((x) => x.name)).toEqual(['Edzőterem', 'Nagymama']);
+    expect(removeSavedOther(saved, 'p2').others.map((x) => x.id)).toEqual(['p3']);
   });
 });

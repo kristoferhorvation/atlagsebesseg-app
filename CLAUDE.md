@@ -90,6 +90,14 @@ Gyökér: `npm test` és `npm run typecheck` minden csomagra; `npm run test:all`
   „+/− perc” címkével a kiválasztotthoz képest, érintésre (vonal vagy címke) arra vált. Mérés közben a mérőkártya a fő,
   a navigációs lépés egysoros sáv fölötte; a „Lassíts” sáv e fölé kerül. Hang: az `AlertPlayer` szintetizátora
   (`announce`), a fontos mondat (szakasz, túl gyors, újratervezés, gyorsabb út) megszakítja a fordulót.
+- **AW12 (első éles navi-teszt, Kristof 2026-10-29), weben kész, iOS-port hátra:** „Gyorsabb út” ≥ 2 perc nyereségtől,
+  `net = Δperc − k·Δkm` (k az alternatíva átlagsebességéből, 40 km/h-ig 1,0, 110-től 0,3) → Megéri (45 s után elfogad) /
+  Lehet / Nem éri meg (45 s után marad); mérés közben a végkapu utáni 1 km-en belüli lehajtóra nincs ajánlat; az
+  „Újratervezés” hang a letérés kezdetén; kamera `max(250 m, 10 s × v)`-n belül borostyán felső sáv + egy rezgés;
+  „Utána” sor: ikon + utcanév / rövid manőver-szó (`thenText`); érkezés: a Geocoding `routable_points`-ra tervezünk, az
+  `arriveM`-nél rövidebb utolsó lépés beolvad az érkezésbe (`absorbArrivalStub`); követő zoom `navFollowZoom`, az autó az
+  alsó harmadban (`NAV_FOLLOW`). Konstansok: `ALT_OFFER`, `CAMERA_ALERT`, `NAV_FOLLOW` (`navigation/config.ts`). A Swift
+  `NavConfig` `altMinGainS`/`altMinGainFraction` mezője átmenetileg alapértékes (a generált `NAV_CONFIG` már nem adja).
 - Navigációs szimulátor: `-sim navsim` indulás előtt a kiindulóponton áll, a lejátszás a navigáció indításakor kezdődik
   (mint a webes `/?navsim`); `-navStage search|picker|nav` (és `-navQuery`) egy állapotba ugrik, a `-simSeek` az
   ugrás előtti utolsó ablak elejéről játszik le. A bemondások szimulátorban a naplóba is mennek (`NAV-VOICE`).

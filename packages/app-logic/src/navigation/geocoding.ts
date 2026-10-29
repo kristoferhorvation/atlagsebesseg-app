@@ -34,7 +34,9 @@ export function parseGeocode(json: unknown): Place[] {
     if (!name) return [];
     const address = String(p.place_formatted ?? p.full_address ?? '').trim();
     const id = String(p.mapbox_id ?? f.id ?? `${lat},${lon}`);
-    return [{ id, name, address, lat, lon }];
+    const rp = isObj(p.coordinates) && Array.isArray(p.coordinates.routable_points) ? p.coordinates.routable_points[0] : null;
+    const routable = isObj(rp) && typeof rp.latitude === 'number' && typeof rp.longitude === 'number' ? { lat: rp.latitude, lon: rp.longitude } : null;
+    return [routable ? { id, name, address, lat, lon, routable } : { id, name, address, lat, lon }];
   });
 }
 

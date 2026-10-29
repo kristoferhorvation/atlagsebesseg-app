@@ -1583,9 +1583,45 @@ a.list-row {
   color: var(--color-over);
 }
 
-.search-saved {
-  border-bottom: 1px solid var(--color-stroke);
-  margin-bottom: 4px;
+/* mentett címek: vékony chip-sor a mező és a találatok között (kisebb, mint a találat-sorok) */
+.saved-chips {
+  display: flex;
+  gap: 8px;
+  margin: 10px -2px 2px;
+  padding: 2px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.saved-chips::-webkit-scrollbar {
+  display: none;
+}
+
+.saved-chip {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 36px;
+  max-width: 60vw;
+  padding: 0 14px 0 11px;
+  border-radius: var(--radius-pill);
+  background: var(--color-surface-raised);
+  border: 1px solid var(--color-stroke);
+  color: var(--color-text);
+  font-size: var(--type-caption-size);
+  font-weight: 600;
+}
+
+.saved-chip svg {
+  flex: none;
+  color: var(--color-accent);
+}
+
+.saved-chip span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .place-row {
@@ -1868,6 +1904,48 @@ a.list-row {
   border-color: var(--color-stroke-strong);
 }
 
+/* AW12: közeli kamera – a felső kártya borostyán, nagy kamera-ikon; elhaladás után vissza */
+.nav-top[data-camera='true'] {
+  background: var(--color-near);
+  border-color: var(--color-near);
+  color: var(--color-bg);
+  transition: background var(--motion-base) var(--motion-ease);
+}
+
+.nav-top[data-camera='true'] .nav-main > svg,
+.nav-top[data-camera='true'] .nav-then,
+.nav-top[data-camera='true'] .nav-then-text {
+  color: var(--color-bg);
+}
+
+.nav-top[data-camera='true'] .nav-then {
+  border-top-color: color-mix(in srgb, var(--color-bg) 25%, transparent);
+}
+
+.nav-camera {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding-top: 10px;
+  border-top: 1px solid color-mix(in srgb, var(--color-bg) 25%, transparent);
+}
+
+.nav-camera svg {
+  flex: none;
+}
+
+.nav-camera b {
+  font-size: var(--type-title-size);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  line-height: 1.15;
+}
+
+.nav-strip[data-camera='true'] {
+  background: var(--color-near);
+  color: var(--color-bg);
+}
+
 .nav-then {
   display: flex;
   align-items: center;
@@ -1986,6 +2064,38 @@ a.list-row {
   color: var(--color-ok);
 }
 
+/* AW12: a kategória színe – megéri: zöld, lehet: borostyán, nem éri meg: halvány */
+.nav-offer[data-verdict='maybe'] {
+  border-color: color-mix(in srgb, var(--color-near) 55%, transparent);
+}
+
+.nav-offer[data-verdict='maybe'] .nav-offer-title {
+  color: var(--color-near);
+}
+
+.nav-offer[data-verdict='not'] {
+  border-color: var(--color-stroke-strong);
+}
+
+.nav-offer[data-verdict='not'] .nav-offer-title {
+  color: var(--color-text-muted);
+}
+
+.nav-offer-head {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.nav-offer-exit {
+  font-size: var(--type-caption-size);
+  color: var(--color-text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .nav-offer-compact {
   flex-direction: row;
   align-items: center;
@@ -1994,10 +2104,20 @@ a.list-row {
   border-radius: 22px;
 }
 
-.nav-offer-compact .nav-offer-title {
+.nav-offer-compact .nav-offer-head {
   flex: 1;
+}
+
+.nav-offer-compact .nav-offer-title {
   min-width: 0;
-  font-size: 15px;
+  font-size: var(--type-caption-size);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.nav-offer-compact .nav-offer-exit {
+  font-size: 13px;
 }
 
 .nav-offer-compact .btn {

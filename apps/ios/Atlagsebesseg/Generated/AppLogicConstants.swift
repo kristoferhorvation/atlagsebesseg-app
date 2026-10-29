@@ -16,8 +16,6 @@ nonisolated let NAV_CONFIG = NavConfig(
     rerouteMinGapMs: 20000.0,
     directionsMinGapMs: 5000.0,
     altCheckEveryMs: 120000.0,
-    altMinGainS: 300.0,
-    altMinGainFraction: 0.15,
     offerTtlMs: 45000.0,
     enforcementBandM: 40.0,
     enforcementWarnM: 2000.0,

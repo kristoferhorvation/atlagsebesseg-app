@@ -3,11 +3,12 @@ import { speedIn, type SpeedStatus } from '../display';
 import { formatNumber, t } from '../i18n';
 import type { SpeedUnit } from '../settings';
 import type { RouteFetcher } from './client';
-import { NAV_CONFIG, type NavConfig } from './config';
+import { altOfferTitle, altOfferVoice, altWorth, routeAvgKmh, type AltVerdict, type AltWorth } from './alternatives';
+import { ALT_OFFER, CAMERA_ALERT, NAV_CONFIG, type NavConfig } from './config';
 import { limitAt } from './directions';
 import { adjustedDurations, cumulative, firstNewManeuver, NO_ENFORCEMENT_DATA, remainingSeconds, routeEnforcement, routeOverlap, type EnforcementData } from './enforcement';
 import { maneuverIcon, type ManeuverIcon } from './maneuver';
-import type { EnforcementItem, NavDestination, NavRoute, NavStep } from './types';
+import { routeTarget, type EnforcementItem, type NavDestination, type NavRoute, type NavStep } from './types';
 
 export type VoiceKind = 'instruction' | 'section' | 'tooFast' | 'reroute' | 'faster';
 
@@ -28,11 +29,35 @@ export interface ManeuverView {
   distanceM: number;
 }
 
+/** Kamera-közeledés: ennyi méteren belül (de legalább 250 m) borostyán sáv: `max(minM, leadS × sebesség)`. */
+export const cameraAlertM = (speedMps: number | null): number => Math.max(CAMERA_ALERT.minM, CAMERA_ALERT.leadS * Math.max(0, speedMps ?? 0));
+
+/** Az „Utána” sor szövege: a Directions szalagja, ha az nem a teljes utasítás-mondat (név nélküli manővernél az), különben az utcanév / kijárat / rövid manőver-szó. */
+export function thenText(step: NavStep, after: NavStep | undefined, icon: ManeuverIcon): string {
+  const banner = step.banners.at(-1);
+  const instr = step.endManeuver.instruction.trim().replace(/[.!]$/, '');
+  const text = banner?.primary.text.trim() ?? '';
+  // név nélküli manővernél a Directions a szalagra is a mondatot teszi (esetleg kissé átfogalmazva)
+  const sentence = !text || (instr !== '' && (instr.startsWith(text) || (text.includes(',') && instr.split(' ')[0] === text.split(' ')[0])));
+  if (icon !== 'arrive') {
+    if (!sentence) return text;
+    if (after?.name.trim()) return after.name.trim();
+    if (banner?.primary.exit) return banner.primary.exit;
+  }
+  return t(`nav.man.${icon}`);
+}
+
 export interface AlternativeOffer {
   id: string;
   route: NavRoute;
   /** Nyereség a jelenlegi útvonalhoz képest (s). */
   gainS: number;
+  /** Többlet-táv a jelenlegi útvonal hátralévő részéhez képest (m; negatív = rövidebb). */
+  extraM: number;
+  /** Megéri / lehet / nem éri meg (a „megéri”-szabály, {@link ALT_OFFER}); lejáratkor csak a „megéri” fogadódik el. */
+  verdict: AltVerdict;
+  /** A kártya címe („Megéri · −7 perc, +4 km”). */
+  title: string;
   expiresAt: number;
   /** A lehajtó (az alternatíva első új manővere) helye az aktuális útvonal mentén (m); `null`, ha nem állapítható meg. */
   exitAlongM: number | null;
@@ -50,6 +75,8 @@ export interface AlternativeOffer {
 interface Candidate {
   route: NavRoute;
   gainS: number;
+  extraM: number;
+  worth: AltWorth;
   exitAlongM: number | null;
   exitName: string | null;
 }
@@ -72,6 +99,8 @@ export interface NavView {
   limitKmh: number | null;
   /** A legközelebbi, még nem érintett szakasz / kamera / mérés az előre jelzési távolságon belül. */
   upcoming: { item: EnforcementItem; distanceM: number } | null;
+  /** A kamera a {@link cameraAlertM} távolságon belül (a felső sáv borostyán); elhaladás után `null`. */
+  cameraNear: { item: EnforcementItem; distanceM: number } | null;
   enforcement: readonly EnforcementItem[];
   offRoute: boolean;
   rerouting: boolean;
@@ -121,6 +150,8 @@ export class NavigationSession {
   private arrived = false;
 
   private offSince: number | null = null;
+  /** Az „Újratervezés” ennél a letérésnél már elhangzott (a letérés kezdetén, a kiírással együtt). */
+  private rerouteSaid = false;
   private rerouting = false;
   private rerouteFailed = false;
   private lastRerouteAt: number | null = null;
@@ -199,8 +230,12 @@ export class NavigationSession {
   setMeasuring(measuring: boolean): void {
     if (measuring === this.measuring) return;
     this.measuring = measuring;
-    if (measuring && this.offer && !this.exitBeforeSectionEnd(this.offer.exitAlongM)) {
-      this.held = { route: this.offer.route, gainS: this.offer.gainS, exitAlongM: this.offer.exitAlongM, exitName: this.offer.exitName };
+    if (measuring && this.offer && this.exitJustAfterGate(this.offer.exitAlongM)) {
+      this.declined.add(routeSignature(this.offer.route));
+      this.offer = null;
+    } else if (measuring && this.offer && !this.exitBeforeSectionEnd(this.offer.exitAlongM)) {
+      const o = this.offer;
+      this.held = { route: o.route, gainS: o.gainS, extraM: o.extraM, worth: altWorth(o.gainS, o.extraM, routeAvgKmh(o.route)), exitAlongM: o.exitAlongM, exitName: o.exitName };
       this.offer = null;
     } else if (!measuring && this.held) {
       const h = this.held;
@@ -260,20 +295,33 @@ export class NavigationSession {
 
     // letérés: 50 m-nél távolabb, 5 mp-ig (nagyon pontatlan fixnél nem ítélünk)
     if (accuracy === null || accuracy <= 80) {
-      if (this.cross > this.cfg.offRouteM) this.offSince ??= t0;
-      else this.offSince = null;
+      if (this.cross <= this.cfg.offRouteM) {
+        this.offSince = null;
+        this.rerouteSaid = false;
+      } else if (this.offSince === null) {
+        this.offSince = t0;
+        // a hang a sárga „Újratervezés” kiírással együtt szól, nem az új útvonal megérkezésekor
+        if (!this.rerouting && !this.rerouteSaid) {
+          this.rerouteSaid = true;
+          this.say('reroute', t('nav.voice.rerouting'));
+        }
+      }
     }
     if (this.offSince !== null && t0 - this.offSince >= this.cfg.offRouteMs && !this.rerouting && this.lastFix && this.canRoute(t0, this.lastRerouteAt, this.cfg.rerouteMinGapMs)) {
       this.startReroute(this.lastFix, t0);
     }
 
-    if (this.offer && t0 >= this.offer.expiresAt) this.declineOffer();
+    // lejárat: a „megéri” magától elfogadódik, a „lehet” / „nem éri meg” esetén marad a régi
+    if (this.offer && t0 >= this.offer.expiresAt) {
+      if (this.offer.verdict === 'worth') this.acceptOffer();
+      else this.declineOffer();
+    }
     // a leágazást elhagytuk: az ajánlat érvénytelen
     if (this.offer && this.offer.exitAlongM !== null && this.along > this.offer.exitAlongM + 50) this.offer = null;
     if (this.held && this.held.exitAlongM !== null && this.along > this.held.exitAlongM + 50) this.held = null;
     // Waze-minta: a lehajtó előtt 500 m-nél még egyszer
     const o = this.offer;
-    if (o && o.exitAlongM !== null && this.exit500For !== o.id && o.exitAlongM - this.along <= 500) {
+    if (o && o.verdict !== 'not' && o.exitAlongM !== null && this.exit500For !== o.id && o.exitAlongM - this.along <= 500) {
       this.exit500For = o.id;
       this.say('faster', t('nav.voice.fasterExit500'));
     }
@@ -309,9 +357,12 @@ export class NavigationSession {
     this.lastCallAt = t0;
     this.offer = null;
     this.held = null;
-    this.say('reroute', t('nav.voice.rerouting'));
+    if (!this.rerouteSaid) {
+      this.rerouteSaid = true;
+      this.say('reroute', t('nav.voice.rerouting'));
+    }
     const from: LatLon = { lat: fix.lat, lon: fix.lon };
-    this.fetchRoutes(from, this.destination, { heading: fix.heading, reason: 'reroute' }).then(
+    this.fetchRoutes(from, routeTarget(this.destination), { heading: fix.heading, reason: 'reroute' }).then(
       (routes) => {
         if (this.disposed) return;
         this.rerouting = false;
@@ -319,6 +370,7 @@ export class NavigationSession {
         if (r) {
           this.install(r);
           this.offSince = null;
+          this.rerouteSaid = false;
           this.lastAltAt = this.clock();
         } else this.rerouteFailed = true;
         this.changed();
@@ -339,7 +391,7 @@ export class NavigationSession {
     this.lastCallAt = t0;
     const version = this.routeVersion;
     const from: LatLon = { lat: fix.lat, lon: fix.lon };
-    this.fetchRoutes(from, this.destination, { heading: fix.heading, reason: 'alternatives' }).then(
+    this.fetchRoutes(from, routeTarget(this.destination), { heading: fix.heading, reason: 'alternatives' }).then(
       (routes) => {
         if (this.disposed) return;
         this.altPending = false;
@@ -362,37 +414,67 @@ export class NavigationSession {
     // a jelenlegi útvonal friss (forgalmas) idejét a vele egyező útvonal adja; ha nincs ilyen, a saját becslésünk
     const same = routes.find((r) => routeOverlap(this.route, r) >= 0.9);
     const baseline = same ? this.durationOf(same) : this.remainingS();
-    let best: { route: NavRoute; gainS: number } | null = null;
+    const baseM = same ? same.distanceM : this.route.distanceM - this.along;
+    // legalább 2 perc nyereség; a jelöltek közül a „megéri”-szabály szerint legjobb (legnagyobb nettó nyereség)
+    let best: { route: NavRoute; gainS: number; extraM: number; worth: AltWorth } | null = null;
     for (const r of routes) {
       if (r === same || this.declined.has(routeSignature(r))) continue;
       const gainS = baseline - this.durationOf(r);
-      if (gainS >= this.cfg.altMinGainS || gainS >= baseline * this.cfg.altMinGainFraction) {
-        if (!best || gainS > best.gainS) best = { route: r, gainS };
-      }
+      if (gainS < ALT_OFFER.minGainS) continue;
+      const extraM = r.distanceM - baseM;
+      const worth = altWorth(gainS, extraM, routeAvgKmh(r));
+      if (!best || worth.net > best.worth.net) best = { route: r, gainS, extraM, worth };
     }
     if (!best) return;
     const exit = firstNewManeuver(this.route, best.route);
     this.present({ ...best, exitAlongM: exit ? this.along + exit.distanceM : null, exitName: exit?.name ?? null });
   }
 
-  /** A mérés alatt álló szakasz végkapuja előtt van-e a leágazás (kézi mérésnél nincs végkapu → nem). */
-  private exitBeforeSectionEnd(exitAlongM: number | null): boolean {
-    if (exitAlongM === null) return false;
-    const sec = this.items.find((i) => i.kind === 'section' && i.startM <= this.along && this.along <= i.endM);
-    return sec !== undefined && exitAlongM < sec.endM;
+  /** A mérés alatt álló szakasz (a pozíció a kapui között); kézi mérésnél nincs. */
+  private measuredSection(): EnforcementItem | undefined {
+    return this.items.find((i) => i.kind === 'section' && i.startM <= this.along && this.along <= i.endM);
   }
 
-  /** Az ajánlat megjelenítése (és bemondása); mérés közben visszatartjuk. */
+  /** A mérés alatt álló szakasz végkapuja előtt van-e a leágazás (kézi mérésnél nincs végkapu → nem). */
+  private exitBeforeSectionEnd(exitAlongM: number | null): boolean {
+    const sec = this.measuredSection();
+    return exitAlongM !== null && sec !== undefined && exitAlongM < sec.endM;
+  }
+
+  /** Mérés közben a lehajtó a végkapu után, de `exitAfterGateM`-en belül: erre nem ajánlunk (se közben, se a mérés végén). */
+  private exitJustAfterGate(exitAlongM: number | null): boolean {
+    const sec = this.measuredSection();
+    return exitAlongM !== null && sec !== undefined && exitAlongM >= sec.endM && exitAlongM - sec.endM <= ALT_OFFER.exitAfterGateM;
+  }
+
+  /** Az ajánlat megjelenítése (és bemondása); mérés közben visszatartjuk, a kapu utáni közeli lehajtót elvetjük. */
   private present(best: Candidate): void {
+    if (this.measuring && this.exitJustAfterGate(best.exitAlongM)) {
+      this.declined.add(routeSignature(best.route));
+      return;
+    }
     if (this.measuring && !this.exitBeforeSectionEnd(best.exitAlongM)) {
       this.held = best;
       return;
     }
-    this.offer = { id: `offer-${++this.voiceSeq}`, route: best.route, gainS: best.gainS, exitAlongM: best.exitAlongM, exitName: best.exitName, exitInM: 0, exitKm: '', compact: false, expiresAt: this.clock() + this.cfg.offerTtlMs };
+    const w = best.worth;
+    this.offer = {
+      id: `offer-${++this.voiceSeq}`,
+      route: best.route,
+      gainS: best.gainS,
+      extraM: best.extraM,
+      verdict: w.verdict,
+      title: altOfferTitle(w),
+      exitAlongM: best.exitAlongM,
+      exitName: best.exitName,
+      exitInM: 0,
+      exitKm: '',
+      compact: false,
+      expiresAt: this.clock() + this.cfg.offerTtlMs,
+    };
     // a második (500 m-es) bemondás fölösleges, ha az első is 600 m-en belül hangzik el
     this.exit500For = best.exitAlongM !== null && best.exitAlongM - this.along <= 600 ? this.offer.id : null;
-    if (best.exitAlongM !== null) this.say('faster', t('nav.voice.fasterExit', { km: this.exitKm(best.exitAlongM - this.along) }));
-    else this.say('faster', t('nav.voice.faster', { n: Math.max(1, Math.round(best.gainS / 60)) }));
+    this.say('faster', altOfferVoice(w));
   }
 
   private offerView(o: AlternativeOffer): AlternativeOffer {
@@ -524,8 +606,14 @@ export class NavigationSession {
     const left = Math.max(0, step.startM + step.distanceM - this.along);
     const next = this.maneuverOf(step, left, left);
     const following = steps[idx + 1];
-    const then = following && step.endManeuver.type !== 'arrive' ? this.maneuverOf(following, following.distanceM, 0) : null;
+    let then: ManeuverView | null = null;
+    if (following && step.endManeuver.type !== 'arrive') {
+      const m = this.maneuverOf(following, following.distanceM, 0);
+      then = { ...m, text: thenText(following, steps[idx + 2], m.icon) };
+    }
     const up = this.items.find((it) => it.startM > this.along && it.startM - this.along <= this.cfg.enforcementWarnM) ?? null;
+    const camM = cameraAlertM(this.lastFix?.speed ?? null);
+    const cam = this.arrived ? null : (this.items.find((it) => it.kind === 'camera' && it.startM > this.along && it.startM - this.along <= camM) ?? null);
     const remainingS = this.arrived ? 0 : this.remainingS();
     this.cached = {
       phase: this.arrived ? 'arrived' : 'navigating',
@@ -541,6 +629,7 @@ export class NavigationSession {
       then,
       limitKmh: limitAt(this.route, this.along),
       upcoming: up ? { item: up, distanceM: up.startM - this.along } : null,
+      cameraNear: cam ? { item: cam, distanceM: cam.startM - this.along } : null,
       enforcement: this.items,
       offRoute: this.offSince !== null && this.cross > this.cfg.offRouteM,
       rerouting: this.rerouting,

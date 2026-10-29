@@ -24,6 +24,7 @@ export function SettingsSheet({
   saved,
   onPickPlace,
   onClearPlace,
+  onRemoveOther,
   onClose,
 }: {
   settings: Settings;
@@ -31,8 +32,9 @@ export function SettingsSheet({
   info: SystemInfo;
   simMode: boolean;
   saved: SavedPlaces;
-  onPickPlace: (kind: 'home' | 'work') => void;
+  onPickPlace: (kind: 'home' | 'work' | 'other') => void;
   onClearPlace: (kind: 'home' | 'work') => void;
+  onRemoveOther: (id: string) => void;
   onClose: () => void;
 }) {
   const { lang, preference, setPreference } = useLanguage();
@@ -140,6 +142,24 @@ export function SettingsSheet({
             </div>
           </div>
         ))}
+        {saved.others.map((p) => (
+          <div className="list-row" key={p.id}>
+            <div style={{ minWidth: 0 }}>
+              <div className="label">{p.name}</div>
+              {p.address && <div className="hint">{p.address}</div>}
+            </div>
+            <div className="mini-btns">
+              <button className="mini-btn" onClick={() => onRemoveOther(p.id)}>
+                {t('nav.place.remove')}
+              </button>
+            </div>
+          </div>
+        ))}
+        <div className="list-row">
+          <button className="mini-btn" onClick={() => onPickPlace('other')}>
+            {t('nav.place.add')}
+          </button>
+        </div>
       </div>
 
       <div className="group-label">{t('settings.group.status')}</div>

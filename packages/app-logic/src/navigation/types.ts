@@ -8,7 +8,15 @@ export interface Place {
   address: string;
   lat: number;
   lon: number;
+  /**
+   * Az útvonal célpontja, ha eltér a címtől: a Geocoding `routable_points` (a ház útra eső bejárata). A ház pontját a
+   * Directions a legközelebbi útra illeszti – sarki háznál a mellékutcára –, ezért a tervezés ide megy, a jelölő a címen marad.
+   */
+  routable?: LatLon;
 }
+
+/** A tervezés célpontja: a cím útra illesztett pontja, ha van, különben maga a cím. */
+export const routeTarget = (p: { lat: number; lon: number; routable?: LatLon }): LatLon => p.routable ?? { lat: p.lat, lon: p.lon };
 
 export type Congestion = 'unknown' | 'low' | 'moderate' | 'heavy' | 'severe';
 
@@ -68,6 +76,7 @@ export interface NavDestination {
   name: string;
   lat: number;
   lon: number;
+  routable?: LatLon;
 }
 
 export type EnforcementKind = 'section' | 'camera' | 'planned';

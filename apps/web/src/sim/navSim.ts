@@ -150,15 +150,40 @@ function withExit(steps: NavStep[], route: Route, exitM: number): NavStep[] {
   return [...steps.slice(0, at), exit, rest, ...steps.slice(at + 1)].map((s, k) => ({ ...s, index: k }));
 }
 
-/** Gyorsabb (de más vonalú) alternatíva: a fő útvonal ívesen eltolva, a hátralévő időnél 7 perccel rövidebb. */
-function fasterAlternative(base: NavRoute, id: string, gainS = 420): NavRoute {
+/**
+ * A szimulált alternatíva fajtája (AW12, `?navsim&alt=…`): a „megéri”-szabály három kategóriája, illetve egy, a mérés
+ * végkapuja után 500 m-rel lehajtó (megéri-kategóriájú) alternatíva – erre mérés közben nem szabad ajánlatot adni.
+ */
+export type SimAltMode = 'worth' | 'maybe' | 'not' | 'aftergate';
+export const SIM_ALT_MODES: readonly SimAltMode[] = ['worth', 'maybe', 'not', 'aftergate'];
+
+/** Nyereség (s) és többlet-táv (m) kategóriánként; az autópályás átlagsebességgel (~100 km/h, k ≈ 0,4 perc/km). */
+export const SIM_ALTS: Record<SimAltMode, { gainS: number; extraM: number }> = {
+  worth: { gainS: 420, extraM: 4000 },
+  maybe: { gainS: 180, extraM: 5000 },
+  not: { gainS: 600, extraM: 40_000 },
+  aftergate: { gainS: 420, extraM: 4000 },
+};
+
+/** A kapu utáni lehajtó ennyivel a mért szakasz végkapuja után (m) – az `exitAfterGateM` (1 km) sávon belül. */
+export const SIM_EXIT_AFTER_GATE_M = 500;
+
+/**
+ * Gyorsabb (de más vonalú) alternatíva: a fő útvonal ívesen eltolva, a hátralévő időnél `gainS`-sel rövidebb, `extraM`-rel
+ * hosszabb; a lehajtó az elejétől `exitM` méterre.
+ */
+function fasterAlternative(base: NavRoute, id: string, gainS = 420, extraM = 0, exitM = SIM_EXIT_M): NavRoute {
   const n = base.points.length;
   const points = base.points.map((p, i) => ({ lat: p.lat + 0.0042 * Math.sin((Math.PI * i) / (n - 1)), lon: p.lon }));
   const lens = lengths(points);
-  let cum = 0;
+  let geom = 0;
+  for (const l of lens) geom += l;
+  // a névleges hossz (mint a Directions `distance`): a fő útvonal + a kerülő; a geometriát erre skálázzuk
+  const cum = base.distanceM + extraM;
+  let acc = 0;
   const segStartM = lens.map((l) => {
-    const s = cum;
-    cum += l;
+    const s = acc;
+    acc += (l * cum) / geom;
     return s;
   });
   const total = base.segDurationS.reduce((a, b) => a + b, 0);
@@ -190,7 +215,7 @@ function fasterAlternative(base: NavRoute, id: string, gainS = 420): NavRoute {
     typicalDurationS: total * k,
     segStartM,
     segDurationS: base.segDurationS.map((d) => d * k),
-    steps: withExit(shiftedSteps, new Route(points, cum), SIM_EXIT_M),
+    steps: withExit(shiftedSteps, new Route(points, cum), exitM),
   };
 }
 
@@ -202,6 +227,8 @@ export interface NavSimData {
   main: NavRoute;
   detour: SimDetour;
   section: Section;
+  /** A szakasz végkapuja a fő útvonal mentén (m). */
+  sectionEndM: number;
   camera: FixedCamera;
   /** A bejátszott fixek: 1. ablak (indulás + letérés), 2. ablak (szakasz + kamera), 3. ablak (érkezés). */
   samples: DriveSample[];
@@ -287,19 +314,23 @@ export function buildNavSim(t0 = Date.now()): NavSimData {
   );
   const bEnd = b.at(-1)!.t + 1000;
   const c = run(pathC, bEnd, (s) => (s < 1800 ? 100 : 50), 13);
-  return { main, detour, section, camera, samples: [...a, ...b, ...c], windows: [0, a.length, a.length + b.length] };
+  return { main, detour, section, sectionEndM: S0 + 3000, camera, samples: [...a, ...b, ...c], windows: [0, a.length, a.length + b.length] };
 }
 
 /** A szimulátor Directions-szolgáltatója: tervezés a fixtúrából, újratervezés / alternatíva a fixtúra útvonalából. */
-export function simRouteFetcher(data: Pick<NavSimData, 'main' | 'detour'>): RouteFetcher {
+export function simRouteFetcher(data: Pick<NavSimData, 'main' | 'detour' | 'sectionEndM'>, alt: SimAltMode = 'worth'): RouteFetcher {
   let n = 0;
   return async (from, _to, ctx) => {
     await new Promise((r) => setTimeout(r, 120));
     if (ctx.reason === 'plan') return simMainRoutes();
     const here = routeFrom(data.main, data.detour, from, `sim-${ctx.reason}-${++n}`);
     if (ctx.reason === 'reroute') return [here];
-    // alternatíva-figyelés: a jelenlegi útvonal frissített változata + egy 7 perccel gyorsabb
-    return [here, fasterAlternative(here, `sim-fast-${n}`)];
+    // alternatíva-figyelés: a jelenlegi útvonal frissített változata + egy gyorsabb, a kért kategóriával
+    const { gainS, extraM } = SIM_ALTS[alt];
+    if (alt !== 'aftergate') return [here, fasterAlternative(here, `sim-fast-${alt}-${n}`, gainS, extraM)];
+    // a kapu utáni lehajtó helyhez kötött: ha már elhagytuk, nincs ilyen alternatíva
+    const exitM = data.sectionEndM + SIM_EXIT_AFTER_GATE_M - new Route(data.main.points, data.main.distanceM).project(from).alongM;
+    return exitM > 100 ? [here, fasterAlternative(here, `sim-fast-${alt}-${n}`, gainS, extraM, exitM)] : [here];
   };
 }
 
