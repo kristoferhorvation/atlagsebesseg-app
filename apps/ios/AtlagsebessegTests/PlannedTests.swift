@@ -48,6 +48,8 @@ struct PlannedLineTests {
     func vonal() {
         let r = plannedRoutes(check())
         #expect(PLANNED_MATCH_M == 100)
+        // a navigáció útvonal-elemzésének külön tűrése (a webes navigációé; generált)
+        #expect(ROUTE_MATCH_M == 40)
         #expect(onPlannedLine(at(500, 0), routes: r))
         #expect(onPlannedLine(at(500, 60), routes: r))
         #expect(onPlannedLine(at(500, 95), routes: r))

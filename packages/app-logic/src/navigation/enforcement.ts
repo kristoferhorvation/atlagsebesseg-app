@@ -33,10 +33,11 @@ type Box = ReturnType<typeof bounds>;
 const inBox = (p: LatLon, b: Box) => p.lat >= b.s && p.lat <= b.n && p.lon >= b.w && p.lon <= b.e;
 
 /**
- * Az útvonal 40 m-es sávjába eső szakaszok, kamerák és tervezett mérések, az útvonal menti
+ * Az útvonal `bandM` (alapból `ROUTE_MATCH_M`, 40 m) sávjába eső szakaszok, kamerák és tervezett mérések, az útvonal menti
  * sorrendben. Szakasz: a kezdő- és a végpontja is a sávban, a haladási iránnyal egyezően;
  * kamera: csak ha a láthatósága `show` (zóna / rejtett országban a pontos hely nem kerül ki);
- * tervezett mérés: az útvonal 50 m-enként mintavételezett pontjai a vonalon / zónában.
+ * tervezett mérés: az útvonal 50 m-enként mintavételezett pontjai a vonalon (szintén `bandM`, nem a sáv
+ * 100 m-es `PLANNED_MATCH_M`-je) / zónában.
  */
 export function routeEnforcement(navRoute: NavRoute, data: EnforcementData, now: number, bandM = NAV_CONFIG.enforcementBandM): EnforcementItem[] {
   const route = new Route(navRoute.points, navRoute.distanceM);
@@ -74,7 +75,7 @@ export function routeEnforcement(navRoute: NavRoute, data: EnforcementData, now:
     let from: number | null = null;
     let to = 0;
     for (const s of samples) {
-      if (onPlannedCheck(s.p, c)) {
+      if (onPlannedCheck(s.p, c, bandM)) {
         from ??= s.along;
         to = s.along;
       }

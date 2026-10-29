@@ -67,8 +67,9 @@ Gyökér: `npm test` és `npm run typecheck` minden csomagra; `npm run test:all`
   „ki” módban a sáv marad, csak hang és rezgés nincs (`AlertDispatcher`). **Döntés (2026-10-29):** iránnyal
   megadott kamera ellenirányban nem szól (nem a mi irányunkat méri); a visszaforduláskori újrajelzés csak irány
   nélküli kamerára és a szakaszkapura igaz.
-- Közös konstansok a webbel: a tervezett mérés tűrése (`PLANNED_MATCH_M`, 100 m) és a letérés-küszöb az
-  app-logicban van; az iOS a generált `Generated/AppLogicConstants.swift`-ből olvassa.
+- Közös konstansok a webbel: a tervezett mérés sávjának tűrése (`PLANNED_MATCH_M`, 100 m), a letérés-küszöb és a
+  navigációs útvonal-elemzés tűrése (`ROUTE_MATCH_M`, 40 m – szakasz / kamera / tervezett mérés az útvonalon) az
+  app-logicban van; az iOS a generált `Generated/AppLogicConstants.swift`-ből olvassa. A kettő szándékosan külön.
 - Betű: **Inter** (mint a weben) – `Resources/Fonts/InterVariable.ttf` (OFL, `Inter-OFL.txt`), `UIAppFonts`;
   a nézetekben `Font.inter(méret, súly)` / `.num(…)` a token pontos súlyával. Rendszerbetű (`.system(size:)`)
   nem kerülhet a kódba (AppTests-őr).

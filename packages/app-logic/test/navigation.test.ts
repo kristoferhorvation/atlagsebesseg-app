@@ -1,5 +1,6 @@
 import { LocalProjection, Route, type GpsFix, type LatLon, type Section } from '@atlagsebesseg/core';
 import type { FixedCamera } from '../src/cameras';
+import { PLANNED_MATCH_M, type PlannedCheck } from '../src/plannedChecks';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { BUDAPEST_GYOR_DIRECTIONS } from '../src/navigation/fixtures';
 import {
@@ -21,6 +22,7 @@ import {
   parseSaved,
   RequestCounter,
   remainingSeconds,
+  ROUTE_MATCH_M,
   routeEnforcement,
   routeSummary,
   SearchController,
@@ -566,6 +568,32 @@ describe('szakaszok az útvonal sávjában', () => {
     expect(items.map((i) => i.id)).toEqual(['kozel']);
     expect(items[0]!.startM).toBeCloseTo(2000, -1);
     expect(items[0]!.endM).toBeCloseTo(6000, -1);
+  });
+
+  it('a tervezett mérés is a 40 m-es (ROUTE_MATCH_M) sávval kerül az útra, nem a sáv 100 m-es tűrésével', () => {
+    expect(ROUTE_MATCH_M).toBe(40);
+    expect(NAV_CONFIG.enforcementBandM).toBe(ROUTE_MATCH_M);
+    expect(PLANNED_MATCH_M).toBe(100);
+    const planned = (id: string, crossM: number): PlannedCheck => ({
+      id,
+      country: 'HU',
+      county: 'Fejér',
+      settlement: null,
+      roadRef: 'M1',
+      description: '',
+      lines: [[at(route, 3000, crossM), at(route, 5000, crossM)]],
+      zones: [],
+      speedLimitKmh: 90,
+      limitSource: 'osm',
+      validFrom: T0 - 86_400_000,
+      validTo: T0 + 86_400_000,
+      timeWindow: null,
+      sourceUrl: 'https://www.police.hu/',
+    });
+    const items = routeEnforcement(route, { sections: [], cameras: [], planned: [planned('kozel', 20), planned('parhuzamos', 70)] }, T0);
+    expect(items.map((i) => i.id)).toEqual(['kozel']);
+    expect(items[0]!.startM).toBeCloseTo(3000, -2);
+    expect(items[0]!.endM).toBeCloseTo(5000, -2);
   });
 
   it('az ellenkező irányú szakasz nem kerül be', () => {

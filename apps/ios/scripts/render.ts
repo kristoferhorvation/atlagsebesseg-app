@@ -1,4 +1,4 @@
-import { DICTIONARIES, LANGUAGES, PLANNED_MATCH_M, PLANNED_OFF_FIXES, type FixedCamera, type PlannedCheck, type TKey } from '@atlagsebesseg/app-logic';
+import { DICTIONARIES, LANGUAGES, PLANNED_MATCH_M, PLANNED_OFF_FIXES, ROUTE_MATCH_M, type FixedCamera, type PlannedCheck, type TKey } from '@atlagsebesseg/app-logic';
 import { Route, type LatLon } from '@atlagsebesseg/core';
 import { testCourse } from '@atlagsebesseg/core/test/helpers/trace';
 import { toSwift } from '@atlagsebesseg/design-tokens';
@@ -38,12 +38,15 @@ function appLogicConstants(): string {
   const num = (x: number) => (Number.isInteger(x) ? `${x}.0` : String(x));
   return [
     '// GENERÁLT FÁJL – kézzel ne szerkeszd.',
-    '// Forrás: packages/app-logic/src/plannedChecks.ts; újragenerálás: npm run generate -w @atlagsebesseg/ios',
+    '// Forrás: packages/app-logic/src/plannedChecks.ts, navigation/config.ts; újragenerálás: npm run generate -w @atlagsebesseg/ios',
     '',
     '/// A tervezett mérés vonalának tűrése (m): ennyi méteren belül számít a pozíció a vonalon lévőnek.',
     `nonisolated let PLANNED_MATCH_M = ${num(PLANNED_MATCH_M)}`,
     '/// Ennyi egymás utáni, vonalon kívüli fix után tűnik el a sáv (egy kiugró GPS-pont nem tünteti el).',
     `nonisolated let PLANNED_OFF_FIXES = ${PLANNED_OFF_FIXES}`,
+    '/// A navigációs útvonal-elemzés tűrése (m): ennyire közel lévő szakasz / kamera / tervezett mérés kerül az útvonalra.',
+    '/// Nem azonos a tervezett mérés sávjának tűrésével (PLANNED_MATCH_M).',
+    `nonisolated let ROUTE_MATCH_M = ${num(ROUTE_MATCH_M)}`,
     '',
   ].join('\n');
 }

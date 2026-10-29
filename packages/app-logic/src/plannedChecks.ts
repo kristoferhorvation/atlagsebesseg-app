@@ -71,8 +71,9 @@ export function rowToPlannedCheck(r: PlannedCheckRow): PlannedCheck {
 }
 
 /**
- * A tervezett mérés vonalának tűrése: ennyi méteren belül számít a pozíció a vonalon lévőnek (A10-döntés: 100 m,
- * a webben és az iOS-en közösen – az iOS a generált `AppLogicConstants.swift`-ből olvassa).
+ * A tervezett mérés vonalának tűrése: ennyi méteren belül számít a pozíció a vonalon lévőnek, és jelenik meg a sáv
+ * (A10-döntés: 100 m, a webben és az iOS-en közösen – az iOS a generált `AppLogicConstants.swift`-ből olvassa).
+ * A navigáció útvonal-elemzése nem ezt, hanem a saját `ROUTE_MATCH_M`-et (40 m) használja.
  */
 export const PLANNED_MATCH_M = 100;
 /** Ennyi egymás utáni, vonalon kívüli fix után tűnik el a sáv (egy kiugró GPS-pont nem tünteti el). */
@@ -123,8 +124,9 @@ export function inPlannedZone(p: LatLon, c: PlannedCheck): boolean {
   return c.zones.some(([outer, ...holes]) => !!outer && inRing(p, outer) && !holes.some((h) => inRing(p, h)));
 }
 
-/** A pont a mérés helyén van-e: vonalnál ≤ {@link PLANNED_MATCH_M}, zónánál a határon belül. */
-export const onPlannedCheck = (p: LatLon, c: PlannedCheck): boolean => (plannedIsZone(c) ? inPlannedZone(p, c) : onPlannedLine(p, c));
+/** A pont a mérés helyén van-e: vonalnál ≤ `toleranceM` (alapból {@link PLANNED_MATCH_M}), zónánál a határon belül. */
+export const onPlannedCheck = (p: LatLon, c: PlannedCheck, toleranceM = PLANNED_MATCH_M): boolean =>
+  plannedIsZone(c) ? inPlannedZone(p, c) : onPlannedLine(p, c, toleranceM);
 
 /**
  * Melyik tervezett mérés vonalán (zónájában) halad a felhasználó: a sáv a vonalra érve azonnal megjelenik, és

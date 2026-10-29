@@ -15,7 +15,7 @@ export interface NavConfig {
   altMinGainFraction: number;
   /** Az ajánlat ennyi ideig áll nyitva, utána elvetettnek számít (ms). */
   offerTtlMs: number;
-  /** Az útvonal ennyire közel lévő szakaszt / kamerát / mérést veszünk az útvonalra (m). */
+  /** Az útvonal ennyire közel lévő szakaszt / kamerát / mérést veszünk az útvonalra (m); alapból {@link ROUTE_MATCH_M}. */
   enforcementBandM: number;
   /** Ekkora távolságtól jelezzük a közeledő szakaszt a felső kártyán (m). */
   enforcementWarnM: number;
@@ -32,6 +32,12 @@ export interface NavConfig {
   recentMax: number;
 }
 
+/**
+ * A navigációs útvonal-elemzés tűrése (m): ennyire közel lévő szakaszt / kamerát / tervezett mérést veszünk az
+ * útvonalra (a core `entryCrossM`-mel egyező 40 m). A vonalon haladás sávjának tűrése külön: `PLANNED_MATCH_M`.
+ */
+export const ROUTE_MATCH_M = 40;
+
 export const NAV_CONFIG: NavConfig = {
   offRouteM: 50,
   offRouteMs: 5_000,
@@ -41,7 +47,7 @@ export const NAV_CONFIG: NavConfig = {
   altMinGainS: 300,
   altMinGainFraction: 0.15,
   offerTtlMs: 45_000,
-  enforcementBandM: 40,
+  enforcementBandM: ROUTE_MATCH_M,
   enforcementWarnM: 2000,
   enforcementVoiceM: 500,
   arriveM: 30,
