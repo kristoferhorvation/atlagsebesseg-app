@@ -497,7 +497,7 @@ describe('alternatíva-figyelés', () => {
     expect(offer!.expiresAt).toBe(T0 + 120_000 + NAV_CONFIG.offerTtlMs);
     const voice = h.session.drainVoice().filter((v) => v.kind === 'faster');
     expect(voice).toHaveLength(1);
-    expect(voice[0]!.text).toBe(altOfferVoice(altWorth(offer!.gainS, offer!.extraM, routeAvgKmh(offer!.route))));
+    expect(voice[0]!.text).toBe(altOfferVoice(altWorth(offer!.gainS, offer!.extraM, routeAvgKmh(offer!.route)), offer!.exitKm));
     // a mérés végén a forma nem kompakt, az ajánlat marad
     h.session.setMeasuring(false);
     expect(h.session.view().offer!.compact).toBe(false);
@@ -1048,7 +1048,9 @@ describe('AW12: „megéri”-szabály a gyorsabb útra', () => {
     const worth = await categoryOffer(7, 4);
     expect(worth.offer.verdict).toBe('worth');
     expect(worth.offer.title).toBe('Megéri · −7 perc, +4 km');
-    expect(worth.voice).toEqual(['Gyorsabb út, 7 perc megtakarítás']);
+    // AW13: a „megéri” bemondás a lehajtó távolságával
+    expect(worth.voice).toHaveLength(1);
+    expect(worth.voice[0]).toMatch(/^Gyorsabb út, 7 perc megtakarítás, lehajtó \d+,\d kilométernél$/);
 
     const maybe = await categoryOffer(2, 1);
     expect(maybe.offer.verdict).toBe('maybe');
@@ -1101,7 +1103,7 @@ describe('AW12: „megéri”-szabály a gyorsabb útra', () => {
   });
 });
 
-describe('AW12: mérés közben a kapu utáni közeli lehajtó', () => {
+describe('AW13: mérés közben a kapu utáni közeli lehajtó azonnal', () => {
   const fixture = () => {
     const [main, other] = parseDirections(BUDAPEST_GYOR_DIRECTIONS, 'fx') as [NavRoute, NavRoute];
     const core = new Route(main.points, main.distanceM);
@@ -1123,25 +1125,44 @@ describe('AW12: mérés közben a kapu utáni közeli lehajtó', () => {
     return { h, f };
   }
 
-  it('a lehajtó a végkapu után 1 km-en belül → nincs ajánlat, se közben, se a mérés végén', async () => {
+  it('a lehajtó a végkapu után 1 km-en belül → azonnal, kompakt ajánlat bemondással (mint a kapu előtti esetben)', async () => {
     const { h } = await measuring(500);
-    expect(h.session.view().offer).toBeNull();
+    const offer = h.session.view().offer;
+    expect(offer).not.toBeNull();
+    expect(offer!.compact).toBe(true);
+    expect(h.session.drainVoice().filter((v) => v.kind === 'faster')).toHaveLength(1);
+    // a mérés végén az ajánlat marad, teljes formában
     h.session.setMeasuring(false);
-    expect(h.session.view().offer).toBeNull();
-    expect(h.session.drainVoice().some((v) => v.kind === 'faster')).toBe(false);
+    expect(h.session.view().offer!.compact).toBe(false);
   });
 
-  it('a végkaputól 1 km-nél messzebb → visszatartva, a mérés végén megjelenik', async () => {
+  it('a határ: a végkapu után pontosan 1 km → azonnal; 1 km-nél messzebb → visszatartva, a mérés végén megjelenik', async () => {
+    const at = await measuring(ALT_OFFER.exitAfterGateM);
+    expect(at.h.session.view().offer?.compact).toBe(true);
     const { h } = await measuring(ALT_OFFER.exitAfterGateM + 300);
     expect(h.session.view().offer).toBeNull();
+    expect(h.session.drainVoice().some((v) => v.kind === 'faster')).toBe(false);
     h.session.setMeasuring(false);
     expect(h.session.view().offer).not.toBeNull();
+    expect(h.session.drainVoice().filter((v) => v.kind === 'faster')).toHaveLength(1);
   });
 
-  it('a már látható ajánlat eltűnik, ha mérés kezdődik és a lehajtó a kapu után 1 km-en belül van', async () => {
+  it('a már látható ajánlat marad (kompakt formában), ha mérés kezdődik és a lehajtó a kapu után 1 km-en belül van', async () => {
     const f = fixture();
     const h = harness(f.main);
     h.session.setData({ sections: [f.section(400, f.exitAlong - 200)], cameras: [], planned: [] });
+    h.respond([f.main, f.alt]);
+    feed(h, f.fix(1000, T0 + 120_000));
+    await flush();
+    const id = h.session.view().offer!.id;
+    h.session.setMeasuring(true);
+    expect(h.session.view().offer).toMatchObject({ id, compact: true });
+  });
+
+  it('a már látható ajánlat visszatartódik, ha mérés kezdődik és a lehajtó a kaputól 1 km-nél messzebb van', async () => {
+    const f = fixture();
+    const h = harness(f.main);
+    h.session.setData({ sections: [f.section(400, f.exitAlong - ALT_OFFER.exitAfterGateM - 300)], cameras: [], planned: [] });
     h.respond([f.main, f.alt]);
     feed(h, f.fix(1000, T0 + 120_000));
     await flush();
@@ -1149,7 +1170,51 @@ describe('AW12: mérés közben a kapu utáni közeli lehajtó', () => {
     h.session.setMeasuring(true);
     expect(h.session.view().offer).toBeNull();
     h.session.setMeasuring(false);
-    expect(h.session.view().offer).toBeNull();
+    expect(h.session.view().offer).not.toBeNull();
+  });
+
+  it('a munkamenet „megéri” bemondása a lehajtó távolságával (a Budapest→Győr fixtúrán)', async () => {
+    const f = fixture();
+    const h = harness(f.main);
+    h.session.setData({ sections: [], cameras: [], planned: [] });
+    h.respond([f.main, f.alt]);
+    feed(h, f.fix(1000, T0 + 120_000));
+    await flush();
+    const offer = h.session.view().offer!;
+    expect(offer.verdict).toBe('worth');
+    const [voice] = h.session.drainVoice().filter((v) => v.kind === 'faster');
+    expect(voice!.text).toMatch(/^Gyorsabb út, \d+ perc megtakarítás, lehajtó \d+,\d kilométernél$/);
+    expect(voice!.text).toContain(offer.exitKm);
+  });
+
+  it('timeLeft (a fogyó csík): 1-ről a lejáratig fogy', async () => {
+    const f = fixture();
+    const h = harness(f.main);
+    h.session.setData({ sections: [], cameras: [], planned: [] });
+    h.respond([f.main, f.alt]);
+    feed(h, f.fix(1000, T0 + 120_000));
+    await flush();
+    expect(h.session.view().offer!.timeLeft).toBe(1);
+    feed(h, f.fix(1100, T0 + 120_000 + NAV_CONFIG.offerTtlMs / 3));
+    expect(h.session.view().offer!.timeLeft).toBeCloseTo(2 / 3, 5);
+  });
+});
+
+describe('AW13: „megéri” bemondás a lehajtóval', () => {
+  it('„Gyorsabb út, {perc} perc megtakarítás, lehajtó {km} kilométernél”; ismeretlen lehajtónál a lehajtó nélkül; 6 nyelven', () => {
+    const w = { gainMin: 7, extraKm: 4, verdict: 'worth' as const };
+    expect(altOfferVoice(w, '5,2')).toBe('Gyorsabb út, 7 perc megtakarítás, lehajtó 5,2 kilométernél');
+    expect(altOfferVoice(w)).toBe('Gyorsabb út, 7 perc megtakarítás');
+    // a „lehet” és a „nem éri meg” szövege nem változik
+    expect(altOfferVoice({ ...w, verdict: 'maybe' }, '5,2')).toBe('Gyorsabb út, 7 perc, 4 kilométer kerülő, te döntesz');
+    expect(altOfferVoice({ ...w, verdict: 'not' }, '5,2')).toBe('Gyorsabb út, de nem éri meg, 4 kilométer kerülő');
+    for (const lang of LANGUAGES) {
+      setLanguage(lang);
+      const text = altOfferVoice(w, '5,2');
+      expect(text, lang).toMatch(/7/);
+      expect(text, lang).toContain('5,2');
+      expect(text, lang).not.toMatch(/[{}]/);
+    }
   });
 });
 

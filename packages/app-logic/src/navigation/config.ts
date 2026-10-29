@@ -69,7 +69,10 @@ export const ALT_OFFER = {
   fastKmh: 110,
   kSlow: 1.0,
   kFast: 0.3,
-  /** Mérés közben a végkapu UTÁN, de ennyin belül lévő lehajtóra nem ajánlunk (se közben, se a mérés végén) (m). */
+  /**
+   * Mérés közben a lehajtó a végkapu előtt vagy UTÁNA ennyin belül: azonnali (kompakt) ajánlat bemondással (AW13);
+   * a távolabbi lehajtó a mérés végéig vár (m).
+   */
   exitAfterGateM: 1000,
 } as const;
 

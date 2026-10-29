@@ -152,7 +152,8 @@ function withExit(steps: NavStep[], route: Route, exitM: number): NavStep[] {
 
 /**
  * A szimulált alternatíva fajtája (AW12, `?navsim&alt=…`): a „megéri”-szabály három kategóriája, illetve egy, a mérés
- * végkapuja után 500 m-rel lehajtó (megéri-kategóriájú) alternatíva – erre mérés közben nem szabad ajánlatot adni.
+ * végkapuja után 500 m-rel lehajtó (megéri-kategóriájú) alternatíva – erre mérés közben is azonnal, kompakt kártyával
+ * és bemondással kell ajánlani (AW13: a kapu utáni 1 km-en belüli lehajtó nem vár a mérés végéig).
  */
 export type SimAltMode = 'worth' | 'maybe' | 'not' | 'aftergate';
 export const SIM_ALT_MODES: readonly SimAltMode[] = ['worth', 'maybe', 'not', 'aftergate'];
@@ -165,7 +166,7 @@ export const SIM_ALTS: Record<SimAltMode, { gainS: number; extraM: number }> = {
   aftergate: { gainS: 420, extraM: 4000 },
 };
 
-/** A kapu utáni lehajtó ennyivel a mért szakasz végkapuja után (m) – az `exitAfterGateM` (1 km) sávon belül. */
+/** A kapu utáni lehajtó ennyivel a mért szakasz végkapuja után (m) – az `exitAfterGateM` (1 km) sávon belül: azonnali ajánlat. */
 export const SIM_EXIT_AFTER_GATE_M = 500;
 
 /**

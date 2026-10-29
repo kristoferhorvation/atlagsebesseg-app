@@ -130,18 +130,22 @@ const exitLine = (o: AlternativeOffer): string | null =>
 
 /**
  * Felugró ajánlat (AW12): „Megéri · −7 perc, +4 km” / „Lehet · −2 perc, +1 km” / „Nem éri meg · +20 km kerülő, −10 perc”,
- * alatta a lehajtó; Elfogad / Elvet (56 px-es gombok). A kiemelt gomb az, ami 45 s után magától történik.
+ * alatta a lehajtó; Elfogad / Elvet (56 px-es gombok). A kiemelt gomb az, ami 45 s után magától történik; alatta vékony,
+ * fogyó csík mutatja a hátralévő időt, szám nélkül (AW13).
  */
 export function OfferCard({ offer, onAccept, onDecline }: { offer: AlternativeOffer; onAccept: () => void; onDecline: () => void }) {
   const exit = exitLine(offer);
   const acceptByDefault = offer.verdict === 'worth';
+  const timer = <span className="nav-offer-timer" aria-hidden="true" style={{ transform: `scaleX(${offer.timeLeft})` }} />;
   const buttons = (
     <>
       <button className={acceptByDefault ? 'btn' : 'btn primary'} onClick={onDecline}>
         {t('nav.offer.decline')}
+        {!acceptByDefault && timer}
       </button>
       <button className={acceptByDefault ? 'btn primary' : 'btn'} onClick={onAccept}>
         {t('nav.offer.accept')}
+        {acceptByDefault && timer}
       </button>
     </>
   );

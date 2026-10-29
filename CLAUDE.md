@@ -92,12 +92,28 @@ Gyökér: `npm test` és `npm run typecheck` minden csomagra; `npm run test:all`
   (`announce`), a fontos mondat (szakasz, túl gyors, újratervezés, gyorsabb út) megszakítja a fordulót.
 - **AW12 (első éles navi-teszt, Kristof 2026-10-29), weben kész, iOS-port hátra:** „Gyorsabb út” ≥ 2 perc nyereségtől,
   `net = Δperc − k·Δkm` (k az alternatíva átlagsebességéből, 40 km/h-ig 1,0, 110-től 0,3) → Megéri (45 s után elfogad) /
-  Lehet / Nem éri meg (45 s után marad); mérés közben a végkapu utáni 1 km-en belüli lehajtóra nincs ajánlat; az
-  „Újratervezés” hang a letérés kezdetén; kamera `max(250 m, 10 s × v)`-n belül borostyán felső sáv + egy rezgés;
+  Lehet / Nem éri meg (45 s után marad); ~~mérés közben a végkapu utáni 1 km-en belüli lehajtóra nincs ajánlat~~ (hibás
+  volt, az AW13 javította, lásd lent); az „Újratervezés” hang a letérés kezdetén; kamera `max(250 m, 10 s × v)`-n belül borostyán felső sáv + egy rezgés;
   „Utána” sor: ikon + utcanév / rövid manőver-szó (`thenText`); érkezés: a Geocoding `routable_points`-ra tervezünk, az
   `arriveM`-nél rövidebb utolsó lépés beolvad az érkezésbe (`absorbArrivalStub`); követő zoom `navFollowZoom`, az autó az
   alsó harmadban (`NAV_FOLLOW`). Konstansok: `ALT_OFFER`, `CAMERA_ALERT`, `NAV_FOLLOW` (`navigation/config.ts`). A Swift
   `NavConfig` `altMinGainS`/`altMinGainFraction` mezője átmenetileg alapértékes (a generált `NAV_CONFIG` már nem adja).
+- **AW13 (Kristof 2026-10-29), weben kész, iOS-port hátra – ezt vegye át az AOS-port:**
+  - **Gyorsabb út mérés közben:** ha a lehajtó a mért szakasz végkapuja **előtt**, vagy a végkapu **után legfeljebb 1 km-rel**
+    van (`ALT_OFFER.exitAfterGateM` = 1000 m, a határ még azonnali), az ajánlat **azonnal** megjelenik kompakt kártyával
+    és bemondással, mint a kapu előtti esetben. Csak az 1 km-nél távolabbi lehajtó vár a mérés végéig (visszatartva, a
+    mérés végén jelenik meg). Ugyanez érvényes, ha már látható ajánlat mellett kezdődik mérés: 1 km-en belül → marad
+    (kompakt), azon túl → visszatartva. Kézi mérésnél nincs végkapu → visszatartva. (`NavigationSession.exitNearSectionEnd`.)
+  - A kiemelt (45 s után magától történő) gomb alatt vékony, fogyó csík, szám nélkül: `AlternativeOffer.timeLeft` (1 → 0).
+  - „Megéri” bemondás a lehajtóval: `nav.voice.fasterWorthExit` („Gyorsabb út, {n} perc megtakarítás, lehajtó {km}
+    kilométernél”, a km a lehajtóig, egy tizedessel); ismeretlen lehajtónál a régi `nav.voice.faster`. A „Lehet” és a
+    „Nem éri meg” szövege nem változott.
+  - Helyhozzáférés (`packages/app-logic/src/location.ts`): indításkor automatikus kérés; `retryOnGesture` – az első
+    érintés / kattintás bárhol újra kér, ha nincs pozíció és az engedély eldöntetlen (Mac Safari gesztus nélkül nem
+    kérdez); a GPS-pill `gpsPillAction`: `prompt` → kérés, `denied` → kis lap („A helyhozzáférés le van tiltva” + a
+    bekapcsolás útja: `deniedHelpSteps(detectBrowser(ua, maxTouchPoints))` – iOS Safari / Mac Safari / Chrome / Android
+    Chrome / egyéb), `granted` → csak pontosság, koppintásra semmi. iOS-en a megfelelő: `notDetermined` → kérés,
+    `denied`/`restricted` → lap a Beállítások-megnyitással.
 - Navigációs szimulátor: `-sim navsim` indulás előtt a kiindulóponton áll, a lejátszás a navigáció indításakor kezdődik
   (mint a webes `/?navsim`); `-navStage search|picker|nav` (és `-navQuery`) egy állapotba ugrik, a `-simSeek` az
   ugrás előtti utolsó ablak elejéről játszik le. A bemondások szimulátorban a naplóba is mennek (`NAV-VOICE`).
@@ -108,6 +124,12 @@ Gyökér: `npm test` és `npm run typecheck` minden csomagra; `npm run test:all`
 - Minden prompt „AW<n> kör” vagy „AOS<n> kör”-rel kezdődik; minden commit-üzenet `AW<n>: ...` / `AOS<n>: ...` prefixű.
 - A kör végén frissül a `ROUNDS.md` (dátum, modell, fő commit, 1 mondat); **minden sor végén** `(local)` vagy
   `(cloud)` – hol készült a kör (felhőben készült, helyben lezárt kör: `(cloud, lezárás local)`).
+- **Worktree és ágak (Kristof, 2026-10-29):** ha a fő mappában (`~/Desktop/atlagsebesseg-app`) másik kör fut, külön
+  worktree-ben dolgozunk (pl. `../atlagsebesseg-<kör>`). A munka **worktree-ből is mindig a mainre kerül, ágon semmi nem
+  marad**: a kör végén `git fetch` + rebase az `origin/main`-re, push a mainre (`git push origin HEAD:main`), ellenőrzés,
+  hogy a commit a mainen van (`git branch -r --contains <commit>` → `origin/main`), majd a worktree (`git worktree remove`)
+  és a helyi ág (`git branch -d`) törlése. Régi worktree-t csak akkor törlünk, ha nincs benne commitolatlan vagy
+  pusholatlan változás.
 
 ## Zárójelentés (minden kör végén)
 1. **Mi készült**

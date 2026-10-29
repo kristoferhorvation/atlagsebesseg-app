@@ -61,14 +61,19 @@ describe('navigációs szimulátor: gyorsabb út kategóriánként (AW12)', () =
     });
   }
 
-  it('?alt=aftergate: mérés közben a végkapu után 500 m-rel lehajtó alternatíva → nincs ajánlat, se közben, se a mérés végén', async () => {
+  it('?alt=aftergate (AW13): mérés közben a végkapu után 500 m-rel lehajtó alternatíva → azonnal, kompakt ajánlat bemondással', async () => {
     const { views, voice } = await play(data, 'aftergate', 1);
-    expect(views.some((x) => x.measuring)).toBe(true);
-    expect(views.filter((x) => x.view.offer)).toHaveLength(0);
-    expect(voice).toEqual([]);
+    const shown = views.find((x) => x.view.offer);
+    expect(shown?.measuring).toBe(true);
+    expect(shown?.view.offer?.compact).toBe(true);
+    expect(shown?.view.offer?.verdict).toBe('worth');
+    // a lehajtó a kapu után van: a kártyán a lehajtóig hátralévő táv nagyobb, mint a kapuig
+    const sec = shown!.view.enforcement.find((i) => i.kind === 'section')!;
+    expect(shown!.view.offer!.exitInM).toBeGreaterThan(sec.endM - shown!.view.alongM);
+    expect(voice[0]).toMatch(/^Gyorsabb út, 7 perc megtakarítás, lehajtó \d+,\d kilométernél$/);
   });
 
-  it('?alt=worth ugyanott: mérés közben a lehajtó a szakaszon belül → kompakt ajánlat (a kapu utáni szabály csak a közeli lehajtóra vonatkozik)', async () => {
+  it('?alt=worth ugyanott: mérés közben a lehajtó a szakaszon belül → kompakt ajánlat', async () => {
     const { views } = await play(data, 'worth', 1);
     const shown = views.find((x) => x.view.offer);
     expect(shown?.measuring).toBe(true);

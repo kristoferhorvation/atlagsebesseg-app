@@ -1395,6 +1395,129 @@
         }
       }
     },
+    "geo.blocked.intro" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Měření a navigace pracují s vaší polohou. Zapnete ji takto:"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Messung und Navigation brauchen deinen Standort. So schaltest du ihn ein:"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Measuring and navigation work from your position. To turn it on:"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A mérés és a navigáció a pozíciódból dolgozik. Így kapcsolhatod be:"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pomiar i nawigacja korzystają z Twojej pozycji. Jak ją włączyć:"
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Meranie a navigácia pracujú s vašou polohou. Zapnete ju takto:"
+          }
+        }
+      }
+    },
+    "geo.blocked.retry" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zkusit znovu"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Erneut versuchen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Try again"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Újrapróbálás"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Spróbuj ponownie"
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Skúsiť znova"
+          }
+        }
+      }
+    },
+    "geo.blocked.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Přístup k poloze je zablokovaný"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Standortzugriff ist blockiert"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Location access is blocked"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A helyhozzáférés le van tiltva"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dostęp do lokalizacji jest zablokowany"
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Prístup k polohe je zablokovaný"
+          }
+        }
+      }
+    },
     "geo.denied" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1473,6 +1596,375 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "chyba"
+          }
+        }
+      }
+    },
+    "geo.help.androidChrome.1" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Klepněte na ikonu webu vlevo v adresním řádku › Oprávnění › Poloha: Povolit a stránku znovu načtěte."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Auf das Website-Symbol links in der Adressleiste tippen › Berechtigungen › Standort: Zulassen, dann die Seite neu laden."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tap the site icon on the left of the address bar › Permissions › Location: Allow, then reload the page."
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Koppints a címsor bal oldalán a webhely-ikonra › Engedélyek › Hely: Engedélyezés, majd töltsd újra az oldalt."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dotknij ikony witryny po lewej stronie paska adresu › Uprawnienia › Lokalizacja: Zezwalaj, a potem odśwież stronę."
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ťuknite na ikonu stránky vľavo v paneli s adresou › Povolenia › Poloha: Povoliť a stránku znova načítajte."
+          }
+        }
+      }
+    },
+    "geo.help.androidChrome.2" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nastavení Androidu › Poloha: zapněte ji a v Aplikace › Chrome › Oprávnění › Poloha zvolte „Povolit jen při používání aplikace“."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Android-Einstellungen › Standort: einschalten, und Apps › Chrome › Berechtigungen › Standort: „Nur während der Nutzung der App zulassen“."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Android Settings › Location: turn it on, and Apps › Chrome › Permissions › Location: “Allow only while using the app”."
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Android-beállítások › Hely: legyen bekapcsolva, és az Alkalmazások › Chrome › Engedélyek › Hely: „Csak az alkalmazás használata közben”."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ustawienia Androida › Lokalizacja: włącz ją, a w Aplikacje › Chrome › Uprawnienia › Lokalizacja wybierz „Zezwalaj tylko podczas używania aplikacji”."
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nastavenia Androidu › Poloha: zapnite ju a v Aplikácie › Chrome › Povolenia › Poloha zvoľte „Povoliť iba pri používaní aplikácie“."
+          }
+        }
+      }
+    },
+    "geo.help.chrome.1" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Klikněte na ikonu webu vlevo v adresním řádku › Nastavení webu › Poloha: Povolit a stránku znovu načtěte."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Auf das Website-Symbol links in der Adressleiste klicken › Website-Einstellungen › Standort: Zulassen, dann die Seite neu laden."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Click the site icon on the left of the address bar › Site settings › Location: Allow, then reload the page."
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kattints a címsor bal oldalán a webhely-ikonra › Webhelybeállítások › Hely: Engedélyezés, majd töltsd újra az oldalt."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kliknij ikonę witryny po lewej stronie paska adresu › Ustawienia witryny › Lokalizacja: Zezwalaj, a potem odśwież stronę."
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kliknite na ikonu stránky vľavo v paneli s adresou › Nastavenia stránky › Poloha: Povoliť a stránku znova načítajte."
+          }
+        }
+      }
+    },
+    "geo.help.chrome.2" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Systémová poloha musí být pro Chrome také zapnutá (na Macu: Nastavení systému › Soukromí a zabezpečení › Polohové služby)."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Auch der System-Standort muss für Chrome an sein (am Mac: Systemeinstellungen › Datenschutz & Sicherheit › Ortungsdienste)."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "System location must be on for Chrome too (on a Mac: System Settings › Privacy & Security › Location Services)."
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A rendszer helymeghatározása is legyen bekapcsolva a Chrome-nak (Macen: Rendszerbeállítások › Adatvédelem és biztonság › Helymeghatározás)."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lokalizacja systemowa też musi być włączona dla Chrome (na Macu: Ustawienia systemowe › Prywatność i ochrona › Usługi lokalizacji)."
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Systémová poloha musí byť pre Chrome tiež zapnutá (na Macu: Systémové nastavenia › Súkromie a bezpečnosť › Polohové služby)."
+          }
+        }
+      }
+    },
+    "geo.help.iosSafari.1" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nastavení › Soukromí a zabezpečení › Polohové služby: zapněte je a u Webových stránek Safari zvolte „Při používání aplikace“."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Einstellungen › Datenschutz & Sicherheit › Ortungsdienste: einschalten und bei Safari-Websites „Beim Verwenden der App“ wählen."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Settings › Privacy & Security › Location Services: turn it on, and set Safari Websites to “While Using the App”."
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Beállítások › Adatvédelem és biztonság › Helymeghatározás: legyen bekapcsolva, és a Safari-webhelyeknél válaszd: „Az app használata közben”."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ustawienia › Prywatność i ochrona › Usługi lokalizacji: włącz je, a dla Witryn Safari wybierz „Podczas używania aplikacji”."
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nastavenia › Súkromie a bezpečnosť › Polohové služby: zapnite ich a pri Webových stránkach Safari zvoľte „Pri používaní apky“."
+          }
+        }
+      }
+    },
+    "geo.help.iosSafari.2" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "V Safari otevřete nabídku vedle adresního řádku (aA) › Nastavení webových stránek › Poloha: Povolit a stránku znovu načtěte."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "In Safari das Menü neben der Adressleiste (aA) › Website-Einstellungen › Standort: Erlauben, dann die Seite neu laden."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "In Safari, open the menu next to the address bar (aA) › Website Settings › Location: Allow, then reload the page."
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A Safariban a címsor melletti menü (aA) › Webhely-beállítások › Hely: Engedélyezés, majd töltsd újra az oldalt."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "W Safari otwórz menu obok paska adresu (aA) › Ustawienia witryny › Lokalizacja: Pozwalaj, a potem odśwież stronę."
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "V Safari otvorte ponuku vedľa panela s adresou (aA) › Nastavenia webovej stránky › Poloha: Povoliť a stránku znova načítajte."
+          }
+        }
+      }
+    },
+    "geo.help.macSafari.1" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Safari › Nastavení › Webové stránky › Poloha: u této stránky zvolte „Povolit“ a stránku znovu načtěte."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Safari › Einstellungen › Websites › Standort: für diese Website „Erlauben“ wählen, dann die Seite neu laden."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Safari › Settings › Websites › Location: choose “Allow” for this website, then reload the page."
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Safari › Beállítások › Webhelyek › Hely: ennél a webhelynél válaszd az „Engedélyezés”-t, majd töltsd újra az oldalt."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Safari › Ustawienia › Witryny › Lokalizacja: dla tej witryny wybierz „Pozwalaj”, a potem odśwież stronę."
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Safari › Nastavenia › Webové stránky › Poloha: pri tejto stránke zvoľte „Povoliť“ a stránku znova načítajte."
+          }
+        }
+      }
+    },
+    "geo.help.macSafari.2" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nastavení systému › Soukromí a zabezpečení › Polohové služby: zapněte je, i pro Safari."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Systemeinstellungen › Datenschutz & Sicherheit › Ortungsdienste: einschalten, auch für Safari."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "System Settings › Privacy & Security › Location Services: turn it on, for Safari too."
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rendszerbeállítások › Adatvédelem és biztonság › Helymeghatározás: legyen bekapcsolva, a Safarinál is."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ustawienia systemowe › Prywatność i ochrona › Usługi lokalizacji: włącz je, także dla Safari."
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Systémové nastavenia › Súkromie a bezpečnosť › Polohové služby: zapnite ich, aj pre Safari."
+          }
+        }
+      }
+    },
+    "geo.help.other.1" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "V nastavení webu v prohlížeči (ikona vedle adresního řádku) povolte této stránce polohu a stránku znovu načtěte."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "In den Website-Einstellungen des Browsers (Symbol neben der Adressleiste) den Standort für diese Seite erlauben, dann neu laden."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "In your browser’s site settings (the icon next to the address bar), allow location for this site, then reload the page."
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A böngésző webhely-beállításaiban (a címsor melletti ikon) engedélyezd ennek az oldalnak a helyhozzáférést, majd töltsd újra az oldalt."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "W ustawieniach witryny w przeglądarce (ikona obok paska adresu) zezwól tej stronie na lokalizację, a potem odśwież stronę."
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "V nastaveniach stránky v prehliadači (ikona vedľa panela s adresou) povoľte tejto stránke polohu a stránku znova načítajte."
           }
         }
       }
@@ -7586,6 +8078,47 @@
         }
       }
     },
+    "nav.voice.fasterWorthExit" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rychlejší trasa, úspora {n} minut, sjezd za {km} kilometrů"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Schnellere Route, {n} Minuten gespart, Abfahrt in {km} Kilometern"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Faster route, {n} minutes saved, exit in {km} kilometres"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gyorsabb út, {n} perc megtakarítás, lehajtó {km} kilométernél"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Szybsza trasa, {n} minut oszczędności, zjazd za {km} kilometrów"
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rýchlejšia trasa, úspora {n} minút, zjazd o {km} kilometrov"
+          }
+        }
+      }
+    },
     "nav.voice.rerouting" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -7951,6 +8484,47 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Hľadám GPS…"
+          }
+        }
+      }
+    },
+    "pill.gps.tap" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "GPS – klepněte a povolte"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "GPS – zum Erlauben tippen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "GPS – tap to allow"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "GPS – koppints az engedélyhez"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "GPS – dotknij, aby zezwolić"
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "GPS – ťuknite a povoľte"
           }
         }
       }

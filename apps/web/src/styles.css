@@ -929,6 +929,28 @@ button.pill::after {
   padding: 12px 6px 2px;
 }
 
+/* AW13: tiltott helyhozzáférés – a bekapcsolás lépései a felismert böngészőre */
+.geo-help {
+  padding: 0 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.geo-help p {
+  margin: 0;
+  color: var(--color-text-muted);
+}
+
+.geo-help ol {
+  margin: 0;
+  padding-left: 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  line-height: 1.35;
+}
+
 .group-label {
   font-size: 13px;
   font-weight: 640;
@@ -2120,13 +2142,31 @@ a.list-row {
   font-size: 13px;
 }
 
+/* a gombok a tartalmuk szélességén: a `.btn` 100%-os szélessége a sorban nullára nyomná a címet és a lehajtót (AW13) */
 .nav-offer-compact .btn {
+  flex: none;
+  width: auto;
   padding: 0 14px;
 }
 
 .nav-offer .btn {
+  position: relative;
   height: 56px;
   min-height: 56px;
+}
+
+/* AW13: a kiemelt (45 s után magától történő) gomb alatt fogyó csík; a nézet másodpercenként frissül, az átmenet simít */
+.nav-offer-timer {
+  position: absolute;
+  left: 14px;
+  right: 14px;
+  bottom: -6px;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--color-text);
+  opacity: 0.7;
+  transform-origin: left center;
+  transition: transform 1s linear;
 }
 
 .hud[data-hidden='true'] {

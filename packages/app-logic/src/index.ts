@@ -13,3 +13,4 @@ export * from './cameras';
 export * from './plannedChecks';
 export * from './i18n';
 export * from './navigation';
+export * from './location';

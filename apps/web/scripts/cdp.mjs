@@ -21,7 +21,8 @@ export async function launchChrome() {
     '--enable-unsafe-swiftshader',
     'about:blank',
   ]);
-  for (let i = 0; i < 50; i++) {
+  // zárolt / alvó kijelzőnél az indulás 10 s fölött is lehet: legfeljebb 30 s-ot várunk
+  for (let i = 0; i < 150; i++) {
     try {
       if ((await fetch(`http://127.0.0.1:${port}/json/version`)).ok) return { proc, profile, port };
     } catch {

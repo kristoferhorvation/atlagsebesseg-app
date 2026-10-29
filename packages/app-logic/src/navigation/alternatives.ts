@@ -119,10 +119,14 @@ export function altOfferTitle(w: Pick<AltWorth, 'gainMin' | 'extraKm' | 'verdict
   return t('nav.offer.worth', { n, km: km > 0 ? `+${km}` : `−${-km}` });
 }
 
-/** A bemondás: „Gyorsabb út, 7 perc megtakarítás” / „…, 2 perc, 1 kilométer kerülő, te döntesz” / „…, de nem éri meg, 20 kilométer kerülő”. */
-export function altOfferVoice(w: Pick<AltWorth, 'gainMin' | 'extraKm' | 'verdict'>): string {
+/**
+ * A bemondás: „Gyorsabb út, 7 perc megtakarítás, lehajtó 5,2 kilométernél” (megéri; ismeretlen lehajtónál a lehajtó
+ * nélkül) / „…, 2 perc, 1 kilométer kerülő, te döntesz” / „…, de nem éri meg, 20 kilométer kerülő”. `exitKm`: a lehajtóig
+ * hátralévő táv a nyelv tizedesjelével.
+ */
+export function altOfferVoice(w: Pick<AltWorth, 'gainMin' | 'extraKm' | 'verdict'>, exitKm: string | null = null): string {
   const { n, km } = rounded(w);
   if (w.verdict === 'maybe') return t('nav.voice.fasterMaybe', { n, km });
   if (w.verdict === 'not') return t('nav.voice.fasterNot', { km });
-  return t('nav.voice.faster', { n });
+  return exitKm === null ? t('nav.voice.faster', { n }) : t('nav.voice.fasterWorthExit', { n, km: exitKm });
 }

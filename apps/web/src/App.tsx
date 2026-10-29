@@ -8,6 +8,8 @@ import {
   cameraWarning,
   createReports,
   currentUserId,
+  detectBrowser,
+  gpsPillAction,
   listActiveReports,
   mergeById,
   ownReport,
@@ -65,6 +67,7 @@ import { RoutePicker } from './ui/RoutePicker';
 import { SearchScreen } from './ui/SearchScreen';
 import { PlannedBand } from './ui/PlannedBand';
 import { ReportCard } from './ui/ReportCard';
+import { GeoBlockedSheet } from './ui/GeoBlockedSheet';
 import { ReportSheet } from './ui/ReportSheet';
 import { SettingsSheet } from './ui/SettingsSheet';
 import { SimPanel } from './ui/SimPanel';
@@ -169,7 +172,11 @@ function Drive({ map }: { map: WebMapAdapter }) {
   const requestsToday = useSyncExternalStore(requestCounter.subscribe, () => requestCounter.count);
 
   // GPS (valódi mód) + másodpercenkénti frissítés (alagútban a becslés miatt)
-  const geo = useGeolocation(!SIM_MODE, onFix);
+  const geoloc = useGeolocation(!SIM_MODE, onFix);
+  const geo = geoloc.status;
+  // AW13: a GPS-pill koppintása – engedélykérés / tiltott-lap a bekapcsolás útjával / semmi
+  const gpsAction = SIM_MODE ? 'none' : gpsPillAction(geoloc.permission, geo);
+  const browser = useMemo(() => detectBrowser(navigator.userAgent, navigator.maxTouchPoints), []);
   useEffect(() => {
     if (SIM_MODE) return;
     const id = setInterval(() => {
@@ -401,7 +408,7 @@ function Drive({ map }: { map: WebMapAdapter }) {
   }, [map, navFollowOn]);
 
   // lapok, visszajelzés
-  const [sheet, setSheet] = useState<'report' | 'settings' | null>(null);
+  const [sheet, setSheet] = useState<'report' | 'settings' | 'geo' | null>(null);
   const [toast, setToast] = useState<Toast | null>(null);
   const showToast = useCallback((t: Omit<Toast, 'id'>) => setToast({ ...t, id: Date.now() }), []);
   useEffect(() => {
@@ -557,6 +564,8 @@ function Drive({ map }: { map: WebMapAdapter }) {
         offline={!SIM_MODE && (sectionsStatus === 'offline' || !supabase)}
         simMode={SIM_MODE && SIM_PANEL}
         compact={driving || nav.view !== null}
+        gpsAction={gpsAction}
+        onGps={() => (gpsAction === 'deniedHelp' ? setSheet('geo') : geoloc.request())}
         onWake={() => {
           if (wake.status === 'nem_tamogatott')
             showToast({ text: t('toast.wakeNever'), tone: 'hataron', icon: 'screen' });
@@ -677,6 +686,16 @@ function Drive({ map }: { map: WebMapAdapter }) {
         />
       )}
 
+      {sheet === 'geo' && (
+        <GeoBlockedSheet
+          browser={browser}
+          onRetry={() => {
+            geoloc.request();
+            setSheet(null);
+          }}
+          onClose={() => setSheet(null)}
+        />
+      )}
       {sheet === 'report' && (
         <ReportSheet
           fix={view.lastFix}

@@ -69,6 +69,8 @@ export interface AlternativeOffer {
   exitKm: string;
   /** Mérés közben megjelenő, kompakt forma. */
   compact: boolean;
+  /** A lejáratig hátralévő idő aránya (1 → 0) – a kiemelt gomb alatti fogyó csík (AW13). */
+  timeLeft: number;
 }
 
 /** Az ajánlat jelöltje: az alternatíva és a lehajtója. */
@@ -230,10 +232,7 @@ export class NavigationSession {
   setMeasuring(measuring: boolean): void {
     if (measuring === this.measuring) return;
     this.measuring = measuring;
-    if (measuring && this.offer && this.exitJustAfterGate(this.offer.exitAlongM)) {
-      this.declined.add(routeSignature(this.offer.route));
-      this.offer = null;
-    } else if (measuring && this.offer && !this.exitBeforeSectionEnd(this.offer.exitAlongM)) {
+    if (measuring && this.offer && !this.exitNearSectionEnd(this.offer.exitAlongM)) {
       const o = this.offer;
       this.held = { route: o.route, gainS: o.gainS, extraM: o.extraM, worth: altWorth(o.gainS, o.extraM, routeAvgKmh(o.route)), exitAlongM: o.exitAlongM, exitName: o.exitName };
       this.offer = null;
@@ -435,25 +434,18 @@ export class NavigationSession {
     return this.items.find((i) => i.kind === 'section' && i.startM <= this.along && this.along <= i.endM);
   }
 
-  /** A mérés alatt álló szakasz végkapuja előtt van-e a leágazás (kézi mérésnél nincs végkapu → nem). */
-  private exitBeforeSectionEnd(exitAlongM: number | null): boolean {
+  /**
+   * A leágazás a mérés alatt álló szakasz végkapuja előtt vagy utána legfeljebb `exitAfterGateM`-rel van-e (AW13): ilyenkor
+   * mérés közben is azonnal ajánlunk. Kézi mérésnél nincs végkapu → nem.
+   */
+  private exitNearSectionEnd(exitAlongM: number | null): boolean {
     const sec = this.measuredSection();
-    return exitAlongM !== null && sec !== undefined && exitAlongM < sec.endM;
+    return exitAlongM !== null && sec !== undefined && exitAlongM <= sec.endM + ALT_OFFER.exitAfterGateM;
   }
 
-  /** Mérés közben a lehajtó a végkapu után, de `exitAfterGateM`-en belül: erre nem ajánlunk (se közben, se a mérés végén). */
-  private exitJustAfterGate(exitAlongM: number | null): boolean {
-    const sec = this.measuredSection();
-    return exitAlongM !== null && sec !== undefined && exitAlongM >= sec.endM && exitAlongM - sec.endM <= ALT_OFFER.exitAfterGateM;
-  }
-
-  /** Az ajánlat megjelenítése (és bemondása); mérés közben visszatartjuk, a kapu utáni közeli lehajtót elvetjük. */
+  /** Az ajánlat megjelenítése (és bemondása); mérés közben a végkaputól 1 km-nél távolabbi lehajtót visszatartjuk. */
   private present(best: Candidate): void {
-    if (this.measuring && this.exitJustAfterGate(best.exitAlongM)) {
-      this.declined.add(routeSignature(best.route));
-      return;
-    }
-    if (this.measuring && !this.exitBeforeSectionEnd(best.exitAlongM)) {
+    if (this.measuring && !this.exitNearSectionEnd(best.exitAlongM)) {
       this.held = best;
       return;
     }
@@ -470,16 +462,18 @@ export class NavigationSession {
       exitInM: 0,
       exitKm: '',
       compact: false,
+      timeLeft: 1,
       expiresAt: this.clock() + this.cfg.offerTtlMs,
     };
     // a második (500 m-es) bemondás fölösleges, ha az első is 600 m-en belül hangzik el
     this.exit500For = best.exitAlongM !== null && best.exitAlongM - this.along <= 600 ? this.offer.id : null;
-    this.say('faster', altOfferVoice(w));
+    this.say('faster', altOfferVoice(w, best.exitAlongM === null ? null : this.exitKm(best.exitAlongM - this.along)));
   }
 
   private offerView(o: AlternativeOffer): AlternativeOffer {
     const exitInM = o.exitAlongM === null ? 0 : Math.max(0, o.exitAlongM - this.along);
-    return { ...o, exitInM, exitKm: this.exitKm(exitInM), compact: this.measuring };
+    const timeLeft = Math.min(1, Math.max(0, (o.expiresAt - this.clock()) / this.cfg.offerTtlMs));
+    return { ...o, exitInM, exitKm: this.exitKm(exitInM), compact: this.measuring, timeLeft };
   }
 
   private exitKm(m: number): string {

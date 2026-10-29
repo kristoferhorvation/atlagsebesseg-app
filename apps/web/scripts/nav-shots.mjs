@@ -3,6 +3,8 @@
 // mérés közbeni összevont nézet → gyorsabb út ajánlat → érkezés; az alternatíva címkéje és érintése (A8d). Ellenőrzések + marketing-PNG-k a docs/screenshots/-ba.
 // AW12: „megéri”-kategóriák (?alt=worth|maybe|not), kapu utáni lehajtó (?alt=aftergate), azonnali újratervezés-hang,
 // borostyán kamera-sáv + rezgés, pozíció-jel az alsó harmadban, „Utána” sor, mentett címek chip-sora.
+// AW13: kapu utáni (≤ 1 km) lehajtó → azonnali kompakt ajánlat, fogyó csík a kiemelt gomb alatt, „megéri” bemondás a
+// lehajtóval, helyhozzáférés: GPS-pill (prompt → kérés, denied → tiltott-lap a böngészőre, granted → semmi), első gesztus.
 //
 //   npm run dev -w @atlagsebesseg/web            # másik terminálban (a Mapbox-token az apps/web/.env-ben)
 //   npm run nav-shots -w @atlagsebesseg/web
@@ -142,7 +144,8 @@ try {
   const camTxt = await p.evaluate(text('.nav-camera'));
   check('kamera-közeledés: borostyán felső sáv, „Kamera N m · max 130”', /^Kamera \d+ m · max 130$/.test(camTxt), camTxt);
   // a háttér átmenete (motion-base) alatt pollozunk; 12×-es lejátszásnál a sáv csak ~1 s-ig látszik
-  const AMBER = `getComputedStyle(${q('.nav-top')}).backgroundColor.replace(/\\s/g, '') === 'rgb(255,178,36)'`;
+  // a cél-színt mérjük (átmenet nélkül): headless Chrome-ban az átmenet képkockái ritkák, a kirajzolt érték lemarad
+  const AMBER = `(() => { const e = ${q('.nav-top')}; e.style.transition = 'none'; const c = getComputedStyle(e).backgroundColor; e.style.transition = ''; return c.replace(/\\s/g, '') === 'rgb(255,178,36)'; })()`;
   const amber = await p.waitFor(AMBER, 2000, 'borostyán háttér').then(() => true, () => false);
   check('a felső sáv háttere borostyán (near token)', amber, await p.evaluate(`getComputedStyle(${q('.nav-top')}).backgroundColor`));
   await p.waitFor(`${q('.nav-top')}?.dataset.camera === 'false'`, 30_000, 'kamera után vissza');
@@ -242,9 +245,9 @@ try {
 
   // ajánlat-kategóriák: kártya + bemondás
   for (const [alt, title, said, name] of [
-    ['worth', /^Megéri · −7 perc, \+4 km/, 'Gyorsabb út, 7 perc megtakarítás', 'megeri'],
-    ['maybe', /^Lehet · −3 perc, \+5 km/, 'Gyorsabb út, 3 perc, 5 kilométer kerülő, te döntesz', 'lehet'],
-    ['not', /^Nem éri meg · \+40 km kerülő, −10 perc/, 'Gyorsabb út, de nem éri meg, 40 kilométer kerülő', 'nem-eri-meg'],
+    ['worth', /^Megéri · −7 perc, \+4 km/, /^Gyorsabb út, 7 perc megtakarítás, lehajtó \d+,\d kilométernél$/, 'megeri'],
+    ['maybe', /^Lehet · −3 perc, \+5 km/, /^Gyorsabb út, 3 perc, 5 kilométer kerülő, te döntesz$/, 'lehet'],
+    ['not', /^Nem éri meg · \+40 km kerülő, −10 perc/, /^Gyorsabb út, de nem éri meg, 40 kilométer kerülő$/, 'nem-eri-meg'],
   ]) {
     const o = await mk();
     await o.goto(`/?navsim&stage=nav&speed=8&alt=${alt}&panel=0`);
@@ -254,28 +257,134 @@ try {
     const card = await o.evaluate(`(() => { const e = ${q('.nav-offer')}; return { txt: e.innerText.replace(/\s+/g, ' ').trim(), verdict: e.dataset.verdict, primary: e.querySelector('.btn.primary')?.innerText }; })()`);
     const v = await o.evaluate(`(window.__navVoice ?? []).filter((x) => x.kind === 'faster').map((x) => x.text)`);
     check(`ajánlat „${alt}”: kártya`, title.test(card.txt) && card.verdict === alt, card.txt);
-    check(`ajánlat „${alt}”: bemondás`, v[0] === said, v[0]);
+    check(`ajánlat „${alt}”: bemondás`, said.test(v[0] ?? ''), v[0]);
     check(`ajánlat „${alt}”: a kiemelt gomb a 45 s utáni alapértelmezés`, card.primary === (alt === 'worth' ? 'Elfogad' : 'Elvet'), card.primary);
+    // AW13: fogyó csík a kiemelt gomb alatt, szám nélkül; csak egy van, és a kiemelt gombban. A beállított (nem a
+    // kirajzolt) értéket mérjük: headless Chrome-ban az átmenet képkockái ritkák
+    const TIMER = `(() => { const e = ${q('.nav-offer-timer')}; if (!e) return null; const m = new DOMMatrix(e.style.transform); const b = e.closest('.btn').getBoundingClientRect(); const r = e.getBoundingClientRect(); return { scale: m.a, inPrimary: e.closest('.btn').classList.contains('primary'), n: document.querySelectorAll('.nav-offer-timer').length, below: r.top >= b.bottom - 1, h: r.height, txt: e.innerText }; })()`;
+    const t1 = await o.evaluate(TIMER);
+    // 8×-os lejátszás: legfeljebb 2 s ≈ 16 s szimulált idő (a közeli lehajtó elhagyása előtt)
+    await o.waitFor(`(${TIMER})?.scale < ${t1?.scale ?? 0}`, 2000, 'a csík fogy').catch(() => undefined);
+    const t2 = await o.evaluate(TIMER);
+    check(`ajánlat „${alt}”: fogyó csík a kiemelt gomb alatt, szám nélkül`, !!t1 && t1.inPrimary && t1.n === 1 && t1.below && t1.h <= 4 && t1.txt === '', JSON.stringify(t1));
+    check(`ajánlat „${alt}”: a csík fogy`, !!t1 && !!t2 && t2.scale < t1.scale && t1.scale <= 1, `${t1?.scale.toFixed(2)} → ${t2?.scale.toFixed(2)}`);
     if (!CHECK_ONLY) await o.shot(`${DATE}-nav-ajanlat-${name}.png`);
     o.close();
   }
 
-  // kapu utáni lehajtó: mérés közben (és a mérés végén) nincs ajánlat
+  // AW13: a fogyó csík képe – 2×-es lejátszás, ~12 s-mal az ajánlat után (a csík kb. negyedénél fogyott)
+  if (!CHECK_ONLY) {
+    const cs = await mk();
+    await cs.goto('/?navsim&stage=nav&speed=2&alt=worth&panel=0');
+    await cs.waitFor(MAP_READY, 60_000, 'térkép');
+    await cs.waitFor(q('.nav-offer-timer'), 180_000, 'ajánlat csíkkal');
+    await sleep(6000);
+    await cs.shot(`${DATE}-nav-ajanlat-csik.png`);
+    cs.close();
+  }
+
+  // AW13: kapu utáni (1 km-en belüli) lehajtó: mérés közben azonnal kompakt ajánlat, bemondással
   const g = await mk();
   await g.goto(`/?navsim&stage=nav&speed=6&alt=aftergate&at=${windows[1]}&panel=0`);
   await g.waitFor(MAP_READY, 60_000, 'térkép');
   await g.waitFor(q('.nav-strip'), 120_000, 'mérés');
-  let sawOffer = false;
-  await g.waitFor(`!${q('.nav-strip')}`, 120_000, 'a mérés vége');
-  // a mérés vége után még 30 s (a lehajtó ~500 m-re a kapu után)
-  for (let i = 0; i < 60; i++) {
-    sawOffer ||= await g.evaluate(`!!${q('.nav-offer')}`);
-    await sleep(500);
-  }
-  const gVoice = await g.evaluate(`(window.__navVoice ?? []).filter((x) => x.kind === 'faster').length`);
-  check('kapu utáni (1 km-en belüli) lehajtó: nincs ajánlat, se közben, se a mérés végén', !sawOffer && gVoice === 0, `ajánlat: ${sawOffer}, bemondás: ${gVoice}`);
-  check('nincs kezeletlen JS-kivétel (AW12-oldalak)', g.logs.length === 0, g.logs.join(' | '));
+  await g.waitFor(q('.nav-offer-compact'), 120_000, 'kompakt ajánlat mérés közben');
+  const ga = await g.evaluate(`({ strip: !!${q('.nav-strip')}, txt: ${text('.nav-offer')}, exit: ${text('.nav-offer-exit')} })`);
+  // a cím és a lehajtó ténylegesen látszik (az innerText a nullára nyomott szöveget is visszaadná)
+  const head = await g.evaluate(`(() => { const h = ${q('.nav-offer-compact .nav-offer-head')}.getBoundingClientRect(); const c = ${q('.nav-offer-compact')}.getBoundingClientRect(); return { w: Math.round(h.width), card: Math.round(c.width) }; })()`);
+  check('kompakt ajánlat: a cím és a lehajtó látszik (a gombok mellett)', head.w >= 120, `${head.w} / ${head.card} px`);
+  const gVoice = await g.evaluate(`(window.__navVoice ?? []).filter((x) => x.kind === 'faster').map((x) => x.text)`);
+  check('kapu utáni (1 km-en belüli) lehajtó: mérés közben azonnal kompakt ajánlat', ga.strip && /^Megéri · −7 perc, \+4 km/.test(ga.txt), ga.txt);
+  check('kapu utáni lehajtó: bemondás a lehajtó távolságával', gVoice.length === 1 && /^Gyorsabb út, 7 perc megtakarítás, lehajtó \d+,\d kilométernél$/.test(gVoice[0]), gVoice.join(' | '));
+  await sleep(600);
+  if (!CHECK_ONLY) await g.shot(`${DATE}-nav-ajanlat-kapu-utan.png`);
+  check('nincs kezeletlen JS-kivétel (AW12–13-oldalak)', g.logs.length === 0, g.logs.join(' | '));
   g.close();
+
+  // ------------------------------------------------------------------
+  // AW13: helyhozzáférés (valódi mód, a Permissions API és a geolocation a lap előtt felülírva)
+  // ------------------------------------------------------------------
+  const UA_MAC_SAFARI = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0 Safari/605.1.15';
+  const UA_IPHONE = 'Mozilla/5.0 (iPhone; CPU iPhone OS 26_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0 Mobile/15E148 Safari/604.1';
+  /** `state`: a Permissions API válasza; `mode`: a watchPosition – `deny` (azonnali elutasítás), `wait` (nincs válasz), `fix`. */
+  const fakeGeo = (state, mode) => `(() => {
+    const cfg = (window.__geoFake = { calls: 0 });
+    const ps = { state: ${JSON.stringify(state)}, onchange: null, addEventListener() {}, removeEventListener() {} };
+    const query = navigator.permissions.query.bind(navigator.permissions);
+    navigator.permissions.query = (d) => (d && d.name === 'geolocation' ? Promise.resolve(ps) : query(d));
+    navigator.geolocation.watchPosition = (ok, err) => {
+      cfg.calls++;
+      if (${JSON.stringify(mode)} === 'deny') setTimeout(() => err({ code: 1, PERMISSION_DENIED: 1, POSITION_UNAVAILABLE: 2, TIMEOUT: 3, message: 'denied' }), 50);
+      if (${JSON.stringify(mode)} === 'fix') setTimeout(() => ok({ coords: { latitude: 47.4979, longitude: 19.0402, accuracy: 8, speed: null, heading: null, altitude: null, altitudeAccuracy: null }, timestamp: Date.now() }), 50);
+      return cfg.calls;
+    };
+    navigator.geolocation.clearWatch = () => {};
+  })()`;
+  const GPS_PILL = `document.querySelector('.pills .pill')`;
+  async function geoPage(state, mode, ua) {
+    const pg = await mk();
+    await pg.send('Page.addScriptToEvaluateOnNewDocument', { source: fakeGeo(state, mode) });
+    if (ua) await pg.send('Emulation.setUserAgentOverride', { userAgent: ua });
+    // Mac-en nincs érintőképernyő (különben iPadnek ismerjük fel)
+    if (ua === UA_MAC_SAFARI) await pg.send('Emulation.setTouchEmulationEnabled', { enabled: false });
+    await pg.goto('/');
+    // az indítóképernyő „Indulás” gombja után indul az automatikus kérés
+    await pg.waitFor(q('.start .btn.primary'), 30_000, 'indítóképernyő');
+    await pg.evaluate(`${q('.start .btn.primary')}.click(); true`);
+    await pg.waitFor(`${GPS_PILL} && window.__geoFake?.calls >= 1`, 30_000, 'GPS-pill');
+    await sleep(400);
+    return pg;
+  }
+  const pill = (pg) => pg.evaluate(`(() => { const e = ${GPS_PILL}; return { tag: e.tagName, txt: e.innerText.trim(), tone: e.dataset.tone, calls: window.__geoFake.calls }; })()`);
+
+  // denied → tiltott-lap a bekapcsolás útjával (Mac Safari, iOS Safari)
+  for (const [ua, name, re] of [
+    [UA_MAC_SAFARI, 'Mac Safari', /Safari › Beállítások › Webhelyek › Hely[\s\S]*Rendszerbeállítások › Adatvédelem és biztonság › Helymeghatározás/],
+    [UA_IPHONE, 'iOS Safari', /Beállítások › Adatvédelem és biztonság › Helymeghatározás[\s\S]*Webhely-beállítások › Hely/],
+  ]) {
+    const d = await geoPage('denied', 'deny', ua);
+    const p0 = await pill(d);
+    check(`denied (${name}): a GPS-pill kattintható, „Helyhozzáférés tiltva”`, p0.tag === 'BUTTON' && p0.txt === 'Helyhozzáférés tiltva', JSON.stringify(p0));
+    await d.evaluate(`${GPS_PILL}.click(); true`);
+    await d.waitFor(q('.geo-help'), 5000, 'tiltott-lap');
+    const sheetTxt = await d.evaluate(text('.sheet'));
+    check(`denied (${name}): „A helyhozzáférés le van tiltva” + a bekapcsolás útja`, /^A helyhozzáférés le van tiltva/.test(sheetTxt) && re.test(sheetTxt) && /Újrapróbálás/.test(sheetTxt), sheetTxt.slice(0, 160));
+    if (!CHECK_ONLY) {
+      await sleep(500);
+      await d.shot(`${DATE}-hely-tiltva-${name === 'Mac Safari' ? 'mac-safari' : 'ios-safari'}.png`);
+    }
+    if (ua === UA_IPHONE) {
+      const before = (await pill(d)).calls;
+      await d.evaluate(`[...document.querySelectorAll('.geo-help .btn')].at(-1).click(); true`);
+      await sleep(200);
+      check('tiltott-lap: az „Újrapróbálás” újra kér és bezár', (await pill(d)).calls === before + 1 && !(await d.evaluate(`!!${q('.geo-help')}`)));
+    }
+    d.close();
+  }
+
+  // prompt + gesztus nélküli elutasítás (Mac Safari): „koppints”, az első érintés bárhol újra kér; a pill is kér
+  const pr = await geoPage('prompt', 'deny', UA_MAC_SAFARI);
+  const pr0 = await pill(pr);
+  check('prompt (Mac Safari, gesztus nélkül elutasítva): a pill „GPS – koppints az engedélyhez”', pr0.tag === 'BUTTON' && pr0.txt === 'GPS – koppints az engedélyhez', JSON.stringify(pr0));
+  await pr.evaluate(`document.body.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true })); true`);
+  await sleep(200);
+  const pr1 = await pill(pr);
+  check('az első érintés bárhol újra kéri a helyet', pr1.calls === pr0.calls + 1, `${pr0.calls} → ${pr1.calls}`);
+  await pr.evaluate(`document.body.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true })); true`);
+  await sleep(200);
+  check('csak az első érintés kér magától', (await pill(pr)).calls === pr1.calls);
+  await pr.evaluate(`${GPS_PILL}.click(); true`);
+  await sleep(200);
+  check('prompt: a GPS-pill koppintása kér (nem nyit lapot)', (await pill(pr)).calls === pr1.calls + 1 && !(await pr.evaluate(`!!${q('.sheet')}`)));
+  pr.close();
+
+  // granted: pontosság, a pill nem gomb
+  const gr = await geoPage('granted', 'fix');
+  await gr.waitFor(`/±/.test(${GPS_PILL}.innerText)`, 10_000, 'pontosság');
+  const gr0 = await pill(gr);
+  check('granted: a pill a pontosságot mutatja, koppintásra semmi', gr0.tag === 'DIV' && /^GPS ±8 m$/.test(gr0.txt), JSON.stringify(gr0));
+  check('nincs kezeletlen JS-kivétel (helyhozzáférés)', gr.logs.length === 0, gr.logs.join(' | '));
+  gr.close();
 
   // ------------------------------------------------------------------
   // 3. marketing-képernyőképek (1×-es lejátszás, szimulátor-panel nélkül)
