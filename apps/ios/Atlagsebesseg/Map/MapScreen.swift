@@ -3,7 +3,8 @@ import MapboxMaps
 import SwiftUI
 
 /// A térkép (Mapbox Standard): szakaszok vonalként (az aktív a tónus színében, a megtett rész telítetten),
-/// kamerák ikonként a láthatósági szabály szerint, saját pozíció; a kamera követi a pozíciót.
+/// tervezett mérések halvány sárga vonalként / zónaként (a webes A7 kinézet), kamerák ikonként a láthatósági
+/// szabály szerint, saját pozíció; a kamera követi a pozíciót.
 struct MapScreen: View {
     let model: AppModel
     @Binding var follow: Bool
@@ -12,6 +13,8 @@ struct MapScreen: View {
     @State private var sectionsFC = FeatureCollection(features: [])
     @State private var cameraPoints: [FixedCamera] = []
     @State private var zonesFC = FeatureCollection(features: [])
+    /// A térkép aktuális elforgatása (fok) – a saját pozíció nyila ehhez képest mutat a haladási irányba.
+    @State private var mapBearing: Double = 0
     @Environment(\.colorScheme) private var scheme
 
     private var view: SessionView { model.view }
@@ -55,6 +58,29 @@ struct MapScreen: View {
                 .lineOpacity(Exp(.match) { Exp(.get) { "part" }; "rest"; view.progress == nil ? 0.9 : 0.38; 1.0 })
                 .lineEmissiveStrength(1)
 
+            // tervezett mérések: zóna (település) halvány kitöltéssel, vonal halvány sárgán; az aktív erősebb
+            GeoJSONSource(id: "planned-zones").data(.featureCollection(plannedFC.zones))
+            FillLayer(id: "planned-zone-fill", source: "planned-zones")
+                .slot(.middle)
+                .fillColor(UIColor(Tokens.Colors.planned))
+                .fillOpacity(Exp(.switchCase) { Exp(.get) { "active" }; 0.22; 0.12 })
+                .fillEmissiveStrength(1)
+            LineLayer(id: "planned-zone-line", source: "planned-zones")
+                .slot(.middle)
+                .lineColor(UIColor(Tokens.Colors.planned))
+                .lineWidth(1.5)
+                .lineOpacity(Exp(.switchCase) { Exp(.get) { "active" }; 0.7; 0.4 })
+                .lineEmissiveStrength(1)
+            GeoJSONSource(id: "planned").data(.featureCollection(plannedFC.lines))
+            LineLayer(id: "planned-line", source: "planned")
+                .slot(.middle)
+                .lineCap(.round)
+                .lineJoin(.round)
+                .lineColor(UIColor(Tokens.Colors.planned))
+                .lineWidth(Exp(.interpolate) { Exp(.linear); Exp(.zoom); 8; 3; 16; 12 })
+                .lineOpacity(Exp(.switchCase) { Exp(.get) { "active" }; 0.75; 0.42 })
+                .lineEmissiveStrength(1)
+
             // kamera-zóna (`zone` láthatóság): kör, pont nélkül
             GeoJSONSource(id: "camera-zones").data(.featureCollection(zonesFC))
             FillLayer(id: "camera-zones-fill", source: "camera-zones")
@@ -79,7 +105,8 @@ struct MapScreen: View {
 
             if let fix = view.lastFix {
                 MapViewAnnotation(coordinate: CLLocationCoordinate2D(latitude: fix.lat, longitude: fix.lon)) {
-                    Puck(heading: fix.heading, tone: tone)
+                    // a nyíl a képernyőhöz képest forog: haladási irány − térkép-elforgatás (kézzel forgatva is)
+                    Puck(heading: fix.heading.map { $0 - mapBearing }, tone: tone)
                 }
                 .allowOverlap(true)
             }
@@ -97,8 +124,16 @@ struct MapScreen: View {
             attributionButton: AttributionButtonOptions(position: .topTrailing, margins: CGPoint(x: 12, y: 4))
         ))
         .gestureHandlers(MapGestureHandlers(onBegin: { _ in follow = false }))
+        .onCameraChanged { e in
+            let b = e.cameraState.bearing
+            if abs(angleDiffDeg(b, mapBearing)) >= 0.5 { mapBearing = b }
+        }
         .ignoresSafeArea()
-        .onAppear { rebuild() }
+        .onAppear {
+            rebuild()
+            // a nézet a már futó mérés közben is megjelenhet (szimulátor-ugrás, visszatérés): azonnal a pozícióra áll
+            if follow, let fix = view.lastFix { recenter(fix, animated: false) }
+        }
         .onChange(of: model.dataVersion) { rebuild() }
         .onChange(of: view.lastFix) { _, fix in
             guard let fix else { return }
@@ -153,6 +188,29 @@ struct MapScreen: View {
         return FeatureCollection(features: [feature("done", done), feature("rest", rest)])
     }
 
+    /// A látható tervezett mérések (a jogi láthatóság szerint csak `show` országban kerülnek a térképre).
+    private var plannedFC: (lines: FeatureCollection, zones: FeatureCollection) {
+        let rules = VisibilityRules.bundled
+        let shown = model.plannedShown.filter { rules.visibility($0.country) == .show }
+        let activeId = model.activePlanned?.id
+        let coord = { (p: LatLon) in CLLocationCoordinate2D(latitude: p.lat, longitude: p.lon) }
+        var lines: [Feature] = []
+        var zones: [Feature] = []
+        for c in shown {
+            let props: JSONObject = ["id": .string(c.id), "active": .boolean(c.id == activeId)]
+            if c.isZone {
+                var f = Feature(geometry: MultiPolygon(c.zones.map { $0.map { $0.map(coord) } }))
+                f.properties = props
+                zones.append(f)
+            } else {
+                var f = Feature(geometry: MultiLineString(c.lines.filter { $0.count >= 2 }.map { $0.map(coord) }))
+                f.properties = props
+                lines.append(f)
+            }
+        }
+        return (FeatureCollection(features: lines), FeatureCollection(features: zones))
+    }
+
     private func rebuild() {
         sectionsFC = FeatureCollection(features: model.sections.map { s in
             let pts = (s.geometry?.isEmpty ?? true) ? [s.start, s.end] : s.geometry!
@@ -192,7 +250,9 @@ private struct CameraPin: View {
     }
 }
 
-/// Saját pozíció: tónusszínű nyíl a haladási irányban (irány nélkül pont).
+/// Saját pozíció: tónusszínű nyíl a haladási irányban (irány nélkül pont). A `heading` a képernyőhöz képest
+/// értendő (a térkép elforgatása már le van vonva), így követéskor felfelé, kézzel forgatott térképen is az
+/// útirányba mutat.
 private struct Puck: View {
     let heading: Double?
     let tone: Tone
@@ -202,7 +262,9 @@ private struct Puck: View {
             Circle().fill(tone.color.opacity(0.25)).frame(width: 44, height: 44)
             Circle().fill(Tokens.Colors.text).frame(width: 24, height: 24)
             if heading != nil {
-                Icon(name: .arrowUp, size: 18).foregroundStyle(Tokens.Colors.bg)
+                Icon(name: .arrowUp, size: 18)
+                    .foregroundStyle(Tokens.Colors.bg)
+                    .rotationEffect(.degrees(heading ?? 0))
             } else {
                 Circle().fill(tone.color).frame(width: 14, height: 14)
             }

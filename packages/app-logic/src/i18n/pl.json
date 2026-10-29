@@ -271,5 +271,20 @@
   "nav.voice.fasterExit500": "Szybsza trasa, zjazd za 500 metrów",
   "ios.locationUsage": "Twoja lokalizacja jest potrzebna do rozpoznawania odcinków i mierzenia średniej prędkości – także przy zablokowanym ekranie, dopóki aplikacja mierzy.",
   "ios.geo.denied": "odmowa (Ustawienia → Prywatność → Usługi lokalizacji)",
-  "ios.start.tip.background": "Mierzy także przy zablokowanym ekranie – podczas pomiaru ekran nie gaśnie"
+  "ios.start.tip.background": "Mierzy także przy zablokowanym ekranie – podczas pomiaru ekran nie gaśnie",
+
+  "ios.alert.camera": "Kamera za {d} metrów, maksimum {x}",
+  "ios.alert.cameraNoLimit": "Kamera za {d} metrów",
+  "ios.alert.plannedLine": "Planowana kontrola policji, maksimum {x}",
+  "ios.alert.plannedZone": "Kontrola policji – {place}",
+  "ios.settings.groupAlerts": "Ostrzeżenia",
+  "ios.settings.cameraAlert": "Ostrzeżenia o kamerach",
+  "ios.settings.cameraAlertHint": "Gdy kamera lub początek odcinkowego pomiaru jest do 600 m przed tobą: krótki dźwięk, komunikat i wibracja – raz dla każdej kamery.",
+  "ios.settings.plannedAlert": "Ostrzeżenia o planowanych kontrolach",
+  "ios.settings.plannedAlertHint": "Dźwięk i komunikat, gdy wjedziesz na odcinek lub obszar planowanej kontroli policji.",
+  "ios.settings.alertMode": "Sposób ostrzegania",
+  "ios.settings.alertMode.sound": "Dźwięk",
+  "ios.settings.alertMode.vibrate": "Tylko wibracje",
+  "ios.settings.alertMode.off": "Wyłączone",
+  "ios.settings.alertModeHint": "Dźwięk odtwarzany jest niezależnie od przełącznika wyciszenia, także przy zablokowanym ekranie; muzyka jest w tym czasie ściszana."
 }

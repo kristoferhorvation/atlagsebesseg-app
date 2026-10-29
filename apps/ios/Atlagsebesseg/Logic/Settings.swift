@@ -1,6 +1,6 @@
 import Foundation
 
-// A packages/app-logic/src/settings.ts portja (ugyanaz a kulcs és JSON-alak, mint a weben).
+// A packages/app-logic/src/settings.ts portja (ugyanaz a kulcs és JSON-alak, mint a weben; a jelzések csak iOS-en).
 
 nonisolated enum SpeedUnit: String, Codable, Sendable {
     case kmh, mph
@@ -16,10 +16,16 @@ nonisolated struct Settings: Equatable, Sendable {
     var hatosagiTuresMegjelenitese = false
     var egyseg: SpeedUnit = .kmh
     var terkep: MapLook = .szines
-    /// A rendőrség által előre közzétett mérési helyszínek (A10+ az iOS-en; a beállítás megmarad).
+    /// A rendőrség által előre közzétett mérési helyszínek (vonal / zóna a térképen + felső sáv).
     var tervezettMeresek = true
-    /// Navigáció hangja (A10+ az iOS-en; a beállítás megmarad).
+    /// Navigáció hangja (A11+ az iOS-en; a beállítás megmarad).
     var hangosUtasitasok = true
+    /// Kamera- és szakaszkapu-közeledés jelzése (A10, csak iOS).
+    var kameraJelzes = true
+    /// Jelzés, amikor tervezett mérés vonalára / zónájába érünk (A10, csak iOS).
+    var tervezettJelzes = true
+    /// A jelzések módja: hang / csak rezgés / ki (A10, csak iOS; alapból hang).
+    var jelzesMod: AlertMode = .hang
 
     static let `default` = Settings()
     static let storageKey = "settings:v1"
@@ -34,6 +40,9 @@ nonisolated struct Settings: Equatable, Sendable {
         if let v = (p["terkep"] as? String).flatMap(MapLook.init(rawValue:)) { s.terkep = v }
         if let v = p["tervezett_meresek"] as? Bool { s.tervezettMeresek = v }
         if let v = p["hangos_utasitasok"] as? Bool { s.hangosUtasitasok = v }
+        if let v = p["kamera_jelzes"] as? Bool { s.kameraJelzes = v }
+        if let v = p["tervezett_jelzes"] as? Bool { s.tervezettJelzes = v }
+        if let v = (p["jelzes_mod"] as? String).flatMap(AlertMode.init(rawValue:)) { s.jelzesMod = v }
         return s
     }
 
@@ -41,6 +50,7 @@ nonisolated struct Settings: Equatable, Sendable {
         let obj: [String: Any] = [
             "hatosagi_tures_megjelenitese": hatosagiTuresMegjelenitese, "egyseg": egyseg.rawValue, "terkep": terkep.rawValue,
             "tervezett_meresek": tervezettMeresek, "hangos_utasitasok": hangosUtasitasok,
+            "kamera_jelzes": kameraJelzes, "tervezett_jelzes": tervezettJelzes, "jelzes_mod": jelzesMod.rawValue,
         ]
         let data = (try? JSONSerialization.data(withJSONObject: obj, options: [.sortedKeys])) ?? Data()
         return String(decoding: data, as: UTF8.self)

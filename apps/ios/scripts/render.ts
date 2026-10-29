@@ -1,10 +1,11 @@
-import { DICTIONARIES, LANGUAGES, type TKey } from '@atlagsebesseg/app-logic';
+import { DICTIONARIES, LANGUAGES, type FixedCamera, type PlannedCheck, type TKey } from '@atlagsebesseg/app-logic';
+import { Route, type LatLon } from '@atlagsebesseg/core';
 import { testCourse } from '@atlagsebesseg/core/test/helpers/trace';
 import { toSwift } from '@atlagsebesseg/design-tokens';
 import { PATHS } from '../../web/src/ui/Icon';
 import { buildNavSim } from '../../web/src/sim/navSim';
 import { iconsSwift } from './icons';
-import { buildSimulation, type SimScenario } from '../../web/src/sim/scenarios';
+import { buildSimulation, simCameras, simPlannedChecks, type SimScenario } from '../../web/src/sim/scenarios';
 
 /**
  * Az iOS-app generált fájljai (A9) – egyetlen forrásból, mint a web:
@@ -98,7 +99,40 @@ function simFile(meta: Record<string, unknown>, samples: readonly Sample[]): str
   return `{\n${head.join(',\n')},\n  "samples": [\n${samples.map((x) => '    ' + JSON.stringify(row(x))).join(',\n')}\n  ]\n}\n`;
 }
 
-/** A webes `/?sim` forgatókönyvei a tesztpályán (t0 = 0; az app a lejátszás kezdetéhez tolja), és a `/?navsim` vezetése. */
+const cameraRow = (c: FixedCamera) => ({
+  id: c.id, country: c.country, type: c.type, lat: c.lat, lng: c.lon, heading: c.headingDeg, road: c.road, speed_limit_kmh: c.speedLimitKmh,
+  source: c.source, source_url: c.sourceUrl, source_date: c.sourceDate, verified: c.verified,
+});
+
+/** Az érvényesség a lejátszás kezdetéhez képest: előző nap 00:00-tól hat napig (az app a lejátszás idejéhez tolja). */
+const SIM_VALID_FROM_MS = -86_400_000;
+const SIM_VALID_TO_MS = 6 * 86_400_000;
+
+/** Tervezett mérés a `planned_checks` sor alakjában (GeoJSON, lon-lat), az időpontok a lejátszás kezdetéhez képest (ms). */
+const plannedRow = (c: PlannedCheck) => ({
+  id: c.id,
+  country: c.country,
+  county: c.county,
+  settlement: c.settlement,
+  road_ref: c.roadRef,
+  description: c.description,
+  geometry:
+    c.zones.length > 0
+      ? { type: 'MultiPolygon', coordinates: c.zones.map((poly) => poly.map((ring) => ring.map((p) => [p.lon, p.lat]))) }
+      : { type: 'MultiLineString', coordinates: c.lines.map((l) => l.map((p) => [p.lon, p.lat])) },
+  speed_limit_kmh: c.speedLimitKmh,
+  limit_source: c.limitSource,
+  valid_from_offset_ms: SIM_VALID_FROM_MS,
+  valid_to_offset_ms: SIM_VALID_TO_MS,
+  time_window: c.timeWindow,
+  source_url: c.sourceUrl,
+});
+
+/**
+ * A webes `/?sim` forgatókönyvei a tesztpályán (t0 = 0; az app a lejátszás kezdetéhez tolja), és a `/?navsim` vezetése.
+ * A10: a `tervezett` (tervezett mérés + kamerák) és a `zona` forgatókönyv is, a navsim-be pedig egy tervezett mérés kerül
+ * az érkezés előtti szakaszra – így a kamera-elhaladás, a szakaszkapu-jelzés és a tervezett-mérés sáv is lejátszható.
+ */
 function simFixtures(): [string, string][] {
   const section = testCourse().section;
   const route = { id: section.id, label: 'Tesztpálya', section };
@@ -107,29 +141,46 @@ function simFixtures(): [string, string][] {
     { id: 'tul', label: 'Túl gyors' },
     { id: 'lassit', label: 'Gyors, majd lassít' },
     { id: 'alagut', label: 'Alagút' },
+    { id: 'tervezett', label: 'Tervezett mérés + kamerák' },
+    { id: 'zona', label: 'Települészóna' },
   ];
   const files: [string, string][] = SCENARIOS.map(({ id, label }) => {
     const sim = buildSimulation(route, id, 0);
-    return [`sim-${id}.json`, simFile({ id, label, leadInM: sim.leadInM, sections: [sim.section], cameras: [] }, sim.samples)];
+    return [
+      `sim-${id}.json`,
+      simFile(
+        { id, label, leadInM: sim.leadInM, sections: [sim.section], cameras: simCameras(sim, id).map(cameraRow), planned: simPlannedChecks(sim, id).map(plannedRow) },
+        sim.samples,
+      ),
+    ];
   });
   const nav = buildNavSim(0);
-  const camera = nav.camera;
+  // tervezett mérés a 3. ablakban (érkezés Győrbe): a cél előtt 2400 → 1000 m-ig, a fixtúra útvonalán
+  const main = new Route(nav.main.points, nav.main.distanceM);
+  const D = nav.main.distanceM;
+  const line: LatLon[] = [];
+  for (let s = D - 2400; s < D - 1000; s += 100) line.push(main.pointAt(s));
+  line.push(main.pointAt(D - 1000));
+  const navPlanned: PlannedCheck = {
+    id: 'sim-nav-planned',
+    country: 'HU',
+    county: 'Győr-Moson-Sopron',
+    settlement: 'Győr',
+    roadRef: '1',
+    description: 'Szimulált tervezett mérés (Győr, 1-es főút)',
+    lines: [line],
+    zones: [],
+    speedLimitKmh: 70,
+    limitSource: 'osm',
+    validFrom: 0,
+    validTo: 0,
+    timeWindow: null,
+    sourceUrl: 'https://www.police.hu/',
+  };
   files.push([
     'navsim-budapest-gyor.json',
     simFile(
-      {
-        id: 'navsim',
-        label: 'Budapest → Győr (M1)',
-        leadInM: 0,
-        sections: [nav.section],
-        cameras: [
-          {
-            id: camera.id, country: camera.country, type: camera.type, lat: camera.lat, lng: camera.lon, heading: camera.headingDeg,
-            road: camera.road, speed_limit_kmh: camera.speedLimitKmh, source: camera.source, source_url: camera.sourceUrl,
-            source_date: camera.sourceDate, verified: camera.verified,
-          },
-        ],
-      },
+      { id: 'navsim', label: 'Budapest → Győr (M1)', leadInM: 0, sections: [nav.section], cameras: [cameraRow(nav.camera)], planned: [plannedRow(navPlanned)] },
       nav.samples,
     ),
   ]);

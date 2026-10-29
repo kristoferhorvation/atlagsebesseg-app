@@ -69,6 +69,51 @@ struct SimTests {
         #expect(views.contains { $0.phase == .befejezve })
     }
 
+    /// Végigjátssza a forgatókönyvet a jelzés-figyelőkön (közeledés + tervezett mérés), hang nélkül.
+    private func alerts(_ scenario: SimScenario) throws -> (events: [AlertEvent], planned: [String]) {
+        let fixture = try SimFixture.load(scenario)
+        let source = SimLocationSource(fixture, speed: 1, seek: 1)
+        let t0 = Date().timeIntervalSince1970 * 1000
+        let checks = fixture.planned.map { $0.check(at: t0) }
+        let approach = ApproachWatch()
+        let watch = PlannedCheckWatch()
+        var events: [AlertEvent] = []
+        var planned: [String] = []
+        var current: String?
+        source.onLocation = { l in
+            let fix = GpsFix(location: l)
+            events += approach.update(fix, cameras: fixture.cameras.map(\.camera), sections: fixture.sections, unit: .kmh)
+            let p = watch.update(fix, checks, now: source.clockMs)?.id
+            if let p, p != current { planned.append(p) }
+            current = p
+        }
+        source.start()
+        source.stop()
+        return (events, planned)
+    }
+
+    @Test("Budapest → Győr: szakaszkapu, kamera-elhaladás és tervezett mérés – mindegyik egyszer")
+    func navsimJelzesek() throws {
+        let (events, planned) = try alerts(.navsim)
+        #expect(events.map(\.kind) == [.section, .camera])
+        #expect(events.map(\.targetId) == ["SIM-M1-NAV", "sim-nav-cam"])
+        #expect(planned == ["sim-nav-planned"])
+    }
+
+    @Test("tervezett mérés + kamerák: mindhárom kamera egyszer, a tervezett mérés sávja megjelenik")
+    func tervezett() throws {
+        let (events, planned) = try alerts(.tervezett)
+        #expect(events.filter { $0.kind == .camera }.map(\.targetId).sorted() == ["sim-cam-TEST-1-0", "sim-cam-TEST-1-1", "sim-cam-TEST-1-2"])
+        #expect(Set(events.map(\.targetId)).count == events.count)
+        #expect(planned == ["sim-planned-TEST-1"])
+    }
+
+    @Test("települészóna: a sáv a zónába érve megjelenik")
+    func zona() throws {
+        let (_, planned) = try alerts(.zona)
+        #expect(planned == ["sim-zone-TEST-1"])
+    }
+
     @Test("CLLocation → GpsFix: negatív sebesség / irány / pontosság = ismeretlen")
     func atalakitas() {
         let date = Date(timeIntervalSince1970: 1_700_000_000.25)

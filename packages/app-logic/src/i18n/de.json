@@ -271,5 +271,20 @@
   "nav.voice.fasterExit500": "Schnellere Route, Abfahrt in 500 Metern",
   "ios.locationUsage": "Dein Standort wird gebraucht, um Messabschnitte zu erkennen und deine Durchschnittsgeschwindigkeit zu messen – auch bei gesperrtem Bildschirm, solange die App misst.",
   "ios.geo.denied": "verweigert (Einstellungen → Datenschutz → Ortungsdienste)",
-  "ios.start.tip.background": "Misst auch bei gesperrtem Bildschirm – während der Messung bleibt die Anzeige an"
+  "ios.start.tip.background": "Misst auch bei gesperrtem Bildschirm – während der Messung bleibt die Anzeige an",
+
+  "ios.alert.camera": "Kamera in {d} Metern, maximal {x}",
+  "ios.alert.cameraNoLimit": "Kamera in {d} Metern",
+  "ios.alert.plannedLine": "Geplante Polizeikontrolle, maximal {x}",
+  "ios.alert.plannedZone": "Polizeikontrolle in {place}",
+  "ios.settings.groupAlerts": "Warnungen",
+  "ios.settings.cameraAlert": "Kamerawarnung",
+  "ios.settings.cameraAlertHint": "Liegt eine Kamera oder der Beginn einer Abschnittskontrolle innerhalb von 600 m in Fahrtrichtung: kurzer Ton, Ansage und Vibration – einmal pro Kamera.",
+  "ios.settings.plannedAlert": "Warnung bei geplanter Kontrolle",
+  "ios.settings.plannedAlertHint": "Ton und Ansage, wenn du die Strecke oder das Gebiet einer geplanten Polizeikontrolle erreichst.",
+  "ios.settings.alertMode": "Art der Warnung",
+  "ios.settings.alertMode.sound": "Ton",
+  "ios.settings.alertMode.vibrate": "Nur Vibration",
+  "ios.settings.alertMode.off": "Aus",
+  "ios.settings.alertModeHint": "Der Ton erklingt unabhängig vom Stummschalter, auch bei gesperrtem Bildschirm; Musik wird währenddessen leiser."
 }

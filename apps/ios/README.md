@@ -10,11 +10,12 @@ kerül, a web (`apps/web`) hibajavítás szintjén marad.
 | `project.yml` | XcodeGen-leírás → `Atlagsebesseg.xcodeproj` (generált, nincs a repóban) |
 | `Config/App.xcconfig` | közös beállítások; `#include? "../Secrets.xcconfig"` |
 | `Secrets.example.xcconfig` | minta a titkokhoz (a valódi `Secrets.xcconfig` gitignore-ban) |
-| `Atlagsebesseg/Logic` | az app-logic portja: mérés-munkamenet, kijelző-formázás, beállítások, kamera-láthatóság, csempe-cache, i18n |
+| `Atlagsebesseg/Logic` | az app-logic portja: mérés-munkamenet, kijelző-formázás, beállítások, kamera-láthatóság, tervezett mérések, csempe-cache, i18n; jelzés-logika (`Alerts.swift`, A10) |
+| `Atlagsebesseg/Audio` | a jelzések hang-rétege (`AlertPlayer`: csipogás + bemondás + rezgés, ducking, `audio` háttér-mód) |
 | `Atlagsebesseg/Location` | CoreLocation (When In Use + `location` háttér-mód) |
 | `Atlagsebesseg/Backend` | Supabase (ugyanazok az RPC-k, mint a weben), beépített adat |
 | `Atlagsebesseg/Map` | Mapbox Maps SDK (Standard stílus, szakaszok, kamerák, saját pozíció) |
-| `Atlagsebesseg/UI` | mérőkártya, „Lassíts” sáv, kezdőképernyő, beállítások |
+| `Atlagsebesseg/UI` | mérőkártya, „Lassíts” sáv, tervezett-mérés sáv, jelzés-sáv, kezdőképernyő, beállítások |
 | `Atlagsebesseg/Sim` | szimulátor-mód: a webes `/?sim` és `/?navsim` vezetések CoreLocation-mockkal |
 | `Atlagsebesseg/Generated` | **generált**: `DesignTokens.swift`, `L10nKey.swift`, `Icons.swift` |
 | `Atlagsebesseg/Resources` | **generált**: `Localizable.xcstrings`, `InfoPlist.xcstrings`, `Sim/*.json`; ikon |
@@ -32,7 +33,7 @@ cd apps/ios && xcodegen generate         # Atlagsebesseg.xcodeproj
 
 # tesztek (AppTests + core-swift a sémában)
 xcodebuild test -project Atlagsebesseg.xcodeproj -scheme Atlagsebesseg \
-  -destination 'platform=iOS Simulator,name=iPhone Duo'
+  -destination 'platform=iOS Simulator,name=iPhone 17 Pro'
 
 # eszközre, aláírás nélkül (fordítás-ellenőrzés)
 xcodebuild build -project Atlagsebesseg.xcodeproj -scheme Atlagsebesseg \
@@ -49,7 +50,10 @@ A beállításokban (Fejlesztés → Szimulátor), vagy indítási argumentummal
 xcrun simctl launch booted hu.atlagsebesseg.app -sim lassit -simSeek 0.5 -simSpeed 4 -simPanel NO
 ```
 
-Forgatókönyvek: `jo`, `tul`, `lassit`, `alagut` (a webes tesztpálya) és `navsim` (Budapest → Győr, M1).
+Forgatókönyvek: `jo`, `tul`, `lassit`, `alagut`, `tervezett` (tervezett mérés + 3 kamera), `zona` (települészóna) – a
+webes tesztpálya –, és `navsim` (Budapest → Győr, M1: szakaszkapu-jelzés, kamera-elhaladás, a végén tervezett mérés).
+A `-simSeek` alatti ugrás közben jelzés nem szól (csak az állapot frissül); nagyon kis `-simSpeed` (pl. `0.05`)
+gyakorlatilag megállítja a lejátszást – a képernyőképekhez.
 A minták `CLLocation`-ként jönnek, így a mérés ugyanazon az úton fut, mint valódi GPS-sel.
 
 ## Telepítés a saját iPhone-ra (Kristof)

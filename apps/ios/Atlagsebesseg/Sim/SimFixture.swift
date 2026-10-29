@@ -6,7 +6,7 @@ import Foundation
 
 /// A webes `/?sim` forgatókönyvei és a `/?navsim` vezetés (Resources/Sim/*.json, `npm run generate -w @atlagsebesseg/ios`).
 nonisolated enum SimScenario: String, CaseIterable, Identifiable, Sendable {
-    case jo, tul, lassit, alagut, navsim
+    case jo, tul, lassit, alagut, tervezett, zona, navsim
 
     var id: String { rawValue }
     var file: String { self == .navsim ? "navsim-budapest-gyor" : "sim-\(rawValue)" }
@@ -24,15 +24,44 @@ nonisolated struct SimFixture: Decodable, Sendable {
         var dropped: Bool
     }
 
+    /// Tervezett mérés a `planned_checks` sor alakjában, az érvényesség a lejátszás kezdetéhez képest (ms).
+    struct Planned: Decodable, Sendable {
+        var id: String
+        var country: String
+        var county: String
+        var settlement: String?
+        var road_ref: String?
+        var description: String
+        var geometry: PlannedCheckRow.Geometry
+        var speed_limit_kmh: Double
+        var limit_source: PlannedLimitSource
+        var valid_from_offset_ms: Double
+        var valid_to_offset_ms: Double
+        var time_window: String?
+        var source_url: String
+
+        /// A lejátszás kezdetéhez (`t0`, Unix ms) tolva.
+        func check(at t0: Double) -> PlannedCheck {
+            let ring = { (l: [[Double]]) in l.map { LatLon(lat: $0[1], lon: $0[0]) } }
+            return PlannedCheck(
+                id: id, country: country, county: county, settlement: settlement, roadRef: road_ref, description: description,
+                lines: geometry.lines.map(ring), zones: geometry.zones.map { $0.map(ring) }, speedLimitKmh: speed_limit_kmh,
+                limitSource: limit_source, validFrom: t0 + valid_from_offset_ms, validTo: t0 + valid_to_offset_ms, timeWindow: time_window,
+                sourceUrl: source_url
+            )
+        }
+    }
+
     let id: String
     let label: String
     let leadInM: Double
     let sections: [Section]
     let cameras: [CameraRow]
+    let planned: [Planned]
     let samples: [Sample]
 
     private enum CodingKeys: String, CodingKey {
-        case id, label, leadInM, sections, cameras, samples
+        case id, label, leadInM, sections, cameras, planned, samples
     }
 
     init(from decoder: Decoder) throws {
@@ -42,6 +71,7 @@ nonisolated struct SimFixture: Decodable, Sendable {
         leadInM = try c.decode(Double.self, forKey: .leadInM)
         sections = try c.decode([Section].self, forKey: .sections)
         cameras = try c.decode([CameraRow].self, forKey: .cameras)
+        planned = try c.decodeIfPresent([Planned].self, forKey: .planned) ?? []
         // soronként: [lat, lon, timestamp, speed, accuracy, heading, s, dropped]
         samples = try c.decode([[Double?]].self, forKey: .samples).map { r in
             Sample(lat: r[0]!, lon: r[1]!, t: r[2]!, speed: r[3], accuracy: r[4], heading: r[5], dropped: r[7] == 1)
@@ -70,6 +100,10 @@ final class SimLocationSource: LocationSource {
     private var timer: Timer?
     private var seek: Double
     private(set) var clockMs: Double = Date().timeIntervalSince1970 * 1000
+    /// A lejátszás kezdete (Unix ms) – ehhez tolódnak a fixtúra időpontjai.
+    private(set) var startMs: Double = Date().timeIntervalSince1970 * 1000
+    /// Igaz, amíg a `seek` a kezdőpontig azonnal lejátssza a mintákat (ilyenkor nem szól jelzés).
+    private(set) var seeking = false
 
     init(_ fixture: SimFixture, speed: Double = 4, seek: Double = 0) {
         self.fixture = fixture
@@ -83,12 +117,15 @@ final class SimLocationSource: LocationSource {
     func start() {
         index = 0
         offsetMs = (Date().timeIntervalSince1970 * 1000).rounded()
+        startMs = offsetMs
         clockMs = offsetMs
         onStatus?(.sim)
         // ugrás a `seek` hányadig (egy adott állapot azonnali megnézéséhez, mint a webes `?seek=`)
         let until = Int((seek * Double(fixture.samples.count)).rounded(.down))
         seek = 0
+        seeking = true
         while index < until { emit() }
+        seeking = false
         play()
     }
 

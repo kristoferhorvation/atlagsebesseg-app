@@ -4,8 +4,9 @@ import Foundation
 import Observation
 import UIKit
 
-/// Az app állapota: helyzetforrás (GPS vagy szimulátor) → mérés-munkamenet → kijelző; szakaszok és kamerák
-/// a szerverről (csempénként, cache-sel) a beépített adattal összefésülve.
+/// Az app állapota: helyzetforrás (GPS vagy szimulátor) → mérés-munkamenet → kijelző; szakaszok, kamerák és
+/// tervezett mérések a szerverről (csempénként, cache-sel) a beépített adattal összefésülve; kamera-közeledés és
+/// tervezett mérés jelzése (esemény → hang-réteg).
 @Observable
 final class AppModel {
     var settings: Settings = .load() {
@@ -17,6 +18,12 @@ final class AppModel {
     private(set) var geo: GeoStatus = .off
     private(set) var sections: [Section] = BundledData.sections
     private(set) var cameras: [FixedCamera] = BundledData.cameras
+    /// Az összes betöltött tervezett mérés (a megjelenítéshez: `plannedShown`).
+    private(set) var planned: [PlannedCheck] = []
+    /// A tervezett mérés, amelynek vonalán / zónájában a pozíció van (a felső sáv).
+    private(set) var activePlanned: PlannedCheck?
+    /// Az utolsó jelzés a képernyőn (néhány másodpercig látszik).
+    private(set) var alert: AlertEvent?
     private(set) var serverStatus: String = "–"
     /// Nő, ha a szakasz- vagy kameralista változik (a térkép csak ekkor építi újra a rétegeit).
     private(set) var dataVersion = 0
@@ -39,11 +46,25 @@ final class AppModel {
     @ObservationIgnored private var ticker: Timer?
     @ObservationIgnored private let sectionTiles: TileCache<Section>
     @ObservationIgnored private let cameraTiles: TileCache<FixedCamera>
+    @ObservationIgnored private let plannedTiles: TileCache<PlannedCheck>
+    @ObservationIgnored private var serverPlanned: [PlannedCheck] = []
+    @ObservationIgnored private var simPlanned: [PlannedCheck] = []
+    @ObservationIgnored private let plannedWatch = PlannedCheckWatch()
+    @ObservationIgnored private let approach = ApproachWatch()
+    /// A hang-réteg (a tesztekben felvevő).
+    @ObservationIgnored var alertSink: AlertSink = AlertPlayer()
+    /// Mikor jött az utolsó jelzés (az óra szerint, ms) – a sáv ennyi után tűnik el.
+    @ObservationIgnored private var alertAt: Double = 0
+    static let alertShowMs = 8000.0
 
     init() {
         let wallClock = { Date().timeIntervalSince1970 * 1000 }
         sectionTiles = TileCache(store: FileStore.caches, prefix: "sections", now: wallClock) { [backend] b in try await backend.sections(in: b) }
         cameraTiles = TileCache(store: FileStore.caches, prefix: "cameras", now: wallClock) { [backend] b in try await backend.cameras(in: b) }
+        // a tervezett mérések gyakrabban frissülnek (a webes `plannedCache`-hez hasonlóan 3 óra)
+        plannedTiles = TileCache(store: FileStore.caches, prefix: "planned", ttlMs: 3 * 3600_000, now: wallClock) { [backend] b in
+            try await backend.plannedChecks(in: b)
+        }
         session = TrackingSession(sections, now: { [weak self] in self?.nowMs() ?? Date().timeIntervalSince1970 * 1000 })
         view = session.view()
         serverStatus = backend.configured ? "…" : "offline"
@@ -82,6 +103,9 @@ final class AppModel {
         guard let fixture = try? SimFixture.load(scenario) else { return }
         simSections = fixture.sections
         simCameras = fixture.cameras.map(\.camera)
+        let t0 = (Date().timeIntervalSince1970 * 1000).rounded()
+        simPlanned = fixture.planned.map { $0.check(at: t0) }
+        resetAlerts()
         rebuildData()
         session = TrackingSession(sections, now: { [weak self] in self?.nowMs() ?? Date().timeIntervalSince1970 * 1000 })
         let s = SimLocationSource(fixture, speed: speed, seek: seek)
@@ -102,6 +126,8 @@ final class AppModel {
         sim = nil
         simSections = []
         simCameras = []
+        simPlanned = []
+        resetAlerts()
         rebuildData()
         session = TrackingSession(sections, now: { [weak self] in self?.nowMs() ?? Date().timeIntervalSince1970 * 1000 })
         view = session.view()
@@ -137,6 +163,7 @@ final class AppModel {
     private func onLocation(_ l: CLLocation) {
         let fix = GpsFix(location: l)
         view = session.onFix(fix)
+        updateAlerts(fix)
         let key = tileKey(fix.lat, fix.lon)
         if key != loadedTile, sim == nil {
             loadedTile = key
@@ -146,6 +173,40 @@ final class AppModel {
 
     private func tick() {
         view = session.tick()
+        if alert != nil, nowMs() - alertAt > Self.alertShowMs { alert = nil }
+    }
+
+    // MARK: tervezett mérések és jelzések
+
+    /// A térképen és a sávban látható tervezett mérések: a beállítás szerint, csak a most érvényesek.
+    var plannedShown: [PlannedCheck] {
+        settings.tervezettMeresek ? planned.filter { plannedCheckActive($0, now: nowMs()) } : []
+    }
+
+    /// Egy új fix: a tervezett mérés sávja és a közeledés-figyelő eseményei → a beállítások szerint a hang-rétegnek.
+    private func updateAlerts(_ fix: GpsFix) {
+        let before = activePlanned?.id
+        activePlanned = plannedWatch.update(fix, plannedShown, now: nowMs())
+        var events = approach.update(fix, cameras: cameras, sections: sections, unit: settings.egyseg)
+        if let p = activePlanned, p.id != before {
+            events.append(AlertEvent(kind: .planned, targetId: p.id, text: plannedAlertText(p, unit: settings.egyseg)))
+        }
+        for e in events { emit(e) }
+    }
+
+    private func emit(_ e: AlertEvent) {
+        guard let delivery = alertDelivery(e.kind, settings) else { return }
+        alert = e
+        alertAt = nowMs()
+        // a szimulátor ugrása (seek) alatt csak az állapot frissül, hang nem szól
+        if sim?.seeking != true { alertSink.deliver(e, delivery) }
+    }
+
+    private func resetAlerts() {
+        plannedWatch.reset()
+        approach.reset()
+        activePlanned = nil
+        alert = nil
     }
 
     func startManual() { view = session.startManual() }
@@ -167,8 +228,10 @@ final class AppModel {
         guard backend.configured else { return }
         let s = await sectionTiles.loadItems(lat, lon)
         let c = await cameraTiles.loadItems(lat, lon)
+        let p = await plannedTiles.loadItems(lat, lon)
         serverSections = s.items
         serverCameras = c.items
+        serverPlanned = p.items
         serverStatus = s.missing > 0 && s.fromCache == 0 ? "offline" : "\(s.items.count) · \(c.items.count)"
         rebuildData()
     }
@@ -178,6 +241,7 @@ final class AppModel {
         var byId: [String: FixedCamera] = [:]
         for c in BundledData.cameras + serverCameras + simCameras { byId[c.id] = c }
         cameras = byId.values.sorted { $0.id < $1.id }
+        planned = serverPlanned + simPlanned
         dataVersion += 1
         session?.setSections(sections)
     }

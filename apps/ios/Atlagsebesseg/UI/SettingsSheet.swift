@@ -1,7 +1,8 @@
 import AtlagsebessegCore
 import SwiftUI
 
-/// Beállítások: kijelző (tűrés, egység, térkép), állapot, fejlesztés (szimulátor), attribúció.
+/// Beállítások: kijelző (tűrés, egység, térkép), jelzések (kamera, tervezett mérés, mód), állapot, fejlesztés
+/// (szimulátor), attribúció.
 struct SettingsSheet: View {
     @Bindable var model: AppModel
     @Environment(\.dismiss) private var dismiss
@@ -24,6 +25,22 @@ struct SettingsSheet: View {
                         Text(t(.settingsLookMuted)).tag(MapLook.visszafogott)
                     }
                     .pickerStyle(.segmented)
+                    Toggle(t(.settingsPlanned), isOn: $model.settings.tervezettMeresek)
+                    Text(t(.settingsPlannedHint)).font(.footnote).foregroundStyle(Tokens.Colors.textMuted)
+                }
+                SwiftUI.Section(t(.iosSettingsGroupAlerts)) {
+                    Toggle(t(.iosSettingsCameraAlert), isOn: $model.settings.kameraJelzes)
+                    Text(t(.iosSettingsCameraAlertHint)).font(.footnote).foregroundStyle(Tokens.Colors.textMuted)
+                    Toggle(t(.iosSettingsPlannedAlert), isOn: $model.settings.tervezettJelzes)
+                        .disabled(!model.settings.tervezettMeresek)
+                    Text(t(.iosSettingsPlannedAlertHint)).font(.footnote).foregroundStyle(Tokens.Colors.textMuted)
+                    Picker(t(.iosSettingsAlertMode), selection: $model.settings.jelzesMod) {
+                        Text(t(.iosSettingsAlertModeSound)).tag(AlertMode.hang)
+                        Text(t(.iosSettingsAlertModeVibrate)).tag(AlertMode.rezges)
+                        Text(t(.iosSettingsAlertModeOff)).tag(AlertMode.ki)
+                    }
+                    .pickerStyle(.segmented)
+                    Text(t(.iosSettingsAlertModeHint)).font(.footnote).foregroundStyle(Tokens.Colors.textMuted)
                 }
                 SwiftUI.Section(t(.settingsGroupStatus)) {
                     LabeledContent(t(.settingsGps), value: model.geo.label)

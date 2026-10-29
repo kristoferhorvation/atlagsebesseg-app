@@ -271,5 +271,20 @@
   "nav.voice.fasterExit500": "Gyorsabb út, lehajtó 500 méternél",
   "ios.locationUsage": "A mérőszakaszok felismeréséhez és az átlagsebesség méréséhez kell a helyzeted – zárolt képernyővel is, amíg az app mér.",
   "ios.geo.denied": "tiltva (Beállítások → Adatvédelem → Helymeghatározás)",
-  "ios.start.tip.background": "Zárolt képernyővel is mér – a kijelző mérés közben ébren marad"
+  "ios.start.tip.background": "Zárolt képernyővel is mér – a kijelző mérés közben ébren marad",
+
+  "ios.alert.camera": "Kamera {d} méterre, maximum {x}",
+  "ios.alert.cameraNoLimit": "Kamera {d} méterre",
+  "ios.alert.plannedLine": "Tervezett rendőrségi mérés, maximum {x}",
+  "ios.alert.plannedZone": "Rendőrségi mérés {place} területén",
+  "ios.settings.groupAlerts": "Jelzések",
+  "ios.settings.cameraAlert": "Kamera-jelzés",
+  "ios.settings.cameraAlertHint": "Ha az útirányban 600 m-en belül kamera vagy szakaszellenőrzés kezdete van: rövid hang, bemondás és rezgés – kameránként egyszer.",
+  "ios.settings.plannedAlert": "Tervezett mérés jelzése",
+  "ios.settings.plannedAlertHint": "Hang és bemondás, amikor tervezett rendőrségi mérés vonalára vagy területére érsz.",
+  "ios.settings.alertMode": "Jelzés módja",
+  "ios.settings.alertMode.sound": "Hang",
+  "ios.settings.alertMode.vibrate": "Csak rezgés",
+  "ios.settings.alertMode.off": "Ki",
+  "ios.settings.alertModeHint": "A hang a némítás-kapcsolótól függetlenül, zárolt képernyőn is szól; közben a zene halkabb."
 }

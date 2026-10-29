@@ -76,7 +76,8 @@ targets:
           UIApplicationSupportsMultipleScenes: false
         UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait]
         UIUserInterfaceStyle: Dark
-        UIBackgroundModes: [location]
+        # location: háttér-mérés; audio: a jelzés zárolt képernyőn is szól (A10)
+        UIBackgroundModes: [location, audio]
         # alapszöveg; a nyelvenkénti változat az InfoPlist.xcstrings-ből (a szótárból generálva)
         NSLocationWhenInUseUsageDescription: Your location is needed to detect sections and measure your average speed.
         ITSAppUsesNonExemptEncryption: false

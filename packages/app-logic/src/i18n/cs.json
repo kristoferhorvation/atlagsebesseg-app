@@ -271,5 +271,20 @@
   "nav.voice.fasterExit500": "Rychlejší trasa, sjezd za 500 metrů",
   "ios.locationUsage": "Tvoje poloha je potřeba k rozpoznání úseků a měření průměrné rychlosti – i při zamčené obrazovce, dokud aplikace měří.",
   "ios.geo.denied": "zamítnuto (Nastavení → Soukromí → Polohové služby)",
-  "ios.start.tip.background": "Měří i při zamčené obrazovce – během měření displej nezhasne"
+  "ios.start.tip.background": "Měří i při zamčené obrazovce – během měření displej nezhasne",
+
+  "ios.alert.camera": "Kamera za {d} metrů, maximálně {x}",
+  "ios.alert.cameraNoLimit": "Kamera za {d} metrů",
+  "ios.alert.plannedLine": "Plánovaná policejní kontrola, maximálně {x}",
+  "ios.alert.plannedZone": "Policejní kontrola – {place}",
+  "ios.settings.groupAlerts": "Upozornění",
+  "ios.settings.cameraAlert": "Upozornění na kamery",
+  "ios.settings.cameraAlertHint": "Pokud je ve směru jízdy do 600 m kamera nebo začátek úsekového měření: krátký tón, hlášení a vibrace – u každé kamery jednou.",
+  "ios.settings.plannedAlert": "Upozornění na plánované kontroly",
+  "ios.settings.plannedAlertHint": "Tón a hlášení, když dojedeš na úsek nebo do oblasti plánované policejní kontroly.",
+  "ios.settings.alertMode": "Způsob upozornění",
+  "ios.settings.alertMode.sound": "Zvuk",
+  "ios.settings.alertMode.vibrate": "Jen vibrace",
+  "ios.settings.alertMode.off": "Vypnuto",
+  "ios.settings.alertModeHint": "Zvuk zazní bez ohledu na přepínač tichého režimu, i při zamčené obrazovce; hudba se mezitím ztlumí."
 }

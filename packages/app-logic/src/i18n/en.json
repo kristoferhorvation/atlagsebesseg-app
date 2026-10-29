@@ -271,5 +271,20 @@
   "nav.voice.fasterExit500": "Faster route, exit in 500 metres",
   "ios.locationUsage": "Your location is needed to detect sections and measure your average speed – also with the screen locked while the app is measuring.",
   "ios.geo.denied": "denied (Settings → Privacy → Location Services)",
-  "ios.start.tip.background": "Keeps measuring with the screen locked – the display stays on while measuring"
+  "ios.start.tip.background": "Keeps measuring with the screen locked – the display stays on while measuring",
+
+  "ios.alert.camera": "Camera in {d} metres, maximum {x}",
+  "ios.alert.cameraNoLimit": "Camera in {d} metres",
+  "ios.alert.plannedLine": "Planned police check, maximum {x}",
+  "ios.alert.plannedZone": "Police check in {place}",
+  "ios.settings.groupAlerts": "Alerts",
+  "ios.settings.cameraAlert": "Camera alerts",
+  "ios.settings.cameraAlertHint": "When a camera or the start of a section control is within 600 m ahead: a short tone, an announcement and a vibration – once per camera.",
+  "ios.settings.plannedAlert": "Planned check alerts",
+  "ios.settings.plannedAlertHint": "A tone and an announcement when you reach the line or area of a planned police check.",
+  "ios.settings.alertMode": "Alert mode",
+  "ios.settings.alertMode.sound": "Sound",
+  "ios.settings.alertMode.vibrate": "Vibrate only",
+  "ios.settings.alertMode.off": "Off",
+  "ios.settings.alertModeHint": "The sound plays regardless of the silent switch, even with the screen locked; music is lowered meanwhile."
 }

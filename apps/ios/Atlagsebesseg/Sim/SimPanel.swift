@@ -7,7 +7,8 @@ struct SimPanel: View {
     let model: AppModel
 
     private static let labels: [SimScenario: String] = [
-        .jo: "Jó ütem", .tul: "Túl gyors", .lassit: "Gyors, majd lassít", .alagut: "Alagút", .navsim: "Budapest → Győr",
+        .jo: "Jó ütem", .tul: "Túl gyors", .lassit: "Gyors, majd lassít", .alagut: "Alagút", .tervezett: "Tervezett mérés + kamerák",
+        .zona: "Települészóna", .navsim: "Budapest → Győr",
     ]
 
     var body: some View {

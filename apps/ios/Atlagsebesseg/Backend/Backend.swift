@@ -61,4 +61,11 @@ final class Backend {
         let rows: [CameraRow] = try await client.rpc("cameras_in_bbox", params: BBoxParams(b)).execute().value
         return rows.map(\.camera)
     }
+
+    /// A téglalapot érintő, le nem járt tervezett mérések (`planned_checks_in_bbox`).
+    func plannedChecks(in b: BBox) async throws -> [PlannedCheck] {
+        guard let client else { throw BackendError.nincsBeallitas }
+        let rows: [PlannedCheckRow] = try await client.rpc("planned_checks_in_bbox", params: BBoxParams(b)).execute().value
+        return rows.compactMap(\.check)
+    }
 }

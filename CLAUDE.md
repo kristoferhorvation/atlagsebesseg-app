@@ -58,14 +58,17 @@ Gyökér: `npm test` és `npm run typecheck` minden csomagra; `npm run test:all`
   kiírás: `npm run fixtures -w @atlagsebesseg/core`). Egy TS `it` = egy Swift `@Test`, azonos névvel.
 - Ellenőrzés commit előtt (iOS-t érintő változásnál): `xcodebuild test` (AppTests + core-swift a sémában)
   szimulátoron, és `xcodebuild build -destination 'generic/platform=iOS' CODE_SIGNING_ALLOWED=NO`.
-- Szimulátor: a gépen az iOS 27.1 runtime csak az „iPhone Duo”-t támogatja. **Döntés (2026-10-29): az
-  A10 elején a Claude Code letölti a szabványos runtime-ot** (`xcodebuild -downloadPlatform iOS`), létrehoz
-  egy szabványos iPhone-t (`xcrun simctl create`), és onnantól azon futnak a tesztek és a képernyőképek.
+- Szimulátor: az A10 óta az **iOS 27.0 runtime + „iPhone 17 Pro”** (`xcodebuild -downloadPlatform iOS`,
+  `xcrun simctl create`); a tesztek és a képernyőképek ezen futnak (`-destination 'platform=iOS Simulator,name=iPhone 17 Pro'`).
+  Az iOS 27.1 runtime csak az „iPhone Duo”-t támogatja.
+- Jelzések (A10): a logika (`Logic/Alerts.swift`, `Logic/PlannedChecks.swift`) hang nélkül, eseményeket ad
+  (`AlertEvent`); a hang-réteg (`Audio/AlertPlayer.swift`) csak lejátszik. Új jelzés-szabály teszttel az
+  eseményszinten. A `.playback` munkamenet a némítás-kapcsolót nem követi – ezt a „Jelzés módja” beállítás adja.
 - Betű: **Inter** (mint a weben) – `Resources/Fonts/InterVariable.ttf` (OFL, `Inter-OFL.txt`), `UIAppFonts`;
   a nézetekben `Font.inter(méret, súly)` / `.num(…)` a token pontos súlyával. Rendszerbetű (`.system(size:)`)
   nem kerülhet a kódba (AppTests-őr).
 - Háttér-mérés: a mérés zárolt képernyővel is fut, külön figyelmeztetés nincs (döntés). A zárolt képernyős
-  „fut a mérés” jelzés a Live Activity (A10+) dolga.
+  „fut a mérés” jelzés a Live Activity (A11+) dolga.
 
 ## Kör-rendszer
 - Minden prompt „A<n> kör”-rel kezdődik; minden commit-üzenet `A<n>: ...` prefixű.
