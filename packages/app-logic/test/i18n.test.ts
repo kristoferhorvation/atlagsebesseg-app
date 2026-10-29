@@ -3,6 +3,7 @@ import {
   DICTIONARIES,
   LANGUAGES,
   LANGUAGE_NAMES,
+  languageMenu,
   directionsLanguage,
   formatNumber,
   getLanguage,
@@ -30,6 +31,11 @@ describe('szótárak: minden kulcs mind a 6 nyelven', () => {
   it('a nyelvek: hu, en, de, sk, cs, pl', () => {
     expect([...LANGUAGES]).toEqual(['hu', 'en', 'de', 'sk', 'cs', 'pl']);
     for (const l of LANGUAGES) expect(LANGUAGE_NAMES[l].length).toBeGreaterThan(1);
+  });
+
+  it('AW15: a nyelvválasztó zászlóval, a saját nyelvén írt név szerint ábécérendben', () => {
+    expect(languageMenu().map((x) => x.label)).toEqual(['🇨🇿 Čeština', '🇩🇪 Deutsch', '🇬🇧 English', '🇭🇺 Magyar', '🇵🇱 Polski', '🇸🇰 Slovenčina']);
+    expect(languageMenu().map((x) => x.lang)).toEqual(['cs', 'de', 'en', 'hu', 'pl', 'sk']);
   });
 
   for (const lang of LANGUAGES.filter((l) => l !== 'hu')) {

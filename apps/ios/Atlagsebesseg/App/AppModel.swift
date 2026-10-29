@@ -88,6 +88,9 @@ final class AppModel {
     var requestsToday = 0
     /// Nő, ha az útvonalválasztó a térképet az útvonalakra igazítaná.
     var fitVersion = 0
+    /// AW15: a kézi mérés pillje navigáció közben (`nil`: nincs navigáció vagy nem fut kézi mérés – a nagy kártya).
+    private(set) var manualPill: ManualPillState?
+    @ObservationIgnored private var pillTimer: Timer?
 
     @ObservationIgnored var navSession: NavigationSession?
     @ObservationIgnored var routeData = EnforcementData.none
@@ -290,6 +293,35 @@ final class AppModel {
         approach.reset()
         activePlanned = nil
         alerts.clear()
+    }
+
+    // MARK: kézi mérés pillje (AW15)
+
+    /// A pillé zsugorodott kézi mérés: a navigáció úgy látszik, mint mérés nélkül (teljes felső kártya, alsó sáv).
+    var manualPillCollapsed: Bool { manualPill?.collapsed == true }
+
+    /// Óra-lépés: minden mérés- és navigáció-változásnál, és amíg aktív, negyed másodpercenként (az 5 s pontosan teljen le).
+    func updateManualPill() {
+        let active = nav != nil && view.phase == .kezi
+        let space = nav.map {
+            navNeedsSpace(maneuverM: $0.phase == .arrived ? nil : $0.next.distanceM, offer: $0.offer != nil, cameraNear: $0.cameraNear != nil)
+        } ?? false
+        let next = manualPillTick(manualPill, active: active, space: space, now: nowMs())
+        if next != manualPill { manualPill = next }
+        if active, pillTimer == nil {
+            pillTimer = Timer.scheduledTimer(withTimeInterval: 0.25, repeats: true) { [weak self] _ in
+                MainActor.assumeIsolated { self?.updateManualPill() }
+            }
+        } else if !active {
+            pillTimer?.invalidate()
+            pillTimer = nil
+        }
+    }
+
+    /// Bökés a pillre (kinyílik) vagy a teljes kártyára (összemegy).
+    func tapManualPill() {
+        guard let s = manualPill else { return }
+        manualPill = manualPillTap(s, now: nowMs())
     }
 
     func startManual() {

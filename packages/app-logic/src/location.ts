@@ -46,6 +46,18 @@ export function gpsPillAction(permission: GeoPermission, status: GeoStatus): Gps
   return 'request';
 }
 
+/** A geolocation `PositionError.PERMISSION_DENIED` kódja. */
+export const GEO_PERMISSION_DENIED = 1;
+
+/**
+ * A GPS-pill újrakérésének hibája (AW15): ha a pill koppintására indított kérés PERMISSION_DENIED (1) hibát ad, a
+ * tiltott-lap nyílik – a Permissions API-tól függetlenül (iOS Safariban nincs, és a gesztusból kért engedély elutasítása
+ * egyértelmű). Más hibára (nincs jel, időtúllépés) és az automatikus / első-gesztusos kérés elutasítására nem nyit lapot.
+ */
+export function pillRequestError(code: number, byPill: boolean): GpsPillAction {
+  return byPill && code === GEO_PERMISSION_DENIED ? 'deniedHelp' : 'none';
+}
+
 /**
  * Az első érintés / kattintás bárhol indítsa újra a kérést, ha az indításkori automatikus kérés nem jutott el a
  * pozícióig, és az engedély nincs eldöntve (Mac Safari gesztus nélkül nem kérdez, vagy azonnal elutasít).

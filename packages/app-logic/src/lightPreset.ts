@@ -1,4 +1,5 @@
 import { sunPhase, type SunPhase } from '@atlagsebesseg/core';
+import type { MapLook } from './settings';
 
 /** A Mapbox Standard stílus fény-előbeállítása. */
 export type LightPreset = 'dawn' | 'day' | 'dusk' | 'night';
@@ -21,3 +22,13 @@ export function chooseLightPreset(phase: SunPhase | null, scheme: ColorScheme): 
 export function lightPresetAt(nowMs: number, pos: { lat: number; lon: number } | null, scheme: ColorScheme): LightPreset {
   return chooseLightPreset(pos ? sunPhase(nowMs, pos.lat, pos.lon) : null, scheme);
 }
+
+/** A Mapbox Standard `theme` a térkép kinézetéből (AW15: a „Világos” a színes téma). */
+export const mapTheme = (look: MapLook): 'default' | 'monochrome' => (look === 'visszafogott' ? 'monochrome' : 'default');
+
+/**
+ * A térképre ténylegesen alkalmazott fény (AW15): „Világos” kinézetnél mindig nappal (`day`), a napszaktól és a sötét
+ * módtól függetlenül; egyébként a napszakból és a rendszer módjából számolt előbeállítás. A térkép-rétegek (pl. az
+ * alternatív útvonal színe) is ehhez igazodnak, így világos térképen a nappali tokeneket kapják.
+ */
+export const mapLightPreset = (look: MapLook, preset: LightPreset): LightPreset => (look === 'vilagos' ? 'day' : preset);

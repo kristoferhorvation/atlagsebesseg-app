@@ -40,7 +40,8 @@ struct MapScreen: View {
     }
 
     /// A térkép fény-előbeállítása; az alternatíva színe ehhez igazodik (hajnal = nappali, alkony = éjjeli, mint a weben).
-    private var preset: LightPreset { lightPresetAt(model.nowMs(), view.lastFix, dark: systemDark) }
+    /// AW15: „Világos” kinézetnél mindig nappal (a rétegek is a nappali tokeneket kapják).
+    private var preset: LightPreset { mapLightPreset(model.settings.terkep, lightPresetAt(model.nowMs(), view.lastFix, dark: systemDark)) }
     private var dayLike: Bool { preset == .day || preset == .dawn }
     private var altColor: Color { dayLike ? Tokens.Colors.routeAltDay : Tokens.Colors.routeAltNight }
     private var altCasing: Color { dayLike ? Tokens.Colors.routeAltCasingDay : Tokens.Colors.routeAltCasingNight }
@@ -206,7 +207,7 @@ struct MapScreen: View {
             }
         }
         .mapStyle(.standard(
-            theme: model.settings.terkep == .visszafogott ? .monochrome : .default,
+            theme: mapThemeIsMonochrome(model.settings.terkep) ? .monochrome : .default,
             lightPreset: StandardLightPreset(rawValue: preset.rawValue),
             showPointOfInterestLabels: false
         ))

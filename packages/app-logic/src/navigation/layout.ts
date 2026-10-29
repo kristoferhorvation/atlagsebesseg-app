@@ -1,4 +1,5 @@
 import type { SessionPhase } from '../session';
+import { MANUAL_PILL } from './config';
 
 /**
  * AOS13: navigáció közben az alsó kártya-csoport (ajánlat, gombok, mérő- / eredménykártya) soha nem érhet a felső
@@ -28,9 +29,42 @@ export function navStepStrip({ measuring, cardBottom, bottomTop, gap }: NavStepL
 
 /**
  * AOS13: navigáció közben a mérés eredménye (`befejezve`) egysoros, kompakt kártya: a nagy kártya a gombsorral együtt a
- * felső lépés-kártya – sávként is a pillek – alá érne. A kézi mérés eredménye nagy marad (a kapu-küldés állapota és
- * az „Újra” gomb nem fér egy sorba); ott a felső kártya sávvá zsugorodik, ha kell (`navStepStrip`).
+ * felső lépés-kártya – sávként is a pillek – alá érne. AW15: a kézi mérés eredménye (`kezi_eredmeny`) is; kapu-küldési
+ * hibánál a sor végén kis „Újra” gomb, nagy kártya nélkül.
  */
 export function navResultCompact(phase: SessionPhase, navigating: boolean): boolean {
-  return navigating && phase === 'befejezve';
+  return navigating && (phase === 'befejezve' || phase === 'kezi_eredmeny');
+}
+
+/**
+ * AW15: a kézi mérés kártyája navigáció közben. Pill (`collapsed`) vagy teljes kártya; az 5 s a teljes kártya
+ * kinyílásától számít (`expandedAt`, ms); a `space` az előző lépés „a navigációnak hely kell” értéke (az élhez).
+ */
+export interface ManualPillState {
+  collapsed: boolean;
+  expandedAt: number;
+  space: boolean;
+}
+
+/** A navigáció helyigénye: közeli manőver (`maneuverNearM`-en belül), ajánlat-kártya vagy közeli kamera. */
+export function navNeedsSpace(v: { maneuverM: number | null; offer: boolean; cameraNear: boolean }): boolean {
+  return v.offer || v.cameraNear || (v.maneuverM !== null && v.maneuverM < MANUAL_PILL.maneuverNearM);
+}
+
+/**
+ * Óra-lépés (bármikor hívható, pl. minden fixnél és időzítőről). `active`: navigáció közben fut a kézi mérés – nélküle
+ * nincs pill (`null`: a mostani nagy kártya). Induláskor teljes kártya; `collapseAfterMs` után, vagy amikor a navigációnak
+ * hely kell (felfutó él – ha a felhasználó közben kinyitja, 5 s-ig nyitva marad), összemegy.
+ */
+export function manualPillTick(s: ManualPillState | null, active: boolean, space: boolean, now: number): ManualPillState | null {
+  if (!active) return null;
+  const prev = s ?? { collapsed: false, expandedAt: now, space: false };
+  const collapse = !prev.collapsed && ((space && !prev.space) || now - prev.expandedAt >= MANUAL_PILL.collapseAfterMs);
+  if (!collapse && s && s.space === space) return s;
+  return { collapsed: prev.collapsed || collapse, expandedAt: prev.expandedAt, space };
+}
+
+/** Bökés: a pill kinyílik (az 5 s újraindul), a teljes kártya összemegy. */
+export function manualPillTap(s: ManualPillState, now: number): ManualPillState {
+  return s.collapsed ? { ...s, collapsed: false, expandedAt: now } : { ...s, collapsed: true };
 }

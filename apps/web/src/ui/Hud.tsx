@@ -25,8 +25,10 @@ export interface HudProps {
   view: SessionView;
   settings: Settings;
   gpsReady: boolean;
-  /** Navigáció közben (AOS13) a mérés eredménye egy sor (`navResultCompact`). */
+  /** Navigáció közben (AOS13) a mérés eredménye egy sor (`navResultCompact`; AW15: a kézi mérésé is). */
   navCompact?: boolean;
+  /** AW15: navigáció közben a kézi mérés teljes kártyája bökésre pillé zsugorodik (a gombok kivételével). */
+  onCollapseManual?: () => void;
   /** A kézi mérés egy ideiglenes szakasz (indításkor a kezdő kapu bejelentve, „Vége” = záró kapu). */
   tempSection: boolean;
   gateState: GateReportState;
@@ -62,9 +64,16 @@ export function toneOf(view: SessionView): string {
   return view.status ?? (view.phase === 'kozeledik' ? 'kezi' : 'semleges');
 }
 
-function Card({ tone, children, label, compact }: { tone: string; children: ReactNode; label: string; compact?: boolean }) {
+function Card({ tone, children, label, compact, onTap }: { tone: string; children: ReactNode; label: string; compact?: boolean; onTap?: () => void }) {
   return (
-    <section className={`card glass card-stack${compact ? ' compact' : ''}`} data-tone={tone} aria-label={label} aria-live="polite">
+    <section
+      className={`card glass card-stack${compact ? ' compact' : ''}`}
+      data-tone={tone}
+      aria-label={label}
+      aria-live="polite"
+      // a kártyán lévő gomb (Leállítás) a saját dolgát végzi, nem csukja össze
+      onClick={onTap && ((e) => !(e.target as Element).closest('button') && onTap())}
+    >
       {children}
     </section>
   );
@@ -245,7 +254,7 @@ export function Hud(p: HudProps) {
     case 'kezi': {
       const m = view.manual!;
       return (
-        <Card tone={tone} label={p.tempSection ? t('hud.tempSection') : t('hud.manual')}>
+        <Card tone={tone} label={p.tempSection ? t('hud.tempSection') : t('hud.manual')} onTap={p.onCollapseManual}>
           <div className="row">
             <span className="chip">
               <Icon name={p.tempSection ? 'kapu_kezdo' : 'stopwatch'} /> {p.tempSection ? t('hud.tempSection') : t('hud.manual')}
@@ -272,6 +281,29 @@ export function Hud(p: HudProps) {
 
     case 'kezi_eredmeny': {
       const r = view.manualResult!;
+      if (p.navCompact)
+        return (
+          // AW15: navigáció közben egy sor; kapu-küldési hibánál a sor végén kis „Újra” (a toast már jelezte a hibát)
+          <Card tone={tone} label={t('hud.manualDone.aria')} compact>
+            <div className="compact-row">
+              <div className="compact-speed num tone">{speedIn(r.averageKmh, unit) ?? '–'}</div>
+              <div className="compact-text">
+                <div className="body muted">{t('hud.avg', { u })}</div>
+                <div className="compact-status num">
+                  <Icon name="stopwatch" size={16} /> {dist(r.distanceM, unit)} · {formatDuration(r.elapsedMs)}
+                </div>
+              </div>
+              {p.gateState === 'hiba' && (
+                <button className="mini-btn primary" onClick={p.onRetryGates}>
+                  {t('hud.manualDone.retry')}
+                </button>
+              )}
+              <button className="mini-btn" onClick={p.onDismiss}>
+                {t('common.done')}
+              </button>
+            </div>
+          </Card>
+        );
       return (
         <Card tone={tone} label={t('hud.manualDone.aria')}>
           <div className="row">
@@ -320,6 +352,24 @@ export function Hud(p: HudProps) {
         </Card>
       );
   }
+}
+
+/**
+ * AW15: navigáció közben a kézi mérés kis pillé zsugorodik a jobb oldalon – átlag és eltelt idő, Leállítás nélkül;
+ * bökésre a teljes kártya nyílik.
+ */
+export function ManualPill({ view, unit, tempSection, onExpand }: { view: SessionView; unit: Settings['egyseg']; tempSection: boolean; onExpand: () => void }) {
+  const m = view.manual!;
+  return (
+    <button className="manual-pill glass" data-tone="kezi" onClick={onExpand} aria-label={t('hud.manual.pillAria')}>
+      <Icon name={tempSection ? 'kapu_kezdo' : 'stopwatch'} size={22} />
+      <b className="num">
+        {speedIn(m.averageKmh, unit) ?? '–'}
+        <small>{unitLabel(unit)}</small>
+      </b>
+      <span className="num">{formatDuration(m.elapsedMs)}</span>
+    </button>
+  );
 }
 
 /** A szakasz forrása és (ha hivatalos listán ellenőrzött) a jelölés. */

@@ -36,6 +36,11 @@ import {
   type NavRoute,
   navResultCompact,
   navStepStrip,
+  mapLightPreset,
+  manualPillTap,
+  manualPillTick,
+  navNeedsSpace,
+  type ManualPillState,
 } from '@atlagsebesseg/app-logic';
 import { BUNDLED_CAMERAS } from '@atlagsebesseg/app-logic/bundled-cameras';
 import { BUNDLED_SECTIONS } from '@atlagsebesseg/app-logic/bundled-sections';
@@ -61,7 +66,7 @@ import { simStartFromUrl, useSimulator } from './sim/useSimulator';
 import { buildNavSim, simIdleFix, simRouteFetcher, simSearch, SIM_ALT_MODES, SIM_PLACES, type NavSimData, type SimAltMode } from './sim/navSim';
 import { CameraCard } from './ui/CameraCard';
 import { cameraIcon } from './ui/cameraIcon';
-import { Hud, SlowDown, toneOf, type GateReportState } from './ui/Hud';
+import { Hud, ManualPill, SlowDown, toneOf, type GateReportState } from './ui/Hud';
 import { Icon, type IconName } from './ui/Icon';
 import { LimitSign } from './ui/LimitSign';
 import { NavBottom, NavStrip, NavTop, OfferCard } from './ui/NavHud';
@@ -174,7 +179,8 @@ function Drive({ map }: { map: WebMapAdapter }) {
   const requestsToday = useSyncExternalStore(requestCounter.subscribe, () => requestCounter.count);
 
   // GPS (valódi mód) + másodpercenkénti frissítés (alagútban a becslés miatt)
-  const geoloc = useGeolocation(!SIM_MODE, onFix);
+  // AW15: ha a pill koppintására indított kérést a böngésző PERMISSION_DENIED-del utasítja el, a tiltott-lap nyílik
+  const geoloc = useGeolocation(!SIM_MODE, onFix, () => setSheet('geo'));
   const geo = geoloc.status;
   // AW13: a GPS-pill koppintása – engedélykérés / tiltott-lap a bekapcsolás útjával / semmi
   const gpsAction = SIM_MODE ? 'none' : gpsPillAction(geoloc.permission, geo);
@@ -205,7 +211,11 @@ function Drive({ map }: { map: WebMapAdapter }) {
   const lightPreset = useLightPreset(view.lastFix, now);
   const tone = toneOf(view);
   const highlightId = view.phase === 'meres' || view.phase === 'kozeledik' ? (view.section?.id ?? null) : null;
-  useEffect(() => map.setLightPreset(lightPreset), [map, lightPreset]);
+  // AW15: „Világos” kinézetnél mindig nappali fény (a rétegek is a nappali tokeneket kapják)
+  useEffect(() => map.setLightPreset(mapLightPreset(settings.terkep, lightPreset)), [map, lightPreset, settings.terkep]);
+  useEffect(() => {
+    document.documentElement.dataset.look = settings.terkep;
+  }, [settings.terkep]);
   useEffect(() => map.setLook(settings.terkep), [map, settings.terkep]);
   useEffect(() => map.showSections(all, highlightId), [map, all, highlightId]);
   useEffect(() => map.setPosition(view.lastFix), [map, view.lastFix]);
@@ -370,6 +380,27 @@ function Drive({ map }: { map: WebMapAdapter }) {
     [map, plannedShown, activePlanned?.id],
   );
 
+  // AW15: navigáció közben a kézi mérés kártyája kis pillé zsugorodik – 5 s után, bökésre, vagy ha a navigációnak hely
+  // kell (közeli manőver, ajánlat, közeli kamera); bökésre újra teljes. Pill alatt a navigáció úgy látszik, mint mérés nélkül.
+  const pillActive = nav.view !== null && view.phase === 'kezi';
+  const navSpace =
+    nav.view !== null &&
+    navNeedsSpace({ maneuverM: nav.view.phase === 'arrived' ? null : nav.view.next.distanceM, offer: nav.view.offer !== null, cameraNear: nav.view.cameraNear !== null });
+  const [pill, setPill] = useState<ManualPillState | null>(null);
+  const pillInput = useRef({ active: pillActive, space: navSpace });
+  pillInput.current = { active: pillActive, space: navSpace };
+  useEffect(() => setPill((s) => manualPillTick(s, pillActive, navSpace, now())), [pillActive, navSpace, view.lastFix, now]);
+  useEffect(() => {
+    if (!pillActive) return;
+    const id = setInterval(() => setPill((s) => manualPillTick(s, pillInput.current.active, pillInput.current.space, now())), 250);
+    return () => clearInterval(id);
+  }, [pillActive, now]);
+  const pillCollapsed = pillActive && pill?.collapsed === true;
+  const tapPill = useCallback(() => setPill((s) => s && manualPillTap(s, now())), [now]);
+  // az elrendezés szerinti mérés: a pillé zsugorodott kézi mérés nem foglalja a helyet
+  const measuringLayout = measuring && !pillCollapsed;
+  const navBottomShown = nav.view !== null && (view.phase === 'nincs_szakasz' || pillCollapsed);
+
   // AOS13: a felső lépés-kártya egysoros sávvá zsugorodik, ha a teljes kártya az alsó csoport alá érne (mérés közben
   // mindig). A rejtett kártyát is mérjük, az alsó csoport tetejét pedig a sáv nélkül – így a kettő nem kapcsolgat
   // oda-vissza. Elrendezés szerint (offset*), mert a megjelenési animáció transzformja a látszó helyet még torzítja.
@@ -384,7 +415,7 @@ function Drive({ map }: { map: WebMapAdapter }) {
       bottomTop =
         window.innerHeight - hud.offsetHeight - (float && float.offsetHeight > 0 ? float.offsetHeight + 12 : 0) + (strip ? strip.offsetHeight + 12 : 0);
     }
-    setStepStrip(navStepStrip({ measuring, cardBottom: card ? card.offsetTop + card.offsetHeight : null, bottomTop, gap: 12 }));
+    setStepStrip(navStepStrip({ measuring: measuringLayout, cardBottom: card ? card.offsetTop + card.offsetHeight : null, bottomTop, gap: 12 }));
   });
 
   // az autó a HUD feletti szabad terület ~60%-ánál, navigáció közben az alsó harmadban (az út előre látszik) –
@@ -571,7 +602,7 @@ function Drive({ map }: { map: WebMapAdapter }) {
 
   const driving = view.phase === 'meres' || view.phase === 'kozeledik' || view.phase === 'kezi';
   // a bal alsó sebességhatár-tábla: mérés / közeledés közben a mérőkártya saját táblája szól
-  const navSign = nav.view !== null && (view.phase === 'nincs_szakasz' || view.phase === 'befejezve' || view.phase === 'megszakadt' || view.phase === 'kezi_eredmeny');
+  const navSign = nav.view !== null && (view.phase === 'nincs_szakasz' || view.phase === 'befejezve' || view.phase === 'megszakadt' || view.phase === 'kezi_eredmeny' || pillCollapsed);
   const accuracy = view.lastFix?.accuracy ?? null;
 
   return (
@@ -584,7 +615,7 @@ function Drive({ map }: { map: WebMapAdapter }) {
         simMode={SIM_MODE && SIM_PANEL}
         compact={driving || nav.view !== null}
         gpsAction={gpsAction}
-        onGps={() => (gpsAction === 'deniedHelp' ? setSheet('geo') : geoloc.request())}
+        onGps={() => (gpsAction === 'deniedHelp' ? setSheet('geo') : geoloc.request(true))}
         onWake={() => {
           if (wake.status === 'nem_tamogatott')
             showToast({ text: t('toast.wakeNever'), tone: 'hataron', icon: 'screen' });
@@ -604,7 +635,7 @@ function Drive({ map }: { map: WebMapAdapter }) {
           onBackground={session.interrupt}
         />
       )}
-      {nav.view && !measuring && <NavTop view={nav.view} unit={settings.egyseg} hidden={stepStrip} />}
+      {nav.view && !measuringLayout && <NavTop view={nav.view} unit={settings.egyseg} hidden={stepStrip} />}
       <PlannedBand check={activePlanned} compact={measuring} />
 
       <div className="hud" ref={hudRef} data-hidden={nav.plan !== null || nav.searchFor !== null}>
@@ -641,6 +672,7 @@ function Drive({ map }: { map: WebMapAdapter }) {
           )}
         </div>
         <div className="actions">
+          {pillCollapsed && <ManualPill view={view} unit={settings.egyseg} tempSection={temp !== null} onExpand={tapPill} />}
           {!driving && view.phase !== 'kezi_eredmeny' && (
             <>
               {!nav.view && (
@@ -656,7 +688,7 @@ function Drive({ map }: { map: WebMapAdapter }) {
               </button>
             </>
           )}
-          {nav.view && view.phase !== 'nincs_szakasz' && (
+          {nav.view && !navBottomShown && (
             <button className="round-btn glass" onClick={nav.end} aria-label={t('nav.end')}>
               <Icon name="stop" size={26} />
             </button>
@@ -665,8 +697,8 @@ function Drive({ map }: { map: WebMapAdapter }) {
             <Icon name="report" size={28} />
           </button>
         </div>
-        {nav.view && (measuring || stepStrip) && <NavStrip view={nav.view} unit={settings.egyseg} />}
-        {nav.view && view.phase === 'nincs_szakasz' ? (
+        {nav.view && (measuringLayout || stepStrip) && <NavStrip view={nav.view} unit={settings.egyseg} />}
+        {nav.view && navBottomShown ? (
           <NavBottom view={nav.view} unit={settings.egyseg} currentKmh={view.currentKmh} onEnd={nav.end} />
         ) : (
         <Hud
@@ -675,6 +707,7 @@ function Drive({ map }: { map: WebMapAdapter }) {
           settings={settings}
           gpsReady={view.lastFix !== null}
           navCompact={navResultCompact(view.phase, nav.view !== null)}
+          onCollapseManual={pillActive ? tapPill : undefined}
           tempSection={temp !== null}
           gateState={gateState}
           onStopManual={stopManual}
@@ -732,10 +765,8 @@ function Drive({ map }: { map: WebMapAdapter }) {
           update={update}
           simMode={SIM_MODE}
           saved={places.saved}
-          onPickPlace={(kind) => {
-            setSheet(null);
-            nav.openSearch(kind);
-          }}
+          // AW15: a kereső a Beállítások fölött nyílik; választás (vagy bezárás) után a lap ugyanott, nyitva marad
+          onPickPlace={(kind) => nav.openSearch(kind)}
           onClearPlace={(kind) => places.setSaved(kind, null)}
           onRemoveOther={places.removeOther}
           onClose={() => setSheet(null)}

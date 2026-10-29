@@ -2877,37 +2877,37 @@
         "cs" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Ruční měření bylo přerušeno"
+            "value" : "Ruční měření průměru bylo přerušeno"
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Manuelle Messung unterbrochen"
+            "value" : "Manuelle Durchschnittsmessung unterbrochen"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Manual measurement interrupted"
+            "value" : "Manual average measurement interrupted"
           }
         },
         "hu" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Kézi mérés megszakadt"
+            "value" : "Kézi átlagmérés megszakadt"
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Pomiar ręczny przerwany"
+            "value" : "Ręczny pomiar średniej przerwany"
           }
         },
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Manuálne meranie sa prerušilo"
+            "value" : "Manuálne meranie priemeru sa prerušilo"
           }
         }
       }
@@ -3000,37 +3000,78 @@
         "cs" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Ruční měření"
+            "value" : "Ruční měření průměru"
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Manuelle Messung"
+            "value" : "Manuelle Durchschnittsmessung"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Manual measurement"
+            "value" : "Manual average measurement"
           }
         },
         "hu" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Kézi mérés"
+            "value" : "Kézi átlagmérés"
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Pomiar ręczny"
+            "value" : "Ręczny pomiar średniej"
           }
         },
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Manuálne meranie"
+            "value" : "Manuálne meranie priemeru"
+          }
+        }
+      }
+    },
+    "hud.manual.pillAria" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ruční měření průměru – klepnutím rozbalíte"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Manuelle Durchschnittsmessung – zum Aufklappen tippen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Manual average measurement – tap to expand"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kézi átlagmérés – koppintásra kinyílik"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ręczny pomiar średniej – dotknij, aby rozwinąć"
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Manuálne meranie priemeru – ťuknutím rozbalíte"
           }
         }
       }
@@ -3123,37 +3164,37 @@
         "cs" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Výsledek ručního měření"
+            "value" : "Výsledek ručního měření průměru"
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Ergebnis der manuellen Messung"
+            "value" : "Ergebnis der manuellen Durchschnittsmessung"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Manual measurement result"
+            "value" : "Manual average measurement result"
           }
         },
         "hu" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Kézi mérés eredménye"
+            "value" : "Kézi átlagmérés eredménye"
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Wynik pomiaru ręcznego"
+            "value" : "Wynik ręcznego pomiaru średniej"
           }
         },
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Výsledok manuálneho merania"
+            "value" : "Výsledok manuálneho merania priemeru"
           }
         }
       }
@@ -3164,37 +3205,37 @@
         "cs" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Ruční měření hotovo"
+            "value" : "Ruční měření průměru hotovo"
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Manuelle Messung fertig"
+            "value" : "Manuelle Durchschnittsmessung fertig"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Manual measurement done"
+            "value" : "Manual average measurement done"
           }
         },
         "hu" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Kézi mérés kész"
+            "value" : "Kézi átlagmérés kész"
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Pomiar ręczny zakończony"
+            "value" : "Ręczny pomiar średniej zakończony"
           }
         },
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Manuálne meranie hotové"
+            "value" : "Manuálne meranie priemeru hotové"
           }
         }
       }
@@ -3277,6 +3318,47 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "vzdialenosť (čiastočne odhad)"
+          }
+        }
+      }
+    },
+    "hud.manualDone.retry" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Znovu"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Erneut"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Retry"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Újra"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ponów"
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Znova"
           }
         }
       }
@@ -4681,37 +4763,37 @@
         "cs" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Spustit ruční měření"
+            "value" : "Spustit ruční měření průměru"
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Manuelle Messung starten"
+            "value" : "Manuelle Durchschnittsmessung starten"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Start manual measurement"
+            "value" : "Start manual average measurement"
           }
         },
         "hu" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Kézi mérés indítása"
+            "value" : "Kézi átlagmérés indítása"
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Rozpocznij pomiar ręczny"
+            "value" : "Rozpocznij ręczny pomiar średniej"
           }
         },
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Spustiť manuálne meranie"
+            "value" : "Spustiť manuálne meranie priemeru"
           }
         }
       }
@@ -10421,37 +10503,78 @@
         "cs" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "barevná"
+            "value" : "Barevná"
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "farbig"
+            "value" : "Farbig"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "colour"
+            "value" : "Colour"
           }
         },
         "hu" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "színes"
+            "value" : "Színes"
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "kolorowa"
+            "value" : "Kolorowa"
           }
         },
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "farebná"
+            "value" : "Farebná"
+          }
+        }
+      }
+    },
+    "settings.look.light" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Světlá"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hell"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Light"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Világos"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jasna"
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Svetlá"
           }
         }
       }
@@ -10462,37 +10585,37 @@
         "cs" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "střídmá"
+            "value" : "Střídmá"
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "dezent"
+            "value" : "Dezent"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "muted"
+            "value" : "Muted"
           }
         },
         "hu" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "visszafogott"
+            "value" : "Visszafogott"
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "stonowana"
+            "value" : "Stonowana"
           }
         },
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "striedma"
+            "value" : "Striedma"
           }
         }
       }

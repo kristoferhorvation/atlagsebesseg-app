@@ -120,7 +120,12 @@ try {
   await p.waitFor(`document.querySelector('.sheet .select')`);
   check('Beállítások magyarul', (await p.evaluate(`document.querySelector('.sheet .title').textContent`)) === 'Beállítások');
   const options = await p.evaluate(`[...document.querySelectorAll('.sheet .select option')].map((o) => o.textContent)`);
-  check('a választóban mind a 6 nyelv + automatikus', options.length === 7 && ['Magyar', 'English', 'Deutsch', 'Slovenčina', 'Čeština', 'Polski'].every((n) => options.includes(n)), options.join(' | '));
+  // AW15: zászló + saját név, ábécérendben; az „Automatikus” legfelül
+  check(
+    'a választóban az automatikus, utána mind a 6 nyelv zászlóval, ábécérendben',
+    options.length === 7 && /^Automatikus/.test(options[0]) && options.slice(1).join('|') === '🇨🇿 Čeština|🇩🇪 Deutsch|🇬🇧 English|🇭🇺 Magyar|🇵🇱 Polski|🇸🇰 Slovenčina',
+    options.join(' | '),
+  );
   const voice = await p.evaluate(`document.querySelector('.hint[data-voice]')?.textContent`);
   const voiceKind = await p.evaluate(`document.querySelector('.hint[data-voice]')?.dataset.voice`);
   check('hang-sor a Beállításokban', !!voice, `${voiceKind}: ${voice}`);

@@ -44,9 +44,14 @@ export function SearchScreen({
   ctl.current ??= new SearchController({ search: (q) => searchRef.current(q), onState: setState });
   useEffect(() => () => ctl.current?.dispose(), []);
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
+    // elsőként (capture) kapja: a Beállítások fölött nyitva (AW15) az Escape csak a keresőt zárja, a lapot nem
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return;
+      e.stopImmediatePropagation();
+      onClose();
+    };
+    window.addEventListener('keydown', onKey, true);
+    return () => window.removeEventListener('keydown', onKey, true);
   }, [onClose]);
 
   const title = kind === 'home' ? t('nav.search.pickHome') : kind === 'work' ? t('nav.search.pickWork') : kind === 'other' ? t('nav.search.pickOther') : null;

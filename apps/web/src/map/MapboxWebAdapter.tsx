@@ -2,7 +2,7 @@ import type { FeatureCollection, LineString, MultiLineString, MultiPolygon, Poly
 import mapboxgl, { type GeoJSONSource, type Map as MbMap } from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { useEffect, useRef } from 'react';
-import { MapStore, NAV_FOLLOW, navFollowZoom, type LightPreset, type MapLook } from '@atlagsebesseg/app-logic';
+import { mapTheme, MapStore, NAV_FOLLOW, navFollowZoom, type LightPreset, type MapLook } from '@atlagsebesseg/app-logic';
 import { bearingDeg, haversineM, LocalProjection, type GpsFix, type LatLon, type Section } from '@atlagsebesseg/core';
 import { color } from '@atlagsebesseg/design-tokens';
 import { iconSvg } from '../ui/Icon';
@@ -11,8 +11,6 @@ import type { MapCamera, MapFit, MapHandlers, MapPlanned, MapReport, MapRoute, M
 
 const STANDARD_STYLE = 'mapbox://styles/mapbox/standard';
 const PITCH = 60;
-/** Mapbox Standard `theme` konfiguráció a beállítás szerint. */
-const THEME: Record<MapLook, string> = { szines: 'default', visszafogott: 'monochrome' };
 /** „Vissza a helyemre”: a követő kamera ennyi idő alatt áll vissza. */
 const RECENTER_MS = 900;
 /** Az autó képernyő-helyének (focusY) simítási időállandója (ms). */
@@ -186,7 +184,7 @@ class MapController {
       config: {
         basemap: {
           lightPreset: s.lightPreset,
-          theme: THEME[s.look],
+          theme: mapTheme(s.look),
           showPointOfInterestLabels: false,
           showTransitLabels: false,
           showPedestrianRoads: false,
@@ -527,6 +525,10 @@ class MapController {
 
   private apply(s: WebMapState): void {
     const p = this.prev;
+    // a kért téma és fény a konténeren is (AW15: a böngészős ellenőrzés ebből olvassa, nem a Mapbox belsejéből)
+    const el = this.map.getContainer();
+    el.dataset.theme = mapTheme(s.look);
+    el.dataset.lightPreset = s.lightPreset;
     if (s.position !== p?.position && s.position) this.onPosition(s.position);
     if (s.follow !== this.following) {
       this.following = s.follow;
@@ -544,7 +546,7 @@ class MapController {
       m.setPaintProperty('route-alt', 'line-color', altColor(s.lightPreset));
       m.setPaintProperty('route-alt-casing', 'line-color', altCasing(s.lightPreset));
     }
-    if (s.look !== p?.look) m.setConfigProperty('basemap', 'theme', THEME[s.look]);
+    if (s.look !== p?.look) m.setConfigProperty('basemap', 'theme', mapTheme(s.look));
     if (s.sections !== p?.sections) (m.getSource('sections') as GeoJSONSource | undefined)?.setData(toGeoJson(s.sections));
     if (s.planned !== p?.planned || s.activePlannedId !== p?.activePlannedId) {
       (m.getSource('planned') as GeoJSONSource | undefined)?.setData(plannedGeoJson(s.planned, s.activePlannedId));

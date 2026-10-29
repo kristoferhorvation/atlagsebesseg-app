@@ -14,7 +14,7 @@ export interface WebMapState extends MapState {
   focusY: number;
   /** Navigáció közbeni követés (AW12): zoom a sebességgel (`navFollowZoom`), gyorsabb irány-követés. */
   navFollow: boolean;
-  /** Színes (Standard `default` téma) vagy visszafogott (`monochrome`). */
+  /** Színes / világos (Standard `default` téma) vagy visszafogott (`monochrome`); a világos fényét az app adja (`mapLightPreset`). */
   look: MapLook;
   reports: readonly MapReport[];
   selectedReportId: string | null;

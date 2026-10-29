@@ -87,8 +87,13 @@ biztonsági zóna fölött lebeg.
 - **Ideiglenes szakasz (A4-döntés):** a bejelentés-rácsban **egy** teljes szélességű csempe,
   „Ideiglenes szakasz kezdete”: elindítja a kézi mérést **és** bejelenti a kezdő kaput (ha még
   nincs irány, a kezdő kapu a mérés első pontjából a végén megy el). Mérés közben a gomb
-  „Vége · záró kapu”: lezárja és bejelenti a záró kaput. A sima „Kézi mérés” (stopper-gomb)
+  „Vége · záró kapu”: lezárja és bejelenti a záró kaput. A sima „Kézi átlagmérés” (stopper-gomb)
   bejelentés nélkül marad külön. A két külön kapu-csempe megszűnt.
+- **Kézi átlagmérés navigáció közben (AW15):** a kártya 5 s után (vagy ha a navigációnak hely kell: manőver < 500 m,
+  ajánlat-kártya, közeli kamera) kis üvegpillé zsugorodik a gombsor jobb oldalán (64 px magas, stopper-ikon + átlag a
+  `kezi` tónusban + eltelt idő, Leállítás nélkül); bökésre a teljes kártya, újabb bökésre vagy 5 s után vissza. Pill
+  alatt a navigáció teljes (felső lépés-kártya, alsó érkezés-sáv). Navigáció nélkül a nagy kártya marad. Az eredmény
+  navigáció közben egysoros, kompakt kártya (mint a szakaszé); kapu-küldési hibánál a sor végén kis „Újra” gomb.
 - **Toast**: rövid visszajelzés felül, 2,5 s.
 - **Bejelentések a térképen (A5):** minden aktív bejelentés ikonként (a bejelentés-lap ikonja
   és tónusa; kapunál kezdő/záró), 44 px-es kör 56 px-es érintési céllal, mindig a képernyő felé
@@ -145,6 +150,8 @@ címkék nélkül.
 
 **Téma (A4-döntés):** alapból a Standard `default` témája – a színes, 3D-s look marad. A nyugalmat
 a UI-rétegek adják (üveg, kevés saját szín, felső/alsó sötét átmenet), **nem a térkép
-szegényítése**. A Beállításokban „Térkép: színes / visszafogott” kapcsoló (`default` /
-`monochrome`), alapból színes. Kamera: pitch 60°, haladási irány felfelé, az autó a képernyő alsó harmadában
+szegényítése**. A Beállításokban „Térkép: Színes / Visszafogott / Világos” választó (`default` /
+`monochrome` / `default` mindig `day` fénnyel – AW15, apa kérése: vidámabb színek), alapból színes. „Világos” módban a
+térkép-rétegek a nappali tokeneket kapják (`routeAltDay` …), a kártyák sötétek maradnak, de az üveg-felületek a
+`surfaceStrong` kitöltést kapják (a halvány szöveg a legvilágosabb háttéren is ≥ 5:1). Kamera: pitch 60°, haladási irány felfelé, az autó a képernyő alsó harmadában
 (a HUD fölött). A szakaszok vonala halványan, az aktív a státuszszínnel, a megtett rész teltebb.

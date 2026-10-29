@@ -1,7 +1,11 @@
 export type SpeedUnit = 'kmh' | 'mph';
 
-/** A térkép kinézete: színes (Mapbox Standard `default`) vagy visszafogott (`monochrome`). */
-export type MapLook = 'szines' | 'visszafogott';
+/**
+ * A térkép kinézete: színes (Mapbox Standard `default`), visszafogott (`monochrome`), vagy világos (AW15: `default` téma
+ * mindig nappali fénnyel, a napszaktól és a sötét módtól függetlenül – `mapLightPreset`).
+ */
+export type MapLook = 'szines' | 'visszafogott' | 'vilagos';
+export const MAP_LOOKS: readonly MapLook[] = ['szines', 'visszafogott', 'vilagos'];
 
 export interface Settings {
   /** A kijelző a határ + hatósági tűrést is mutatja (a számítás mindig a szigorú határhoz). */
@@ -26,7 +30,7 @@ export function parseSettings(raw: string | null | undefined): Settings {
       hatosagi_tures_megjelenitese:
         typeof p.hatosagi_tures_megjelenitese === 'boolean' ? p.hatosagi_tures_megjelenitese : DEFAULT_SETTINGS.hatosagi_tures_megjelenitese,
       egyseg: p.egyseg === 'mph' || p.egyseg === 'kmh' ? p.egyseg : DEFAULT_SETTINGS.egyseg,
-      terkep: p.terkep === 'szines' || p.terkep === 'visszafogott' ? p.terkep : DEFAULT_SETTINGS.terkep,
+      terkep: MAP_LOOKS.includes(p.terkep as MapLook) ? (p.terkep as MapLook) : DEFAULT_SETTINGS.terkep,
       tervezett_meresek: typeof p.tervezett_meresek === 'boolean' ? p.tervezett_meresek : DEFAULT_SETTINGS.tervezett_meresek,
       hangos_utasitasok: typeof p.hangos_utasitasok === 'boolean' ? p.hangos_utasitasok : DEFAULT_SETTINGS.hangos_utasitasok,
     };

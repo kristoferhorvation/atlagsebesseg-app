@@ -14,6 +14,8 @@ struct AtlagsebessegApp: App {
                 }
             }
             .preferredColorScheme(.dark)
+            // AW15: a választott nyelv a rendszer-elemek (formázás, felolvasás) nyelve is
+            .environment(\.locale, L10n.lang.locale)
             .tint(Tokens.Colors.accent)
         }
     }

@@ -42,6 +42,9 @@ extension AppModel {
     private var fetchRoutes: RouteFetcher? { simFetcher ?? directions?.fetcher }
 
     var navActive: Bool { nav != nil }
+    /// Úti cél keresése a térkép tetején (a mentett hely keresője a Beállítások fölött nyílik – AW15).
+    var destSearchOpen: Bool { searchOpen && pickFor == .dest }
+    var placeSearchOpen: Bool { searchOpen && pickFor != .dest }
 
     // MARK: keresés
 
@@ -140,6 +143,7 @@ extension AppModel {
                 if self.navStage == "nav", self.navSession == nil {
                     self.navStage = nil
                     self.startNav()
+                    self.runSimManual()
                 }
             case .failure(let e):
                 self.plan = PlanState(dest: dest, status: (e as? DirectionsError)?.code == "RateLimited" ? .ratelimited : .error)
@@ -205,6 +209,7 @@ extension AppModel {
         s.dispose()
         navSession = nil
         nav = nil
+        updateManualPill()
         routeData = .none
         player.stopSpeaking()
     }
@@ -217,6 +222,7 @@ extension AppModel {
         guard let s = navSession else { return }
         let camBefore = nav?.cameraNear?.item.id
         nav = s.view()
+        updateManualPill()
         // AW12: a közeli kamera borostyán sávja mellé egyetlen rezgés (a „ki” jelzés-módban nincs)
         if let cam = nav?.cameraNear?.item.id, cam != camBefore, settings.jelzesMod != .ki, sim?.seeking != true { player.pulse() }
         let quiet = sim?.seeking == true
@@ -230,6 +236,7 @@ extension AppModel {
 
     /// A mérés állapota a navigációnak: a „Túl gyors” bemondáshoz, és az ajánlat mérés közbeni visszatartásához.
     func syncNavMeasure() {
+        updateManualPill()
         guard let s = navSession else { return }
         s.setMeasureStatus(view.phase == .meres ? view.status : nil)
         s.setMeasuring(view.phase == .meres || view.phase == .kezi)
@@ -269,6 +276,20 @@ extension AppModel {
     }
 
     // MARK: szimulátor
+
+    /// `-manual S` (a `-navStage nav` mellett, AW15): a navigációval kézi átlagmérés indul, és S (valós) másodperc múlva
+    /// leáll (0: fut tovább) – a pill és a kompakt kézi eredmény képernyőképéhez.
+    private func runSimManual() {
+        let args = UserDefaults.standard
+        guard args.object(forKey: "manual") != nil else { return }
+        startManual()
+        let stopAfter = args.double(forKey: "manual")
+        guard stopAfter > 0 else { return }
+        Task { [weak self] in
+            try? await Task.sleep(for: .seconds(stopAfter))
+            self?.stopManual()
+        }
+    }
 
     /// `-navStage search|picker|nav`: a navigációs szimulátor egy állapotba ugrik (a képernyőképekhez).
     func runNavStage() {

@@ -6,9 +6,10 @@ nonisolated enum SpeedUnit: String, Codable, Sendable {
     case kmh, mph
 }
 
-/// A térkép kinézete: színes (Mapbox Standard `default`) vagy visszafogott (`monochrome`).
-nonisolated enum MapLook: String, Codable, Sendable {
-    case szines, visszafogott
+/// A térkép kinézete: színes (Mapbox Standard `default`), visszafogott (`monochrome`), vagy világos (AW15: `default`
+/// téma mindig nappali fénnyel, a napszaktól és a sötét módtól függetlenül – `mapLightPreset`).
+nonisolated enum MapLook: String, Codable, Sendable, CaseIterable {
+    case szines, visszafogott, vilagos
 }
 
 nonisolated struct Settings: Equatable, Sendable {

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { DICTIONARIES, LANGUAGES } from '../src/i18n';
-import { deniedHelpSteps, detectBrowser, gpsPillAction, retryOnGesture, type BrowserKind, type GeoPermission, type GeoStatus } from '../src/location';
+import { deniedHelpSteps, detectBrowser, gpsPillAction, pillRequestError, retryOnGesture, type BrowserKind, type GeoPermission, type GeoStatus } from '../src/location';
 
 const UA = {
   iphone: 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.6 Mobile/15E148 Safari/604.1',
@@ -75,5 +75,14 @@ describe('helyhozzáférés (AW13)', () => {
           expect(DICTIONARIES[lang][key], `${lang} ${key}`).toBeTruthy();
     }
     expect(deniedHelpSteps('macSafari')[0]).toBe('geo.help.macSafari.1');
+  });
+
+  it('AW15: a pill újrakérésére jött PERMISSION_DENIED (1) a tiltott-lapot nyitja – Permissions API nélkül is', () => {
+    expect(pillRequestError(1, true)).toBe('deniedHelp');
+    // más hiba (nincs jel, időtúllépés) nem tiltás
+    expect(pillRequestError(2, true)).toBe('none');
+    expect(pillRequestError(3, true)).toBe('none');
+    // az automatikus / első-gesztusos kérés elutasítása nem nyit lapot magától
+    expect(pillRequestError(1, false)).toBe('none');
   });
 });

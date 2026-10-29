@@ -41,6 +41,26 @@ struct L10nTests {
         #expect(bundle.localizedString(forKey: "CFBundleDisplayName", value: nil, table: "InfoPlist") == dict["app.name"])
     }
 
+    @Test("AW15: a nyelvválasztó zászlóval, a saját nyelvén írt név szerint ábécérendben")
+    func nyelvLista() {
+        #expect(languageMenu().map(\.label) == ["🇨🇿 Čeština", "🇩🇪 Deutsch", "🇬🇧 English", "🇭🇺 Magyar", "🇵🇱 Polski", "🇸🇰 Slovenčina"])
+        #expect(languageMenu().map(\.lang) == [.cs, .de, .en, .hu, .pl, .sk])
+    }
+
+    @Test("AW15: a választott nyelv tárolva (a webes kulcs és érték), automatikusnál a rendszer nyelve")
+    func nyelvValasztas() throws {
+        let defaults = try #require(UserDefaults(suiteName: "aw15-lang-test"))
+        defaults.removePersistentDomain(forName: "aw15-lang-test")
+        let c = LangChoice(defaults: defaults)
+        #expect(c.preference == nil)
+        c.preference = .de
+        #expect(defaults.string(forKey: "lang:v1") == "de")
+        #expect(LangChoice(defaults: defaults).preference == .de)
+        c.preference = nil
+        #expect(defaults.string(forKey: "lang:v1") == "auto")
+        #expect(LangChoice(defaults: defaults).preference == nil)
+    }
+
     @Test("t(): paraméterek; a hiányzó paraméter a helyén marad")
     func parameterek() {
         #expect(t(.slowdownStay, ["x": "90"], lang: .hu) == "Maradj 90 alatt")

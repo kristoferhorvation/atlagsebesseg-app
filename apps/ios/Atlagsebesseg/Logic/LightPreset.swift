@@ -26,3 +26,12 @@ nonisolated func chooseLightPreset(_ phase: SunPhase?, dark: Bool) -> LightPrese
 nonisolated func lightPresetAt(_ nowMs: Double, _ pos: (any Coordinate)?, dark: Bool) -> LightPreset {
     chooseLightPreset(pos.map { sunPhase(nowMs, $0.lat, $0.lon) }, dark: dark)
 }
+
+/// A Mapbox Standard téma a térkép kinézetéből (AW15: a „Világos” a színes téma) – a webes `mapTheme`.
+nonisolated func mapThemeIsMonochrome(_ look: MapLook) -> Bool { look == .visszafogott }
+
+/// A térképre ténylegesen alkalmazott fény (AW15, a webes `mapLightPreset`): „Világos” kinézetnél mindig nappal, a
+/// napszaktól és a sötét módtól függetlenül; a térkép-rétegek (pl. az alternatív útvonal színe) is ehhez igazodnak.
+nonisolated func mapLightPreset(_ look: MapLook, _ preset: LightPreset) -> LightPreset {
+    look == .vilagos ? .day : preset
+}

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { GpsFix } from '@atlagsebesseg/core';
-import { retryOnGesture, type GeoPermission, type GeoStatus } from '@atlagsebesseg/app-logic';
+import { pillRequestError, retryOnGesture, type GeoPermission, type GeoStatus } from '@atlagsebesseg/app-logic';
 import { toGpsFix } from '../gps/toGpsFix';
 
 export type { GeoStatus } from '@atlagsebesseg/app-logic';
@@ -9,8 +9,11 @@ export interface Geolocation {
   status: GeoStatus;
   /** A Permissions API `geolocation` állapota; `unknown`, ha a böngésző nem adja meg. */
   permission: GeoPermission;
-  /** Új kérés (felhasználói gesztusból hívva: a Mac Safari csak így kérdez). */
-  request: () => void;
+  /**
+   * Új kérés (felhasználói gesztusból hívva: a Mac Safari csak így kérdez). `byPill`: a GPS-pill koppintása – ha erre
+   * PERMISSION_DENIED jön, az `onPillDenied` hívódik (AW15: a tiltott-lap, a Permissions API-tól függetlenül).
+   */
+  request: (byPill?: boolean) => void;
 }
 
 /**
@@ -18,18 +21,20 @@ export interface Geolocation {
  * kér (AW13): ha ez nem jut el a pozícióig és az engedély nincs eldöntve, az első érintés / kattintás bárhol újra kér;
  * az engedély változására (pl. a beállításokban visszakapcsolva) is újraindul.
  */
-export function useGeolocation(enabled: boolean, onFix: (fix: GpsFix) => void): Geolocation {
+export function useGeolocation(enabled: boolean, onFix: (fix: GpsFix) => void, onPillDenied?: () => void): Geolocation {
   const [status, setStatus] = useState<GeoStatus>('ki');
   const [permission, setPermission] = useState<GeoPermission>('unknown');
   const onFixRef = useRef(onFix);
   onFixRef.current = onFix;
+  const onPillDeniedRef = useRef(onPillDenied);
+  onPillDeniedRef.current = onPillDenied;
   const watchRef = useRef<number | null>(null);
   const state = useRef({ status, permission });
   state.current = { status, permission };
 
   // szinkron indítás: gesztusból hívva a kérés a gesztushoz tartozik; az új figyelés előbb indul, mint a régi leáll,
   // hogy egy függő engedélykérés ne szakadjon meg
-  const start = useCallback(() => {
+  const start = useCallback((byPill = false) => {
     if (!('geolocation' in navigator) || !window.isSecureContext) return;
     const prev = watchRef.current;
     setStatus((s) => (s === 'aktiv' ? s : 'kereses'));
@@ -38,7 +43,10 @@ export function useGeolocation(enabled: boolean, onFix: (fix: GpsFix) => void): 
         setStatus('aktiv');
         onFixRef.current(toGpsFix(p));
       },
-      (err) => setStatus(err.code === err.PERMISSION_DENIED ? 'elutasitva' : err.code === err.TIMEOUT ? 'kereses' : 'hiba'),
+      (err) => {
+        setStatus(err.code === err.PERMISSION_DENIED ? 'elutasitva' : err.code === err.TIMEOUT ? 'kereses' : 'hiba');
+        if (pillRequestError(err.code, byPill) === 'deniedHelp') onPillDeniedRef.current?.();
+      },
       { enableHighAccuracy: true, maximumAge: 0, timeout: 20_000 },
     );
     if (prev !== null) navigator.geolocation.clearWatch(prev);

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { formatDistance, formatDuration, progressOf, sectionSourceLabel, speedFloorIn, speedIn, speedStatus } from '../src/display';
 import { parseSettings, DEFAULT_SETTINGS } from '../src/settings';
+import { mapLightPreset, mapTheme, type LightPreset } from '../src/lightPreset';
 import { reportFromFix } from '../src/reports';
 import { MapStore } from '../src/mapState';
 
@@ -52,6 +53,15 @@ describe('beállítások', () => {
     expect(DEFAULT_SETTINGS.terkep).toBe('szines');
     expect(parseSettings('{"terkep":"visszafogott"}').terkep).toBe('visszafogott');
     expect(parseSettings('{"terkep":"monochrome"}').terkep).toBe('szines');
+  });
+  it('AW15: „Világos” – tárolva megmarad, színes téma mindig nappali fénnyel; a másik kettő a napszakot követi', () => {
+    expect(parseSettings('{"terkep":"vilagos"}').terkep).toBe('vilagos');
+    expect([mapTheme('szines'), mapTheme('visszafogott'), mapTheme('vilagos')]).toEqual(['default', 'monochrome', 'default']);
+    for (const p of ['dawn', 'day', 'dusk', 'night'] as LightPreset[]) {
+      expect(mapLightPreset('vilagos', p), p).toBe('day');
+      expect(mapLightPreset('szines', p), p).toBe(p);
+      expect(mapLightPreset('visszafogott', p), p).toBe(p);
+    }
   });
 });
 

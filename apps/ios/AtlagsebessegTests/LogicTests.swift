@@ -63,6 +63,17 @@ struct SettingsTests {
         #expect(Settings.parse(#"{"terkep":"monochrome"}"#).terkep == .szines)
     }
 
+    @Test("AW15: „Világos” – tárolva megmarad, színes téma mindig nappali fénnyel; a másik kettő a napszakot követi")
+    func vilagosTerkep() {
+        #expect(Settings.parse(#"{"terkep":"vilagos"}"#).terkep == .vilagos)
+        #expect(MapLook.allCases.map(mapThemeIsMonochrome) == [false, true, false])
+        for p in [LightPreset.dawn, .day, .dusk, .night] {
+            #expect(mapLightPreset(.vilagos, p) == .day, "\(p)")
+            #expect(mapLightPreset(.szines, p) == p, "\(p)")
+            #expect(mapLightPreset(.visszafogott, p) == p, "\(p)")
+        }
+    }
+
     @Test("oda-vissza: a mentett alak a webes kulcsokkal visszaolvasható")
     func odaVissza() {
         var s = Settings.default

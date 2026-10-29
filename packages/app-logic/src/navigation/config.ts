@@ -97,3 +97,12 @@ export const NAV_FOLLOW = {
   focusY: 0.72,
   focusGapPx: 56,
 } as const;
+
+/**
+ * Kézi mérés navigáció közben (AW15): a kártya `collapseAfterMs` után kis pillé zsugorodik (a jobb oldalon), és akkor is,
+ * ha a navigációnak hely kell – a következő manőver `maneuverNearM`-en belül, ajánlat-kártya vagy közeli kamera.
+ */
+export const MANUAL_PILL = {
+  collapseAfterMs: 5000,
+  maneuverNearM: 500,
+} as const;

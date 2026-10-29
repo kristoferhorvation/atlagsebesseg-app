@@ -93,15 +93,17 @@ struct Icon: View {
     }
 }
 
-/// Üveg-felület (`.glass`): áttetsző felület + elmosás + 1 px-es él + árnyék.
+/// Üveg-felület (`.glass`): áttetsző felület + elmosás + 1 px-es él + árnyék. Kitöltés nélkül a `surface`; világos térképen
+/// (AW15, `strongGlass`) a `surfaceStrong`, hogy a halvány szöveg is olvasható maradjon.
 struct Glass: ViewModifier {
     var radius: CGFloat
-    var fill: Color = Tokens.Colors.surface
+    var fill: Color?
+    @Environment(\.strongGlass) private var strong
 
     func body(content: Content) -> some View {
         let shape = RoundedRectangle(cornerRadius: radius, style: .continuous)
         content
-            .background(fill, in: shape)
+            .background(fill ?? (strong ? Tokens.Colors.surfaceStrong : Tokens.Colors.surface), in: shape)
             .background(.ultraThinMaterial, in: shape)
             .overlay(shape.strokeBorder(Tokens.Colors.stroke, lineWidth: 1))
             .shadow(color: Tokens.Shadow.card[0].color, radius: Tokens.Shadow.card[0].blur / 2, x: Tokens.Shadow.card[0].x, y: Tokens.Shadow.card[0].y)
@@ -110,7 +112,7 @@ struct Glass: ViewModifier {
 }
 
 extension View {
-    func glass(radius: CGFloat, fill: Color = Tokens.Colors.surface) -> some View {
+    func glass(radius: CGFloat, fill: Color? = nil) -> some View {
         modifier(Glass(radius: radius, fill: fill))
     }
 
@@ -172,4 +174,9 @@ struct RoundButtonStyle: ButtonStyle {
             .scaleEffect(configuration.isPressed ? 0.96 : 1)
             .animation(.easeOut(duration: Tokens.Motion.fast), value: configuration.isPressed)
     }
+}
+
+extension EnvironmentValues {
+    /// AW15: világos térkép – az üveg-felületek erősebbek (`surfaceStrong`).
+    @Entry var strongGlass = false
 }

@@ -33,6 +33,10 @@ import {
   limitAt,
   maneuverIcon,
   NavigationSession,
+  manualPillTap,
+  manualPillTick,
+  MANUAL_PILL,
+  navNeedsSpace,
   navResultCompact,
   navStepStrip,
   NAV_CONFIG,
@@ -1446,8 +1450,57 @@ describe('AOS13: a felső lépés-kártya nem kerülhet az alsó kártya-csoport
   it('navigáció közben a mérés eredménye kompakt; navigáció nélkül és más fázisban a nagy kártya marad', () => {
     expect(navResultCompact('befejezve', true)).toBe(true);
     expect(navResultCompact('befejezve', false)).toBe(false);
-    for (const phase of ['nincs_szakasz', 'kozeledik', 'meres', 'kezi', 'kezi_eredmeny', 'megszakadt'] as const) {
+    for (const phase of ['nincs_szakasz', 'kozeledik', 'meres', 'kezi', 'megszakadt'] as const) {
       expect(navResultCompact(phase, true), phase).toBe(false);
     }
+  });
+});
+
+describe('AW15: kézi átlagmérés navigáció közben', () => {
+  it('a kézi mérés eredménye navigáció közben kompakt, navigáció nélkül nagy', () => {
+    expect(navResultCompact('kezi_eredmeny', true)).toBe(true);
+    expect(navResultCompact('kezi_eredmeny', false)).toBe(false);
+  });
+
+  it('a pill: navigáció nélkül nincs; induláskor teljes kártya, 5 s után pill; bökésre ki, újabb bökésre vagy 5 s után vissza', () => {
+    expect(MANUAL_PILL.collapseAfterMs).toBe(5000);
+    expect(manualPillTick(null, false, false, 0)).toBeNull();
+    let s = manualPillTick(null, true, false, 1000)!;
+    expect(s.collapsed).toBe(false);
+    s = manualPillTick(s, true, false, 5999)!;
+    expect(s.collapsed).toBe(false);
+    s = manualPillTick(s, true, false, 6000)!;
+    expect(s.collapsed).toBe(true);
+    // bökésre teljes kártya, az 5 s újraindul
+    s = manualPillTap(s, 10_000);
+    expect(s.collapsed).toBe(false);
+    expect(manualPillTick(s, true, false, 14_999)!.collapsed).toBe(false);
+    expect(manualPillTick(s, true, false, 15_000)!.collapsed).toBe(true);
+    // újabb bökésre azonnal vissza
+    expect(manualPillTap(s, 11_000).collapsed).toBe(true);
+    // a navigáció vége / a mérés vége: nincs pill (a nagy kártya, ill. az eredmény)
+    expect(manualPillTick(s, false, false, 11_000)).toBeNull();
+    // változatlan állapotnál ugyanaz az objektum (a nézet nem renderel feleslegesen)
+    expect(manualPillTick(s, true, false, 11_000)).toBe(s);
+  });
+
+  it('a pill: magától összemegy, ha a navigációnak hely kell (manőver < 500 m, ajánlat, közeli kamera)', () => {
+    expect(navNeedsSpace({ maneuverM: 499, offer: false, cameraNear: false })).toBe(true);
+    expect(navNeedsSpace({ maneuverM: 500, offer: false, cameraNear: false })).toBe(false);
+    expect(navNeedsSpace({ maneuverM: null, offer: false, cameraNear: false })).toBe(false);
+    expect(navNeedsSpace({ maneuverM: 3000, offer: true, cameraNear: false })).toBe(true);
+    expect(navNeedsSpace({ maneuverM: 3000, offer: false, cameraNear: true })).toBe(true);
+    let s = manualPillTick(null, true, false, 0)!;
+    s = manualPillTick(s, true, true, 1000)!;
+    expect(s.collapsed).toBe(true);
+    // ha közben kinyitják, a fennálló helyigény nem csukja azonnal vissza – 5 s-ig nyitva marad
+    s = manualPillTap(s, 2000);
+    expect(manualPillTick(s, true, true, 3000)!.collapsed).toBe(false);
+    expect(manualPillTick(s, true, true, 7000)!.collapsed).toBe(true);
+    // új helyigény (felfutó él) a nyitott kártyát rögtön összecsukja
+    s = manualPillTick(manualPillTick(s, true, false, 3000)!, true, true, 3500)!;
+    expect(s.collapsed).toBe(true);
+    // induláskor fennálló helyigény: rögtön pill
+    expect(manualPillTick(null, true, true, 0)!.collapsed).toBe(true);
   });
 });

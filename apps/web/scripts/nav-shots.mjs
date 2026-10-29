@@ -7,6 +7,9 @@
 // lehajtóval, helyhozzáférés: GPS-pill (prompt → kérés, denied → tiltott-lap a böngészőre, granted → semmi), első gesztus.
 // AOS13: a mérés eredménye navigáció közben kompakt, és nem ér a felső kártya alá.
 // AW14: van pozíció → a pill koppintása semmit nem nyit, akármit mond a Permissions API.
+// AW15: a pill újrakérésére jött PERMISSION_DENIED a tiltott-lapot nyitja (Permissions API nélkül is); nyelvlista
+// zászlóval, ábécérendben; a Beállítások a hely-választás után nyitva marad; három térképstílus (a „Világos” mindig
+// nappal); a kézi átlagmérés navigáció közben pillé zsugorodik; a kézi eredmény navigáció közben kompakt.
 //
 //   npm run dev -w @atlagsebesseg/web            # másik terminálban (a Mapbox-token az apps/web/.env-ben)
 //   npm run nav-shots -w @atlagsebesseg/web
@@ -320,7 +323,7 @@ try {
   const UA_IPHONE = 'Mozilla/5.0 (iPhone; CPU iPhone OS 26_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0 Mobile/15E148 Safari/604.1';
   /**
    * `state`: a Permissions API válasza (`none`: a lekérdezés hibát ad, mint ahol az API nincs); `mode`: a watchPosition –
-   * `deny` (azonnali elutasítás), `wait` (nincs válasz), `fix`.
+   * `deny` (azonnali elutasítás), `nosignal` (POSITION_UNAVAILABLE), `wait` (nincs válasz), `fix`.
    */
   const fakeGeo = (state, mode) => `(() => {
     const cfg = (window.__geoFake = { calls: 0 });
@@ -331,6 +334,7 @@ try {
     navigator.geolocation.watchPosition = (ok, err) => {
       cfg.calls++;
       if (${JSON.stringify(mode)} === 'deny') setTimeout(() => err({ code: 1, PERMISSION_DENIED: 1, POSITION_UNAVAILABLE: 2, TIMEOUT: 3, message: 'denied' }), 50);
+      if (${JSON.stringify(mode)} === 'nosignal') setTimeout(() => err({ code: 2, PERMISSION_DENIED: 1, POSITION_UNAVAILABLE: 2, TIMEOUT: 3, message: 'unavailable' }), 50);
       if (${JSON.stringify(mode)} === 'fix') setTimeout(() => ok({ coords: { latitude: 47.4979, longitude: 19.0402, accuracy: 8, speed: null, heading: null, altitude: null, altitudeAccuracy: null }, timestamp: Date.now() }), 50);
       return cfg.calls;
     };
@@ -389,9 +393,11 @@ try {
   await pr.evaluate(`document.body.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true })); true`);
   await sleep(200);
   check('csak az első érintés kér magától', (await pill(pr)).calls === pr1.calls);
+  check('az automatikus és az első-érintéses kérés elutasítása nem nyit lapot', !(await pr.evaluate(`!!${q('.sheet')}`)));
   await pr.evaluate(`${GPS_PILL}.click(); true`);
   await sleep(200);
-  check('prompt: a GPS-pill koppintása kér (nem nyit lapot)', (await pill(pr)).calls === pr1.calls + 1 && !(await pr.evaluate(`!!${q('.sheet')}`)));
+  // AW15: a pill kérésére jött elutasítás (PERMISSION_DENIED) a tiltott-lapot nyitja
+  check('prompt: a GPS-pill koppintása kér, az elutasításra a tiltott-lap nyílik (AW15)', (await pill(pr)).calls === pr1.calls + 1 && (await pr.evaluate(`!!${q('.geo-help')}`)));
   pr.close();
 
   // granted: pontosság, a pill nem gomb
@@ -416,15 +422,142 @@ try {
     check(`iOS Safari, ${name}, van pozíció: zöld pill ±8 m, koppintásra nincs tiltott-lap`, ip0.tag === 'DIV' && ip0.tone === 'jo' && /^GPS ±8 m$/.test(ip0.txt) && !sheet, JSON.stringify({ ...ip0, sheet }));
     ip.close();
   }
-  // iOS Safari, nincs Permissions API, nincs pozíció (elutasítva): a pill kér, nem a tiltott-lapot nyitja
+  // iOS Safari, nincs Permissions API, nincs pozíció (elutasítva): a pill kér (nem a lapot nyitja a „denied”-re) – AW15: a
+  // kérésre jött PERMISSION_DENIED (1) után a tiltott-lap nyílik
   const nx = await geoPage('none', 'deny', UA_IPHONE);
   const nx0 = await pill(nx);
+  const nxSheet0 = await nx.evaluate(`!!${q('.sheet')}`);
   await nx.evaluate(`${GPS_PILL}.click(); true`);
-  await sleep(300);
+  await nx.waitFor(q('.geo-help'), 3000, 'tiltott-lap').catch(() => undefined);
   const nx1 = await pill(nx);
-  check('iOS Safari, nincs Permissions API, nincs pozíció: a pill kér, nincs tiltott-lap', nx0.tag === 'BUTTON' && nx1.calls === nx0.calls + 1 && !(await nx.evaluate(`!!${q('.sheet')}`)), `${JSON.stringify(nx0)} → ${nx1.calls}`);
+  check(
+    'AW15: iOS Safari, nincs Permissions API: a pill kér, a PERMISSION_DENIED válaszra a tiltott-lap nyílik',
+    nx0.tag === 'BUTTON' && !nxSheet0 && nx1.calls === nx0.calls + 1 && (await nx.evaluate(`!!${q('.geo-help')}`)),
+    `${JSON.stringify(nx0)} → ${nx1.calls}`,
+  );
   check('nincs kezeletlen JS-kivétel (AW14)', nx.logs.length === 0, nx.logs.join(' | '));
   nx.close();
+  // más hiba (nincs jel) a pill kérésére: nincs tiltott-lap
+  const ns = await geoPage('none', 'nosignal', UA_IPHONE);
+  const ns0 = await pill(ns);
+  await ns.evaluate(`${GPS_PILL}.click(); true`);
+  await sleep(400);
+  check('AW15: a pill kérésére „nincs jel” hiba: nincs tiltott-lap', (await pill(ns)).calls === ns0.calls + 1 && !(await ns.evaluate(`!!${q('.sheet')}`)));
+  ns.close();
+
+  // ------------------------------------------------------------------
+  // AW15: nyelvlista, visszatérés a Beállításokba, három térképstílus, kézi pill, kompakt kézi eredmény
+  // ------------------------------------------------------------------
+  const st = await mk();
+  await st.goto('/?navsim&panel=0');
+  await st.waitFor(MAP_READY, 60_000, 'térkép');
+  await st.waitFor(`document.querySelector('button[aria-label="Beállítások"]')`, 20_000, 'beállítások gomb');
+  await click(st, 'button[aria-label="Beállítások"]');
+  await st.waitFor(q('.sheet'), 5000, 'beállítások');
+  const langs = await st.evaluate(`[...document.querySelectorAll('.sheet select option')].map((o) => o.textContent)`);
+  check(
+    'nyelvlista: „Automatikus” legfelül, utána zászló + saját név ábécérendben',
+    /^Automatikus/.test(langs[0]) && langs.slice(1).join('|') === '🇨🇿 Čeština|🇩🇪 Deutsch|🇬🇧 English|🇭🇺 Magyar|🇵🇱 Polski|🇸🇰 Slovenčina',
+    langs.join(', '),
+  );
+  const looks = await st.evaluate(`(() => {
+    const seg = ${q('.sheet .segmented[aria-label="Térkép"]')};
+    const row = seg.closest('.list-row').getBoundingClientRect();
+    const btns = [...seg.querySelectorAll('button')];
+    return { labels: btns.map((b) => b.textContent), inside: btns.every((b) => b.getBoundingClientRect().right <= row.right + 0.5 && b.scrollWidth <= b.clientWidth) };
+  })()`);
+  check('Térkép: Színes / Visszafogott / Világos, 390 px-en sem lóg ki', looks.labels.join('|') === 'Színes|Visszafogott|Világos' && looks.inside, JSON.stringify(looks));
+  await st.evaluate(`${q('.sheet .segmented[aria-label="Térkép"]')}.scrollIntoView({ block: 'center' }); true`);
+  await sleep(500);
+  if (!CHECK_ONLY) await st.shot(`${DATE}-beallitasok-nyelv-terkep.png`);
+  // Haza beállítása: a kereső a lap fölött nyílik, választás után a lap nyitva, ugyanott
+  const HOME_BTN = `[...document.querySelectorAll('.sheet .list-row')].find((r) => /^Haza/.test(r.innerText)).querySelector('.mini-btn')`;
+  await st.evaluate(`${HOME_BTN}.scrollIntoView({ block: 'center' }); true`);
+  await sleep(300);
+  const scroll0 = await st.evaluate(`${q('.sheet')}.scrollTop`);
+  await st.evaluate(`${HOME_BTN}.click(); true`);
+  await st.waitFor(q('.search-screen'), 5000, 'kereső');
+  check('Haza beállítása: a kereső a Beállítások fölött nyílik (a lap alatta nyitva)', await st.evaluate(`!!${q('.sheet')} && +getComputedStyle(${q('.search-screen')}).zIndex > +getComputedStyle(${q('.sheet')}).zIndex`));
+  await st.evaluate(`${q('.search-field input')}.focus(); true`);
+  await st.type('Győr');
+  await st.waitFor(`document.querySelectorAll('.search-screen .place-row').length >= 1`, 5000, 'találat');
+  await click(st, '.search-screen .place-row');
+  await sleep(400);
+  const back = await st.evaluate(`({ search: !!${q('.search-screen')}, sheet: !!${q('.sheet')}, scroll: ${q('.sheet')}?.scrollTop, home: [...document.querySelectorAll('.sheet .list-row')].find((r) => /^Haza/.test(r.innerText))?.innerText.replace(/\\s+/g, ' ') })`);
+  check('választás után a Beállítások nyitva marad, ugyanott (görgetés is), a Haza beállítva', !back.search && back.sheet && Math.abs(back.scroll - scroll0) <= 1 && /^Haza Győr/.test(back.home), JSON.stringify({ ...back, scroll0 }));
+  await st.evaluate(`[...document.querySelectorAll('.sheet .mini-btn')].find((b) => /Új hely/.test(b.innerText)).click(); true`);
+  await st.waitFor(q('.search-screen'), 5000, 'kereső (új hely)');
+  await st.send('Input.dispatchKeyEvent', { type: 'keyDown', key: 'Escape', code: 'Escape', windowsVirtualKeyCode: 27 });
+  await sleep(300);
+  check('Escape a lap fölötti keresőben csak a keresőt zárja', await st.evaluate(`!${q('.search-screen')} && !!${q('.sheet')}`));
+  check('nincs kezeletlen JS-kivétel (AW15 Beállítások)', st.logs.length === 0, st.logs.join(' | '));
+  st.close();
+
+  // három térképstílus ugyanarról a helyről (navigáció, a belváros), sötét rendszer-módban: a „Világos” mégis nappal
+  const looked = {};
+  for (const terkep of ['szines', 'visszafogott', 'vilagos']) {
+    const v = await mk();
+    await v.send('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-color-scheme', value: 'dark' }] });
+    await v.goto('/?navsim&stage=nav&speed=1&at=20&panel=0', { terkep });
+    await v.waitFor(MAP_READY, 60_000, 'térkép');
+    await v.waitFor(q('.nav-top'), 30_000, 'felső kártya');
+    looked[terkep] = await v.evaluate(`({ theme: ${q('.mapboxgl-map')}.dataset.theme, light: ${q('.mapboxgl-map')}.dataset.lightPreset })`);
+    if (!CHECK_ONLY) {
+      await sleep(4500);
+      await v.shot(`${DATE}-terkep-${terkep}.png`);
+    }
+    v.close();
+  }
+  check('„Világos”: színes téma nappali fénnyel, sötét módban is', looked.vilagos.theme === 'default' && looked.vilagos.light === 'day', JSON.stringify(looked.vilagos));
+  check('„Színes” / „Visszafogott” sötét módban: nem nappal; a visszafogott monochrome', looked.szines.theme === 'default' && looked.szines.light !== 'day' && looked.visszafogott.theme === 'monochrome' && looked.visszafogott.light !== 'day', JSON.stringify(looked));
+
+  // kézi átlagmérés navigáció nélkül: a nagy kártya marad
+  const kn = await mk();
+  await kn.goto('/?navsim&panel=0');
+  await kn.waitFor(MAP_READY, 60_000, 'térkép');
+  await kn.waitFor(q('button[aria-label="Kézi átlagmérés indítása"]'), 20_000, 'stopper');
+  await click(kn, 'button[aria-label="Kézi átlagmérés indítása"]');
+  await sleep(6500);
+  check('navigáció nélkül a kézi mérés nagy kártyája marad (nincs pill)', await kn.evaluate(`!!${q('.hud .card[aria-label="Kézi átlagmérés"] .btn.danger')} && !${q('.manual-pill')}`));
+  kn.close();
+
+  // navigáció közben: 5 s után (vagy közeli manővernél) pill a jobb oldalon; bökésre kártya, újabb bökésre pill
+  const MANUAL_CARD = q('.hud .card[aria-label="Kézi átlagmérés"]');
+  const kp = await mk();
+  await kp.goto('/?navsim&stage=nav&speed=1&at=20&panel=0');
+  await kp.waitFor(MAP_READY, 60_000, 'térkép');
+  await kp.waitFor(q('.nav-top'), 30_000, 'felső kártya');
+  await kp.waitFor(q('button[aria-label="Kézi átlagmérés indítása"]'), 10_000, 'stopper');
+  await click(kp, 'button[aria-label="Kézi átlagmérés indítása"]');
+  await sleep(300);
+  const k0 = await kp.evaluate(`({ card: !!${MANUAL_CARD}, chip: ${MANUAL_CARD}?.querySelector('.chip')?.innerText.trim(), pill: !!${q('.manual-pill')} })`);
+  check('kézi mérés navigáció közben: induláskor a teljes kártya „Kézi átlagmérés” címmel', k0.card && k0.chip === 'Kézi átlagmérés' && !k0.pill, JSON.stringify(k0));
+  await kp.waitFor(q('.manual-pill'), 8000, 'pill');
+  const k1 = await kp.evaluate(`(() => { const e = ${q('.manual-pill')}; const r = e.getBoundingClientRect(); return { txt: e.innerText.replace(/\\s+/g, ' ').trim(), right: r.right, left: r.left, w: innerWidth, h: r.height, stop: !!document.querySelector('.hud .card[aria-label="Kézi átlagmérés"] .btn.danger, .manual-pill .btn'), top: !!${q('.nav-top')}, bottom: !!${q('.nav-bottom')} }; })()`);
+  check('pill: átlag km/h + eltelt idő, Leállítás nélkül, a jobb oldalon', /^\d+ ?km\/h \d+:\d{2}$/.test(k1.txt) && !k1.stop && k1.left > k1.w * 0.25 && k1.right > k1.w * 0.6 && k1.h >= 56, JSON.stringify(k1));
+  check('pill alatt a navigáció teljes: felső kártya + alsó sáv', k1.top && k1.bottom, JSON.stringify(k1));
+  await sleep(1200);
+  if (!CHECK_ONLY) await kp.shot(`${DATE}-nav-kezi-pill.png`);
+  await click(kp, '.manual-pill');
+  await sleep(300);
+  check('bökésre a teljes kártya nyílik (Leállítással)', await kp.evaluate(`!!${MANUAL_CARD}?.querySelector('.btn.danger') && !${q('.manual-pill')}`));
+  await kp.evaluate(`${MANUAL_CARD}.querySelector('.hero').click(); true`);
+  await sleep(300);
+  check('újabb bökésre visszamegy pillé', await kp.evaluate(`!${MANUAL_CARD} && !!${q('.manual-pill')}`));
+  await click(kp, '.manual-pill');
+  await kp.waitFor(q('.manual-pill'), 8000, 'magától vissza').catch(() => undefined);
+  check('kinyitva 5 s után (vagy a navigáció helyigényére) magától visszamegy pillé', await kp.evaluate(`!!${q('.manual-pill')}`));
+  // leállítás: a kézi eredmény navigáció közben egy sor, a felső kártya alatt
+  await click(kp, '.manual-pill');
+  await sleep(300);
+  await kp.evaluate(`${MANUAL_CARD}.querySelector('.btn.danger').click(); true`);
+  await kp.waitFor(q('.hud .card[aria-label="Kézi átlagmérés eredménye"]'), 5000, 'kézi eredmény');
+  await sleep(500);
+  const kr = await kp.evaluate(`(() => { const c = ${q('.hud .card[aria-label="Kézi átlagmérés eredménye"]')}; const r = c.getBoundingClientRect(); const top = document.querySelector('.nav-top'); return { compact: c.classList.contains('compact'), h: Math.round(r.height), txt: c.innerText.replace(/\\s+/g, ' ').trim(), gap: top ? Math.round(r.top - top.getBoundingClientRect().bottom) : null, retry: /Újra/.test(c.innerText) }; })()`);
+  check('kézi eredmény navigáció közben: kompakt egy sor (átlag, táv · idő, Kész), nem ér a felső kártya alá', kr.compact && kr.h <= 90 && /^\d+ km\/h átlag .+ · \d+:\d{2} Kész$/.test(kr.txt) && kr.gap !== null && kr.gap >= 12 && !kr.retry, JSON.stringify(kr));
+  if (!CHECK_ONLY) await kp.shot(`${DATE}-nav-kezi-eredmeny.png`);
+  check('nincs kezeletlen JS-kivétel (AW15 kézi mérés)', kp.logs.length === 0, kp.logs.join(' | '));
+  kp.close();
 
   // ------------------------------------------------------------------
   // 3. marketing-képernyőképek (1×-es lejátszás, szimulátor-panel nélkül)

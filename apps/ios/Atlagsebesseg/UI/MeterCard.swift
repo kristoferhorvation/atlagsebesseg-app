@@ -8,8 +8,10 @@ struct MeterCard: View {
     let gpsReady: Bool
     var onStopManual: () -> Void = {}
     var onDismiss: () -> Void = {}
-    /// Navigáció közben (AOS13) a mérés eredménye egy sor (`navResultCompact`).
+    /// Navigáció közben (AOS13) a mérés eredménye egy sor (`navResultCompact`; AW15: a kézi mérésé is).
     var compact = false
+    /// AW15: navigáció közben a kézi mérés teljes kártyája bökésre pillé zsugorodik (a Leállítás gomb kivételével).
+    var onCollapseManual: (() -> Void)?
 
     @Environment(\.horizontalSizeClass) private var sizeClass
 
@@ -24,7 +26,7 @@ struct MeterCard: View {
         case .befejezve: if compact { finishedCompact(tone) } else { finished(tone) }
         case .megszakadt: interrupted(tone)
         case .kezi: manual(tone)
-        case .keziEredmeny: manualResult(tone)
+        case .keziEredmeny: if compact { manualResultCompact(tone) } else { manualResult(tone) }
         case .nincsSzakasz: idle(tone)
         }
     }
@@ -225,6 +227,8 @@ struct MeterCard: View {
             }
             .buttonStyle(WideButtonStyle(kind: .danger))
         }
+        .contentShape(Rectangle())
+        .onTapGesture { onCollapseManual?() }
     }
 
     private func manualResult(_ tone: Tone) -> some View {
@@ -244,6 +248,49 @@ struct MeterCard: View {
             }
             Button(t(.commonDone), action: onDismiss).buttonStyle(WideButtonStyle())
         }
+    }
+
+    /// AW15: a kézi mérés eredménye navigáció közben egy sorban – átlag a tónus színében, alatta táv · idő, jobbra „Kész”.
+    /// (iOS-en nincs ideiglenes szakasz, így kapu-küldés és „Újra” sincs.)
+    private func manualResultCompact(_ tone: Tone) -> some View {
+        let r = view.manualResult!
+        return HStack(spacing: Tokens.Space.s4) {
+            Text(speedIn(r.averageKmh, unit).map(String.init) ?? "–")
+                .font(.num(Tokens.Typography.title.size, 700))
+                .tracking(Tokens.Typography.title.trackingPt)
+                .foregroundStyle(tone.color)
+                .fixedSize()
+            VStack(alignment: .leading, spacing: 2) {
+                Text(t(.hudAvg, ["u": u]))
+                    .font(.inter(Tokens.Typography.body.size, Tokens.Typography.body.weight))
+                    .foregroundStyle(Tokens.Colors.textMuted)
+                HStack(spacing: 6) {
+                    Icon(name: .stopwatch, size: 16)
+                    Text("\(dist(r.distanceM)) · \(formatDuration(r.elapsedMs))")
+                        .font(.num(Tokens.Typography.caption.size, 620))
+                }
+                .foregroundStyle(tone.color)
+            }
+            .lineLimit(1)
+            .minimumScaleFactor(0.8)
+            Spacer(minLength: 0)
+            Button(t(.commonDone), action: onDismiss)
+                .font(.inter(16, 620))
+                .lineLimit(1)
+                .fixedSize()
+                .foregroundStyle(Tokens.Colors.text)
+                .padding(.horizontal, Tokens.Space.s4)
+                .frame(height: 48)
+                .background(Color.white.opacity(0.1), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+        }
+        .frame(minHeight: 48)
+        .padding(.vertical, Tokens.Space.s3)
+        .padding(.horizontal, Tokens.Space.s5)
+        .background(CardBackground(tone: tone, glow: 0.1))
+        .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+        .glass(radius: 24)
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel(t(.hudManualDoneAria))
     }
 
     /// Kompakt alapállapot: egy sor, hogy a térkép lássa a képernyő ~80%-át.
@@ -280,6 +327,45 @@ struct MeterCard: View {
 }
 
 // MARK: elemek
+
+/// AW15: navigáció közben a kézi mérés kis pillje a gombsor jobb oldalán – átlag + eltelt idő, Leállítás nélkül;
+/// bökésre a teljes kártya nyílik.
+struct ManualPill: View {
+    let view: SessionView
+    let unit: SpeedUnit
+    let onExpand: () -> Void
+
+    var body: some View {
+        let m = view.manual
+        Button(action: onExpand) {
+            HStack(spacing: 10) {
+                Icon(name: .stopwatch, size: 22).foregroundStyle(Tone.kezi.color)
+                HStack(alignment: .firstTextBaseline, spacing: 4) {
+                    Text(speedIn(m?.averageKmh, unit).map(String.init) ?? "–")
+                        .font(.num(26, 700))
+                        .foregroundStyle(Tone.kezi.color)
+                    Text(unitLabel(unit))
+                        .font(.inter(Tokens.Typography.caption.size, 560))
+                        .foregroundStyle(Tokens.Colors.textMuted)
+                }
+                Text(formatDuration(m?.elapsedMs ?? 0))
+                    .font(.num(Tokens.Typography.body.size, 600))
+                    .foregroundStyle(Tokens.Colors.textMuted)
+            }
+            .lineLimit(1)
+            .fixedSize()
+            .padding(.leading, 14)
+            .padding(.trailing, 18)
+            .frame(height: Tokens.Size.roundButton)
+            .glass(radius: Tokens.Size.roundButton / 2)
+            .overlay(Capsule().strokeBorder(Tone.kezi.color.opacity(0.55), lineWidth: 1))
+            .contentShape(Capsule())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(t(.hudManualPillAria))
+        .transition(.opacity.combined(with: .offset(y: 12)))
+    }
+}
 
 extension MeterState {
     var icon: IconName {

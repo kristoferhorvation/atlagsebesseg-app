@@ -32,6 +32,20 @@ export const LANGUAGE_NAMES: Record<Lang, string> = {
   pl: 'Polski',
 };
 
+/** A nyelv zászlaja a választólistában (AW15). */
+export const LANGUAGE_FLAGS: Record<Lang, string> = { hu: '🇭🇺', en: '🇬🇧', de: '🇩🇪', sk: '🇸🇰', cs: '🇨🇿', pl: '🇵🇱' };
+
+/**
+ * A nyelvválasztó sorai (AW15): „🇭🇺 Magyar” – zászló + a saját nyelvén írt név, a név szerint ábécérendben (ékezet nélkül
+ * összevetve: Čeština a C-nél). Az „Automatikus” sor nem része, az mindig legfelül áll.
+ */
+export function languageMenu(): { lang: Lang; label: string }[] {
+  const key = (l: Lang) => LANGUAGE_NAMES[l].normalize('NFD').replace(/\p{M}/gu, '').toLowerCase();
+  return [...LANGUAGES]
+    .sort((a, b) => (key(a) < key(b) ? -1 : key(a) > key(b) ? 1 : 0))
+    .map((lang) => ({ lang, label: `${LANGUAGE_FLAGS[lang]} ${LANGUAGE_NAMES[lang]}` }));
+}
+
 /** BCP 47 nyelvi címke a számformázáshoz és a beszédszintézishez. */
 export const LOCALES: Record<Lang, string> = { hu: 'hu-HU', en: 'en-GB', de: 'de-DE', sk: 'sk-SK', cs: 'cs-CZ', pl: 'pl-PL' };
 

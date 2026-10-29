@@ -1,4 +1,4 @@
-import { ALT_OFFER, CAMERA_ALERT, DICTIONARIES, LANGUAGES, NAV_CONFIG, NAV_COUNTRIES, NAV_FOLLOW, PLANNED_MATCH_M, PLANNED_OFF_FIXES, ROUTE_MATCH_M, type FixedCamera, type PlannedCheck, type TKey } from '@atlagsebesseg/app-logic';
+import { ALT_OFFER, CAMERA_ALERT, DICTIONARIES, LANGUAGE_FLAGS, LANGUAGE_NAMES, LANGUAGES, MANUAL_PILL, NAV_CONFIG, NAV_COUNTRIES, NAV_FOLLOW, PLANNED_MATCH_M, PLANNED_OFF_FIXES, ROUTE_MATCH_M, type FixedCamera, type PlannedCheck, type TKey } from '@atlagsebesseg/app-logic';
 import { Route, type LatLon } from '@atlagsebesseg/core';
 import { testCourse } from '@atlagsebesseg/core/test/helpers/trace';
 import { toSwift } from '@atlagsebesseg/design-tokens';
@@ -81,6 +81,15 @@ function appLogicConstants(): string {
     `    static let focusY = ${num(NAV_FOLLOW.focusY)}`,
     `    static let focusGapPx = ${num(NAV_FOLLOW.focusGapPx)}`,
     '}',
+    '/// A kézi mérés pillje navigáció közben (AW15): `collapseAfterMs` után, vagy ha a következő manőver `maneuverNearM`-en',
+    '/// belül van (ajánlat, közeli kamera mellett is), a kártya pillé zsugorodik.',
+    'nonisolated enum MANUAL_PILL {',
+    ...Object.entries(MANUAL_PILL).map(([k, v]) => `    static let ${k} = ${num(v)}`),
+    '}',
+    '',
+    '/// A nyelvek saját nevükön és zászlajuk (AW15: a nyelvválasztó) – a webes `LANGUAGE_NAMES` / `LANGUAGE_FLAGS`.',
+    `nonisolated let LANGUAGE_NAMES: [String: String] = [${LANGUAGES.map((l) => `${JSON.stringify(l)}: ${JSON.stringify(LANGUAGE_NAMES[l])}`).join(', ')}]`,
+    `nonisolated let LANGUAGE_FLAGS: [String: String] = [${LANGUAGES.map((l) => `${JSON.stringify(l)}: ${JSON.stringify(LANGUAGE_FLAGS[l])}`).join(', ')}]`,
     '',
   ].join('\n');
 }

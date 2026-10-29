@@ -54,3 +54,13 @@ nonisolated enum NAV_FOLLOW {
     static let focusY = 0.72
     static let focusGapPx = 56.0
 }
+/// A kézi mérés pillje navigáció közben (AW15): `collapseAfterMs` után, vagy ha a következő manőver `maneuverNearM`-en
+/// belül van (ajánlat, közeli kamera mellett is), a kártya pillé zsugorodik.
+nonisolated enum MANUAL_PILL {
+    static let collapseAfterMs = 5000.0
+    static let maneuverNearM = 500.0
+}
+
+/// A nyelvek saját nevükön és zászlajuk (AW15: a nyelvválasztó) – a webes `LANGUAGE_NAMES` / `LANGUAGE_FLAGS`.
+nonisolated let LANGUAGE_NAMES: [String: String] = ["hu": "Magyar", "en": "English", "de": "Deutsch", "sk": "Slovenčina", "cs": "Čeština", "pl": "Polski"]
+nonisolated let LANGUAGE_FLAGS: [String: String] = ["hu": "🇭🇺", "en": "🇬🇧", "de": "🇩🇪", "sk": "🇸🇰", "cs": "🇨🇿", "pl": "🇵🇱"]

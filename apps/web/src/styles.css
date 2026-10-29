@@ -150,6 +150,12 @@ select:focus-visible {
   box-shadow: var(--shadow-card), inset 0 1px 0 rgba(255, 255, 255, 0.06);
 }
 
+/* AW15: világos térképen az áttetsző felületek erősebbek – a halvány szöveg is olvasható marad (≥ 4,5:1) */
+:root[data-look='vilagos'] .glass,
+:root[data-look='vilagos'] .pill {
+  background: var(--color-surface-strong);
+}
+
 /* ---------- tónus (státuszszín) ---------- */
 
 [data-tone='jo'] {
@@ -1086,6 +1092,22 @@ a.list-row {
 .segmented button[aria-pressed='true'] {
   background: var(--color-text);
   color: var(--color-sign-text);
+}
+
+/* AW15: a három térképstílus nem fér a címke mellé – a címke fölötte, a választó teljes szélességű */
+.list-row.stacked {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 10px;
+}
+
+.list-row.stacked .segmented {
+  display: flex;
+}
+
+.list-row.stacked .segmented button {
+  flex: 1;
+  padding: 0 8px;
 }
 
 /* nyelv-választó a beállítások listájában */
@@ -2223,6 +2245,49 @@ a.list-row {
   background: rgba(255, 255, 255, 0.1);
   font-size: 16px;
   font-weight: 600;
+}
+
+/* AW15: a kompakt kézi eredmény „Újra” gombja (kapu-küldési hiba) */
+.mini-btn.primary {
+  background: var(--color-text);
+  color: var(--color-sign-text);
+}
+
+/* AW15: navigáció közben a kézi mérés pillje a gombsor jobb oldalán – átlag + eltelt idő, bökésre a teljes kártya */
+.manual-pill {
+  height: var(--size-round-button);
+  padding: 0 18px 0 14px;
+  border-radius: var(--radius-pill);
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  border-color: color-mix(in srgb, var(--tone) 55%, transparent);
+  animation: rise var(--motion-base) var(--motion-ease);
+}
+
+.manual-pill svg {
+  color: var(--tone);
+}
+
+.manual-pill b {
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--tone);
+  white-space: nowrap;
+}
+
+.manual-pill b small {
+  margin-left: 4px;
+  font-size: var(--type-caption-size);
+  font-weight: 560;
+  color: var(--color-text-muted);
+}
+
+.manual-pill > span {
+  font-size: var(--type-body-size);
+  font-weight: 600;
+  color: var(--color-text-muted);
 }
 
 @keyframes spin {

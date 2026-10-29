@@ -94,7 +94,7 @@ Gyökér: `npm test` és `npm run typecheck` minden csomagra; `npm run test:all`
   kártya-csoport soha nem ér a felső lépés-kártya alá – ha a teljes kártya (+ 12 pt) nem fér ki, a lépés mérésen kívül is
   egysoros sáv (`navStepStrip`, `navigation/layout.ts` / `Navigation/Layout.swift`; a rejtett kártyát is mérjük, az alsó
   csoport tetejét a sáv nélkül, hogy ne villogjon), és navigáció közben a mérés eredménye (`befejezve`) egysoros, kompakt
-  kártya (`navResultCompact`); a kézi mérés eredménye nagy marad. Hang: az `AlertPlayer` szintetizátora
+  kártya (`navResultCompact`); AW15 óta a kézi mérésé is. Hang: az `AlertPlayer` szintetizátora
   (`announce`), a fontos mondat (szakasz, túl gyors, újratervezés, gyorsabb út) megszakítja a fordulót.
 - **AW12 (első éles navi-teszt, Kristof 2026-10-29), weben és iOS-en (AOS12) kész:** „Gyorsabb út” ≥ 2 perc nyereségtől,
   `net = Δperc − k·Δkm` (k az alternatíva átlagsebességéből, 40 km/h-ig 1,0, 110-től 0,3) → Megéri (45 s után elfogad) /
@@ -128,6 +128,20 @@ Gyökér: `npm test` és `npm run typecheck` minden csomagra; `npm run test:all`
   - **AW14 (élesben iPhone Safarin: zöld pill ±8 m, mégis tiltott-lap):** a GPS-pillnél a **helyzet-állapot nyer** a
     Permissions API / az engedély felett – van pozíció (`aktiv`; iOS-en `active`/`sim`) → semmi, lap soha. Az engedély
     csak pozíció nélkül számít; ha az API nincs vagy hibát ad (`unknown`), „prompt”-nak vesszük (kérés), nem tiltottnak.
+- **AW15 (Kristof + apja, 2026-10-29), weben és iOS-en kész:**
+  - Nyelvválasztó: „Automatikus” legfelül, utána zászló + saját név ábécérendben (`languageMenu`, `LANGUAGE_FLAGS`;
+    iOS-re generálva). **iOS-en saját választó** (Kristof döntése): `LangChoice` (`lang:v1`, mint a weben), a `t()` ebből
+    olvas; megfigyelhető, így a nézetek a választásra újrarajzolnak; beágyazott lista a Beállításokban.
+  - Mentett hely (Haza / Munka / Új hely): a kereső a Beállítások **fölött** nyílik, választás után a lap nyitva marad,
+    ugyanott (web: `SearchScreen` z-index + az Escape csak a keresőt zárja; iOS: `fullScreenCover` a lapon, `placeSearchOpen`).
+  - Térkép: `MapLook` = `szines` / `visszafogott` / `vilagos`; `mapTheme`, `mapLightPreset` (a „Világos” mindig `day`, a
+    rétegek is nappali tokenekkel); világos térképen az üveg `surfaceStrong` (web: `:root[data-look]`, iOS: `strongGlass`).
+  - Kézi átlagmérés („Kézi átlagmérés” a cím és a chip): navigáció közben pill-állapotgép (`manualPillTick` /
+    `manualPillTap` / `navNeedsSpace`, `MANUAL_PILL` = 5 s, 500 m; `navigation/layout.ts` / `Layout.swift`), a pill alatt
+    a navigáció úgy látszik, mint mérés nélkül; a kézi eredmény navigáció közben kompakt (`navResultCompact`).
+  - Helyhozzáférés (csak web): a GPS-pill újrakérésére jött PERMISSION_DENIED (1) a tiltott-lapot nyitja, Permissions API
+    nélkül is (`pillRequestError`); az automatikus és az első-gesztusos kérés elutasítása nem nyit lapot.
+  - Szimulátor: `-manual S` (a `-navStage nav` mellett kézi mérés, S mp múlva leáll; 0: fut), `-settingsOpen language`.
 - **Paritási tartozás (AW12 + AW13 → iOS) lezárva az AOS12-ben (2026-10-29):** a `NavigationTests.swift` újra a
   `navigation.test.ts` teljes párja (86 = 86 `it`, azonos névvel), a webes `navSim.test.ts` 6 esete a `SimTests.swift`-ben.
   A közös Budapest→Győr fixtúra **AOS13-ban teljesen újra felvéve** méteres hangegységgel (`voice_units=metric`, mindkét

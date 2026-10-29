@@ -1,4 +1,4 @@
-import { LANGUAGES, LANGUAGE_NAMES, t, type MapLook, type SavedPlaces, type Settings, type SpeedUnit } from '@atlagsebesseg/app-logic';
+import { LANGUAGE_NAMES, languageMenu, t, type MapLook, type SavedPlaces, type Settings, type SpeedUnit } from '@atlagsebesseg/app-logic';
 import { DEFAULT_TOLERANCE } from '@atlagsebesseg/core';
 import { useLanguage, useVoiceStatus } from '../i18n';
 import { Sheet } from './Sheet';
@@ -46,6 +46,7 @@ export function SettingsSheet({
   const looks: { id: MapLook; label: string }[] = [
     { id: 'szines', label: t('settings.look.color') },
     { id: 'visszafogott', label: t('settings.look.muted') },
+    { id: 'vilagos', label: t('settings.look.light') },
   ];
   return (
     <Sheet title={t('settings.title')} onClose={onClose}>
@@ -79,7 +80,7 @@ export function SettingsSheet({
           </div>
           <Switch label={t('settings.planned')} checked={settings.tervezett_meresek} onChange={(v) => update({ tervezett_meresek: v })} />
         </div>
-        <div className="list-row">
+        <div className="list-row stacked">
           <div className="label">{t('settings.map')}</div>
           <div className="segmented" role="group" aria-label={t('settings.map')}>
             {looks.map((l) => (
@@ -98,9 +99,10 @@ export function SettingsSheet({
             onChange={(e) => setPreference(e.target.value as typeof preference)}
           >
             <option value="auto">{t('settings.language.auto')} ({LANGUAGE_NAMES[lang]})</option>
-            {LANGUAGES.map((l) => (
-              <option key={l} value={l}>
-                {LANGUAGE_NAMES[l]}
+            {/* AW15: zászló + a saját nyelvén írt név, ábécérendben; az „Automatikus” legfelül */}
+            {languageMenu().map((l) => (
+              <option key={l.lang} value={l.lang}>
+                {l.label}
               </option>
             ))}
           </select>
