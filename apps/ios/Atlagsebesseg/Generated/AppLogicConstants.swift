@@ -61,6 +61,16 @@ nonisolated enum MANUAL_PILL {
     static let startSpaceCollapseMs = 3000.0
     static let maneuverNearM = 500.0
 }
+/// „Még ott van?” (AOS14): előttünk (±`coneDeg`) `askM`-en belül, irány nélkül `nearM`-en belül kérdez, bejelentésenként
+/// egyszer; válasz nélkül `showMs` után eltűnik.
+nonisolated enum REPORT_PROMPT {
+    static let askM = 200.0
+    static let nearM = 50.0
+    static let coneDeg = 45.0
+    static let showMs = 10000.0
+}
+/// A megszólítás (AOS14) legfeljebb ennyi karakter.
+nonisolated let MEGSZOLITAS_MAX = 24
 
 /// A nyelvek saját nevükön és zászlajuk (AW15: a nyelvválasztó) – a webes `LANGUAGE_NAMES` / `LANGUAGE_FLAGS`.
 nonisolated let LANGUAGE_NAMES: [String: String] = ["hu": "Magyar", "en": "English", "de": "Deutsch", "sk": "Slovenčina", "cs": "Čeština", "pl": "Polski"]

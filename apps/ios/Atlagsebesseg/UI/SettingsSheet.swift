@@ -57,6 +57,18 @@ struct SettingsSheet: View {
                         .accessibilityLabel(t(.settingsLanguage))
                     }
                     .id(Self.languageAnchor)
+                    // AOS14: megszólítás – a köszöntő felirat és a navigáció-indító köszönés neve (üresen név nélkül)
+                    SwiftUI.Section {
+                        LabeledContent(t(.settingsName)) {
+                            TextField(t(.settingsNamePlaceholder), text: name)
+                                .multilineTextAlignment(.trailing)
+                                .textContentType(.givenName)
+                                .autocorrectionDisabled()
+                                .submitLabel(.done)
+                                .onSubmit { model.settings.megszolitas = normalizeName(model.settings.megszolitas) }
+                        }
+                        Text(t(.settingsNameHint)).font(.footnote).foregroundStyle(Tokens.Colors.textMuted)
+                    }
                     SwiftUI.Section(t(.iosSettingsGroupAlerts)) {
                         Toggle(t(.iosSettingsCameraAlert), isOn: $model.settings.kameraJelzes)
                         Text(t(.iosSettingsCameraAlertHint)).font(.footnote).foregroundStyle(Tokens.Colors.textMuted)
@@ -173,6 +185,12 @@ struct SettingsSheet: View {
     private var languageSummary: String {
         if let l = LangChoice.shared.preference { return languageMenu().first { $0.lang == l }?.label ?? l.nativeName }
         return "\(t(.settingsLanguageAuto)) (\(L10n.systemLang.nativeName))"
+    }
+
+    /// A megszólítás mezője: legfeljebb `MEGSZOLITAS_MAX` karakter; a széleken lévő szóköz mentéskor (`onSubmit`) és a
+    /// beolvasáskor vágódik, gépelés közben nem.
+    private var name: Binding<String> {
+        Binding(get: { model.settings.megszolitas }, set: { model.settings.megszolitas = String($0.prefix(MEGSZOLITAS_MAX)) })
     }
 
     private var language: Binding<Lang?> {

@@ -114,6 +114,8 @@
   "time.now": "gerade eben",
   "time.minutes": "vor {n} Min.",
   "time.hours": "vor {n} Std.",
+  "greet.named": "Hallo {name}!",
+  "greet.anon": "Hallo!",
 
   "report.title": "Melden",
   "report.type.rendorseg": "Polizei",
@@ -132,6 +134,9 @@
   "report.card.own": "Deine eigene Meldung",
   "report.card.confirm": "Bestätigen",
   "report.card.gone": "Nicht mehr da",
+  "report.prompt.question": "Noch da?",
+  "report.prompt.yes": "Ja",
+  "report.prompt.no": "Nein",
   "report.sent": "Gesendet: {label}",
   "report.sendFail": "Senden fehlgeschlagen – keine Verbindung?",
   "vote.confirmed": "Danke – bestätigt",
@@ -234,6 +239,9 @@
   "settings.group.places": "Gespeicherte Orte",
   "settings.voiceInstructions": "Sprachansagen",
   "settings.voiceInstructionsHint": "Abbiegehinweise, Abschnittskontrollen und „Zu schnell“-Warnung",
+  "settings.name": "Anrede",
+  "settings.namePlaceholder": "Name (optional)",
+  "settings.nameHint": "Mit diesem Namen begrüßt dich die App auf der Karte und beim Start der Navigation. Leer: „Hallo!“",
   "settings.requests": "Routenanfragen heute",
   "nav.picker.title": "Route nach {name}",
   "nav.picker.loading": "Routen werden gesucht …",
@@ -268,6 +276,8 @@
   "nav.voice.sectionAhead": "Abschnittskontrolle beginnt, maximal {x}",
   "nav.voice.tooFast": "Zu schnell, bitte langsamer",
   "nav.voice.rerouting": "Neuberechnung",
+  "nav.voice.greet": "Hallo, los geht’s!",
+  "nav.voice.greetNamed": "Hallo {name}, los geht’s!",
   "nav.voice.faster": "Schnellere Route, spart {n} Min.",
   "nav.offer.exit": "Abfahrt in {km} km · spart {n} Min.",
   "nav.offer.exitNamed": "Abfahrt: {name} · {km} km · spart {n} Min.",
@@ -325,5 +335,6 @@
   "ios.settings.alertModeHint": "Der Ton erklingt unabhängig vom Stummschalter, auch bei gesperrtem Bildschirm; Musik wird währenddessen leiser.",
   "ios.geo.help.1": "Einstellungen › Datenschutz & Sicherheit › Ortungsdienste: einschalten.",
   "ios.geo.help.2": "In den Einstellungen der App (Öffnen): Standort › „Beim Verwenden der App“.",
-  "ios.geo.open": "Öffnen"
+  "ios.geo.open": "Öffnen",
+  "ios.live.remaining": "noch {x}"
 }

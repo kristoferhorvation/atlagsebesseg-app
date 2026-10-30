@@ -52,6 +52,26 @@ nonisolated struct SimFixture: Decodable, Sendable {
         }
     }
 
+    /// Minta-bejelentés (AOS14, a webes `simReports`): a létrehozás ideje a lejátszás kezdetéhez képest (ms).
+    struct Report: Decodable, Sendable {
+        var id: String
+        var type: ReportType
+        var gate_kind: String?
+        var lat: Double
+        var lon: Double
+        var heading_deg: Double?
+        var created_offset_ms: Double
+        var ttl_ms: Double
+
+        /// A lejátszás kezdetéhez (`t0`, Unix ms) tolva.
+        func report(at t0: Double) -> ActiveReport {
+            ActiveReport(
+                id: id, type: type, gateKind: gate_kind, lat: lat, lon: lon, headingDeg: heading_deg,
+                createdAt: t0 + created_offset_ms, expiresAt: t0 + created_offset_ms + ttl_ms
+            )
+        }
+    }
+
     /// A navigációs szimulátor adatai (csak a `navsim`-ben, A11).
     struct Nav: Decodable, Sendable {
         struct Detour: Decodable, Sendable {
@@ -88,10 +108,11 @@ nonisolated struct SimFixture: Decodable, Sendable {
     let sections: [Section]
     let cameras: [CameraRow]
     let planned: [Planned]
+    let reports: [Report]
     let samples: [Sample]
 
     private enum CodingKeys: String, CodingKey {
-        case id, label, leadInM, sections, cameras, planned, samples, nav
+        case id, label, leadInM, sections, cameras, planned, reports, samples, nav
     }
 
     init(from decoder: Decoder) throws {
@@ -102,6 +123,7 @@ nonisolated struct SimFixture: Decodable, Sendable {
         sections = try c.decode([Section].self, forKey: .sections)
         cameras = try c.decode([CameraRow].self, forKey: .cameras)
         planned = try c.decodeIfPresent([Planned].self, forKey: .planned) ?? []
+        reports = try c.decodeIfPresent([Report].self, forKey: .reports) ?? []
         nav = try c.decodeIfPresent(Nav.self, forKey: .nav)
         // soronként: [lat, lon, timestamp, speed, accuracy, heading, s, dropped]
         samples = try c.decode([[Double?]].self, forKey: .samples).map { r in

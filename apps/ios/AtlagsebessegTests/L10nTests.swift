@@ -76,13 +76,16 @@ struct LiteralGuardTests {
     /// A szimulátor feliratai (Sim/) kivételek; a generált fájlok (Generated/) a szótárból jönnek.
     static let exempt = ["Sim/", "Generated/"]
 
+    /// Az app és (AOS14) a Live Activity widget-kiterjesztésének forrásai.
     static func sources() -> [(rel: String, text: String)] {
-        let dir = Repo.iosDir.appendingPathComponent("Atlagsebesseg")
-        let files = FileManager.default.enumerator(at: dir, includingPropertiesForKeys: nil)?.compactMap { $0 as? URL } ?? []
-        return files.filter { $0.pathExtension == "swift" }.compactMap { url in
-            let rel = String(url.path.dropFirst(dir.path.count + 1))
-            guard !exempt.contains(where: rel.hasPrefix), let text = try? String(contentsOf: url, encoding: .utf8) else { return nil }
-            return (rel, text)
+        ["Atlagsebesseg", "AtlagsebessegWidget"].flatMap { name -> [(rel: String, text: String)] in
+            let dir = Repo.iosDir.appendingPathComponent(name)
+            let files = FileManager.default.enumerator(at: dir, includingPropertiesForKeys: nil)?.compactMap { $0 as? URL } ?? []
+            return files.filter { $0.pathExtension == "swift" }.compactMap { url in
+                let rel = String(url.path.dropFirst(dir.path.count + 1))
+                guard !exempt.contains(where: rel.hasPrefix), let text = try? String(contentsOf: url, encoding: .utf8) else { return nil }
+                return (name == "Atlagsebesseg" ? rel : "\(name)/\(rel)", text)
+            }
         }.sorted { $0.rel < $1.rel }
     }
 

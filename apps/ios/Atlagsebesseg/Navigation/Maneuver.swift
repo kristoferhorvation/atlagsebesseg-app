@@ -1,12 +1,7 @@
 import Foundation
 
-// A packages/app-logic/src/navigation/maneuver.ts portja (A11). A rajzok: Generated/ManeuverIcons.swift (a webes ManeuverIcon.tsx-ből).
-
-/// A manőver-ikon családja (a platform saját rajzot társít hozzá).
-nonisolated enum ManeuverIcon: String, CaseIterable, Sendable {
-    case straight, slight_left, left, sharp_left, slight_right, right, sharp_right, uturn
-    case roundabout_left, roundabout_right, merge, fork_left, fork_right, arrive, depart
-}
+// A packages/app-logic/src/navigation/maneuver.ts portja (A11). Az ikon-család: ManeuverIconKind.swift; a rajzok:
+// Generated/ManeuverIcons.swift (a webes ManeuverIcon.tsx-ből).
 
 /// A Directions `type` + `modifier` párosa → ikon. Ismeretlen kombináció: egyenesen.
 nonisolated func maneuverIcon(_ type: String, _ modifier: String?) -> ManeuverIcon {

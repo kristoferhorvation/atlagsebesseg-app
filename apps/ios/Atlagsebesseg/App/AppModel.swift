@@ -92,6 +92,27 @@ final class AppModel {
     private(set) var manualPill: ManualPillState?
     @ObservationIgnored private var pillTimer: Timer?
 
+    // MARK: bejelentések (AOS14)
+
+    /// A térképen látható (le nem járt) bejelentések.
+    var reports: [ActiveReport] = []
+    /// A jelölőre koppintva nyitott kártya.
+    var selectedReportId: String?
+    /// „Még ott van?” – a közeledéskor magától nyílt kártya.
+    var reportPromptId: String?
+    /// A Bejelentés menü (a figyelmeztető-ikon gomb nyitja).
+    var reportSheetOpen = false
+    /// A küldés alatt álló bejelentés-típus.
+    var reportSending: ReportChoice?
+    var voting = false
+    var toast: AppToast?
+    @ObservationIgnored var reportFeed: ReportFeed?
+    @ObservationIgnored var reportView: BBox?
+    @ObservationIgnored let reportPrompt = ReportPromptWatch()
+    @ObservationIgnored var simReports: [ActiveReport] = []
+    /// AOS14: Live Activity mérés és navigáció közben (lezárt képernyő, Dynamic Island).
+    @ObservationIgnored let liveActivity = LiveActivityController()
+
     @ObservationIgnored var navSession: NavigationSession?
     @ObservationIgnored var routeData = EnforcementData.none
     @ObservationIgnored let placesStore: SyncStore = DefaultsStore()
@@ -117,6 +138,8 @@ final class AppModel {
         view = session.view()
         serverStatus = backend.configured ? "…" : "offline"
         setUpNavigation()
+        setUpReports()
+        LiveActivityController.endStale()
         let args = UserDefaults.standard
         navStage = args.string(forKey: "navStage")
         if let raw = args.string(forKey: "sim"), let scenario = SimScenario(rawValue: raw) {
@@ -124,6 +147,8 @@ final class AppModel {
             startSim(scenario, speed: args.object(forKey: "simSpeed") == nil ? 4 : args.double(forKey: "simSpeed"), seek: args.double(forKey: "simSeek"))
             // `-geoHelp YES`: a tiltott helyhozzáférés lapja (a képernyőképhez; szimulátorban a GPS-pill nem kér)
             geoHelpOpen = args.bool(forKey: "geoHelp")
+            // `-reportOpen YES` (AOS14): a Bejelentés menü nyitva (a képernyőképhez)
+            reportSheetOpen = args.bool(forKey: "reportOpen")
         }
     }
 
@@ -165,6 +190,7 @@ final class AppModel {
         simCameras = fixture.cameras.map(\.camera)
         let t0 = (Date().timeIntervalSince1970 * 1000).rounded()
         simPlanned = fixture.planned.map { $0.check(at: t0) }
+        loadSimReports(fixture, t0: t0)
         resetAlerts()
         rebuildData()
         session = TrackingSession(sections, now: { [weak self] in self?.nowMs() ?? Date().timeIntervalSince1970 * 1000 })
@@ -202,12 +228,17 @@ final class AppModel {
         simSections = []
         simCameras = []
         simPlanned = []
+        simReports = []
         resetAlerts()
         rebuildData()
+        // új adatforrás: üres feed, az első fixnél újra lekér
+        setUpReports()
+        reports = []
         session = TrackingSession(sections, now: { [weak self] in self?.nowMs() ?? Date().timeIntervalSince1970 * 1000 })
         view = session.view()
         started = false
         UIApplication.shared.isIdleTimerDisabled = false
+        liveActivity.end()
     }
 
     private func attach(_ s: LocationSource) {
@@ -254,6 +285,8 @@ final class AppModel {
         navSession?.onFix(fix)
         syncNavMeasure()
         updateAlerts(fix)
+        checkReports()
+        updateLiveActivity()
         let key = tileKey(fix.lat, fix.lon)
         if key != loadedTile, sim == nil {
             loadedTile = key
@@ -266,6 +299,13 @@ final class AppModel {
         navSession?.tick()
         syncNavMeasure()
         alerts.expire(now: nowMs())
+        checkReports()
+        updateLiveActivity()
+    }
+
+    /// A Live Activity a kijelző és a navigáció állapotából (a vezérlő 1 Hz-re fogja, változatlanra nem küld).
+    func updateLiveActivity() {
+        liveActivity.update(liveActivityState(view, nav: nav, unit: settings.egyseg))
     }
 
     // MARK: tervezett mérések és jelzések
@@ -333,11 +373,13 @@ final class AppModel {
     func startManual() {
         view = session.startManual()
         syncNavMeasure()
+        updateLiveActivity()
     }
 
     func stopManual() {
         view = session.stopManual()
         syncNavMeasure()
+        updateLiveActivity()
     }
 
     func dismiss() {

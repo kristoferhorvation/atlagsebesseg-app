@@ -199,7 +199,14 @@ extension AppModel {
         follow = true
         if let fix = view.lastFix { s.onFix(fix) }
         syncNavMeasure()
+        // AOS14: köszönés az indításkor (a kézi mérés indításakor nincs); az indulási utasítás utána szól
+        if settings.hangosUtasitasok {
+            let greet = greetingVoice(settings.megszolitas)
+            if sim != nil { NSLog("NAV-VOICE greet: %@", greet) }
+            if sim?.seeking != true { player.announce(greet, interrupt: false) }
+        }
         navChanged()
+        updateLiveActivity()
         // a navigációs szimulátor most indul (mint a webes NavSimDriver `active`-ja)
         if let sim, sim.fixture.nav != nil, !sim.playing { sim.start() }
     }
@@ -212,6 +219,7 @@ extension AppModel {
         updateManualPill()
         routeData = .none
         player.stopSpeaking()
+        updateLiveActivity()
     }
 
     func acceptOffer() { navSession?.acceptOffer() }

@@ -13,6 +13,8 @@
 // AW16: a zsugorított kézi kártya a mérőkártya lekicsinyített változata (a kézi mérés accent színében, referencia nélkül), a kézi mérés
 // hálózat nélkül, privát; a kereső kerek gombja felül, a jobb szélen; Bejelentés menü: „Átlagmérés eleje / vége”;
 // térképstílus-szabály napszakonként (?sunAt=): Világos = nappal, Színes = alkony nappal, éjjel mindkettő éjszakai.
+// AOS14: köszöntés az üres nézeten a kereső-gomb alatt („Szia Kristof!” / „Szia!”), köszönés a navigáció indításakor;
+// „Még ott van?” – közeledéskor magától nyíló bejelentés-kártya Igen / Nem gombbal, egyszer kérdez.
 //
 //   npm run dev -w @atlagsebesseg/web            # másik terminálban (a Mapbox-token az apps/web/.env-ben)
 //   npm run nav-shots -w @atlagsebesseg/web
@@ -595,6 +597,51 @@ try {
   check('a kézi eredmény után is nincs kapu-küldés', (await kp.evaluate(`window.__reportCalls.length`)) === 0);
   check('nincs kezeletlen JS-kivétel (AW15/AW16 kézi mérés)', kp.logs.length === 0, kp.logs.join(' | '));
   kp.close();
+
+  // ------------------------------------------------------------------
+  // AOS14: köszöntés, köszönés a navigáció indításakor, „Még ott van?”
+  // ------------------------------------------------------------------
+  const gk = await mk();
+  await gk.goto('/?navsim&panel=0', { megszolitas: 'Kristof' });
+  await gk.waitFor(MAP_READY, 60_000, 'térkép');
+  await gk.waitFor(q('.greeting'), 20_000, 'köszöntés');
+  const grt = await gk.evaluate(`(() => { const e = ${q('.greeting')}; const r = e.getBoundingClientRect(); const s = ${q('button[aria-label="Úti cél keresése"]')}.getBoundingClientRect(); return { txt: e.innerText.trim(), top: r.top, left: r.left, bottom: r.bottom, sBottom: s.bottom, h: innerHeight }; })()`);
+  check('köszöntés kitöltött megszólítással: „Szia Kristof!”, a kereső-gomb sora alatt, balra – nem a térkép közepén', grt.txt === 'Szia Kristof!' && grt.top >= grt.sBottom && grt.left <= 20 && grt.bottom < grt.h * 0.3, JSON.stringify(grt));
+  if (!CHECK_ONLY) {
+    await sleep(2500);
+    await gk.shot(`${DATE}-koszontes.png`);
+  }
+  gk.close();
+  const gn = await mk();
+  await gn.goto('/?navsim&panel=0');
+  await gn.waitFor(q('.greeting'), 60_000, 'köszöntés név nélkül');
+  check('köszöntés üres megszólítással: „Szia!”', (await gn.evaluate(text('.greeting'))) === 'Szia!');
+  gn.close();
+  const gvo = await mk();
+  await gvo.goto('/?navsim&stage=nav&speed=1&at=20&panel=0', { megszolitas: 'Kristof' });
+  await gvo.waitFor(q('.nav-top'), 60_000, 'navigáció');
+  await sleep(500);
+  const gvoices = await gvo.evaluate(`(window.__navVoice ?? []).map((v) => v.text)`);
+  check('navigáció indításakor köszönés: „Szia Kristof, indulhatunk!” (az indulási utasítás előtt)', gvoices[0] === 'Szia Kristof, indulhatunk!', gvoices.slice(0, 3).join(' | '));
+  check('navigáció közben nincs köszöntő felirat', !(await gvo.evaluate(`!!${q('.greeting')}`)));
+  gvo.close();
+  const rpg = await mk();
+  await rpg.goto('/?sim=jo&speed=4&panel=0');
+  await rpg.waitFor(MAP_READY, 60_000, 'térkép');
+  await rpg.waitFor(q('.report-card[data-prompt]'), 90_000, '„Még ott van?” kártya');
+  const rpr = await rpg.evaluate(`(() => { const c = ${q('.report-card[data-prompt]')}; return { q: c.querySelector('.report-card-question')?.innerText.trim(), btns: [...c.querySelectorAll('.btn')].map((b) => b.innerText.trim()), title: c.querySelector('.report-card-title')?.innerText.trim(), h: Math.min(...[...c.querySelectorAll('.btn')].map((b) => b.getBoundingClientRect().height)) }; })()`);
+  check('közeledéskor magától nyíló kártya: „Még ott van?”, Igen / Nem (≥ 56 px)', rpr.q === 'Még ott van?' && rpr.btns.join('|') === 'Igen|Nem' && rpr.h >= 56, JSON.stringify(rpr));
+  if (!CHECK_ONLY) await rpg.shot(`${DATE}-meg-ott-van.png`);
+  const rpFirst = rpr.title;
+  await rpg.evaluate(`${q('.report-card[data-prompt] .btn')}.click(); true`);
+  await sleep(400);
+  check('„Igen”: köszönő toast, a kártya bezárul', /megerősítve/.test(await rpg.evaluate(text('.toast'))) && !(await rpg.evaluate(`!!${q('.report-card[data-prompt]')}`)));
+  // a következő kérdés már egy másik bejelentésre szól (ugyanarra nem kérdez újra)
+  await rpg.waitFor(q('.report-card[data-prompt]'), 90_000, 'következő kérdés').catch(() => undefined);
+  const rpNext = await rpg.evaluate(`${q('.report-card[data-prompt] .report-card-title')}?.innerText.trim() ?? null`);
+  check('egyszer kérdez: a következő kérdés másik bejelentésre szól', rpNext !== null && rpNext !== rpFirst, `${rpFirst} → ${rpNext}`);
+  check('nincs kezeletlen JS-kivétel (AOS14)', rpg.logs.length === 0 && gk.logs.length === 0, [...rpg.logs, ...gk.logs].join(' | '));
+  rpg.close();
 
   // ------------------------------------------------------------------
   // 3. marketing-képernyőképek (1×-es lejátszás, szimulátor-panel nélkül)

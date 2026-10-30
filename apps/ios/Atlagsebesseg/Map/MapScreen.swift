@@ -46,6 +46,10 @@ struct MapScreen: View {
     private var altCasing: Color { dayLike ? Tokens.Colors.routeAltCasingDay : Tokens.Colors.routeAltCasingNight }
 
     var body: some View {
+        MapReader { proxy in map(proxy) }
+    }
+
+    private func map(_ proxy: MapProxy) -> some View {
         Map(viewport: $viewport) {
             // útvonalak (A8/A11): legalul, hogy a szakaszok és a mérés fölöttük látszódjanak; az alternatíva alul
             GeoJSONSource(id: "routes").data(.featureCollection(routesFC))
@@ -197,6 +201,17 @@ struct MapScreen: View {
                 .allowOverlap(true)
             }
 
+            // AOS14: bejelentések (a webes `.report-pin`); koppintásra a kártya, a kiválasztott / kérdezett nagyobb
+            ForEvery(model.plan == nil ? model.reports : []) { r in
+                MapViewAnnotation(coordinate: CLLocationCoordinate2D(latitude: r.lat, longitude: r.lon)) {
+                    Button { model.selectReport(r.id) } label: {
+                        ReportPin(report: r, selected: r.id == model.shownReport?.report.id)
+                    }
+                    .buttonStyle(.plain)
+                }
+                .allowOverlap(true)
+            }
+
             if let fix = view.lastFix {
                 MapViewAnnotation(coordinate: CLLocationCoordinate2D(latitude: fix.lat, longitude: fix.lon)) {
                     // a nyíl a képernyőhöz képest forog: haladási irány − térkép-elforgatás (kézzel forgatva is)
@@ -229,6 +244,11 @@ struct MapScreen: View {
         .onCameraChanged { e in
             let b = e.cameraState.bearing
             if abs(angleDiffDeg(b, mapBearing)) >= 0.5 { mapBearing = b }
+            // AOS14: a látható téglalap a bejelentések lekéréséhez (csempe-rácsra kerekítve – kis mozdulat nem kér újra)
+            if let m = proxy.map {
+                let r = m.coordinateBounds(for: CameraOptions(cameraState: e.cameraState))
+                model.setReportView(BBox(south: r.south, west: r.west, north: r.north, east: r.east))
+            }
         }
         .ignoresSafeArea()
         .onAppear {

@@ -15,6 +15,8 @@ import {
   ownReport,
   plannedCheckActive,
   PlannedCheckWatch,
+  ReportPromptWatch,
+  greetingText,
   reportVisual,
   rowToActiveReport,
   visibleCameras,
@@ -177,7 +179,7 @@ function Drive({ map }: { map: WebMapAdapter }) {
     [navSim],
   );
   const nav = useNavigation(
-    { fix: view.lastFix, fetchRoutes: navFetch, loadData, now, unit: settings.egyseg, voice: settings.hangos_utasitasok, lang, simMode: SIM_MODE },
+    { fix: view.lastFix, fetchRoutes: navFetch, loadData, now, unit: settings.egyseg, voice: settings.hangos_utasitasok, lang, simMode: SIM_MODE, greeting: settings.megszolitas },
     places,
   );
   navSessionRef.current = nav.session;
@@ -306,7 +308,31 @@ function Drive({ map }: { map: WebMapAdapter }) {
     if (simReps.length) reloadReports();
   }, [simReps, reloadReports]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const selected = feed.reports.find((r) => r.id === selectedId) ?? null;
+  // AOS14: „Még ott van?” – közeledéskor a bejelentés kártyája magától nyílik (bejelentésenként egyszer, 10 s-ig)
+  const [promptWatch] = useState(() => new ReportPromptWatch());
+  const [promptId, setPromptId] = useState<string | null>(null);
+  const feedRef = useRef(feed);
+  feedRef.current = feed;
+  const fixRef = useRef(view.lastFix);
+  fixRef.current = view.lastFix;
+  const checkPrompt = useCallback(() => {
+    const f = feedRef.current;
+    const id = promptWatch.update(fixRef.current, f.reports, (rid) => f.myVote(rid) !== null, now());
+    setPromptId((prev) => (prev === id ? prev : id));
+  }, [promptWatch, now]);
+  useEffect(checkPrompt, [view.lastFix, feed.reports.length, checkPrompt]);
+  useEffect(() => {
+    const id = setInterval(checkPrompt, 1000);
+    return () => clearInterval(id);
+  }, [checkPrompt]);
+  const closePrompt = useCallback(() => {
+    promptWatch.close();
+    setPromptId(null);
+  }, [promptWatch]);
+  const tapped = feed.reports.find((r) => r.id === selectedId) ?? null;
+  // a koppintott jelölő kártyája elsőbbséget kap a kérdéssel szemben
+  const prompted = tapped ? null : (feed.reports.find((r) => r.id === promptId) ?? null);
+  const selected = tapped ?? prompted;
   useEffect(() => {
     if (!selectedId || !measuring) return;
     const id = setTimeout(() => setSelectedId(null), REPORT_CARD_AUTOCLOSE_MS);
@@ -544,6 +570,7 @@ function Drive({ map }: { map: WebMapAdapter }) {
         feed.vote(id, confirm);
         showToast({ text: t(confirm ? 'vote.confirmed' : 'vote.gone'), tone: 'jo', icon: 'check' });
         setSelectedId(null);
+        if (promptWatch.current === id) closePrompt();
       };
       if (SIM_MODE) return done();
       setVoting(true);
@@ -552,7 +579,7 @@ function Drive({ map }: { map: WebMapAdapter }) {
         .catch(() => showToast({ text: t('report.sendFail'), tone: 'tul', icon: 'report' }))
         .finally(() => setVoting(false));
     },
-    [feed.vote, showToast],
+    [feed.vote, showToast, promptWatch, closePrompt],
   );
 
   const driving = view.phase === 'meres' || view.phase === 'kozeledik' || view.phase === 'kezi';
@@ -564,6 +591,7 @@ function Drive({ map }: { map: WebMapAdapter }) {
     <>
       <StatusPills
         onSearch={nav.view || driving || view.phase === 'kezi_eredmeny' ? undefined : () => nav.openSearch()}
+        greeting={greetingText(settings.megszolitas)}
         geo={SIM_MODE ? 'aktiv' : geo}
         accuracy={accuracy}
         wake={wake.status}
@@ -607,8 +635,9 @@ function Drive({ map }: { map: WebMapAdapter }) {
               canVote={SIM_MODE || supabase !== null}
               voted={feed.myVote(selected.id)}
               sending={voting}
+              prompt={selected === prompted}
               onVote={(c) => vote(selected.id, c)}
-              onClose={() => setSelectedId(null)}
+              onClose={() => (selected === prompted ? closePrompt() : setSelectedId(null))}
             />
           )}
           {!selected && selectedCam && <CameraCard key={selectedCam.id} camera={selectedCam} onClose={() => setSelectedCamId(null)} />}

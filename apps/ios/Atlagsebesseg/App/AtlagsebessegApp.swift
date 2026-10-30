@@ -9,6 +9,10 @@ struct AtlagsebessegApp: App {
             Group {
                 if model.started {
                     DriveView(model: model)
+                        // AOS14: `-livePreview YES` – a Live Activity mock-előnézete a szimulátorban (képernyőképhez)
+                        .overlay {
+                            if model.sim != nil, UserDefaults.standard.bool(forKey: "livePreview") { LiveActivityPreview(model: model) }
+                        }
                 } else {
                     StartView(model: model)
                 }

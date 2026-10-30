@@ -3,6 +3,7 @@ import {
   addRecent,
   addSavedOther,
   DirectionsError,
+  greetingVoice,
   NavigationSession,
   NO_ENFORCEMENT_DATA,
   NO_SAVED,
@@ -49,6 +50,8 @@ export interface NavigationOptions {
   voice: boolean;
   lang: Lang;
   simMode: boolean;
+  /** AOS14: a megszólítás – a navigáció indításakor „Szia {név}, indulhatunk!” (üresen név nélkül). */
+  greeting: string;
 }
 
 /** Mentett helyek (Haza / Munka / továbbiak) és az utolsó 10 cél: localStorage, try/catch-csel. */
@@ -143,6 +146,8 @@ export function useNavigation(o: NavigationOptions, places: ReturnType<typeof us
     if (!p || p.status !== 'ready' || !fetchRoutes) return;
     const route = p.routes[p.selected]!;
     unlockSpeech();
+    // AOS14: köszönés az indításkor (a kézi mérés indításakor nincs); a depart-utasítás utána szól
+    if (opts.current.voice) speak(greetingVoice(opts.current.greeting), opts.current.lang, 'instruction', opts.current.simMode);
     places.pushRecent(p.dest);
     const s = new NavigationSession(route, { name: p.dest.name, lat: p.dest.lat, lon: p.dest.lon, ...(p.dest.routable ? { routable: p.dest.routable } : {}) }, {
       fetchRoutes,

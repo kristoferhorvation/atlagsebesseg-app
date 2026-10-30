@@ -334,6 +334,13 @@ select:focus-visible {
   flex: none;
 }
 
+.report-card-question {
+  margin-top: 4px;
+  font-size: 20px;
+  font-weight: 640;
+  color: var(--tone);
+}
+
 .report-card .btn[data-active='true'] {
   background: color-mix(in srgb, var(--tone) 28%, transparent);
 }
@@ -825,6 +832,24 @@ select:focus-visible {
   right: calc(max(12px, env(safe-area-inset-right)) + var(--size-round-button) + 8px);
 }
 
+/* AOS14: köszöntés az üres nézeten – a kereső-gomb sora alatt, balra zárva (nem a térkép közepén) */
+.greeting {
+  position: absolute;
+  top: calc(env(safe-area-inset-top) + 40px + var(--size-round-button) + 8px);
+  left: max(12px, env(safe-area-inset-left));
+  max-width: calc(100% - 24px);
+  padding: 8px 16px;
+  border-radius: var(--radius-pill);
+  font-size: 22px;
+  font-weight: 640;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  pointer-events: none;
+  z-index: 2;
+}
+
 .pill {
   pointer-events: auto;
   height: 36px;
@@ -1134,6 +1159,12 @@ a.list-row {
   font: inherit;
   font-size: 15px;
   font-weight: 620;
+}
+
+.select.text-input {
+  max-width: none;
+  height: 48px;
+  font-size: 17px;
 }
 
 .hint[data-voice='missing'] {

@@ -114,6 +114,8 @@
   "time.now": "teraz",
   "time.minutes": "pred {n} min",
   "time.hours": "pred {n} h",
+  "greet.named": "Ahoj {name}!",
+  "greet.anon": "Ahoj!",
 
   "report.title": "Nahlásenie",
   "report.type.rendorseg": "Polícia",
@@ -132,6 +134,9 @@
   "report.card.own": "Tvoje vlastné nahlásenie",
   "report.card.confirm": "Potvrdiť",
   "report.card.gone": "Nie je tam",
+  "report.prompt.question": "Je to tam ešte?",
+  "report.prompt.yes": "Áno",
+  "report.prompt.no": "Nie",
   "report.sent": "Odoslané: {label}",
   "report.sendFail": "Nepodarilo sa odoslať – žiadne pripojenie?",
   "vote.confirmed": "Ďakujeme – potvrdené",
@@ -234,6 +239,9 @@
   "settings.group.places": "Uložené miesta",
   "settings.voiceInstructions": "Hlasové pokyny",
   "settings.voiceInstructionsHint": "Hlásenie odbočení, úsekovej kontroly a „príliš rýchlo“",
+  "settings.name": "Oslovenie",
+  "settings.namePlaceholder": "Meno (nepovinné)",
+  "settings.nameHint": "Týmto menom ťa aplikácia pozdraví na mape a pri spustení navigácie. Prázdne: „Ahoj!“",
   "settings.requests": "Žiadosti o trasu dnes",
   "nav.picker.title": "Trasa do: {name}",
   "nav.picker.loading": "Hľadám trasy…",
@@ -268,6 +276,8 @@
   "nav.voice.sectionAhead": "Začína úseková kontrola, maximum {x}",
   "nav.voice.tooFast": "Ideš príliš rýchlo, spomaľ",
   "nav.voice.rerouting": "Prepočítavam trasu",
+  "nav.voice.greet": "Ahoj, môžeme vyraziť!",
+  "nav.voice.greetNamed": "Ahoj {name}, môžeme vyraziť!",
   "nav.voice.faster": "Rýchlejšia trasa, úspora {n} min",
   "nav.offer.exit": "Zjazd o {km} km · úspora {n} min",
   "nav.offer.exitNamed": "Zjazd: {name} · {km} km · úspora {n} min",
@@ -325,5 +335,6 @@
   "ios.settings.alertModeHint": "Zvuk znie bez ohľadu na prepínač tichého režimu, aj pri zamknutej obrazovke; hudba sa medzitým stíši.",
   "ios.geo.help.1": "Nastavenia › Súkromie a bezpečnosť › Polohové služby: zapnite ich.",
   "ios.geo.help.2": "V nastaveniach aplikácie (Otvoriť): Poloha › „Pri používaní aplikácie“.",
-  "ios.geo.open": "Otvoriť"
+  "ios.geo.open": "Otvoriť",
+  "ios.live.remaining": "zostáva {x}"
 }

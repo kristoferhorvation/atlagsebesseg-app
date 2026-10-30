@@ -73,6 +73,7 @@ struct DriveView: View {
             .padding(.bottom, Tokens.Space.s3)
             .animation(.easeOut(duration: Tokens.Motion.base), value: model.plan?.status == .ready)
             .animation(.easeOut(duration: Tokens.Motion.base), value: model.manualPillCollapsed)
+            .animation(.easeOut(duration: Tokens.Motion.base), value: model.shownReport?.report.id)
         }
         // külön, felülre igazított réteg: a magas kártya sem tolja fel (a Mapbox-logó és az attribúció látszik)
         .overlay(alignment: .top) {
@@ -87,7 +88,8 @@ struct DriveView: View {
                             accuracy: view.lastFix?.accuracy,
                             compact: driving || model.nav != nil,
                             onGps: model.gpsPillTapped,
-                            onSearch: model.nav == nil && model.plan == nil && !driving ? { model.openSearch() } : nil
+                            onSearch: emptyView ? { model.openSearch() } : nil,
+                            greeting: emptyView ? greetingText(model.settings.megszolitas) : nil
                         )
                     }
                     if let nav = model.nav, !measuringLayout {
@@ -111,6 +113,10 @@ struct DriveView: View {
                             AlertBanner(event: a)
                                 .transition(.opacity.combined(with: .offset(y: -12)))
                         }
+                        if let toast = model.toast {
+                            ToastView(toast: toast)
+                                .transition(.opacity.combined(with: .offset(y: -12)))
+                        }
                     }
                     .allowsHitTesting(false)
                 }
@@ -119,6 +125,7 @@ struct DriveView: View {
             .padding(.horizontal, Tokens.Space.s3)
             .animation(.easeOut(duration: Tokens.Motion.slow), value: model.activePlanned?.id)
             .animation(.easeOut(duration: Tokens.Motion.base), value: model.alert)
+            .animation(.easeOut(duration: Tokens.Motion.base), value: model.toast)
             .animation(.easeOut(duration: Tokens.Motion.base), value: model.destSearchOpen)
             .animation(.easeOut(duration: Tokens.Motion.base), value: measuringLayout)
             .animation(.easeOut(duration: Tokens.Motion.base), value: stepStrip)
@@ -129,6 +136,11 @@ struct DriveView: View {
                 .presentationDetents([.medium])
                 .presentationBackground(Tokens.Colors.surfaceStrong)
         }
+        .sheet(isPresented: $model.reportSheetOpen) {
+            ReportSheet(fix: view.lastFix, online: model.backend.configured || model.sim != nil, sending: model.reportSending, onPick: model.sendReport)
+                .presentationDetents([.large])
+                .presentationBackground(Tokens.Colors.surfaceStrong)
+        }
         .sheet(isPresented: $settingsOpen) {
             SettingsSheet(model: model)
                 .presentationDetents([.large])
@@ -136,11 +148,29 @@ struct DriveView: View {
         }
     }
 
-    /// Az alsó rész: ajánlat, gombok, és a mérőkártya / érkezés-sáv.
+    /// AOS14: az üres nézet (nincs navigáció, tervezés, mérés) – a kereső-gomb és a köszöntés ilyenkor látszik.
+    private var emptyView: Bool { model.nav == nil && model.plan == nil && !driving && view.phase != .keziEredmeny }
+
+    /// Az alsó rész: ajánlat, bejelentés-kártya, gombok, és a mérőkártya / érkezés-sáv.
     @ViewBuilder private var hud: some View {
         if let offer = model.nav?.offer, !offer.compact {
             OfferCard(offer: offer, onAccept: model.acceptOffer, onDecline: model.declineOffer)
                 .transition(.opacity.combined(with: .offset(y: 12)))
+        }
+        // AOS14: a koppintott jelölő kártyája, vagy közeledéskor a „Még ott van?” kérdés
+        if let shown = model.shownReport {
+            ReportCard(
+                report: shown.report,
+                now: model.nowMs(),
+                canVote: model.backend.configured || model.sim != nil,
+                voted: model.myVote(shown.report.id),
+                sending: model.voting,
+                prompt: shown.prompt,
+                onVote: { model.vote(shown.report.id, confirm: $0) },
+                onClose: model.closeReportCard
+            )
+            .id(shown.report.id)
+            .transition(.opacity.combined(with: .offset(y: 12)))
         }
         if compactOffer == nil {
             HStack(alignment: .bottom, spacing: Tokens.Space.s3) {
@@ -170,6 +200,10 @@ struct DriveView: View {
                         .buttonStyle(RoundButtonStyle())
                         .accessibilityLabel(t(.mapManualStart))
                 }
+                // AOS14: a Bejelentés menü (mint a weben: mindig a sor jobb szélén)
+                Button { model.reportSheetOpen = true } label: { Icon(name: .report, size: 28) }
+                    .buttonStyle(RoundButtonStyle())
+                    .accessibilityLabel(t(.mapReport))
             }
         }
         if let nav = model.nav, navBottomShown {

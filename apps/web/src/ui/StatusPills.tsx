@@ -27,6 +27,7 @@ export function StatusPills({
   gpsAction,
   onGps,
   onSearch,
+  greeting,
 }: {
   geo: GeoStatus;
   accuracy: number | null;
@@ -39,6 +40,8 @@ export function StatusPills({
   onGps: () => void;
   /** AW16: a kereső kerek gombja a pillek sorában, a jobb szélen (csak az üres nézeten); nélküle nincs gomb. */
   onSearch?: () => void;
+  /** AOS14: a köszöntő felirat az üres nézeten (a kereső-gombbal együtt látszik). */
+  greeting?: string;
 }) {
   const pills: Pill[] = [];
   if (simMode) pills.push({ key: 'sim', tone: 'kezi', icon: 'play', text: 'Szimulátor' });
@@ -88,6 +91,11 @@ export function StatusPills({
       <button className="round-btn glass top-search" onClick={onSearch} aria-label={t('map.search')}>
         <Icon name="search" size={26} />
       </button>
+    )}
+    {onSearch && greeting && (
+      <div className="greeting glass" role="status">
+        {greeting}
+      </div>
     )}
     </>
   );

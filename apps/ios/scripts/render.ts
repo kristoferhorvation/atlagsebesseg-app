@@ -1,4 +1,4 @@
-import { ALT_OFFER, CAMERA_ALERT, DICTIONARIES, LANGUAGE_FLAGS, LANGUAGE_NAMES, LANGUAGES, MANUAL_PILL, NAV_CONFIG, NAV_COUNTRIES, NAV_FOLLOW, PLANNED_MATCH_M, PLANNED_OFF_FIXES, ROUTE_MATCH_M, type FixedCamera, type PlannedCheck, type TKey } from '@atlagsebesseg/app-logic';
+import { ALT_OFFER, CAMERA_ALERT, DICTIONARIES, MEGSZOLITAS_MAX, REPORT_PROMPT, type ActiveReport, LANGUAGE_FLAGS, LANGUAGE_NAMES, LANGUAGES, MANUAL_PILL, NAV_CONFIG, NAV_COUNTRIES, NAV_FOLLOW, PLANNED_MATCH_M, PLANNED_OFF_FIXES, ROUTE_MATCH_M, type FixedCamera, type PlannedCheck, type TKey } from '@atlagsebesseg/app-logic';
 import { Route, type LatLon } from '@atlagsebesseg/core';
 import { testCourse } from '@atlagsebesseg/core/test/helpers/trace';
 import { toSwift } from '@atlagsebesseg/design-tokens';
@@ -6,7 +6,7 @@ import { PATHS } from '../../web/src/ui/Icon';
 import { buildNavSim, SIM_ALTS, SIM_EXIT_AFTER_GATE_M, SIM_FROM, SIM_PLACES } from '../../web/src/sim/navSim';
 import { MANEUVER_PATHS } from '../../web/src/ui/ManeuverIcon';
 import { iconsSwift, maneuverIconsSwift } from './icons';
-import { buildSimulation, simCameras, simPlannedChecks, type SimScenario } from '../../web/src/sim/scenarios';
+import { buildSimulation, simCameras, simPlannedChecks, simReports, type SimScenario } from '../../web/src/sim/scenarios';
 
 /**
  * Az iOS-app generált fájljai (A9) – egyetlen forrásból, mint a web:
@@ -86,6 +86,13 @@ function appLogicConstants(): string {
     'nonisolated enum MANUAL_PILL {',
     ...Object.entries(MANUAL_PILL).map(([k, v]) => `    static let ${k} = ${num(v)}`),
     '}',
+    '/// „Még ott van?” (AOS14): előttünk (±`coneDeg`) `askM`-en belül, irány nélkül `nearM`-en belül kérdez, bejelentésenként',
+    '/// egyszer; válasz nélkül `showMs` után eltűnik.',
+    'nonisolated enum REPORT_PROMPT {',
+    ...Object.entries(REPORT_PROMPT).map(([k, v]) => `    static let ${k} = ${num(v)}`),
+    '}',
+    '/// A megszólítás (AOS14) legfeljebb ennyi karakter.',
+    `nonisolated let MEGSZOLITAS_MAX = ${MEGSZOLITAS_MAX}`,
     '',
     '/// A nyelvek saját nevükön és zászlajuk (AW15: a nyelvválasztó) – a webes `LANGUAGE_NAMES` / `LANGUAGE_FLAGS`.',
     `nonisolated let LANGUAGE_NAMES: [String: String] = [${LANGUAGES.map((l) => `${JSON.stringify(l)}: ${JSON.stringify(LANGUAGE_NAMES[l])}`).join(', ')}]`,
@@ -162,6 +169,12 @@ function simFile(meta: Record<string, unknown>, samples: readonly Sample[]): str
   return `{\n${head.join(',\n')},\n  "samples": [\n${samples.map((x) => '    ' + JSON.stringify(row(x))).join(',\n')}\n  ]\n}\n`;
 }
 
+/** Minta-bejelentés (AOS14) az `active_reports` sor alakjában; a létrehozás ideje a lejátszás kezdetéhez képest (ms). */
+const reportRow = (r: ActiveReport) => ({
+  id: r.id, type: r.type, gate_kind: r.gateKind, lat: r.lat, lon: r.lon, heading_deg: r.headingDeg, created_offset_ms: r.createdAt,
+  ttl_ms: r.expiresAt - r.createdAt,
+});
+
 const cameraRow = (c: FixedCamera) => ({
   id: c.id, country: c.country, type: c.type, lat: c.lat, lng: c.lon, heading: c.headingDeg, road: c.road, speed_limit_kmh: c.speedLimitKmh,
   source: c.source, source_url: c.sourceUrl, source_date: c.sourceDate, verified: c.verified,
@@ -212,7 +225,7 @@ function simFixtures(): [string, string][] {
     return [
       `sim-${id}.json`,
       simFile(
-        { id, label, leadInM: sim.leadInM, sections: [sim.section], cameras: simCameras(sim, id).map(cameraRow), planned: simPlannedChecks(sim, id).map(plannedRow) },
+        { id, label, leadInM: sim.leadInM, sections: [sim.section], cameras: simCameras(sim, id).map(cameraRow), planned: simPlannedChecks(sim, id).map(plannedRow), reports: simReports(sim).map(reportRow) },
         sim.samples,
       ),
     ];

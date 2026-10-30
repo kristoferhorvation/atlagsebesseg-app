@@ -114,6 +114,8 @@
   "time.now": "teraz",
   "time.minutes": "{n} min temu",
   "time.hours": "{n} godz. temu",
+  "greet.named": "Cześć {name}!",
+  "greet.anon": "Cześć!",
 
   "report.title": "Zgłoszenie",
   "report.type.rendorseg": "Policja",
@@ -132,6 +134,9 @@
   "report.card.own": "Twoje własne zgłoszenie",
   "report.card.confirm": "Potwierdź",
   "report.card.gone": "Nie ma tam",
+  "report.prompt.question": "Czy nadal tam jest?",
+  "report.prompt.yes": "Tak",
+  "report.prompt.no": "Nie",
   "report.sent": "Wysłano: {label}",
   "report.sendFail": "Nie udało się wysłać – brak połączenia?",
   "vote.confirmed": "Dzięki – potwierdzone",
@@ -234,6 +239,9 @@
   "settings.group.places": "Zapisane miejsca",
   "settings.voiceInstructions": "Komunikaty głosowe",
   "settings.voiceInstructionsHint": "Zapowiadanie skrętów, odcinkowego pomiaru i „za szybko”",
+  "settings.name": "Jak się do Ciebie zwracać",
+  "settings.namePlaceholder": "Imię (opcjonalnie)",
+  "settings.nameHint": "Tym imieniem aplikacja wita Cię na mapie i przy starcie nawigacji. Puste: „Cześć!”",
   "settings.requests": "Zapytania o trasę dziś",
   "nav.picker.title": "Trasa do: {name}",
   "nav.picker.loading": "Szukam tras…",
@@ -268,6 +276,8 @@
   "nav.voice.sectionAhead": "Zaczyna się odcinkowy pomiar, maksimum {x}",
   "nav.voice.tooFast": "Jedziesz za szybko, zwolnij",
   "nav.voice.rerouting": "Przeliczam trasę",
+  "nav.voice.greet": "Cześć, ruszamy!",
+  "nav.voice.greetNamed": "Cześć {name}, ruszamy!",
   "nav.voice.faster": "Szybsza trasa, oszczędność {n} min",
   "nav.offer.exit": "Zjazd za {km} km · oszczędność {n} min",
   "nav.offer.exitNamed": "Zjazd: {name} · {km} km · oszczędność {n} min",
@@ -325,5 +335,6 @@
   "ios.settings.alertModeHint": "Dźwięk odtwarzany jest niezależnie od przełącznika wyciszenia, także przy zablokowanym ekranie; muzyka jest w tym czasie ściszana.",
   "ios.geo.help.1": "Ustawienia › Prywatność i ochrona › Usługi lokalizacji: włącz je.",
   "ios.geo.help.2": "W ustawieniach aplikacji (Otwórz): Lokalizacja › „Podczas używania aplikacji”.",
-  "ios.geo.open": "Otwórz"
+  "ios.geo.open": "Otwórz",
+  "ios.live.remaining": "pozostało {x}"
 }

@@ -38,6 +38,8 @@ targets:
     platform: iOS
     sources:
       - path: Atlagsebesseg
+      # AOS14: a Live Activity nézetei – a szimulátoros mock-előnézethez (Sim/LiveActivityPreview.swift)
+      - path: AtlagsebessegWidget/LiveActivityViews.swift
       # ugyanazok az adatfájlok, mint a weben (offline tartalék és a kamera-láthatóság szabálya)
       - path: ../../packages/data/camera_visibility.json
         group: SharedData
@@ -57,6 +59,9 @@ targets:
         product: MapboxMaps
       - package: Supabase
         product: Supabase
+      # AOS14: a Live Activity widget-kiterjesztése (lezárt képernyő, Dynamic Island)
+      - target: AtlagsebessegWidget
+        embed: true
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: hu.atlagsebesseg.app
@@ -82,6 +87,8 @@ targets:
         UIUserInterfaceStyle: Dark
         # location: háttér-mérés; audio: a jelzés zárolt képernyőn is szól (A10)
         UIBackgroundModes: [location, audio]
+        # AOS14: Live Activity mérés és navigáció közben
+        NSSupportsLiveActivities: true
         # alapszöveg; a nyelvenkénti változat az InfoPlist.xcstrings-ből (a szótárból generálva)
         NSLocationWhenInUseUsageDescription: Your location is needed to detect sections and measure your average speed.
         ITSAppUsesNonExemptEncryption: false
@@ -91,6 +98,39 @@ targets:
         MBXAccessToken: $(MAPBOX_ACCESS_TOKEN)
         AtlSupabaseURL: $(SUPABASE_URL)
         AtlSupabaseAnonKey: $(SUPABASE_ANON_KEY)
+
+  # AOS14: a Live Activity kirajzolása. A közös fájlok (az adatszerkezet, a tokenek, a betű, a manőver-rajzok) az app
+  # forrásaiból fordulnak – nem másolatok; a szövegeket az app adja kész, lefordított formában.
+  AtlagsebessegWidget:
+    type: app-extension
+    platform: iOS
+    sources:
+      - path: AtlagsebessegWidget
+      - path: Atlagsebesseg/LiveActivity/DriveActivity.swift
+      - path: Atlagsebesseg/Generated/DesignTokens.swift
+      - path: Atlagsebesseg/Generated/ManeuverIcons.swift
+      - path: Atlagsebesseg/Navigation/ManeuverIconKind.swift
+      - path: Atlagsebesseg/UI/InterFont.swift
+      - path: Atlagsebesseg/Resources/Fonts/InterVariable.ttf
+        buildPhase: resources
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: hu.atlagsebesseg.app.widget
+        PRODUCT_NAME: AtlagsebessegWidget
+        MARKETING_VERSION: "0.9.0"
+        CURRENT_PROJECT_VERSION: "1"
+        TARGETED_DEVICE_FAMILY: "1"
+        CODE_SIGN_STYLE: Automatic
+        GENERATE_INFOPLIST_FILE: NO
+        SKIP_INSTALL: YES
+    info:
+      path: AtlagsebessegWidget/Info.plist
+      properties:
+        CFBundleDisplayName: Atlagsebesseg
+        CFBundleDevelopmentRegion: en
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.widgetkit-extension
+        UIAppFonts: [InterVariable.ttf]
 
   AtlagsebessegTests:
     type: bundle.unit-test

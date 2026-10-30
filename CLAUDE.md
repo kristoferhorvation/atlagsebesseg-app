@@ -163,8 +163,37 @@ Gyökér: `npm test` és `npm run typecheck` minden csomagra; `npm run test:all`
   - **Kereső:** kerek ikon-gomb (mint az alsó kerek gombok) a térkép tetején, a GPS-pill sorában, a jobb szélre zárva; csak az üres
     nézeten; az alsó gombsorból kikerült, iOS-en a kereső-pill helyett ugyanez. Érintésre teljes szélességű keresés, mint eddig.
   - **iOS nyelvválasztó:** egy sor („Nyelv · 🇭🇺 Magyar”), koppintásra nyíló választó; a tárolás (`lang:v1`) és az azonnali váltás marad.
-  - **Paritási tartozás (AW16 → AOS14):** az iOS-nek még nincs bejelentés-funkciója – az „Átlagmérés eleje / vége” bejelentés-típus
-    az AOS14-ben jön a bejelentés-menüvel együtt (a szótárkulcsok és a `reportFromFix`-logika az app-logicban már megvan).
+  - ~~**Paritási tartozás (AW16 → AOS14):** az iOS-nek még nincs bejelentés-funkciója~~ – **lezárva az AOS14-ben** (lásd lent).
+- **AOS14 (2026-10-30), weben és iOS-en kész:**
+  - **Bejelentés + szavazás iOS-en** (a web A5 + AW16 1:1 portja, `Logic/Reports.swift`, `App/AppModel+Reports.swift`,
+    `UI/ReportViews.swift`): a figyelmeztető-ikon gomb (az alsó gombsor jobb szélén, mindig) nyitja a Bejelentés menüt a webes
+    `REPORT_CHOICES` tételeivel és sorrendjével (a kapuk alul, irány nélkül nem küldhetők); `reports` írás, `active_reports`
+    olvasás a látható téglalapra (`reportQuery`, a `MapScreen` küldi a kamera-mozdulatból) vagy a pozíció körül, 60 s-enként
+    (`ReportFeed`); jelölők a térképen, koppintásra a kártya (Megerősítés / Nincs ott, `report_votes`, mérés közben 3 s után
+    zár), toast. A szimulátorban a webes `simReports` mintái (a generált `Resources/Sim/*.json` `reports` mezője); a küldés és
+    a szavazat ott csak helyben (a web a szerverre is küldene). `-reportOpen YES`: a menü nyitva (képernyőkép).
+  - **„Még ott van?” – ÚJ, weben és iOS-en** (Kristof döntése az AOS14 elején: a webnek eddig csak koppintásos kártyája volt):
+    `packages/app-logic/src/reportPrompt.ts` / `Logic/Reports.swift` (`ReportPromptWatch`, `reportPromptCandidate`,
+    `REPORT_PROMPT` – iOS-re generálva): előttünk (±45°) 200 m-en belül, irány nélkül 50 m-en belül magától nyílik a bejelentés
+    kártyája „Még ott van?” kérdéssel, Igen / Nem gombbal; bejelentésenként egyszer, a sajátra és a megszavazottra soha, válasz
+    nélkül 10 s után eltűnik; a koppintott jelölő kártyája elsőbbséget kap. Teszt: `reportPrompt.test.ts` ↔ `ReportTests.swift`
+    (azonos nevekkel).
+  - **Live Activity (csak iOS, platformspecifikus):** `AtlagsebessegWidget` app-extension a `project.yml`-ben (a közös fájlok – az
+    adatszerkezet `LiveActivity/DriveActivity.swift`, a tokenek, a betű `UI/InterFont.swift`, a manőver-rajzok és
+    `Navigation/ManeuverIconKind.swift` – az app forrásaiból fordulnak, nem másolatok; a nézetek
+    `AtlagsebessegWidget/LiveActivityViews.swift`, ezt az app is fordítja a mock-előnézethez). Az app számol és fordít
+    (`liveActivityState`, a widget a `lang:v1`-et nem látja): mérés közben átlag (státusz-színnel), tábla-limit, most, várható,
+    hátralévő km; kézi mérésnél csak az átlag accent színben, limit nélkül; navigációban manőver + távolság + utcanév + érkezés;
+    együtt a mérés dominál, a manőver egy kompakt sorban. `LiveActivityController`: indul mérés / navigáció kezdetén, ≤ 1 Hz és
+    csak változáskor frissít, a végén `.immediate` zárul, induláskor a korábbi futásból maradtakat lezárja; a háttér nem állítja
+    le. **Korlát:** az ActivityKit háttérből nem indít új Live Activity-t – háttérben induló szakaszmérésnél csak a következő
+    előtérbe kerüléskor jelenik meg. **Képernyőkép:** a fej nélküli szimulátoron a lezárt képernyő és a Dynamic Island nem
+    fotózható → `-livePreview YES` (a `-sim …` mellett): a widget saját nézetei az app élő állapotából (`Sim/LiveActivityPreview.swift`, mock).
+  - **Köszöntés (web + iOS):** Beállítások › „Megszólítás” (opcionális, `megszolitas`, ≤ 24 karakter, `normalizeName`); az üres
+    nézeten a kereső-gomb sora alatt, balra „Szia Kristof!” / „Szia!” (`greetingText`); navigáció indításakor (bekapcsolt hangos
+    utasításoknál) „Szia Kristof, indulhatunk!” / „Szia, indulhatunk!” (`greetingVoice`, az indulási utasítás előtt); kézi
+    mérésnél nincs. 6 nyelv, a hang az app nyelvén.
+  - **Paritási tartozás (iOS):** a fix kamera koppintásos kártyája (webes `CameraCard`) iOS-en még nincs (az AOS14 előtti hiány).
 - **Paritási tartozás (AW12 + AW13 → iOS) lezárva az AOS12-ben (2026-10-29):** a `NavigationTests.swift` újra a
   `navigation.test.ts` teljes párja (86 = 86 `it`, azonos névvel), a webes `navSim.test.ts` 6 esete a `SimTests.swift`-ben.
   A közös Budapest→Győr fixtúra **AOS13-ban teljesen újra felvéve** méteres hangegységgel (`voice_units=metric`, mindkét

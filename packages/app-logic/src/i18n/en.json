@@ -114,6 +114,8 @@
   "time.now": "now",
   "time.minutes": "{n} min ago",
   "time.hours": "{n} h ago",
+  "greet.named": "Hi {name}!",
+  "greet.anon": "Hi!",
 
   "report.title": "Report",
   "report.type.rendorseg": "Police",
@@ -132,6 +134,9 @@
   "report.card.own": "Your own report",
   "report.card.confirm": "Confirm",
   "report.card.gone": "Not there",
+  "report.prompt.question": "Still there?",
+  "report.prompt.yes": "Yes",
+  "report.prompt.no": "No",
   "report.sent": "Sent: {label}",
   "report.sendFail": "Couldn’t send – no connection?",
   "vote.confirmed": "Thanks – confirmed",
@@ -234,6 +239,9 @@
   "settings.group.places": "Saved places",
   "settings.voiceInstructions": "Voice guidance",
   "settings.voiceInstructionsHint": "Spoken turns, section checks and “too fast” warnings",
+  "settings.name": "Greeting name",
+  "settings.namePlaceholder": "Name (optional)",
+  "settings.nameHint": "The app greets you with this name on the map and when navigation starts. Empty: “Hi!”",
   "settings.requests": "Route requests today",
   "nav.picker.title": "Route to {name}",
   "nav.picker.loading": "Finding routes…",
@@ -268,6 +276,8 @@
   "nav.voice.sectionAhead": "Section control ahead, maximum {x}",
   "nav.voice.tooFast": "Too fast, slow down",
   "nav.voice.rerouting": "Rerouting",
+  "nav.voice.greet": "Hi, let's go!",
+  "nav.voice.greetNamed": "Hi {name}, let's go!",
   "nav.voice.faster": "Faster route, saves {n} min",
   "nav.offer.exit": "Exit in {km} km · saves {n} min",
   "nav.offer.exitNamed": "Exit: {name} · {km} km · saves {n} min",
@@ -325,5 +335,6 @@
   "ios.settings.alertModeHint": "The sound plays regardless of the silent switch, even with the screen locked; music is lowered meanwhile.",
   "ios.geo.help.1": "Settings › Privacy & Security › Location Services: turn it on.",
   "ios.geo.help.2": "In the app's own settings (Open): Location › “While Using the App”.",
-  "ios.geo.open": "Open"
+  "ios.geo.open": "Open",
+  "ios.live.remaining": "{x} left"
 }

@@ -1,46 +1,8 @@
 import AtlagsebessegCore
 import SwiftUI
 
-// A webes styles.css kártya-elemei SwiftUI-ban; minden szín és méret a generált tokenekből (DESIGN.md).
-
-extension TypeStyle {
-    var font: Font { .inter(size, weight) }
-    /// A CSS `letter-spacing` em-ben → pontban.
-    var trackingPt: CGFloat { tracking * size }
-}
-
-extension Font {
-    /// Inter (mint a weben) a token pontos súlyával (100–900, a változó betű `wght` tengelyén); az optikai
-    /// méret a betűmérethez igazodik (`opsz` 14–32), mint a CSS `font-optical-sizing: auto`.
-    static func inter(_ size: CGFloat, _ weight: CGFloat) -> Font {
-        Font(UIFont.inter(size, weight))
-    }
-
-    /// Szám (a web `.num` osztálya: táblázatos számjegyek).
-    static func num(_ size: CGFloat, _ weight: CGFloat) -> Font {
-        .inter(size, weight).monospacedDigit()
-    }
-}
-
-extension UIFont {
-    private static var interCache: [String: UIFont] = [:]
-
-    /// A Resources/Fonts/InterVariable.ttf (Info.plist `UIAppFonts`) adott súllyal és optikai mérettel.
-    static func inter(_ size: CGFloat, _ weight: CGFloat) -> UIFont {
-        let key = "\(size)/\(weight)"
-        if let f = interCache[key] { return f }
-        // a változó betű tengelyei: 'wght' és 'opsz' (négybetűs OpenType-címkék számként)
-        let wght = 0x7767_6874
-        let opsz = 0x6F70_737A
-        let descriptor = UIFontDescriptor(fontAttributes: [
-            .family: Tokens.Fonts.family,
-            UIFontDescriptor.AttributeName(rawValue: kCTFontVariationAttribute as String): [wght: weight, opsz: min(32, max(14, size))],
-        ])
-        let f = UIFont(descriptor: descriptor, size: size)
-        interCache[key] = f
-        return f
-    }
-}
+// A webes styles.css kártya-elemei SwiftUI-ban; minden szín és méret a generált tokenekből (DESIGN.md). A betű (Inter)
+// az InterFont.swift-ben (a Live Activity widgetje is fordítja).
 
 /// A kijelző tónusa (a webes `data-tone`): státusz, kézi mód vagy semleges.
 enum Tone: Equatable, Sendable {

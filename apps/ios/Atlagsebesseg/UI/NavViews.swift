@@ -34,6 +34,8 @@ struct StatusPills: View {
     var compact = false
     var onGps: (() -> Void)?
     var onSearch: (() -> Void)?
+    /// AOS14: a köszöntő felirat az üres nézeten, a kereső-gomb sora alatt (nem a térkép közepén).
+    var greeting: String?
 
     private var gps: (color: Color, text: String) {
         let acc = accuracy.map { Int(jsRound($0)) }
@@ -50,6 +52,24 @@ struct StatusPills: View {
     }
 
     var body: some View {
+        VStack(alignment: .leading, spacing: Tokens.Space.s2) {
+            row
+            if let greeting {
+                Text(greeting)
+                    .font(.inter(22, 640))
+                    .tracking(-0.01 * 22)
+                    .foregroundStyle(Tokens.Colors.text)
+                    .lineLimit(1)
+                    .padding(.horizontal, Tokens.Space.s4)
+                    .padding(.vertical, Tokens.Space.s2)
+                    .glass(radius: 22)
+                    .allowsHitTesting(false)
+                    .transition(.opacity)
+            }
+        }
+    }
+
+    private var row: some View {
         HStack(alignment: .top, spacing: Tokens.Space.s2) {
             let p = gps
             Button { onGps?() } label: {

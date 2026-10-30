@@ -48,6 +48,52 @@ final class Backend {
         return try await client.auth.signInAnonymously().user.id.uuidString
     }
 
+    /// A bejelentkezett felhasználó (a saját bejelentés felismeréséhez); munkamenet nélkül `nil`, nem jelentkezik be.
+    func currentUserId() async -> String? {
+        guard let client else { return nil }
+        return try? await client.auth.session.user.id.uuidString
+    }
+
+    // MARK: bejelentések (AOS14, a webes `listActiveReports` / `createReports` / `voteReport`)
+
+    /// A téglalap le nem járt bejelentései (`active_reports` nézet), legfeljebb 500.
+    func activeReports(in b: BBox) async throws -> [ActiveReport] {
+        guard let client else { throw BackendError.nincsBeallitas }
+        async let rows: [ReportRow] = client.from("active_reports")
+            .select("id,type,lat,lon,heading_deg,gate_kind,confirmations,denials,created_at,expires_at,user_id")
+            .gte("lat", value: b.south)
+            .lte("lat", value: b.north)
+            .gte("lon", value: b.west)
+            .lte("lon", value: b.east)
+            .limit(500)
+            .execute()
+            .value
+        let uid = await currentUserId()
+        return try await rows.compactMap { $0.active(myUserId: uid) }
+    }
+
+    private struct IdRow: Decodable, Sendable { let id: String }
+
+    /// Bejelentés küldése (anonim bejelentkezéssel); az új sorok azonosítói.
+    func createReports(_ rows: [ReportInsert]) async throws -> [String] {
+        guard let client else { throw BackendError.nincsBeallitas }
+        _ = try await ensureSignedIn()
+        let ids: [IdRow] = try await client.from("reports").insert(rows).select("id").execute().value
+        return ids.map(\.id)
+    }
+
+    private struct VoteRow: Encodable, Sendable {
+        let report_id: String
+        let confirm: Bool
+    }
+
+    /// Megerősítés (true) vagy cáfolat (false); újraszavazásnál felülírja a sajátot (`report_votes`).
+    func voteReport(_ reportId: String, confirm: Bool) async throws {
+        guard let client else { throw BackendError.nincsBeallitas }
+        _ = try await ensureSignedIn()
+        try await client.from("report_votes").upsert(VoteRow(report_id: reportId, confirm: confirm), onConflict: "report_id,user_id").execute()
+    }
+
     /// A téglalap szakaszai (`sections_in_bbox`).
     func sections(in b: BBox) async throws -> [Section] {
         guard let client else { throw BackendError.nincsBeallitas }

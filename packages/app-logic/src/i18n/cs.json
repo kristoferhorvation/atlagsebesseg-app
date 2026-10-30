@@ -114,6 +114,8 @@
   "time.now": "teď",
   "time.minutes": "před {n} min",
   "time.hours": "před {n} h",
+  "greet.named": "Ahoj {name}!",
+  "greet.anon": "Ahoj!",
 
   "report.title": "Nahlášení",
   "report.type.rendorseg": "Policie",
@@ -132,6 +134,9 @@
   "report.card.own": "Tvoje vlastní nahlášení",
   "report.card.confirm": "Potvrdit",
   "report.card.gone": "Není tam",
+  "report.prompt.question": "Je to tam ještě?",
+  "report.prompt.yes": "Ano",
+  "report.prompt.no": "Ne",
   "report.sent": "Odesláno: {label}",
   "report.sendFail": "Odeslání se nezdařilo – bez připojení?",
   "vote.confirmed": "Díky – potvrzeno",
@@ -234,6 +239,9 @@
   "settings.group.places": "Uložená místa",
   "settings.voiceInstructions": "Hlasové pokyny",
   "settings.voiceInstructionsHint": "Hlášení odbočení, úsekového měření a „příliš rychle“",
+  "settings.name": "Oslovení",
+  "settings.namePlaceholder": "Jméno (nepovinné)",
+  "settings.nameHint": "Tímto jménem tě aplikace pozdraví na mapě a při spuštění navigace. Prázdné: „Ahoj!“",
   "settings.requests": "Požadavky na trasu dnes",
   "nav.picker.title": "Trasa do: {name}",
   "nav.picker.loading": "Hledám trasy…",
@@ -268,6 +276,8 @@
   "nav.voice.sectionAhead": "Začíná úsekové měření, maximálně {x}",
   "nav.voice.tooFast": "Jedeš příliš rychle, zpomal",
   "nav.voice.rerouting": "Přepočítávám trasu",
+  "nav.voice.greet": "Ahoj, můžeme vyrazit!",
+  "nav.voice.greetNamed": "Ahoj {name}, můžeme vyrazit!",
   "nav.voice.faster": "Rychlejší trasa, úspora {n} min",
   "nav.offer.exit": "Sjezd za {km} km · úspora {n} min",
   "nav.offer.exitNamed": "Sjezd: {name} · {km} km · úspora {n} min",
@@ -325,5 +335,6 @@
   "ios.settings.alertModeHint": "Zvuk zazní bez ohledu na přepínač tichého režimu, i při zamčené obrazovce; hudba se mezitím ztlumí.",
   "ios.geo.help.1": "Nastavení › Soukromí a zabezpečení › Polohové služby: zapněte je.",
   "ios.geo.help.2": "V nastavení aplikace (Otevřít): Poloha › „Při používání aplikace“.",
-  "ios.geo.open": "Otevřít"
+  "ios.geo.open": "Otevřít",
+  "ios.live.remaining": "zbývá {x}"
 }

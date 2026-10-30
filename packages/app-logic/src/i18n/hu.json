@@ -114,6 +114,8 @@
   "time.now": "most",
   "time.minutes": "{n} perce",
   "time.hours": "{n} órája",
+  "greet.named": "Szia {name}!",
+  "greet.anon": "Szia!",
 
   "report.title": "Bejelentés",
   "report.type.rendorseg": "Rendőrség",
@@ -132,6 +134,9 @@
   "report.card.own": "Saját bejelentésed",
   "report.card.confirm": "Megerősítés",
   "report.card.gone": "Nincs ott",
+  "report.prompt.question": "Még ott van?",
+  "report.prompt.yes": "Igen",
+  "report.prompt.no": "Nem",
   "report.sent": "Elküldve: {label}",
   "report.sendFail": "Nem sikerült elküldeni – nincs kapcsolat?",
   "vote.confirmed": "Köszönjük – megerősítve",
@@ -234,6 +239,9 @@
   "settings.group.places": "Mentett helyek",
   "settings.voiceInstructions": "Hangos utasítások",
   "settings.voiceInstructionsHint": "Fordulók, szakaszellenőrzés és „túl gyors” bemondása",
+  "settings.name": "Megszólítás",
+  "settings.namePlaceholder": "Név (nem kötelező)",
+  "settings.nameHint": "Ezzel a névvel köszön az app a térképen és a navigáció indításakor. Üresen: „Szia!”",
   "settings.requests": "Útvonal-kérések ma",
   "nav.picker.title": "Útvonal ide: {name}",
   "nav.picker.loading": "Útvonalak keresése…",
@@ -268,6 +276,8 @@
   "nav.voice.sectionAhead": "Szakaszellenőrzés kezdődik, maximum {x}",
   "nav.voice.tooFast": "Túl gyors vagy, lassíts",
   "nav.voice.rerouting": "Újratervezés",
+  "nav.voice.greet": "Szia, indulhatunk!",
+  "nav.voice.greetNamed": "Szia {name}, indulhatunk!",
   "nav.voice.faster": "Gyorsabb út, {n} perc megtakarítás",
   "nav.offer.exit": "Lehajtó {km} km-nél · {n} perc megtakarítás",
   "nav.offer.exitNamed": "Lehajtó: {name} · {km} km · {n} perc megtakarítás",
@@ -325,5 +335,6 @@
   "ios.settings.alertModeHint": "A hang a némítás-kapcsolótól függetlenül, zárolt képernyőn is szól; közben a zene halkabb.",
   "ios.geo.help.1": "Beállítások › Adatvédelem és biztonság › Helymeghatározás: legyen bekapcsolva.",
   "ios.geo.help.2": "Az app saját beállításaiban (Megnyitás): Hely › „Az app használata közben”.",
-  "ios.geo.open": "Megnyitás"
+  "ios.geo.open": "Megnyitás",
+  "ios.live.remaining": "{x} hátra"
 }

@@ -48,6 +48,7 @@ describe('beállítások', () => {
       terkep: 'szines',
       tervezett_meresek: true,
       hangos_utasitasok: true,
+      megszolitas: '',
     });
   });
   it('a térkép alapból színes; a visszafogott megmarad, ismeretlen érték színes; a sorrend Világos, Színes, Visszafogott', () => {

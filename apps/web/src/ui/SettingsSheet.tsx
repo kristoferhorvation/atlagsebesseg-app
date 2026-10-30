@@ -1,4 +1,4 @@
-import { LANGUAGE_NAMES, languageMenu, t, type MapLook, type SavedPlaces, type Settings, type SpeedUnit } from '@atlagsebesseg/app-logic';
+import { LANGUAGE_NAMES, MEGSZOLITAS_MAX, languageMenu, normalizeName, t, type MapLook, type SavedPlaces, type Settings, type SpeedUnit } from '@atlagsebesseg/app-logic';
 import { DEFAULT_TOLERANCE } from '@atlagsebesseg/core';
 import { useLanguage, useVoiceStatus } from '../i18n';
 import { Sheet } from './Sheet';
@@ -106,6 +106,24 @@ export function SettingsSheet({
               </option>
             ))}
           </select>
+        </div>
+        {/* AOS14: megszólítás – a köszöntő felirat és a navigáció-indító köszönés neve (üresen név nélkül) */}
+        <div className="list-row stacked">
+          <div>
+            <div className="label">{t('settings.name')}</div>
+            <div className="hint">{t('settings.nameHint')}</div>
+          </div>
+          <input
+            className="select text-input"
+            type="text"
+            autoComplete="given-name"
+            maxLength={MEGSZOLITAS_MAX}
+            aria-label={t('settings.name')}
+            placeholder={t('settings.namePlaceholder')}
+            value={settings.megszolitas}
+            onChange={(e) => update({ megszolitas: e.target.value })}
+            onBlur={(e) => update({ megszolitas: normalizeName(e.target.value) })}
+          />
         </div>
         <div className="list-row">
           <div>
