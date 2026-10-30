@@ -27,7 +27,7 @@ export interface ReportAlertProps {
 }
 
 /**
- * A bejelentés sora: közeledéskor „Rendőrség 240 m”, `askM`-en belül UGYANEZ a sor helyben „Még ott van?” + Igen / Nem
+ * A bejelentés sora: közeledéskor „Rendőrség 240 m”, 50 m-rel előtte UGYANEZ a sor helyben „Még ott van?” + Igen / Nem
  * (nem jön új elem). A kamera-sor (`.nav-camera`) kinézetével.
  */
 function ReportAlertRow({ alert, unit }: { alert: ReportAlertProps; unit: SpeedUnit }) {

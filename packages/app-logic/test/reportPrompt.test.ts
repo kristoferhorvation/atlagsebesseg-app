@@ -65,27 +65,33 @@ describe('ReportPromptWatch (egy kártya: figyelmeztetés → kérdés)', () => 
   const R = [rep('a', 0, 300)];
   const at = (along: number): GpsFix => ({ ...fix(0), ...destinationPoint(HOME, 0, along) });
 
-  it('előbb figyelmeztet, askM-en belül ugyanaz a kártya helyben kérdésre vált', () => {
+  it('előbb figyelmeztet, 50 m-rel a bejelentés előtt ugyanaz a kártya helyben kérdésre vált', () => {
     const w = new ReportPromptWatch();
     const a = w.update(at(60), R, never, 0)!;
     expect([a.id, a.phase, Math.round(a.distanceM)]).toEqual(['a', 'approach', 240]);
-    expect(w.update(at(150), R, never, 1000)).toMatchObject({ id: 'a', phase: 'ask' });
+    expect(w.update(at(200), R, never, 1000)).toMatchObject({ id: 'a', phase: 'approach' });
+    expect(w.update(at(255), R, never, 2000)).toMatchObject({ id: 'a', phase: 'ask' });
   });
 
-  it('a kérdés után showMs múlva eltűnik, és arra a bejelentésre nem tér vissza', () => {
+  it('a kérdés az elhaladás után még showMs-ig látható, aztán eltűnik, és arra a bejelentésre nem tér vissza', () => {
     const w = new ReportPromptWatch();
-    expect(w.update(at(150), R, never, 0)?.phase).toBe('ask');
-    expect(w.update(at(150), R, never, REPORT_PROMPT.showMs - 1)?.phase).toBe('ask');
-    expect(w.update(at(150), R, never, REPORT_PROMPT.showMs)).toBeNull();
-    expect(w.update(at(160), R, never, REPORT_PROMPT.showMs + 1000)).toBeNull();
+    expect(w.update(at(260), R, never, 0)?.phase).toBe('ask');
+    // elhaladás előtt nincs időkorlát
+    expect(w.update(at(290), R, never, 20_000)?.phase).toBe('ask');
+    // elhaladás (mögöttünk): innen számít a showMs
+    expect(w.update(at(320), R, never, 21_000)?.phase).toBe('ask');
+    expect(w.update(at(380), R, never, 21_000 + REPORT_PROMPT.showMs - 1)?.phase).toBe('ask');
+    expect(w.update(at(400), R, never, 21_000 + REPORT_PROMPT.showMs)).toBeNull();
+    expect(w.update(at(260), R, never, 40_000)).toBeNull();
   });
 
-  it('elhaladás után eltűnik, és nem tér vissza', () => {
+  it('kérdés nélküli elhaladás (a bejelentés 50 m-nél messzebb maradt): eltűnik, és nem tér vissza', () => {
+    const side = [{ ...rep('s', 0, 0), ...destinationPoint(destinationPoint(HOME, 0, 300), 90, 70) }];
     const w = new ReportPromptWatch();
-    expect(w.update(at(60), R, never, 0)?.phase).toBe('approach');
-    expect(w.update(at(280), R, never, 1000)?.phase).toBe('ask');
-    expect(w.update(at(360), R, never, 2000)).toBeNull();
-    expect(w.update(at(60), R, never, 3000)).toBeNull();
+    expect(w.update(at(200), side, never, 0)?.phase).toBe('approach');
+    expect(w.update(at(300), side, never, 1000)?.phase).toBe('approach');
+    expect(w.update(at(380), side, never, 2000)).toBeNull();
+    expect(w.update(at(200), side, never, 3000)).toBeNull();
   });
 
   it('hajtűkanyar: ha még nem voltunk a közelében, a „mögöttünk” nem elhaladás', () => {
@@ -105,17 +111,22 @@ describe('ReportPromptWatch (egy kártya: figyelmeztetés → kérdés)', () => 
     expect(far.update({ ...fix(90), ...destinationPoint(HOME, 90, 600) }, R, never, 1000)).toBeNull();
   });
 
-  it('válasz (bezárás / szavazat) után, vagy ha a bejelentés eltűnt a listából, a kártya eltűnik', () => {
+  it('válaszra (bezárás / szavazat) azonnal eltűnik, és akkor is, ha a bejelentés eltűnt a listából', () => {
     const w = new ReportPromptWatch();
-    expect(w.update(at(150), R, never, 0)?.phase).toBe('ask');
+    expect(w.update(at(260), R, never, 0)?.phase).toBe('ask');
     w.close();
-    expect(w.update(at(150), R, never, 500)).toBeNull();
+    expect(w.update(at(260), R, never, 500)).toBeNull();
     const w2 = new ReportPromptWatch();
-    expect(w2.update(at(150), R, never, 0)).not.toBeNull();
-    expect(w2.update(at(150), R, (id) => id === 'a', 500)).toBeNull();
+    expect(w2.update(at(260), R, never, 0)).not.toBeNull();
+    expect(w2.update(at(260), R, (id) => id === 'a', 500)).toBeNull();
     const w3 = new ReportPromptWatch();
-    expect(w3.update(at(150), R, never, 0)).not.toBeNull();
-    expect(w3.update(at(150), [], never, 500)).toBeNull();
+    expect(w3.update(at(260), R, never, 0)).not.toBeNull();
+    expect(w3.update(at(260), [], never, 500)).toBeNull();
+  });
+
+  it('álló autó (irány nélkül) 50 m-en belül rögtön kérdez', () => {
+    const w = new ReportPromptWatch();
+    expect(w.update(fix(null), [rep('a', 0, 30)], never, 0)).toMatchObject({ id: 'a', phase: 'ask' });
   });
 
   it('egyszerre egy bejelentés; a lezárása után a következőre figyelmeztet', () => {

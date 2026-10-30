@@ -74,7 +74,7 @@ Gyökér: `npm test` és `npm run typecheck` minden csomagra; `npm run test:all`
   a nézetekben `Font.inter(méret, súly)` / `.num(…)` a token pontos súlyával. Rendszerbetű (`.system(size:)`)
   nem kerülhet a kódba (AppTests-őr).
 - Háttér-mérés: a mérés zárolt képernyővel is fut, külön figyelmeztetés nincs (döntés). A zárolt képernyős
-  „fut a mérés” jelzés a Live Activity (A12+) dolga.
+  „fut a mérés” jelzés a Live Activity (AOS14 óta, lásd lent; AOS15: a GPS indításától állandóan).
 - Navigáció (AOS11): a logika az `apps/ios/Atlagsebesseg/Navigation/` mappában – a `packages/app-logic/src/navigation`
   1:1 portja (Directions-feldolgozás, útvonal menti szakasz/kamera/mérés, `NavigationSession`, keresés, helyek,
   költségvédelem). **Paritási szabály, mint a core-nál:** navigációs logika-változás mindkét nyelvben ugyanabban a
@@ -184,14 +184,17 @@ Gyökér: `npm test` és `npm run typecheck` minden csomagra; `npm run test:all`
     kártyája volt; javítva: egy kártya a kamera-figyelmeztetés helyén). `packages/app-logic/src/reportPrompt.ts` /
     `Logic/Reports.swift` (`ReportPromptWatch`, `reportPromptCandidate`, `reportAlertM`, `REPORT_PROMPT` – iOS-re generálva):
     előttünk (±45°) a kamerával azonos `max(250 m, 10 s × v)` távolságon belül figyelmeztet („Rendőrség 240 m”,
-    `report.alert.ahead`), 200 m-en belül (irány nélkül 50 m-en belül) UGYANAZ a sor helyben „Még ott van? Igen / Nem”-re vált.
+    `report.alert.ahead`), **50 m-rel a bejelentés előtt** (`REPORT_PROMPT.nearM`; álló autónál irány nélkül is 50 m-en belül)
+    UGYANAZ a sor helyben „Még ott van? Igen / Nem”-re vált (javítás 2, Kristof: korábban 200 m-nél).
     Helye: navigációban a manőverkártyán, a kamera-sor helyén és stílusában (a kártya borostyán; a közeli kamera elsőbbséget
-    kap); navigáció nélkül vagy sáv-módban önálló borostyán kártya ugyanott (weben a kereső-gomb sora alatt). Válasz, elhaladás
-    vagy a kérdés után 10 s → eltűnik, és arra a bejelentésre nem tér vissza; a sajátra és a megszavazottra soha. **Elhaladás**
-    csak akkor, ha már 100 m-en belül voltunk és most mögöttünk (>90°) van (`REPORT_PASSED_NEAR_M` – hajtűkanyarban a légvonal
-    megtéveszt), vagy ha 2 × a figyelmeztetési távolságnál messzebb kerültünk. A koppintott jelölő kártyája külön, lent (Megerősítés /
-    Nincs ott). Teszt: `reportPrompt.test.ts` ↔ `ReportTests.swift` (azonos nevekkel). Küszöbök (200 m, ±45°, 10 s, 50 m):
-    maradnak, éles vezetés után finomítjuk (Kristof).
+    kap); navigáció nélkül vagy sáv-módban önálló borostyán kártya ugyanott (weben a kereső-gomb sora alatt). A kérdés az
+    **elhaladás után még 10 s-ig** látható (elhaladás előtt nincs időkorlát), aztán eltűnik; válaszra azonnal. Kérdés nélkül (a
+    bejelentés 50 m-nél messzebb maradt) az elhaladáskor rögtön eltűnik. Arra a bejelentésre nem tér vissza; a sajátra és a
+    megszavazottra soha. **Elhaladás:** mögöttünk (>90°) van, és már a közelében jártunk (kérdés-fázisban 50 m, egyébként
+    `REPORT_PASSED_NEAR_M` = 100 m – hajtűkanyarban a légvonal megtéveszt); 2 × a figyelmeztetési távolságnál messzebb kerülve
+    is vége. A koppintott jelölő kártyája külön, lent (Megerősítés /
+    Nincs ott). Teszt: `reportPrompt.test.ts` ↔ `ReportTests.swift` (azonos nevekkel). Küszöbök (50 m, ±45°, 10 s az elhaladás
+    után): éles vezetés után finomítjuk (Kristof). Képernyőkép: `-gateStarted YES` (a menü „Átlagmérés vége” állapota).
   - **Live Activity (csak iOS, platformspecifikus):** `AtlagsebessegWidget` app-extension a `project.yml`-ben (a közös fájlok – az
     adatszerkezet `LiveActivity/DriveActivity.swift`, a tokenek, a betű `UI/InterFont.swift`, a manőver-rajzok és
     `Navigation/ManeuverIconKind.swift` – az app forrásaiból fordulnak, nem másolatok; a nézetek

@@ -5,13 +5,12 @@ import type { ActiveReport } from './reportFeed';
 /**
  * Bejelentés közeledéskor (AOS14, weben és iOS-en) – EGY kártya, a kamera-figyelmeztetés helyén és stílusában (a manőver-
  * kártya alatt; navigáció nélkül ugyanott önállóan): előbb figyelmeztet („Rendőrség 350 m”, a kamerával azonos
- * `max(CAMERA_ALERT.minM, CAMERA_ALERT.leadS × sebesség)` távolságon belül, előttünk ±`coneDeg`), `askM`-en belül ugyanaz a
- * kártya helyben „Még ott van? Igen / Nem”-re vált. Válasz, elhaladás vagy a kérdés után `showMs` múlva eltűnik, és arra a
- * bejelentésre nem tér vissza. Irány nélkül (álló autó) csak `nearM`-en belül, rögtön kérdez. A sajátra és a megszavazottra
- * soha.
+ * `max(CAMERA_ALERT.minM, CAMERA_ALERT.leadS × sebesség)` távolságon belül, előttünk ±`coneDeg`), `nearM`-rel a bejelentés
+ * előtt ugyanaz a kártya helyben „Még ott van? Igen / Nem”-re vált (álló autónál irány nélkül is `nearM`-en belül). A kérdés az
+ * elhaladás után még `showMs`-ig látható, aztán eltűnik; válaszra azonnal. Arra a bejelentésre nem tér vissza; a sajátra és a
+ * megszavazottra soha.
  */
 export const REPORT_PROMPT = {
-  askM: 200,
   nearM: 50,
   coneDeg: 45,
   showMs: 10_000,
@@ -45,7 +44,6 @@ export const REPORT_PASSED_NEAR_M = 100;
 const gone = (g: { d: number; behind: boolean }, minD: number, alertM: number) =>
   (g.behind && minD <= REPORT_PASSED_NEAR_M && g.d > REPORT_PROMPT.nearM) || g.d > 2 * alertM;
 
-const asks = (d: number, ahead: boolean) => d <= REPORT_PROMPT.nearM || (ahead && d <= REPORT_PROMPT.askM);
 
 /** A legközelebbi bejelentés, amelyre most figyelmeztetni kell (`skip`: már volt / szavaztunk rá). */
 export function reportPromptCandidate(fix: GpsFix, reports: readonly ActiveReport[], skip: (id: string) => boolean): ActiveReport | null {
@@ -65,12 +63,13 @@ export function reportPromptCandidate(fix: GpsFix, reports: readonly ActiveRepor
 }
 
 /**
- * A kártya állapotgépe (`update` minden fixnél / óra-lépésnél): figyelmeztetés → kérdés (`askM`) → vége (válasz, elhaladás,
- * a kérdés után `showMs`, vagy a bejelentés eltűnt). Egy bejelentés egyszer kerül sorra – a munkamenet végéig.
+ * A kártya állapotgépe (`update` minden fixnél / óra-lépésnél): figyelmeztetés → kérdés (`nearM`-en belül) → elhaladás után
+ * `showMs` → vége; válaszra (vagy ha a bejelentés eltűnt, vagy messzire kerültünk) azonnal vége. Kérdés nélküli elhaladás
+ * (a bejelentés `nearM`-nél messzebb maradt): rögtön vége. Egy bejelentés egyszer kerül sorra – a munkamenet végéig.
  */
 export class ReportPromptWatch {
   private readonly done = new Set<string>();
-  private cur: { id: string; askAt: number | null; minD: number } | null = null;
+  private cur: { id: string; asking: boolean; passedAt: number | null; minD: number } | null = null;
 
   update(fix: GpsFix | null, reports: readonly ActiveReport[], voted: (id: string) => boolean, now: number): ReportPrompt | null {
     const c = this.cur;
@@ -78,23 +77,27 @@ export class ReportPromptWatch {
       const r = reports.find((x) => x.id === c.id);
       const g = r && fix ? geometry(fix, r) : null;
       if (g) c.minD = Math.min(c.minD, g.d);
-      const over = !r || voted(c.id) || (c.askAt !== null && now - c.askAt >= REPORT_PROMPT.showMs) || (g !== null && gone(g, c.minD, reportAlertM(fix!.speed)));
-      if (!over) {
-        if (!g) return { id: c.id, phase: c.askAt === null ? 'approach' : 'ask', distanceM: NaN };
-        if (c.askAt === null && asks(g.d, g.ahead)) c.askAt = now;
-        return { id: c.id, phase: c.askAt === null ? 'approach' : 'ask', distanceM: g.d };
-      }
+      if (g && !c.asking && g.d <= REPORT_PROMPT.nearM) c.asking = true;
+      // a kérdés alatt az elhaladás (mögöttünk van) indítja a `showMs`-t
+      if (g && c.asking && c.passedAt === null && g.behind) c.passedAt = now;
+      const far = g !== null && g.d > 2 * reportAlertM(fix!.speed);
+      const over =
+        !r ||
+        voted(c.id) ||
+        far ||
+        (c.asking ? c.passedAt !== null && now - c.passedAt >= REPORT_PROMPT.showMs : g !== null && gone(g, c.minD, reportAlertM(fix!.speed)));
+      if (!over) return { id: c.id, phase: c.asking ? 'ask' : 'approach', distanceM: g?.d ?? NaN };
       this.finish();
     }
     if (!fix) return null;
     const r = reportPromptCandidate(fix, reports, (id) => this.done.has(id) || voted(id));
     if (!r) return null;
     const g = geometry(fix, r);
-    this.cur = { id: r.id, askAt: asks(g.d, g.ahead) ? now : null, minD: g.d };
-    return { id: r.id, phase: this.cur.askAt === null ? 'approach' : 'ask', distanceM: g.d };
+    this.cur = { id: r.id, asking: g.d <= REPORT_PROMPT.nearM, passedAt: null, minD: g.d };
+    return { id: r.id, phase: this.cur.asking ? 'ask' : 'approach', distanceM: g.d };
   }
 
-  /** Válasz (Igen / Nem) vagy ×: a kártya eltűnik, erre a bejelentésre nem tér vissza. */
+  /** Válasz (Igen / Nem) vagy ×: a kártya azonnal eltűnik, erre a bejelentésre nem tér vissza. */
   close(): void {
     this.finish();
   }

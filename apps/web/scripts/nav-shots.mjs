@@ -14,7 +14,8 @@
 // hálózat nélkül, privát; a kereső kerek gombja felül, a jobb szélen; Bejelentés menü: „Átlagmérés eleje / vége”;
 // térképstílus-szabály napszakonként (?sunAt=): Világos = nappal, Színes = alkony nappal, éjjel mindkettő éjszakai.
 // AOS14: köszöntés az üres nézeten a kereső-gomb alatt („Szia Kristof!” / „Szia!”), köszönés a navigáció indításakor;
-// közeledő bejelentés: EGY kártya a kamera-figyelmeztetés helyén, 200 m-en belül helyben „Még ott van? Igen / Nem”;
+// közeledő bejelentés: EGY kártya a kamera-figyelmeztetés helyén, 50 m-rel előtte helyben „Még ott van? Igen / Nem”,
+// az elhaladás után még 10 s-ig;
 // a menüben egy kapu-tétel („Átlagmérés eleje” → „vége”).
 //
 //   npm run dev -w @atlagsebesseg/web            # másik terminálban (a Mapbox-token az apps/web/.env-ben)
@@ -628,24 +629,30 @@ try {
   check('navigáció közben nincs köszöntő felirat', !(await gvo.evaluate(`!!${q('.greeting')}`)));
   gvo.close();
   // AOS14 javítás: EGY kártya a kamera-figyelmeztetés helyén – navigáció nélkül önállóan a felső kártya helyén; előbb
-  // „Rendőrség 240 m”, 200 m-en belül UGYANAZ az elem helyben „Még ott van? Igen / Nem”
+  // „Rendőrség 240 m”, 50 m-rel a bejelentés előtt UGYANAZ az elem helyben „Még ott van? Igen / Nem”; az elhaladás után még
+  // 10 s-ig (a szimulátor 4×-es: ~2,5 s), válaszra azonnal eltűnik
   const rpg = await mk();
   await rpg.goto('/?sim=jo&speed=4&panel=0');
   await rpg.waitFor(MAP_READY, 60_000, 'térkép');
+  // a kártya állapotának naplója (100 ms-enként): fázis, felirat, idő
+  await rpg.evaluate(`window.__alertLog = []; setInterval(() => { const r = document.querySelector('.report-alert-row'); window.__alertLog.push({ t: performance.now(), phase: r?.dataset.phase ?? null, txt: r?.querySelector('b')?.innerText.trim() ?? null }); }, 100); true`);
   await rpg.waitFor(`${q('.report-alert .report-alert-row')}?.dataset.phase === 'approach'`, 90_000, 'közeledő bejelentés');
-  const ap = await rpg.evaluate(`(() => { const c = ${q('.nav-top.report-alert')}; window.__alertEl = c.querySelector('.report-alert-row'); const r = c.getBoundingClientRect(); return { txt: c.innerText.replace(/\\s+/g, ' ').trim(), top: r.top, cam: c.dataset.camera, bg: getComputedStyle(c).backgroundColor, n: document.querySelectorAll('.report-alert-row').length, bottomCard: !!document.querySelector('.report-card') }; })()`);
+  const ap = await rpg.evaluate(`(() => { const c = ${q('.nav-top.report-alert')}; window.__alertEl = c.querySelector('.report-alert-row'); const r = c.getBoundingClientRect(); return { txt: c.innerText.replace(/\\s+/g, ' ').trim(), top: r.top, cam: c.dataset.camera, n: document.querySelectorAll('.report-alert-row').length, bottomCard: !!document.querySelector('.report-card') }; })()`);
   check('közeledéskor figyelmeztető kártya felül (a kamera-figyelmeztetés stílusában): „Rendőrség 2xx m”', /^Rendőrség \d+ m$/.test(ap.txt) && ap.cam === 'true' && ap.top < 200 && ap.n === 1 && !ap.bottomCard, JSON.stringify(ap));
-  if (!CHECK_ONLY) await rpg.shot(`${DATE}-bejelentes-kozeledik.png`);
   await rpg.waitFor(`${q('.report-alert-row')}?.dataset.phase === 'ask'`, 60_000, 'kérdés-fázis');
-  const rpr = await rpg.evaluate(`(() => { const row = ${q('.report-alert-row')}; return { same: row === window.__alertEl, q: row.querySelector('.report-alert-q')?.innerText.trim(), btns: [...row.querySelectorAll('.btn')].map((b) => b.innerText.trim()), h: Math.min(...[...row.querySelectorAll('.btn')].map((b) => b.getBoundingClientRect().height)), n: document.querySelectorAll('.report-alert-row').length, bottomCard: !!document.querySelector('.report-card') }; })()`);
-  check('200 m-en belül ugyanaz az elem helyben vált: „Még ott van?” Igen / Nem (≥ 56 px), nincs új kártya', rpr.same && rpr.q === 'Még ott van?' && rpr.btns.join('|') === 'Igen|Nem' && rpr.h >= 56 && rpr.n === 1 && !rpr.bottomCard, JSON.stringify(rpr));
-  if (!CHECK_ONLY) await rpg.shot(`${DATE}-meg-ott-van.png`);
+  const rpr = await rpg.evaluate(`(() => { const row = ${q('.report-alert-row')}; const app = window.__alertLog.filter((x) => x.phase === 'approach').map((x) => Number(/(\\d+) m$/.exec(x.txt ?? '')?.[1])).filter((d) => d > 0); return { same: row === window.__alertEl, q: row.querySelector('.report-alert-q')?.innerText.trim(), btns: [...row.querySelectorAll('.btn')].map((b) => b.innerText.trim()), h: Math.min(...[...row.querySelectorAll('.btn')].map((b) => b.getBoundingClientRect().height)), n: document.querySelectorAll('.report-alert-row').length, bottomCard: !!document.querySelector('.report-card'), lastApproachM: app.at(-1) }; })()`);
+  // a fixek ~33 m-enként jönnek (120 km/h): az utolsó figyelmeztetés 50 m fölött, legfeljebb egy lépéssel előtte
+  check('50 m-rel a bejelentés előtt ugyanaz az elem helyben vált: „Még ott van?” Igen / Nem (≥ 56 px), nincs új kártya', rpr.same && rpr.q === 'Még ott van?' && rpr.btns.join('|') === 'Igen|Nem' && rpr.h >= 56 && rpr.n === 1 && !rpr.bottomCard && rpr.lastApproachM > 50 && rpr.lastApproachM <= 90, JSON.stringify(rpr));
   await rpg.evaluate(`${q('.report-alert-row .btn')}.click(); true`);
   await sleep(400);
-  check('„Igen”: köszönő toast, a kártya eltűnik', /megerősítve/.test(await rpg.evaluate(text('.toast'))) && !(await rpg.evaluate(`!!${q('.report-alert-row')}`)));
-  await rpg.waitFor(q('.report-alert .report-card-title, .report-alert-row'), 90_000, 'következő bejelentés').catch(() => undefined);
-  const rpNext = await rpg.evaluate(`${q('.report-alert-row b')}?.innerText.trim() ?? null`);
-  check('arra a bejelentésre nem tér vissza: a következő kártya másik bejelentésé', rpNext !== null && !/^Rendőrség/.test(rpNext), String(rpNext));
+  check('„Igen”: köszönő toast, a kártya azonnal eltűnik', /megerősítve/.test(await rpg.evaluate(text('.toast'))) && !(await rpg.evaluate(`!!${q('.report-alert-row')}`)));
+  // a következő (Akadály): válasz nélkül az elhaladás után még 10 s-ig látszik, aztán magától eltűnik
+  await rpg.waitFor(`${q('.report-alert-row')}?.dataset.phase === 'ask'`, 120_000, 'következő kérdés');
+  const askAt = await rpg.evaluate(`performance.now()`);
+  const nextTitle = await rpg.evaluate(`${q('.report-alert-row b')}?.innerText.trim() ?? null`);
+  await rpg.waitFor(`!/Akadály/.test(${q('.report-alert-row b')}?.innerText ?? '')`, 30_000, 'magától eltűnik');
+  const shownS = ((await rpg.evaluate(`performance.now()`)) - askAt) / 1000;
+  check('arra a bejelentésre nem tér vissza; a következő kérdés válasz nélkül az elhaladás után ~10 s-mal magától eltűnik', nextTitle === 'Akadály' && shownS >= 2.3 && shownS < 8, `${nextTitle}, ${shownS.toFixed(1)} s (4× sim)`);
   // egy kapu-tétel: „Átlagmérés eleje” → elküldve (a szerver-hívás itt elfogva) → ugyanaz a sor „Átlagmérés vége”
   await rpg.evaluate(`window.__gateCalls = []; const f0 = window.fetch; window.fetch = (...a) => { const u = String(a[0]?.url ?? a[0]); if (/\\/rest\\/v1\\/reports/.test(u)) { window.__gateCalls.push(u); return Promise.resolve(new Response(JSON.stringify([{ id: '00000000-0000-4000-8000-0000000000a1' }]), { status: 201, headers: { 'content-type': 'application/json' } })); } return f0(...a); }; true`);
   await click(rpg, 'button[aria-label="Bejelentés"]');

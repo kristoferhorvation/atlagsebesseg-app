@@ -64,36 +64,43 @@ struct ReportPromptCandidateTests {
 struct ReportPromptWatchTests {
     // a bejelentés 300 m-re északra; az autó észak felé halad, `along` méterrel a kiindulás után
     private let R = [rep("a", 0, 300)]
-    private func at(_ along: Double) -> GpsFix {
+    private func at(_ along: Double, heading: Double = 0) -> GpsFix {
         let p = destinationPoint(HOME, 0, along)
-        return GpsFix(lat: p.lat, lon: p.lon, timestamp: 0, speed: 20, accuracy: 5, heading: 0)
+        return GpsFix(lat: p.lat, lon: p.lon, timestamp: 0, speed: 20, accuracy: 5, heading: heading)
     }
 
-    @Test("előbb figyelmeztet, askM-en belül ugyanaz a kártya helyben kérdésre vált")
+    @Test("előbb figyelmeztet, 50 m-rel a bejelentés előtt ugyanaz a kártya helyben kérdésre vált")
     func valt() throws {
         let w = ReportPromptWatch()
         let a = try #require(w.update(at(60), R, voted: never, now: 0))
         #expect(a.id == "a" && a.phase == .approach && Int(a.distanceM.rounded()) == 240)
-        let b = w.update(at(150), R, voted: never, now: 1000)
+        #expect(w.update(at(200), R, voted: never, now: 1000)?.phase == .approach)
+        let b = w.update(at(255), R, voted: never, now: 2000)
         #expect(b?.id == "a" && b?.phase == .ask)
     }
 
-    @Test("a kérdés után showMs múlva eltűnik, és arra a bejelentésre nem tér vissza")
+    @Test("a kérdés az elhaladás után még showMs-ig látható, aztán eltűnik, és arra a bejelentésre nem tér vissza")
     func lejar() {
         let w = ReportPromptWatch()
-        #expect(w.update(at(150), R, voted: never, now: 0)?.phase == .ask)
-        #expect(w.update(at(150), R, voted: never, now: REPORT_PROMPT.showMs - 1)?.phase == .ask)
-        #expect(w.update(at(150), R, voted: never, now: REPORT_PROMPT.showMs) == nil)
-        #expect(w.update(at(160), R, voted: never, now: REPORT_PROMPT.showMs + 1000) == nil)
+        #expect(w.update(at(260), R, voted: never, now: 0)?.phase == .ask)
+        // elhaladás előtt nincs időkorlát
+        #expect(w.update(at(290), R, voted: never, now: 20_000)?.phase == .ask)
+        // elhaladás (mögöttünk): innen számít a showMs
+        #expect(w.update(at(320), R, voted: never, now: 21_000)?.phase == .ask)
+        #expect(w.update(at(380), R, voted: never, now: 21_000 + REPORT_PROMPT.showMs - 1)?.phase == .ask)
+        #expect(w.update(at(400), R, voted: never, now: 21_000 + REPORT_PROMPT.showMs) == nil)
+        #expect(w.update(at(260), R, voted: never, now: 40_000) == nil)
     }
 
-    @Test("elhaladás után eltűnik, és nem tér vissza")
-    func elhaladas() {
+    @Test("kérdés nélküli elhaladás (a bejelentés 50 m-nél messzebb maradt): eltűnik, és nem tér vissza")
+    func oldalt() {
+        let p = destinationPoint(destinationPoint(HOME, 0, 300), 90, 70)
+        let side = [ActiveReport(id: "s", type: .rendorseg, lat: p.lat, lon: p.lon, createdAt: 0, expiresAt: 10_000_000)]
         let w = ReportPromptWatch()
-        #expect(w.update(at(60), R, voted: never, now: 0)?.phase == .approach)
-        #expect(w.update(at(280), R, voted: never, now: 1000)?.phase == .ask)
-        #expect(w.update(at(360), R, voted: never, now: 2000) == nil)
-        #expect(w.update(at(60), R, voted: never, now: 3000) == nil)
+        #expect(w.update(at(200), side, voted: never, now: 0)?.phase == .approach)
+        #expect(w.update(at(300), side, voted: never, now: 1000)?.phase == .approach)
+        #expect(w.update(at(380), side, voted: never, now: 2000) == nil)
+        #expect(w.update(at(200), side, voted: never, now: 3000) == nil)
     }
 
     @Test("hajtűkanyar: ha még nem voltunk a közelében, a „mögöttünk” nem elhaladás")
@@ -101,9 +108,7 @@ struct ReportPromptWatchTests {
         let w = ReportPromptWatch()
         #expect(w.update(at(60), R, voted: never, now: 0)?.phase == .approach)
         // 150 m-re, de az út visszafordul: a haladási irány dél, a bejelentés mögöttünk – még nem haladtunk el mellette
-        var back = at(150)
-        back.heading = 180
-        #expect(w.update(back, R, voted: never, now: 1000)?.id == "a")
+        #expect(w.update(at(150, heading: 180), R, voted: never, now: 1000)?.id == "a")
     }
 
     @Test("kanyarban (a kúpon kívül, de nem mögöttünk) a kártya megmarad; messzire kerülve eltűnik")
@@ -111,27 +116,32 @@ struct ReportPromptWatchTests {
         let w = ReportPromptWatch()
         #expect(w.update(at(60), R, voted: never, now: 0)?.phase == .approach)
         // az út elkanyarodik: a haladási irány 70°-ra fordul, a bejelentés még előttünk-oldalt
-        var turned = at(80)
-        turned.heading = 70
-        #expect(w.update(turned, R, voted: never, now: 1000)?.id == "a")
+        #expect(w.update(at(80, heading: 70), R, voted: never, now: 1000)?.id == "a")
         let far = ReportPromptWatch()
         #expect(far.update(at(60), R, voted: never, now: 0) != nil)
         let p = destinationPoint(HOME, 90, 600)
         #expect(far.update(GpsFix(lat: p.lat, lon: p.lon, timestamp: 0, speed: 20, accuracy: 5, heading: 90), R, voted: never, now: 1000) == nil)
     }
 
-    @Test("válasz (bezárás / szavazat) után, vagy ha a bejelentés eltűnt a listából, a kártya eltűnik")
+    @Test("válaszra (bezárás / szavazat) azonnal eltűnik, és akkor is, ha a bejelentés eltűnt a listából")
     func valasz() {
         let w = ReportPromptWatch()
-        #expect(w.update(at(150), R, voted: never, now: 0)?.phase == .ask)
+        #expect(w.update(at(260), R, voted: never, now: 0)?.phase == .ask)
         w.close()
-        #expect(w.update(at(150), R, voted: never, now: 500) == nil)
+        #expect(w.update(at(260), R, voted: never, now: 500) == nil)
         let w2 = ReportPromptWatch()
-        #expect(w2.update(at(150), R, voted: never, now: 0) != nil)
-        #expect(w2.update(at(150), R, voted: { $0 == "a" }, now: 500) == nil)
+        #expect(w2.update(at(260), R, voted: never, now: 0) != nil)
+        #expect(w2.update(at(260), R, voted: { $0 == "a" }, now: 500) == nil)
         let w3 = ReportPromptWatch()
-        #expect(w3.update(at(150), R, voted: never, now: 0) != nil)
-        #expect(w3.update(at(150), [], voted: never, now: 500) == nil)
+        #expect(w3.update(at(260), R, voted: never, now: 0) != nil)
+        #expect(w3.update(at(260), [], voted: never, now: 500) == nil)
+    }
+
+    @Test("álló autó (irány nélkül) 50 m-en belül rögtön kérdez")
+    func allo() {
+        let w = ReportPromptWatch()
+        let p = w.update(fix(nil), [rep("a", 0, 30)], voted: never, now: 0)
+        #expect(p?.id == "a" && p?.phase == .ask)
     }
 
     @Test("egyszerre egy bejelentés; a lezárása után a következőre figyelmeztet")

@@ -167,7 +167,7 @@ struct ReportAlertModel {
 }
 
 /// A közeledő bejelentés sora a kamera-sor kinézetével (borostyán kártyán, sötét betűvel): közeledéskor „Rendőrség 240 m”,
-/// `askM`-en belül UGYANEZ a sor helyben „Még ott van?” + Igen / Nem (nem jön új elem).
+/// 50 m-rel a bejelentés előtt (`REPORT_PROMPT.nearM`) UGYANEZ a sor helyben „Még ott van?” + Igen / Nem (nem jön új elem).
 struct ReportAlertRow: View {
     let alert: ReportAlertModel
     let unit: SpeedUnit

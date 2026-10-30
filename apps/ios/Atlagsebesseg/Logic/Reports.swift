@@ -323,10 +323,6 @@ nonisolated private func promptGone(_ g: (d: Double, ahead: Bool, behind: Bool),
     (g.behind && minD <= REPORT_PASSED_NEAR_M && g.d > REPORT_PROMPT.nearM) || g.d > 2 * alertM
 }
 
-nonisolated private func promptAsks(_ d: Double, _ ahead: Bool) -> Bool {
-    d <= REPORT_PROMPT.nearM || (ahead && d <= REPORT_PROMPT.askM)
-}
-
 /// A legközelebbi bejelentés, amelyre most figyelmeztetni kell (a webes `reportPromptCandidate`; `skip`: már volt /
 /// szavaztunk rá): előttünk (±`coneDeg`) a kamerával azonos távolságon belül, irány nélkül csak `nearM`-en belül.
 nonisolated func reportPromptCandidate(_ fix: GpsFix, _ reports: [ActiveReport], skip: (String) -> Bool) -> ActiveReport? {
@@ -344,34 +340,42 @@ nonisolated func reportPromptCandidate(_ fix: GpsFix, _ reports: [ActiveReport],
     return best
 }
 
-/// EGY kártya a kamera-figyelmeztetés helyén (a webes `ReportPromptWatch`): figyelmeztetés → `askM`-en belül helyben kérdés →
-/// vége (válasz, elhaladás, a kérdés után `showMs`, vagy a bejelentés eltűnt). Egy bejelentés egyszer kerül sorra.
+/// EGY kártya a kamera-figyelmeztetés helyén (a webes `ReportPromptWatch`): figyelmeztetés → kérdés (`nearM`-rel a bejelentés
+/// előtt, helyben) → elhaladás után `showMs` → vége; válaszra (vagy ha a bejelentés eltűnt, vagy messzire kerültünk) azonnal.
+/// Kérdés nélküli elhaladás (a bejelentés `nearM`-nél messzebb maradt): rögtön vége. Egy bejelentés egyszer kerül sorra.
 nonisolated final class ReportPromptWatch {
     private var done = Set<String>()
-    private var cur: (id: String, askAt: Double?, minD: Double)?
+    private var cur: (id: String, asking: Bool, passedAt: Double?, minD: Double)?
 
     func update(_ fix: GpsFix?, _ reports: [ActiveReport], voted: (String) -> Bool, now: Double) -> ReportPrompt? {
         if var c = cur {
             let r = reports.first { $0.id == c.id }
             let g = r.flatMap { r in fix.map { promptGeometry($0, r) } }
-            if let g { c.minD = min(c.minD, g.d) }
+            if let g {
+                c.minD = min(c.minD, g.d)
+                if !c.asking, g.d <= REPORT_PROMPT.nearM { c.asking = true }
+                // a kérdés alatt az elhaladás (mögöttünk van) indítja a `showMs`-t
+                if c.asking, c.passedAt == nil, g.behind { c.passedAt = now }
+            }
             cur = c
-            let over = r == nil || voted(c.id) || (c.askAt.map { now - $0 >= REPORT_PROMPT.showMs } ?? false)
-                || (g.map { promptGone($0, minD: c.minD, alertM: reportAlertM(fix?.speed)) } ?? false)
-            if !over {
-                guard let g else { return ReportPrompt(id: c.id, phase: c.askAt == nil ? .approach : .ask, distanceM: .nan) }
-                if c.askAt == nil, promptAsks(g.d, g.ahead) { cur = (c.id, now, c.minD) }
-                return ReportPrompt(id: c.id, phase: cur?.askAt == nil ? .approach : .ask, distanceM: g.d)
+            let alertM = reportAlertM(fix?.speed)
+            let far = g.map { $0.d > 2 * alertM } ?? false
+            let ended = c.asking
+                ? c.passedAt.map { now - $0 >= REPORT_PROMPT.showMs } ?? false
+                : g.map { promptGone($0, minD: c.minD, alertM: alertM) } ?? false
+            if r != nil, !voted(c.id), !far, !ended {
+                return ReportPrompt(id: c.id, phase: c.asking ? .ask : .approach, distanceM: g?.d ?? .nan)
             }
             finish()
         }
         guard let fix, let r = reportPromptCandidate(fix, reports, skip: { done.contains($0) || voted($0) }) else { return nil }
         let g = promptGeometry(fix, r)
-        cur = (r.id, promptAsks(g.d, g.ahead) ? now : nil, g.d)
-        return ReportPrompt(id: r.id, phase: cur?.askAt == nil ? .approach : .ask, distanceM: g.d)
+        let asking = g.d <= REPORT_PROMPT.nearM
+        cur = (r.id, asking, nil, g.d)
+        return ReportPrompt(id: r.id, phase: asking ? .ask : .approach, distanceM: g.d)
     }
 
-    /// Válasz (Igen / Nem) vagy ×: a kártya eltűnik, erre a bejelentésre nem tér vissza.
+    /// Válasz (Igen / Nem) vagy ×: a kártya azonnal eltűnik, erre a bejelentésre nem tér vissza.
     func close() { finish() }
 
     var current: String? { cur?.id }

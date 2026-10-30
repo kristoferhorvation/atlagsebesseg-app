@@ -154,6 +154,8 @@ final class AppModel {
             geoHelpOpen = args.bool(forKey: "geoHelp")
             // `-reportOpen YES` (AOS14): a Bejelentés menü nyitva (a képernyőképhez)
             reportSheetOpen = args.bool(forKey: "reportOpen")
+            // `-gateStarted YES`: az „Átlagmérés eleje” már elküldve – a menü kapu-tétele „Átlagmérés vége” (képernyőkép, küldés nélkül)
+            gateStarted = args.bool(forKey: "gateStarted")
         }
     }
 

@@ -61,10 +61,9 @@ nonisolated enum MANUAL_PILL {
     static let startSpaceCollapseMs = 3000.0
     static let maneuverNearM = 500.0
 }
-/// „Még ott van?” (AOS14): előttünk (±`coneDeg`) `askM`-en belül, irány nélkül `nearM`-en belül kérdez, bejelentésenként
-/// egyszer; válasz nélkül `showMs` után eltűnik.
+/// „Még ott van?” (AOS14): a figyelmeztetés `nearM`-rel a bejelentés előtt (álló autónál irány nélkül `nearM`-en belül) vált
+/// kérdésre, az elhaladás után `showMs`-ig látható; ±`coneDeg` az „előttünk”, bejelentésenként egyszer.
 nonisolated enum REPORT_PROMPT {
-    static let askM = 200.0
     static let nearM = 50.0
     static let coneDeg = 45.0
     static let showMs = 10000.0
