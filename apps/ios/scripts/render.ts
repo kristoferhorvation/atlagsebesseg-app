@@ -91,7 +91,7 @@ function appLogicConstants(): string {
     'nonisolated enum REPORT_PROMPT {',
     ...Object.entries(REPORT_PROMPT).map(([k, v]) => `    static let ${k} = ${num(v)}`),
     '}',
-    '/// AW18: élő forgalom (2 perces friss lekérés), „+N perc dugó” (≥ `delayShowS`, hang legfeljebb `delayRepeatMs`-enként),',
+    '/// AW18: élő forgalom (2 perces friss lekérés), „+N perc dugó” (≥ `delayShowS`, hang csak először),',
     '/// helyi dugó-érzékelés (`jamWindowMs` ablak a várt tempó `jamSlowFraction`-ja alatt; vége `jamClearM` a `jamNearFraction` fölött),',
     '/// a „Dugóba kerültél?” kártya `jamPromptMs`-ig, közösségi dugó-adat `communityMaxAgeMs`-ig, újratervezés-backoff (s).',
     'nonisolated enum TRAFFIC {',

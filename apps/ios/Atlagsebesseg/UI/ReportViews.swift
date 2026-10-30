@@ -264,7 +264,11 @@ struct JamAskRow: View {
         VStack(alignment: .leading, spacing: Tokens.Space.s3) {
             HStack(spacing: Tokens.Space.s3) {
                 Icon(name: .dugo, size: 40)
-                Text(t(.navJamQuestion)).font(.num(Tokens.Typography.title.size, 700)).tracking(-0.3).lineLimit(1).minimumScaleFactor(0.8)
+                // AW18-javítás: a „Dugó” cím a kérdés fölött, mint a weben és a „Még ott van?” sorban
+                VStack(alignment: .leading, spacing: 0) {
+                    Text(t(.reportTypeDugo)).font(.inter(Tokens.Typography.body.size, 640)).lineLimit(1)
+                    Text(t(.navJamQuestion)).font(.num(Tokens.Typography.title.size, 700)).tracking(-0.3).lineLimit(1).minimumScaleFactor(0.8)
+                }
             }
             HStack(spacing: Tokens.Space.s2) {
                 answer(true, icon: .check, text: t(.reportPromptYes))

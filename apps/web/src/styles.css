@@ -1046,7 +1046,13 @@ button.pill::after {
 
 .tiles-4 .tile[data-gate] {
   font-size: 16px;
-  line-height: 1.15;
+  line-height: 1.1;
+}
+
+.tiles-4 .tile[data-gate] .ic {
+  width: 36px;
+  height: 36px;
+  border-radius: 12px;
 }
 
 .tile.small {

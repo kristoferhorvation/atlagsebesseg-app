@@ -70,13 +70,12 @@ nonisolated enum REPORT_PROMPT {
     static let coneDeg = 45.0
     static let showMs = 10000.0
 }
-/// AW18: élő forgalom (2 perces friss lekérés), „+N perc dugó” (≥ `delayShowS`, hang legfeljebb `delayRepeatMs`-enként),
+/// AW18: élő forgalom (2 perces friss lekérés), „+N perc dugó” (≥ `delayShowS`, hang csak először),
 /// helyi dugó-érzékelés (`jamWindowMs` ablak a várt tempó `jamSlowFraction`-ja alatt; vége `jamClearM` a `jamNearFraction` fölött),
 /// a „Dugóba kerültél?” kártya `jamPromptMs`-ig, közösségi dugó-adat `communityMaxAgeMs`-ig, újratervezés-backoff (s).
 nonisolated enum TRAFFIC {
     static let refreshMs = 120000.0
     static let delayShowS = 180.0
-    static let delayRepeatMs = 300000.0
     static let jamWindowMs = 120000.0
     static let jamSlowFraction = 0.5
     static let jamNearFraction = 0.8

@@ -249,7 +249,8 @@ Gyökér: `npm test` és `npm run typecheck` minden csomagra; `npm run test:all`
     továbbra is az AW12-szabállyal (≥ 2 perc, megéri / lehet / nem éri meg). A Directions-kliens 10 s után `timeout`.
   - **„+N perc dugó”:** a friss ETA (Mapbox / helyi dugó) − az indulási terv (`plannedEtaMs`, az első fixnél rögzítve) ≥ 3
     perc → borostyán pill az érkezési idő mellett (`delayMin`); csak friss adattal vagy dugóban (a puszta lassú haladás nem
-    elég). Hang (`nav.voice.delay`, `VoiceKind` `traffic`) egyszer, aztán legfeljebb 5 percenként, ha nőtt.
+    elég). Hang (`nav.voice.delay`, `VoiceKind` `traffic`) **csak az első alkalommal** (AW18-javítás, Kristof); a késés
+    további növekedésénél a sáv némán frissül.
   - **Helyi dugó-érzékelés (`JamDetector`):** a 2 perces ablak átlaga (az útvonal menti legtávolabbi pont növekedéséből – a
     GPS-zaj nem haladás) a várt tempó (a Directions nyers ideje ±250 m-en) fele alatt → dugó; vége ≥ 500 m megszakítás
     nélkül a várt tempó 80%-a fölött (a lámpák közti rövid gyorsulás nem szakítja meg). Dugóba lépéskor „Dugóba kerültél?
@@ -258,7 +259,8 @@ Gyökér: `npm test` és `npm run typecheck` minden csomagra; `npm run test:all`
     manőverig (legfeljebb `jamAheadMaxM` = 3 km) a mért átlaggal (legalább 5 km/h), onnan a tervvel; a Mapbox és a helyi
     becslés közül a nagyobb.
   - **Bejelentés:** új típusok `dugo` (lassan halad) és `beallt` (áll), a menü utolsó sorában a kapu-tétel mellett
-    (`isRowTile`; egy 4 oszlopos rács, 1 + 1 + 2), 6 nyelven (angolul „Traffic” / „Standstill”, hogy egy sorba férjen); a
+    (`isRowTile`; egy 4 oszlopos rács, 1 + 1 + 2), 6 nyelven (angolul „Traffic” / „Standstill”, hogy egy sorba férjen;
+    AW18-javítás: németül „Messstrecke Start / Ende”, „Sperrung”, „Strecke fehlerhaft” – így minden nyelven minden csempe 76 px); a
     menüből küldött dugó / beállt is közösségi mintát ad (`reportedJam`); a kártya „Igen”-je egyetlen `bejelentett` mintát ad.
   - **Alsó sáv dugónál kétsoros:** a „+N perc dugó” az érkezési idő fölött (390 px-en mellé nem fér).
   - **Közösségi dugó-adat:** `jam_samples` tábla (migráció `20261030000100`, RLS mint a reports: olvasás mindenkinek, beszúrás

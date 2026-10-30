@@ -1841,7 +1841,11 @@ describe('AW17: az útvonalválasztó „+N perc” címkéjének helye (képern
 // ---------------------------------------------------------------------------
 
 /** Egyenletes haladás `fromS`-től `toS`-ig (mp-enként egy fix), `mps` sebességgel, `alongM`-től. Visszaadja a végső helyet. */
-async function drive(h: Harness, route: NavRoute, o: { fromS: number; toS: number; alongM: number; mps: number; respond?: (s: number, along: number) => NavRoute[] | null }): Promise<number> {
+async function drive(
+  h: Harness,
+  route: NavRoute,
+  o: { fromS: number; toS: number; alongM: number; mps: number; respond?: (s: number, along: number) => NavRoute[] | null; onStep?: (s: number) => unknown },
+): Promise<number> {
   let along = o.alongM;
   for (let s = o.fromS; s <= o.toS; s++) {
     if (s > o.fromS) along += o.mps;
@@ -1849,6 +1853,7 @@ async function drive(h: Harness, route: NavRoute, o: { fromS: number; toS: numbe
     if (r) h.respond(r);
     feed(h, at(route, along, 0, T0 + s * 1000, { speed: o.mps }));
     await flush();
+    o.onStep?.(s);
   }
   return along;
 }
@@ -1927,24 +1932,26 @@ describe('AW18: élő forgalom navigáció közben', () => {
     expect(plain.get('alternatives')).toBe('true');
   });
 
-  it('„+N perc dugó” 3 perctől; a hang egyszer, aztán legfeljebb 5 percenként, ha a késés tovább nőtt', async () => {
+  it('„+N perc dugó” 3 perctől; a hang csak az első alkalommal szól, a késés további növekedése néma (a sáv frissül)', async () => {
     const route = lineRoute({ lengthM: 100_000, durationS: 3600 });
     const h = harness(route);
     const v = 100_000 / 3600;
     const extra = [120, 240, 360, 480, 480];
-    const delays: (number | null)[] = [];
     const said: string[] = [];
+    const delays: (number | null)[] = [];
     await drive(h, route, {
       fromS: 0,
       toS: 600,
       alongM: 0,
       mps: v,
       respond: (s, along) => (s % 120 === 0 && s > 0 ? [freshFrom(along, extra[s / 120 - 1]!)] : null),
+      onStep: (s) => s % 120 === 5 && delays.push(h.session.view().delayMin),
     });
-    void delays;
     for (const e of h.session.drainVoice()) if (e.kind === 'traffic') said.push(e.text);
-    // 2 perc: nincs; 4 perc (240 s): „4 perccel” – egyszer; 6 perc (360 s): csak 2 perce szólt; 8 perc (480): 5 perc után, nőtt
-    expect(said).toEqual(['Dugó az útvonalon, az érkezés 4 perccel később.', 'Dugó az útvonalon, az érkezés 8 perccel később.']);
+    // 2 perc: nincs; 4 perc (240 s): „4 perccel” – egyszer; 6 és 8 perc: a sáv frissül, hang nincs
+    expect(said).toEqual(['Dugó az útvonalon, az érkezés 4 perccel később.']);
+    // a mintavétel 5 s-mal a lekérések után (5, 125, 245, 365, 485 s): a sáv minden friss adatnál frissül
+    expect(delays).toEqual([null, null, 4, 6, 8]);
     expect(h.session.view().delayMin).toBe(8);
   });
 

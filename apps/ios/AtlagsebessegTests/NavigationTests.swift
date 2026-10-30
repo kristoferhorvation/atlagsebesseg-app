@@ -2004,13 +2004,14 @@ struct AW17LabelTests {
 /// Egyenletes haladás `fromS`-től `toS`-ig (mp-enként egy fix), `mps` sebességgel, `alongM`-től. Visszaadja a végső helyet.
 @MainActor
 @discardableResult
-private func drive(_ h: Harness, _ route: NavRoute, fromS: Int, toS: Int, alongM: Double, mps: Double, respond: ((Int, Double) -> [NavRoute]?)? = nil) async -> Double {
+private func drive(_ h: Harness, _ route: NavRoute, fromS: Int, toS: Int, alongM: Double, mps: Double, respond: ((Int, Double) -> [NavRoute]?)? = nil, onStep: ((Int) -> Void)? = nil) async -> Double {
     var along = alongM
     for s in fromS...toS {
         if s > fromS { along += mps }
         if let r = respond?(s, along) { h.respond(r) }
         h.feed(at(route, along, 0, T0 + Double(s) * 1000, speed: mps))
         await h.session.settle()
+        onStep?(s)
     }
     return along
 }
@@ -2099,18 +2100,23 @@ struct AW18TrafficTests {
         #expect(pq("alternatives") == "true")
     }
 
-    @Test("„+N perc dugó” 3 perctől; a hang egyszer, aztán legfeljebb 5 percenként, ha a késés tovább nőtt")
+    @Test("„+N perc dugó” 3 perctől; a hang csak az első alkalommal szól, a késés további növekedése néma (a sáv frissül)")
     func kesesHang() async {
         let route = lineRoute(lengthM: 100_000, durationS: 3600)
         let h = Harness(route)
         let v = 100_000.0 / 3600
         let extra: [Double] = [120, 240, 360, 480, 480]
-        await drive(h, route, fromS: 0, toS: 600, alongM: 0, mps: v) { s, along in
+        var delays: [Int?] = []
+        await drive(h, route, fromS: 0, toS: 600, alongM: 0, mps: v, respond: { s, along in
             s % 120 == 0 && s > 0 ? [freshFrom(along, extra[s / 120 - 1])] : nil
-        }
+        }, onStep: { s in
+            if s % 120 == 5 { delays.append(h.session.view().delayMin) }
+        })
         let said = h.session.drainVoice().filter { $0.kind == .traffic }.map(\.text)
-        // 2 perc: nincs; 4 perc (240 s): „4 perccel” – egyszer; 6 perc (360 s): csak 2 perce szólt; 8 perc (480): 5 perc után, nőtt
-        #expect(said == ["Dugó az útvonalon, az érkezés 4 perccel később.", "Dugó az útvonalon, az érkezés 8 perccel később."])
+        // 2 perc: nincs; 4 perc (240 s): „4 perccel” – egyszer; 6 és 8 perc: a sáv frissül, hang nincs
+        #expect(said == ["Dugó az útvonalon, az érkezés 4 perccel később."])
+        // a mintavétel 5 s-mal a lekérések után (5, 125, 245, 365, 485 s): a sáv minden friss adatnál frissül
+        #expect(delays == [nil, nil, 4, 6, 8])
         #expect(h.session.view().delayMin == 8)
     }
 

@@ -7,8 +7,8 @@ import type { NavRoute } from './types';
 /**
  * AW18: forgalom navigáció közben, helyi dugó-érzékelés, közösségi dugó-adat, újratervezés-újrapróbálás.
  * - `refreshMs`: friss driving-traffic lekérés ennyi időnként (a 2 perces alternatíva-figyeléssel közös hívás).
- * - `delayShowS`: a „+N perc dugó” ennyi késéstől (a friss ETA az indulási tervhez képest); a hang egyszer, aztán
- *   legfeljebb `delayRepeatMs`-enként, ha a késés tovább nőtt.
+ * - `delayShowS`: a „+N perc dugó” ennyi késéstől (a friss ETA az indulási tervhez képest); a hang csak az első
+ *   alkalommal szól, a további növekedésnél a sáv némán frissül.
  * - Dugó-állapot: a `jamWindowMs` ablak mért átlaga a várt tempó `jamSlowFraction`-ja alatt; vége, ha legalább
  *   `jamClearM`-en át a várt tempó `jamNearFraction`-ja fölött halad (a lámpák közti rövidebb gyorsulás nem szakítja meg).
  * - A „Dugóba kerültél?” kártya `jamPromptMs` után válasz nélkül eltűnik.
@@ -21,7 +21,6 @@ import type { NavRoute } from './types';
 export const TRAFFIC = {
   refreshMs: 120_000,
   delayShowS: 180,
-  delayRepeatMs: 300_000,
   jamWindowMs: 120_000,
   jamSlowFraction: 0.5,
   jamNearFraction: 0.8,

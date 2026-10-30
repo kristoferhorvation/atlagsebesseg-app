@@ -213,7 +213,8 @@ export class NavigationSession {
   private readonly jamDeclined = new Set<string>();
   private lastJamUploadAt: number | null = null;
   private jamUploads: JamSampleInsert[] = [];
-  private delaySaid: { at: number; min: number } | null = null;
+  /** A „+N perc dugó” hangja már elhangzott (AW18-javítás: csak egyszer). */
+  private delaySaid = false;
 
   constructor(
     route: NavRoute,
@@ -757,15 +758,14 @@ export class NavigationSession {
     return (t0 + this.remainingS() * 1000 - this.plannedEtaMs) / 1000;
   }
 
-  /** A „+N perc dugó” hangja: egyszer ≥ 3 percnél, aztán legfeljebb 5 percenként, ha tovább nőtt; a kérdés lejárata. */
+  /** A „+N perc dugó” hangja: csak az első alkalommal (≥ 3 perc); a további növekedésnél a sáv némán frissül. A kérdés lejárata. */
   private updateTraffic(t0: number): void {
     if (this.jamAskUntil !== null && t0 >= this.jamAskUntil) this.jamAskUntil = null;
     const d = this.delayS(t0);
     if (d === null || d < TRAFFIC.delayShowS) return;
     const min = Math.round(d / 60);
-    const s = this.delaySaid;
-    if (s === null || (t0 - s.at >= TRAFFIC.delayRepeatMs && min > s.min)) {
-      this.delaySaid = { at: t0, min };
+    if (!this.delaySaid) {
+      this.delaySaid = true;
       this.say('traffic', t('nav.voice.delay', { n: min }));
     }
   }

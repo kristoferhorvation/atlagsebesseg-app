@@ -10058,7 +10058,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Abschnittsmessung: Anfang"
+            "value" : "Messstrecke Start"
           }
         },
         "en" : {
@@ -10099,7 +10099,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Abschnittsmessung: Ende"
+            "value" : "Messstrecke Ende"
           }
         },
         "en" : {
@@ -10181,7 +10181,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Fehlerhafter Abschnitt"
+            "value" : "Strecke fehlerhaft"
           }
         },
         "en" : {
@@ -10263,7 +10263,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Straßensperrung"
+            "value" : "Sperrung"
           }
         },
         "en" : {

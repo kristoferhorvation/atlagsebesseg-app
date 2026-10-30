@@ -212,7 +212,8 @@ final class NavigationSession {
     private var jamDeclined = Set<String>()
     private var lastJamUploadAt: Double?
     private var jamUploads: [JamSampleInsert] = []
-    private var delaySaid: (at: Double, min: Int)?
+    /// A „+N perc dugó” hangja már elhangzott (AW18-javítás: csak egyszer).
+    private var delaySaid = false
 
     /// Minden változás után (a nézet frissül, a hang-réteg kiolvassa a sort).
     var onChange: (() -> Void)?
@@ -720,13 +721,13 @@ final class NavigationSession {
         return (t0 + remainingS() * 1000 - plannedEtaMs) / 1000
     }
 
-    /// A „+N perc dugó” hangja: egyszer ≥ 3 percnél, aztán legfeljebb 5 percenként, ha tovább nőtt; a kérdés lejárata.
+    /// A „+N perc dugó” hangja: csak az első alkalommal (≥ 3 perc); a további növekedésnél a sáv némán frissül. A kérdés lejárata.
     private func updateTraffic(_ t0: Double) {
         if let u = jamAskUntil, t0 >= u { jamAskUntil = nil }
         guard let d = delayS(t0), d >= TRAFFIC.delayShowS else { return }
         let min = Int(jsRound(d / 60))
-        if delaySaid == nil || (t0 - delaySaid!.at >= TRAFFIC.delayRepeatMs && min > delaySaid!.min) {
-            delaySaid = (t0, min)
+        if !delaySaid {
+            delaySaid = true
             say(.traffic, t(.navVoiceDelay, ["n": String(min)], lang: lang))
         }
     }

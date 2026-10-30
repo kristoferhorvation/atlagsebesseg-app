@@ -86,8 +86,8 @@ biztonsági zóna fölött lebeg.
 - **Lap** (bottom sheet): bejelentés-rács (2 oszlop, 76 px-es csempék), beállítások. **AW18:** egy 4 oszlopos rács (a
   csempék 2 oszlopot foglalnak; a lap belső margójából 7-7 px, belső térköz 12 px), az utolsó sor 1 + 1 + 2: „Dugó” (lassan
   halad, `near`) és „Beállt” (áll, `over`) kis csempe – 36 px-es ikon a 15 px-es felirat fölött –, mellettük a kapu-tétel
-  (16 px-es felirat); a hosszú szavak elválasztva (`hyphens: auto`). A menü 4 sor marad: hu / en 76 px-es sorok, sk / cs / pl
-  +1 px, de-ben egy 3 soros felirat miatt +11 px.
+  (16 px-es felirat, 1.1-es sorköz, 36 px-es ikon); a hosszú szavak elválasztva (`hyphens: auto`). A menü 4 sor marad, minden
+  csempe 76 px mind a 6 nyelven (németül rövid feliratok: „Sperrung”, „Strecke fehlerhaft”, „Messstrecke Start / Ende”).
 - **Átlagmérés eleje / vége (AW16):** a bejelentés-rács alján két teljes szélességű csempe, „Átlagmérés eleje” és „Átlagmérés
   vége”: egy-egy ideiglenes kapu a jelenlegi helyről és haladási irányból (a meglévő kapu-jelentés) – ismeretlen mérési zóna
   bejelentésére; irány nélkül tiltott. A kézi mérés (stopper-gomb) **privát**: nem küld semmit a szerverre, hálózat nélkül is
@@ -120,10 +120,10 @@ biztonsági zóna fölött lebeg.
 - **Forgalom navigáció közben (AW18):** ha a friss ETA (2 percenkénti Mapbox-lekérés, újratervezés, helyi dugó-becslés)
   legalább 3 perccel az indulási terv után van, az alsó sávban borostyán (`near`) pill: „+N perc dugó” (17 px / 650, a `near`
   16%-os hátterén), közvetlenül az érkezési idő FÖLÖTT, annak oszlopától indulva – a sáv ilyenkor kétsoros (390 px-en a
-  sebesség és a Befejezés mellett az ETA oszlopa ~110 px, oda nem fér). Hang egyszer ≥ 3 percnél, aztán legfeljebb 5
-  percenként, ha a késés nőtt.
+  sebesség és a Befejezés mellett az ETA oszlopa ~110 px, oda nem fér). Hang csak az első alkalommal (≥ 3 perc); a további
+  növekedésnél a sáv némán frissül.
 - **„Dugóba kerültél?” (AW18):** dugó-állapotba lépéskor a manőverkártya alatt, a „Még ott van?” sor helyén és stílusában
-  (borostyán kártya, dugó-ikon, „Dugó” + „Dugóba kerültél?”, Igen / Nem, 56 px); a közeli kamera elsőbbséget kap, a közeledő
+  (borostyán kártya, dugó-ikon, fölül kicsiben „Dugó”, alatta nagyban „Dugóba kerültél?”, Igen / Nem, 56 px – weben és iOS-en azonosan); a közeli kamera elsőbbséget kap, a közeledő
   bejelentés utána jön. Igen → „Dugó” bejelentés a pozícióra (a meglévő folyamat, toast, jelölő a térképen); Nem → arra a
   szakaszra (a következő manőverig) ebben az útban nem kérdez újra; válasz nélkül 15 s után eltűnik. Hang egyszer.
 - **Újratervezés-hiba (AW18):** „Az újratervezés nem sikerült – próbálom újra” (`over`), alatta 17 px-es halvány sor: „Újra
