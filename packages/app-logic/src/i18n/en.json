@@ -89,6 +89,8 @@
   "slowdown.cant": "Can’t make it up",
   "slowdown.stay": "Stay under {x}",
   "slowdown.slow": "Slow down · max {x}",
+  "slowdown.compactMax": "max {x}",
+  "slowdown.compactCant": "can’t make it",
 
   "planned.line": "Planned police check",
   "planned.zone": "Police check in {place} · {date} · source: {source}",

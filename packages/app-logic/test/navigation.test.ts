@@ -1,4 +1,4 @@
-import { LocalProjection, Route, type GpsFix, type LatLon, type Section } from '@atlagsebesseg/core';
+import { LocalProjection, meterBar, Route, type GpsFix, type LatLon, type Section } from '@atlagsebesseg/core';
 import type { FixedCamera } from '../src/cameras';
 import { PLANNED_MATCH_M, type PlannedCheck } from '../src/plannedChecks';
 import { voiceInstructionsHint } from '../src/display';
@@ -24,6 +24,8 @@ import {
   savedChips,
   thenText,
   ALT_LABEL_PLACE,
+  compactMeterBarText,
+  slowDownBarShown,
   altDeltaText,
   altOfferCompactText,
   mercatorScreen,
@@ -1620,6 +1622,22 @@ describe('AW17: elrendezés, „Utána” 5 km-en belül, tábla és mérés, Be
     expect(navSpeedOver(110, 110)).toBe(false);
     expect(navSpeedOver(150, null)).toBe(false);
     expect(navSpeedOver(null, 50)).toBe(false);
+  });
+
+  it('egysoros kártyánál nincs külön „Lassíts” sáv – a max érték a kártyában; teljes kártyánál a sáv visszajön', () => {
+    expect(slowDownBarShown(navMeterCompact('meres', true))).toBe(false);
+    expect(slowDownBarShown(navMeterCompact('meres', false))).toBe(true);
+    // a 137 / 130 / 108-as példa: „lassíts”, max 115
+    expect(compactMeterBarText(meterBar('lassits', { kind: 'ok', maxKmh: 115.28 }), 'kmh')).toBe('max 115');
+    expect(compactMeterBarText(meterBar('tul_gyors', { kind: 'ok', maxKmh: 103.4 }), 'kmh')).toBe('max 103');
+    expect(compactMeterBarText(meterBar('tul_gyors', { kind: 'nem_lehetseges', maxKmh: 40 }), 'kmh')).toBe('nem hozható');
+    expect(compactMeterBarText(meterBar('jo', { kind: 'ok', maxKmh: 140 }), 'kmh')).toBeNull();
+    expect(compactMeterBarText(meterBar('tul_gyors', { kind: 'ok', maxKmh: 160.934 }), 'mph')).toBe('max 100');
+    for (const lang of LANGUAGES) {
+      setLanguage(lang);
+      expect(compactMeterBarText({ kind: 'max', maxKmh: 115 }, 'kmh'), lang).toMatch(/115/);
+      expect(compactMeterBarText({ kind: 'nem_hozhato' }, 'kmh'), lang).toBeTruthy();
+    }
   });
 
   it('mérés + ajánlat egyszerre: a mérőkártya egysoros; ajánlat nélkül vagy mérésen kívül teljes', () => {

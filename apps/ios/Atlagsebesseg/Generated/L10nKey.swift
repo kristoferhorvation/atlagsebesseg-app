@@ -79,6 +79,8 @@ enum L10nKey: String, CaseIterable, Sendable {
     case slowdownCant = "slowdown.cant"
     case slowdownStay = "slowdown.stay"
     case slowdownSlow = "slowdown.slow"
+    case slowdownCompactMax = "slowdown.compactMax"
+    case slowdownCompactCant = "slowdown.compactCant"
     case plannedLine = "planned.line"
     case plannedZone = "planned.zone"
     case plannedMax = "planned.max"

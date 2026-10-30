@@ -215,7 +215,10 @@ Gyökér: `npm test` és `npm run typecheck` minden csomagra; `npm run test:all`
   - **Elrendezés navigáció közben:** az alsó sáv (`NavBottom` / `NavBottomBar`) mindig a képernyő alján, a mérőkártya és minden
     más kártya fölötte; szakaszmérés közben sebesség nélkül (`navBottomShowsSpeed`), a km/h piros, ha a bal alsó tábla
     (Mapbox-limit, `nav.limitKmh`) fölött van (`navSpeedOver`, csak szín). Mérés + ajánlat: egysoros mérőkártya
-    (`navMeterCompact`). A külön kerek „Befejezés” gomb megszűnt (a sávban mindig ott van). Mivel a közeledés-kártya is az alsó sáv
+    (`navMeterCompact`); **javítva:** ilyenkor nincs külön „Lassíts” sáv (`slowDownBarShown`), a max érték („max 103” /
+    „nem hozható”, `compactMeterBarText`) a kártyán a státusz színében; az ajánlat után a sáv visszajön. A szimulátor
+    „visszahajtás” fejlépését az alternatíva hossztól függetlenül elhagyja (egy 200 m-es fejlépés lett a „lehajtó”, és az
+    auto-váltás azonnal átváltott). A külön kerek „Befejezés” gomb megszűnt (a sávban mindig ott van). Mivel a közeledés-kártya is az alsó sáv
     fölé kerül, a lépés-sáv (`navStepStrip`) már a mérés előtt is megjelenhet, ha a teljes felső kártya nem fér ki.
   - **Ajánlat:** kompakt szöveg „Kijárat 56 · 2,5 km · −7 perc gyorsabb” (`altOfferCompactText`, `nav.offer.compactDetail` /
     `nav.offer.compactFaster`, 6 nyelv). **Auto-váltás:** „Megéri” ajánlatnál a lehajtó 500 m-en belül (`ALT_OFFER.autoSwitchExitM`)

@@ -89,6 +89,8 @@
   "slowdown.cant": "Nicht mehr zu schaffen",
   "slowdown.stay": "Bleib unter {x}",
   "slowdown.slow": "Langsamer · max. {x}",
+  "slowdown.compactMax": "max. {x}",
+  "slowdown.compactCant": "nicht zu schaffen",
 
   "planned.line": "Geplante Polizeikontrolle",
   "planned.zone": "Polizeikontrolle in {place} · {date} · Quelle: {source}",

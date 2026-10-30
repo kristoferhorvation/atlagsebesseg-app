@@ -89,6 +89,8 @@
   "slowdown.cant": "Nem hozható be",
   "slowdown.stay": "Maradj {x} alatt",
   "slowdown.slow": "Lassíts · max {x}",
+  "slowdown.compactMax": "max {x}",
+  "slowdown.compactCant": "nem hozható",
 
   "planned.line": "Tervezett rendőrségi mérés",
   "planned.zone": "Rendőrségi mérés {place} területén · {date} · forrás: {source}",

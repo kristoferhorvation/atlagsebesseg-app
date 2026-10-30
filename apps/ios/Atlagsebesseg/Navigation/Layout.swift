@@ -1,3 +1,4 @@
+import AtlagsebessegCore
 import Foundation
 
 // A packages/app-logic/src/navigation/layout.ts portja (AOS13): a felső lépés-kártya egysoros sávvá zsugorodik, ha
@@ -88,3 +89,20 @@ nonisolated func navSpeedOver(_ currentKmh: Double?, _ signKmh: Double?) -> Bool
 nonisolated func navMeterCompact(_ phase: SessionPhase, offer: Bool) -> Bool {
     phase == .meres && offer
 }
+
+/// AW17-javítás: a külön „Lassíts · max X” / „Maradj X alatt” sáv csak a teljes mérőkártyával látszik. Egysoros kártyánál
+/// (mérés + ajánlat, `navMeterCompact`) a max érték és a státusz-szín a kártyában van (`compactMeterBarText`); az ajánlat
+/// eltűnése után a sáv a teljes kártyával visszajön.
+nonisolated func slowDownBarShown(_ meterCompact: Bool) -> Bool {
+    !meterCompact
+}
+
+/// AW17-javítás: az egysoros mérőkártya „max 103” / „nem hozható” felirata a `meterBar`-ból (`nil`: nincs mit mutatni).
+nonisolated func compactMeterBarText(_ bar: MeterBar?, _ unit: SpeedUnit, lang: Lang? = nil) -> String? {
+    switch bar {
+    case nil: nil
+    case .nemHozhato: t(.slowdownCompactCant, lang: lang)
+    case .max(let maxKmh): t(.slowdownCompactMax, ["x": speedIn(maxKmh, unit).map(String.init) ?? ""], lang: lang)
+    }
+}
+

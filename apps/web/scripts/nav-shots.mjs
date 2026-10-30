@@ -402,6 +402,9 @@ try {
   check('AW17: mérés + ajánlat – a mérőkártya egysoros, az ajánlat fölötte, az alsó sáv legalul (sebesség nélkül)', lay?.compact === true && lay.h <= 110 && lay.cardAboveBottom && lay.offerAbove === true && lay.bottomLast && !lay.speed, JSON.stringify(lay));
   check('kapu utáni lehajtó: bemondás a lehajtó távolságával', gVoice.length === 1 && /^Gyorsabb út, 7 perc megtakarítás, lehajtó \d+,\d kilométernél$/.test(gVoice[0]), gVoice.join(' | '));
   await sleep(600);
+  // AW17-javítás: egysoros kártyánál nincs külön „Lassíts” sáv – a max érték és a státusz-szín a kártyán
+  const cb = await g.evaluate(`({ bar: !!document.querySelector('.slowdown'), max: document.querySelector('.meter-compact-max')?.innerText ?? null, color: document.querySelector('.meter-compact-max') ? getComputedStyle(document.querySelector('.meter-compact-max')).color : null, avgColor: getComputedStyle(document.querySelector('.meter-compact .compact-speed')).color, status: document.querySelector('.hud > .card[aria-label="Mérés"]')?.dataset.tone })`);
+  check('AW17-javítás: egysoros kártyánál nincs „Lassíts” sáv; „max X” a kártyán a státusz színében', !cb.bar && /^max \d+$/.test(cb.max ?? '') && cb.color === cb.avgColor && ['lassits', 'tul_gyors'].includes(cb.status), JSON.stringify(cb));
   if (!CHECK_ONLY) await g.shot(`${DATE}-nav-meres-ajanlat.png`);
   // az ajánlat eltűnése után (Elvet – vagy, ha közben 500 m-en belülre ért, az auto-váltás) a mérőkártya visszanő
   await g.evaluate(`${q('.nav-offer-compact .btn')}?.click(); true`);
@@ -409,6 +412,9 @@ try {
   await sleep(400);
   const lay2 = await g.evaluate(LAYOUT);
   check('AW17: az ajánlat eltűnése után a mérőkártya visszanő', lay2?.compact === false && lay2.h > 150 && lay2.cardAboveBottom && lay2.bottomLast, JSON.stringify(lay2));
+  // a sáv a teljes kártyával visszajön (1,5 s-os hiszterézissel)
+  const barBack = await g.waitFor(`document.querySelector('.slowdown')?.dataset.show === 'true'`, 8000, 'sáv vissza').then(() => true, () => false);
+  check('AW17-javítás: az ajánlat eltűnése után a „Lassíts” sáv a teljes kártyával visszajön', barBack, await g.evaluate(`document.querySelector('.slowdown')?.innerText ?? null`));
   check('nincs kezeletlen JS-kivétel (AW12–13-oldalak)', g.logs.length === 0, g.logs.join(' | '));
   g.close();
 
@@ -730,7 +736,8 @@ try {
   const g1 = await rpg.evaluate(`[...document.querySelectorAll('.sheet .tile')].map((t) => t.innerText.trim())`);
   check('Bejelentés menü: 7 tétel, a végén EGY kapu-tétel „Átlagmérés eleje”', g1.length === 7 && g1.at(-1) === 'Átlagmérés eleje' && !g1.includes('Átlagmérés vége'), g1.join(' | '));
   await click(rpg, '.sheet .tile[data-gate]');
-  await sleep(800);
+  // fix alvás helyett: megvárjuk a küldést és a lap bezárását (különben a második megnyitás a bezáródó lapot látja)
+  await rpg.waitFor(`window.__gateCalls.length === 1 && !${q('.sheet')}`, 5000, 'kapu elküldve, lap bezárva').catch(() => undefined);
   await click(rpg, 'button[aria-label="Bejelentés"]');
   await rpg.waitFor(q('.sheet .tiles'), 5000, 'bejelentés-menü 2');
   const g2 = await rpg.evaluate(`({ tiles: [...document.querySelectorAll('.sheet .tile')].map((t) => t.innerText.trim()), note: ${text('.sheet-note')}, calls: window.__gateCalls.length })`);

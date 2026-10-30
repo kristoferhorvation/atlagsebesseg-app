@@ -239,8 +239,11 @@ struct DriveView: View {
                         onCollapseManual: collapseManual
                     )
                 }
-                SlowDownBar(view: view, unit: unit)
-                    .alignmentGuide(.top) { $0[.bottom] + 4 }
+                // AW17-javítás: egysoros mérőkártyánál (mérés + ajánlat) nincs külön sáv – a max érték a kártyában
+                if slowDownBarShown(navMeterCompact(view.phase, offer: model.nav?.offer != nil)) {
+                    SlowDownBar(view: view, unit: unit)
+                        .alignmentGuide(.top) { $0[.bottom] + 4 }
+                }
             }
             .animation(.easeOut(duration: Tokens.Motion.base), value: view.phase)
             .animation(.easeOut(duration: Tokens.Motion.base), value: model.nav?.offer != nil)

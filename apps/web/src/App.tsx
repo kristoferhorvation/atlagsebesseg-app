@@ -41,6 +41,7 @@ import {
   navMeterCompact,
   navResultCompact,
   navSpeedOver,
+  slowDownBarShown,
   navStepStrip,
   mapLightPreset,
   strongGlassFor,
@@ -446,6 +447,7 @@ function Drive({ map }: { map: WebMapAdapter }) {
   // AW17: navigáció közben az alsó sáv MINDIG a képernyő alján; a mérőkártya (és minden más kártya) fölötte, soha nem
   // alatta és nem helyette. Szakasz nélkül (vagy a zsugorított kézi mérésnél) csak a sáv látszik.
   const navBottomShown = nav.view !== null;
+  const meterCompact = navMeterCompact(view.phase, nav.view?.offer != null);
   const hudCardShown = !(nav.view !== null && (view.phase === 'nincs_szakasz' || pillCollapsed));
 
   // AOS13: a felső lépés-kártya egysoros sávvá zsugorodik, ha a teljes kártya az alsó csoport alá érne (mérés közben
@@ -654,7 +656,8 @@ function Drive({ map }: { map: WebMapAdapter }) {
       <PlannedBand check={activePlanned} compact={measuring} />
 
       <div className="hud" ref={hudRef} data-hidden={nav.plan !== null || nav.searchFor !== null}>
-        {view.phase === 'meres' && <SlowDown view={view} unit={settings.egyseg} />}
+        {/* AW17-javítás: egysoros mérőkártyánál (mérés + ajánlat) nincs külön sáv – a max érték a kártyában */}
+        {view.phase === 'meres' && slowDownBarShown(meterCompact) && <SlowDown view={view} unit={settings.egyseg} />}
         {/* a HUD fölött lebeg (nem változtat a magasságán → a kamera nem ugrik); mérésnél a Lassíts-sáv fölött */}
         <div className="hud-float" data-raised={view.phase === 'meres'}>
           {nav.view?.offer && <OfferCard offer={nav.view.offer} onAccept={() => nav.session?.acceptOffer()} onDecline={() => nav.session?.declineOffer()} />}
@@ -710,7 +713,7 @@ function Drive({ map }: { map: WebMapAdapter }) {
             settings={settings}
             gpsReady={view.lastFix !== null}
             navCompact={navResultCompact(view.phase, nav.view !== null)}
-            meterCompact={navMeterCompact(view.phase, nav.view?.offer != null)}
+            meterCompact={meterCompact}
             onCollapseManual={pillActive ? tapPill : undefined}
             onStopManual={stopManual}
             onDismiss={session.dismiss}

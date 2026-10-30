@@ -407,11 +407,36 @@ select:focus-visible {
 
 /* AW17: mérés + ajánlat – a mérőkártya egy sorban (átlag · most · várható · tábla) */
 .meter-compact {
-  gap: 10px;
+  gap: 8px;
+}
+
+/* AW17-javítás: a számoszlopok nem zsugorodnak a felirat alá; a „·” elválasztó helyett a térköz választ el */
+.meter-compact .meter-fig {
+  flex: none;
+}
+
+.meter-compact .meter-sep {
+  display: none;
 }
 
 .meter-compact .meter-num {
   font-size: 28px;
+}
+
+/* AW17-javítás: az átlag mellett két kis sor – egység, alatta „max 103” a státusz színében */
+.meter-compact-side {
+  display: inline-flex;
+  flex-direction: column;
+  margin-left: 6px;
+  vertical-align: middle;
+  line-height: 1.15;
+}
+
+.meter-compact-max {
+  font-size: var(--type-caption-size);
+  font-weight: 700;
+  color: var(--tone);
+  white-space: nowrap;
 }
 
 .meter-compact .meter-fig .body {

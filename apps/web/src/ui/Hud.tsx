@@ -1,4 +1,5 @@
 import {
+  compactMeterBarText,
   formatDistance,
   sectionSourceLabel,
   formatDuration,
@@ -104,14 +105,19 @@ export function Hud(p: HudProps) {
         <span className="chip neutral">{t('hud.starting')}</span>
       );
       const nowOver = (view.currentKmh ?? 0) > s.speedLimitKmh;
-      if (p.meterCompact)
+      if (p.meterCompact) {
+        // AW17-javítás: a külön „Lassíts” sáv ilyenkor nincs – a max érték a kártyán, a státusz színében
+        const barText = compactMeterBarText(meterBar(view.status, live.required), unit);
         return (
           // AW17: egy sor – átlag a státusz színével, most · várható, tábla; az ajánlat eltűnése után visszanő
           <Card tone={tone} label={t('hud.measure')} compact>
             <div className="compact-row meter-compact">
               <div className="compact-speed num tone">
                 {speedIn(live.averageKmh, unit) ?? '–'}
-                <small> {u}</small>
+                <span className="meter-compact-side">
+                  <small>{u}</small>
+                  {barText && <b className="meter-compact-max tone">{barText}</b>}
+                </span>
               </div>
               <div className="meter-fig">
                 <span className="body muted">{t('hud.now')}</span>
@@ -130,6 +136,7 @@ export function Hud(p: HudProps) {
             </div>
           </Card>
         );
+      }
       return (
         <Card tone={tone} label={t('hud.measure')}>
           <div className="row">

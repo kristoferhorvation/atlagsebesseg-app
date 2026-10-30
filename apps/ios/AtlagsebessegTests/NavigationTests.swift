@@ -1784,6 +1784,22 @@ struct AW17LayoutTests {
         #expect(!navSpeedOver(nil, 50))
     }
 
+    @Test("egysoros kártyánál nincs külön „Lassíts” sáv – a max érték a kártyában; teljes kártyánál a sáv visszajön")
+    func lassitsSavEgysoros() {
+        #expect(!slowDownBarShown(navMeterCompact(.meres, offer: true)))
+        #expect(slowDownBarShown(navMeterCompact(.meres, offer: false)))
+        // a 137 / 130 / 108-as példa: „lassíts”, max 115
+        #expect(compactMeterBarText(meterBar(.lassits, .ok(maxKmh: 115.28)), .kmh, lang: .hu) == "max 115")
+        #expect(compactMeterBarText(meterBar(.tulGyors, .ok(maxKmh: 103.4)), .kmh, lang: .hu) == "max 103")
+        #expect(compactMeterBarText(meterBar(.tulGyors, .nemLehetseges(maxKmh: 40)), .kmh, lang: .hu) == "nem hozható")
+        #expect(compactMeterBarText(meterBar(.jo, .ok(maxKmh: 140)), .kmh, lang: .hu) == nil)
+        #expect(compactMeterBarText(meterBar(.tulGyors, .ok(maxKmh: 160.934)), .mph, lang: .hu) == "max 100")
+        for lang in Lang.allCases {
+            #expect(compactMeterBarText(.max(maxKmh: 115), .kmh, lang: lang)?.contains("115") == true, "\(lang)")
+            #expect(!(compactMeterBarText(.nemHozhato, .kmh, lang: lang) ?? "").isEmpty, "\(lang)")
+        }
+    }
+
     @Test("mérés + ajánlat egyszerre: a mérőkártya egysoros; ajánlat nélkül vagy mérésen kívül teljes")
     func egysorosMero() {
         #expect(navMeterCompact(.meres, offer: true))

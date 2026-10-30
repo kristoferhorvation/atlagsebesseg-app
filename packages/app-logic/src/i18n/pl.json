@@ -89,6 +89,8 @@
   "slowdown.cant": "Nie da się wyrównać",
   "slowdown.stay": "Zostań poniżej {x}",
   "slowdown.slow": "Zwolnij · maks. {x}",
+  "slowdown.compactMax": "maks. {x}",
+  "slowdown.compactCant": "nie do odrobienia",
 
   "planned.line": "Planowana kontrola policji",
   "planned.zone": "Kontrola policji – {place} · {date} · źródło: {source}",

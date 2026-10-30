@@ -87,25 +87,32 @@ struct MeterCard: View {
     private func measuringCompact(_ tone: Tone) -> some View {
         let s = view.section!
         let live = view.live!
-        return HStack(alignment: .center, spacing: Tokens.Space.s3) {
-            HStack(alignment: .firstTextBaseline, spacing: 4) {
+        // AW17-javítás: a „max X” sor miatt szűkebb: „·” elválasztó nélkül, caption-méretű feliratokkal, hogy 390–402 pt-en
+        // se legyen szélesebb a képernyőnél (különben az egész alsó csoport kicsúszna)
+        return HStack(alignment: .center, spacing: Tokens.Space.s2) {
+            HStack(alignment: .center, spacing: 6) {
                 Text(speedIn(live.averageKmh, unit).map(String.init) ?? "–")
                     .font(.num(Tokens.Typography.title.size, 700))
                     .tracking(Tokens.Typography.title.trackingPt)
                     .foregroundStyle(tone.color)
-                Text(u).font(.inter(Tokens.Typography.body.size, 560)).foregroundStyle(Tokens.Colors.textMuted)
+                // AW17-javítás: a külön „Lassíts” sáv ilyenkor nincs – egység, alatta a max érték a státusz színében
+                VStack(alignment: .leading, spacing: 0) {
+                    Text(u).font(.inter(Tokens.Typography.caption.size, 560)).foregroundStyle(Tokens.Colors.textMuted)
+                    if let bar = compactMeterBarText(meterBar(view.status, live.required), unit) {
+                        Text(bar).font(.num(Tokens.Typography.caption.size, 700)).foregroundStyle(tone.color)
+                    }
+                }
             }
             .lineLimit(1)
             .fixedSize()
             Spacer(minLength: 0)
-            MeterFigure(label: t(.hudNow), value: speedIn(view.currentKmh, unit), over: (view.currentKmh ?? 0) > s.speedLimitKmh, size: 28)
-            Text("·").font(.inter(24, 600)).foregroundStyle(Tokens.Colors.textFaint).accessibilityHidden(true)
-            MeterFigure(label: t(.hudExpected), value: speedIn(live.projectedKmh, unit), over: false, size: 28)
+            MeterFigure(label: t(.hudNow), value: speedIn(view.currentKmh, unit), over: (view.currentKmh ?? 0) > s.speedLimitKmh, size: 28, compact: true)
+            MeterFigure(label: t(.hudExpected), value: speedIn(live.projectedKmh, unit), over: false, size: 28, compact: true)
             LimitSign(kmh: s.speedLimitKmh, unit: unit, small: true)
         }
         .frame(minHeight: 48)
         .padding(.vertical, Tokens.Space.s3)
-        .padding(.horizontal, Tokens.Space.s5)
+        .padding(.horizontal, Tokens.Space.s4)
         .background(CardBackground(tone: tone, glow: 0.1))
         .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
         .glass(radius: 24)
@@ -507,11 +514,13 @@ private struct MeterFigure: View {
     let value: Int?
     let over: Bool
     var size: CGFloat = 44
+    /// AW17-javítás: az egysoros kártyán caption-méretű felirat.
+    var compact = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             Text(label)
-                .font(.inter(Tokens.Typography.body.size, Tokens.Typography.body.weight))
+                .font(.inter(compact ? Tokens.Typography.caption.size : Tokens.Typography.body.size, Tokens.Typography.body.weight))
                 .foregroundStyle(Tokens.Colors.textMuted)
             Text(value.map(String.init) ?? "–")
                 .font(.num(size, 700))

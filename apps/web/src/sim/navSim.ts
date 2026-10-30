@@ -193,10 +193,12 @@ function fasterAlternative(base: NavRoute, id: string, gainS = 420, extraM = 0, 
   });
   const total = base.segDurationS.reduce((a, b) => a + b, 0);
   const k = Math.max(0.2, (total - gainS) / total);
-  // a szimulált „visszahajtás” rövid fejlépése csak a szimulátor műterméke (igazi, friss Directions-hívásban nincs): az alternatíva nélküle indul
+  // a szimulált „visszahajtás” fejlépése csak a szimulátor műterméke (igazi, friss Directions-hívásban nincs): az alternatíva
+  // nélküle indul. AW17-javítás: hossztól függetlenül (egy 200 m-es fejlépés lett a „lehajtó”, és a „Megéri” ajánlat az
+  // 500 m-es szabály szerint azonnal átváltott)
   const head = base.steps[0];
   const baseSteps =
-    head && head.endManeuver.type === 'merge' && head.distanceM < 150 && base.steps.length > 1
+    head && head.endManeuver.type === 'merge' && base.steps.length > 1
       ? base.steps.slice(1).map((s, k) => (k === 0 ? { ...s, startM: 0, distanceM: s.distanceM + head.distanceM } : s))
       : base.steps;
   const shiftedSteps = baseSteps.map((s) => {

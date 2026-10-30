@@ -1,4 +1,8 @@
+import type { MeterBar } from '@atlagsebesseg/core';
+import { speedIn } from '../display';
+import { t } from '../i18n';
 import type { SessionPhase } from '../session';
+import type { SpeedUnit } from '../settings';
 import { MANUAL_PILL } from './config';
 
 /**
@@ -99,4 +103,20 @@ export function navSpeedOver(currentKmh: number | null, signKmh: number | null):
  */
 export function navMeterCompact(phase: SessionPhase, offer: boolean): boolean {
   return phase === 'meres' && offer;
+}
+
+/**
+ * AW17-javítás: a külön „Lassíts · max X” / „Maradj X alatt” sáv csak a teljes mérőkártyával látszik. Egysoros kártyánál
+ * (mérés + ajánlat, `navMeterCompact`) a max érték és a státusz-szín a kártyában van (`compactMeterBarText`); az ajánlat
+ * eltűnése után a sáv a teljes kártyával visszajön.
+ */
+export function slowDownBarShown(meterCompact: boolean): boolean {
+  return !meterCompact;
+}
+
+/** AW17-javítás: az egysoros mérőkártya „max 103” / „nem hozható” felirata a `meterBar`-ból (`null`: nincs mit mutatni). */
+export function compactMeterBarText(bar: MeterBar | null, unit: SpeedUnit): string | null {
+  if (!bar) return null;
+  if (bar.kind === 'nem_hozhato') return t('slowdown.compactCant');
+  return t('slowdown.compactMax', { x: speedIn(bar.maxKmh, unit) ?? '' });
 }

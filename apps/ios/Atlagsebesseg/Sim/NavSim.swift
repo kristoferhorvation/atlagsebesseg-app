@@ -175,9 +175,11 @@ enum NavSim {
         }
         let total = base.segDurationS.reduce(0, +)
         let k = max(0.2, (total - gainS) / total)
-        // a szimulált „visszahajtás” rövid fejlépése csak a szimulátor műterméke (igazi, friss Directions-hívásban nincs): az alternatíva nélküle indul
+        // a szimulált „visszahajtás” fejlépése csak a szimulátor műterméke (igazi, friss Directions-hívásban nincs): az
+        // alternatíva nélküle indul. AW17-javítás: hossztól függetlenül (egy 200 m-es fejlépés lett a „lehajtó”, és a
+        // „Megéri” ajánlat az 500 m-es szabály szerint azonnal átváltott)
         var baseSteps = base.steps
-        if let head = base.steps.first, head.endManeuver.type == "merge", head.distanceM < 150, base.steps.count > 1 {
+        if let head = base.steps.first, head.endManeuver.type == "merge", base.steps.count > 1 {
             baseSteps = Array(base.steps.dropFirst())
             baseSteps[0].startM = 0
             baseSteps[0].distanceM += head.distanceM

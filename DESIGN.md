@@ -100,7 +100,9 @@ biztonsági zóna fölött lebeg.
   helyette. Szakaszmérés közben a sávban nincs pillanatnyi sebesség (a mérőkártya „most” mezője mutatja), csak érkezés +
   hátralévő + Befejezés. A sáv km/h-ja `over` (piros), ha a kijelzett sebesség a bal alsó tábla limitje fölött van – csak
   szín, hang, rezgés, értesítés nincs. Mérés + „Gyorsabb út” ajánlat egyszerre: a mérőkártya **egysoros** (átlag 30 px a
-  státusz színével · „most / várható” 28 px · kis tábla), az ajánlat eltűnése után visszanő. A kompakt ajánlat egy szöveg:
+  státusz színével, mellette az egység és alatta „max X” / „nem hozható” a státusz színében · „most / várható” 28 px · kis
+  tábla), az ajánlat eltűnése után visszanő. **AW17-javítás:** egysoros kártyánál a külön „Lassíts · max X” / „Maradj X
+  alatt” sáv NEM jelenik meg (a max érték a kártyán van); a teljes kártyával a sáv visszajön (`slowDownBarShown`). A kompakt ajánlat egy szöveg:
   „Kijárat 56 · 2,5 km · −7 perc gyorsabb” (keskeny képernyőn tördelve, nem levágva). A manőverkártya „Utána” sora csak
   5 km-en belüli következő manővernél látszik.
 - **Útvonalválasztó címke (AW17):** a „+N perc” buborék helye képernyő-pontban, az aktuális zoomon számolódik

@@ -89,6 +89,8 @@
   "slowdown.cant": "Nedá se vyrovnat",
   "slowdown.stay": "Drž se pod {x}",
   "slowdown.slow": "Zpomal · max {x}",
+  "slowdown.compactMax": "max {x}",
+  "slowdown.compactCant": "nedá se",
 
   "planned.line": "Plánovaná policejní kontrola",
   "planned.zone": "Policejní kontrola – {place} · {date} · zdroj: {source}",
