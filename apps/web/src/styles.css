@@ -1016,6 +1016,54 @@ button.pill::after {
   grid-column: 1 / -1;
 }
 
+/* AW18: 4 oszlopos rács – a csempék 2 oszlopot foglalnak, az utolsó sorban „Dugó” és „Beállt” kis csempe (ikon a felirat
+   fölött) 1-1 oszlopot, mellettük a kapu-tétel 2-t */
+.tiles-4 {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  /* a lap belső margójából 7-7 px: a „Rendőrség” / „Átlagmérés” felirat így a csempén belül marad */
+  margin: 0 -7px;
+}
+
+.tiles-4 .tile,
+.tiles-4 .tile.wide {
+  grid-column: span 2;
+  min-width: 0;
+  padding: 10px 12px;
+  gap: 10px;
+}
+
+.tiles-4 .tile.small {
+  grid-column: span 1;
+}
+
+/* hosszú szavak (de, pl) elválasztva a csempén belül; az utolsó sor fél szélességű kapu-tétele kisebb betűvel, hogy a
+   menü magassága egyik nyelven se nőjön */
+.tiles-4 .tile {
+  hyphens: auto;
+  -webkit-hyphens: auto;
+  overflow-wrap: anywhere;
+}
+
+.tiles-4 .tile[data-gate] {
+  font-size: 16px;
+  line-height: 1.15;
+}
+
+.tile.small {
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
+  padding: 6px 4px;
+  text-align: center;
+  font-size: 15px;
+}
+
+.tile.small .ic {
+  width: 36px;
+  height: 36px;
+  border-radius: 12px;
+}
+
 .tile:disabled {
   opacity: 0.4;
 }
@@ -2029,6 +2077,29 @@ a.list-row {
   font-size: 22px;
 }
 
+/* AW18: a sikertelen újratervezés sora koppintható (azonnali újrapróba), alatta a visszaszámlálás */
+button.nav-reroute {
+  width: 100%;
+  background: none;
+  border: 0;
+  padding: 0;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.nav-reroute-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.nav-reroute-text small {
+  font-size: 17px;
+  font-weight: 560;
+  color: var(--color-text-muted);
+}
+
 .nav-reroute .spin {
   animation: spin 1.1s linear infinite;
 }
@@ -2227,6 +2298,39 @@ a.list-row {
 .nav-bottom-eta b {
   font-size: 28px;
   font-weight: 700;
+}
+
+/* AW18: „+N perc dugó” az érkezési idő fölött, borostyán; a sáv ilyenkor kétsoros rács (az ETA oszlopától a gombéig) */
+.nav-bottom[data-delay='true'] {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  row-gap: 4px;
+  column-gap: 10px;
+}
+
+.nav-bottom[data-delay='true'][data-speed='false'] {
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.nav-bottom[data-delay='true'] .nav-delay {
+  grid-row: 1;
+  grid-column: -3 / -1;
+  justify-self: start;
+}
+
+.nav-bottom[data-delay='true'] > :not(.nav-delay) {
+  grid-row: 2;
+}
+
+.nav-delay {
+  font-size: 17px;
+  font-weight: 650;
+  line-height: 1.3;
+  white-space: nowrap;
+  color: var(--color-near);
+  background: color-mix(in srgb, var(--color-near) 16%, transparent);
+  border-radius: 999px;
+  padding: 1px 10px;
 }
 
 .nav-bottom-eta span {

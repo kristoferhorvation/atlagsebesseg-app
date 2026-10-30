@@ -9,7 +9,11 @@ nonisolated enum SimScenario: String, CaseIterable, Identifiable, Sendable {
     case jo, tul, lassit, alagut, tervezett, zona, navsim
 
     var id: String { rawValue }
-    var file: String { self == .navsim ? "navsim-budapest-gyor" : "sim-\(rawValue)" }
+    /// AW18: `-traffic YES` (a webes `?navsim&traffic`) – a navsim a dugós vezetéssel (`navsim-traffic.json`).
+    var file: String {
+        if self == .navsim { return UserDefaults.standard.bool(forKey: "traffic") ? "navsim-traffic" : "navsim-budapest-gyor" }
+        return "sim-\(rawValue)"
+    }
 }
 
 nonisolated struct SimFixture: Decodable, Sendable {
@@ -94,6 +98,16 @@ nonisolated struct SimFixture: Decodable, Sendable {
         var alts: [String: Alt]
         /// A kapu utáni lehajtó ennyivel a végkapu után (m; a webes `SIM_EXIT_AFTER_GATE_M`).
         var exitAfterGateM: Double
+        /// AW18: `-fasterAlt YES` – a 2. útvonal ennyivel gyorsabb (s; a webes `SIM_FASTER_ALT_S`).
+        var fasterAltS: Double?
+        /// AW18: a dugós mód (`navsim-traffic.json`): a dugó a fő útvonalon és a friss lekérések többletideje (a webes `SIM_JAM`).
+        var jam: Jam?
+
+        struct Jam: Decodable, Sendable {
+            var fromM: Double
+            var toM: Double
+            var extraS: Double
+        }
 
         struct Alt: Decodable, Sendable {
             var gainS: Double

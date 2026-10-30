@@ -141,9 +141,9 @@ describe('ReportPromptWatch (egy kártya: figyelmeztetés → kérdés)', () => 
 
 describe('Bejelentés menü – egy kapu-tétel', () => {
   it('az „Átlagmérés eleje” és „vége” egy tétel a menü végén; elküldött eleje után „vége”', () => {
-    expect(reportMenu(false)).toEqual(['rendorseg', 'traffipax', 'baleset', 'akadaly', 'utlezaras', 'szakasz_hiba', 'kapu_kezdo']);
+    expect(reportMenu(false)).toEqual(['rendorseg', 'traffipax', 'baleset', 'akadaly', 'utlezaras', 'szakasz_hiba', 'dugo', 'beallt', 'kapu_kezdo']);
     expect(reportMenu(true).at(-1)).toBe('kapu_zaro');
-    expect(reportMenu(true)).toHaveLength(7);
+    expect(reportMenu(true)).toHaveLength(9);
   });
 
   it('eleje → vége; a vége elküldése, illetve a mérés / navigáció vége visszaállítja; más típus nem változtat', () => {

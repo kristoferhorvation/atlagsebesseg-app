@@ -45,9 +45,13 @@ nonisolated func divergenceAlongM(_ base: NavRoute, _ alt: NavRoute, bandM: Doub
     return nil
 }
 
-/// Menetidő-különbség szövege: „+1 perc”, „−2 perc”, egy percen belül „Ugyanannyi idő”.
-nonisolated func altDeltaText(_ deltaS: Double, lang: Lang? = nil) -> String {
-    let n = Int(jsRound(deltaS / 60))
+/// A kártyán mutatott egész perc (mint a `formatTripDuration`: kerekítve, legalább 1).
+nonisolated private func cardMinutes(_ s: Double) -> Int { max(1, Int(jsRound(s / 60))) }
+
+/// Menetidő-különbség szövege: „+1 perc”, „−2 perc”. AW18: a két kártyán mutatott, kerekített percből számol (42 vs 41 →
+/// „−1 perc”), „Ugyanannyi idő” csak egyenlő kerekített percnél.
+nonisolated func altDeltaText(_ altS: Double, _ selectedS: Double, lang: Lang? = nil) -> String {
+    let n = cardMinutes(altS) - cardMinutes(selectedS)
     if n == 0 { return t(.navAltSame, lang: lang) }
     return t(n > 0 ? .navAltSlower : .navAltFaster, ["n": String(abs(n))], lang: lang)
 }
@@ -85,10 +89,12 @@ nonisolated func altLabels(_ routes: [NavRoute], _ durationsS: [Double], _ selec
             }
             m += OWN_STEP_M
         }
-        let deltaS = (index < durationsS.count ? durationsS[index] : r.durationS) - (selected < durationsS.count ? durationsS[selected] : base.durationS)
+        let altS = index < durationsS.count ? durationsS[index] : r.durationS
+        let selS = selected < durationsS.count ? durationsS[selected] : base.durationS
+        let deltaS = altS - selS
         return AltLabel(
             routeId: r.id, index: index, at: at, own: own, divergence: ra.pointAt(d), basePath: thin(base.points),
-            altPath: thin(r.points), deltaS: deltaS, text: altDeltaText(deltaS, lang: lang)
+            altPath: thin(r.points), deltaS: deltaS, text: altDeltaText(altS, selS, lang: lang)
         )
     }
 }

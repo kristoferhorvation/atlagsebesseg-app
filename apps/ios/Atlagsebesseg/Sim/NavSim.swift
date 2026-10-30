@@ -16,6 +16,44 @@ enum NavSim {
 
     static func mainRoutes() throws -> [NavRoute] { try parseDirections(try directionsJSON(), idPrefix: "sim") }
 
+    /// AW18: a fixtúra két útvonala úgy, hogy a 2. `fasterS`-sel gyorsabb a 0.-nál (a webes `simMainRoutes(fasterAlt)`;
+    /// élesben a Mapbox 0. útvonala 42 perc volt, az alternatíva 41).
+    static func mainRoutes(fasterAltS: Double?) throws -> [NavRoute] {
+        let routes = try mainRoutes()
+        guard let f = fasterAltS, routes.count >= 2 else { return routes }
+        var out = routes
+        out[1] = scaleRouteDuration(routes[1], routes[0].durationS - f)
+        return out
+    }
+
+    /// Az útvonal idejét `totalS`-re skálázza (a szakaszidőkkel és a lépésekkel együtt; a webes `scaleRouteDuration`).
+    static func scaleRouteDuration(_ r: NavRoute, _ totalS: Double) -> NavRoute {
+        let k = totalS / r.durationS
+        var out = r
+        out.durationS = totalS
+        out.typicalDurationS = r.typicalDurationS.map { $0 * k }
+        out.segDurationS = r.segDurationS.map { $0 * k }
+        out.steps = r.steps.map { s in
+            var x = s
+            x.durationS = s.durationS * k
+            return x
+        }
+        return out
+    }
+
+    /// AW18: a fő útvonal a dugóval: a `jam` szakasz ideje `extraS`-sel több (a webes `jammedRoute`).
+    static func jammedRoute(_ main: NavRoute, _ jam: SimFixture.Nav.Jam) -> NavRoute {
+        let idx = Set(main.segStartM.indices.filter { main.segStartM[$0] >= jam.fromM && main.segStartM[$0] < jam.toM })
+        let base = idx.reduce(0.0) { $0 + main.segDurationS[$1] }
+        guard base > 0 else { return main }
+        let k = (base + jam.extraS) / base
+        var out = main
+        out.segDurationS = main.segDurationS.enumerated().map { idx.contains($0.offset) ? $0.element * k : $0.element }
+        out.durationS = main.durationS + jam.extraS
+        out.segCongestion = main.segCongestion.enumerated().map { idx.contains($0.offset) ? .severe : $0.element }
+        return out
+    }
+
     /// Helyi „keresés” (nincs hálózati hívás): ékezet- és kisbetű-független részegyezés.
     static func search(_ query: String, in places: [Place]) -> [Place] {
         let plain = { (s: String) in s.folding(options: [.diacriticInsensitive, .caseInsensitive], locale: nil) }
@@ -32,15 +70,21 @@ enum NavSim {
 
     /// A szimulátor Directions-szolgáltatója: tervezés a fixtúrából, újratervezés / alternatíva a fixtúra útvonalából.
     /// `alt == nil` (`-alt off`, csak a képernyőképekhez): nincs szimulált alternatíva.
-    static func fetcher(main: NavRoute, nav: SimFixture.Nav, alt: AltMode? = .worth) -> RouteFetcher {
+    /// AW18: `traffic` – a friss lekérések (alternatíva-figyelés, forgalom, újratervezés) a dugós fő útvonalból, alternatíva
+    /// nélkül; `fasterAlt` – a tervezésnél a 2. útvonal gyorsabb; `rerouteFail` – az újratervezés HTTP 503-mal bukik.
+    static func fetcher(main: NavRoute, nav: SimFixture.Nav, alt: AltMode? = .worth, traffic: Bool = false, fasterAlt: Bool = false, rerouteFail: Bool = false) -> RouteFetcher {
         var n = 0
         let core = coreRoute(main)
+        let jammed = traffic ? nav.jam.map { jammedRoute(main, $0) } : nil
+        let fasterAltS = fasterAlt ? (nav.fasterAltS ?? 60) : nil
         return { from, _, ctx in
             if ctx.reason != .plan { n += 1 }
             let k = n
             return Task {
                 try await Task.sleep(nanoseconds: 120_000_000)
-                if ctx.reason == .plan { return try mainRoutes() }
+                if ctx.reason == .plan { return try mainRoutes(fasterAltS: fasterAltS) }
+                if rerouteFail && ctx.reason == .reroute { throw DirectionsError(code: "http_503") }
+                if let jammed { return [routeFrom(jammed, nav.detour, from, id: "sim-\(ctx.reason.rawValue)-\(k)")] }
                 let here = routeFrom(main, nav.detour, from, id: "sim-\(ctx.reason.rawValue)-\(k)")
                 guard ctx.reason == .alternatives, let alt else { return [here] }
                 // alternatíva-figyelés: a jelenlegi útvonal frissített változata + egy gyorsabb, a kért kategóriával

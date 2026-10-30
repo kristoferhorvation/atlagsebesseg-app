@@ -18,6 +18,8 @@ nonisolated struct PlanState: Sendable {
     var status: PlanStatus
     var routes: [NavRoute] = []
     var selected = 0
+    /// AW18: a felhasználó kézzel választott – addig a kiválasztás a leggyorsabbat követi (az útvonal-adat megérkezésekor is).
+    var userPicked = false
 }
 
 extension AppModel {
@@ -133,10 +135,10 @@ extension AppModel {
             case .success(let routes):
                 self.plan = PlanState(dest: dest, status: .ready, routes: routes)
                 // `-navPick N` (AW17, szimulátor): az N. útvonal kiválasztva – a címke képernyőképéhez (fej nélkül nincs koppintás)
+                self.recomputeSummaries()
                 if self.sim != nil, UserDefaults.standard.object(forKey: "navPick") != nil {
                     self.selectRoute(UserDefaults.standard.integer(forKey: "navPick"))
                 }
-                self.recomputeSummaries()
                 self.fitVersion += 1
                 // egyszeri előtöltés az ajánlott és az alternatív útvonalakra együtt (navigáció közben nem töltünk újra)
                 let data = await self.loadRouteData(routes)
@@ -159,11 +161,16 @@ extension AppModel {
         if let p = plan { requestPlan(p.dest) }
     }
 
+    /// Kiválasztás (koppintás a kártyán / a térképen); AW18: ettől a kiválasztás nem követi többé a leggyorsabbat.
     func selectRoute(_ i: Int) {
         guard var p = plan, p.routes.indices.contains(i) else { return }
         p.selected = i
+        p.userPicked = true
         plan = p
     }
+
+    /// AW18: a „Leggyorsabb” az útvonalválasztóban (a kártyán mutatott menetidő szerint).
+    var fastestRoute: Int { fastestRouteIndex(summaries.map(\.durationS)) }
 
     func cancelPlan() {
         planSeq += 1
@@ -177,6 +184,12 @@ extension AppModel {
     private func recomputeSummaries() {
         let now = nowMs()
         summaries = (plan?.routes ?? []).map { routeSummary($0, routeData, now: now) }
+        // AW18: az előválasztás a leggyorsabb (nem a Mapbox 0. indexe); az útvonal-adat megérkezésekor újra, amíg a
+        // felhasználó nem választott
+        if var p = plan, p.status == .ready, !p.userPicked, summaries.count == p.routes.count {
+            p.selected = fastestRoute
+            plan = p
+        }
     }
 
     // MARK: navigáció
@@ -220,6 +233,7 @@ extension AppModel {
         s.dispose()
         navSession = nil
         nav = nil
+        lastJamFetchAt = nil
         updateManualPill()
         routeData = .none
         player.stopSpeaking()
@@ -228,6 +242,43 @@ extension AppModel {
     }
 
     func acceptOffer() { navSession?.acceptOffer() }
+
+    /// AW18: koppintás az újratervezés-hiba kártyájára – azonnali újrapróba.
+    func retryReroute() { navSession?.retryReroute() }
+
+    /// AW18: „Dugóba kerültél?” – Igen: „Dugó” bejelentés a pozícióra a meglévő folyamattal (a közösségi mintát a session
+    /// adja); Nem: erre a szakaszra nem kérdez újra.
+    func answerJam(_ yes: Bool) {
+        if yes { sendReport(.dugo, jamSample: false) }
+        navSession?.answerJam(yes)
+    }
+
+    /// AW18: a közösségi dugó-adat navigáció közben ~60 s-enként (`active_jams` az előttünk lévő útvonal-téglalapra);
+    /// szimulátorban nincs (a minták csak a naplóba mennek).
+    func checkCommunityJams() {
+        guard let s = navSession, let v = nav, sim == nil, backend.configured else { return }
+        let now = nowMs()
+        if let last = lastJamFetchAt, now - last < 60_000 { return }
+        lastJamFetchAt = now
+        guard let b = jamQueryBBox(v.route, v.alongM) else { return }
+        Task { [weak self, weak s] in
+            guard let self, let jams = try? await self.backend.activeJams(in: b) else { return }
+            if self.navSession === s { s?.setCommunityJams(jams) }
+        }
+    }
+
+    /// AW18: a session dugó-mintáinak feltöltése (szimulátorban csak napló, NAV-JAM).
+    private func uploadJamSamples(_ s: NavigationSession) {
+        let rows = s.drainJamSamples()
+        if rows.isEmpty { return }
+        if sim != nil {
+            for r in rows { NSLog("NAV-JAM %@ %d km/h %d m", r.kind.rawValue, r.avg_kmh, r.length_m) }
+            return
+        }
+        Task { [weak self] in
+            do { try await self?.backend.createJamSamples(rows) } catch { NSLog("NAV-JAM upload failed: %@", String(describing: error)) }
+        }
+    }
     func declineOffer() { navSession?.declineOffer() }
 
     /// A munkamenet változott: új nézet, és a sorban várakozó mondatok felolvasása.
@@ -235,6 +286,7 @@ extension AppModel {
         guard let s = navSession else { return }
         let camBefore = nav?.cameraNear?.item.id
         nav = s.view()
+        uploadJamSamples(s)
         updateManualPill()
         // AW12: a közeli kamera borostyán sávja mellé egyetlen rezgés (a „ki” jelzés-módban nincs)
         if let cam = nav?.cameraNear?.item.id, cam != camBefore, settings.jelzesMod != .ki, sim?.seeking != true { player.pulse() }

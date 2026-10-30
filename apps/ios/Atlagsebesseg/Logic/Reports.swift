@@ -8,6 +8,8 @@ import Foundation
 nonisolated enum ReportType: String, Codable, Sendable {
     case traffipax, rendorseg, baleset, akadaly, utlezaras
     case szakaszHiba = "szakasz_hiba"
+    /// AW18: dugó (lassan halad) és beállt (áll) – a navigáció „Dugóba kerültél?” kártyája is `dugo`-t küld.
+    case dugo, beallt
     case ideiglenesKapu = "ideiglenes_kapu"
 }
 
@@ -16,11 +18,16 @@ nonisolated enum ReportType: String, Codable, Sendable {
 nonisolated enum ReportChoice: String, CaseIterable, Sendable, Identifiable {
     case rendorseg, traffipax, baleset, akadaly, utlezaras
     case szakaszHiba = "szakasz_hiba"
+    case dugo, beallt
     case kapuKezdo = "kapu_kezdo"
     case kapuZaro = "kapu_zaro"
 
     var id: String { rawValue }
     var isGate: Bool { self == .kapuKezdo || self == .kapuZaro }
+    /// AW18: a menü utolsó sorának kis csempéi (egy sorban, a kapu-tétel mellett).
+    var isRowTile: Bool { self == .dugo || self == .beallt }
+    /// AW18: a dugó-típusok (a közösségi dugó-mintát is küldik).
+    var isJamReport: Bool { self == .dugo || self == .beallt }
 
     var label: String {
         switch self {
@@ -30,6 +37,8 @@ nonisolated enum ReportChoice: String, CaseIterable, Sendable, Identifiable {
         case .akadaly: t(.reportTypeAkadaly)
         case .utlezaras: t(.reportTypeUtlezaras)
         case .szakaszHiba: t(.reportTypeSzakaszHiba)
+        case .dugo: t(.reportTypeDugo)
+        case .beallt: t(.reportTypeBeallt)
         case .kapuKezdo: t(.reportTypeKapuKezdo)
         case .kapuZaro: t(.reportTypeKapuZaro)
         }
@@ -44,6 +53,8 @@ nonisolated enum ReportChoice: String, CaseIterable, Sendable, Identifiable {
         case .akadaly: .akadaly
         case .utlezaras: .utlezaras
         case .szakaszHiba: .szakasz_hiba
+        case .dugo: .dugo
+        case .beallt: .beallt
         case .kapuKezdo: .kapu_kezdo
         case .kapuZaro: .kapu_zaro
         }
@@ -52,8 +63,8 @@ nonisolated enum ReportChoice: String, CaseIterable, Sendable, Identifiable {
     var tone: ReportTone {
         switch self {
         case .rendorseg, .kapuKezdo, .kapuZaro: .kezi
-        case .traffipax, .akadaly: .hataron
-        case .baleset, .utlezaras: .tul
+        case .traffipax, .akadaly, .dugo: .hataron
+        case .baleset, .utlezaras, .beallt: .tul
         case .szakaszHiba: .semleges
         }
     }
@@ -394,7 +405,8 @@ nonisolated final class ReportPromptWatch {
 // MARK: egy kapu-tétel (AOS14 javítás)
 
 /// A bejelentés-lap tételei (a webes `reportMenu`): az „Átlagmérés eleje” és „vége” EGY tétel a végén – elküldött „eleje”
-/// után „vége”, amíg el nem küldik, vagy a mérés / navigáció véget nem ér.
+/// után „vége”, amíg el nem küldik, vagy a mérés / navigáció véget nem ér. AW18: az utolsó sorban a „Dugó” és a „Beállt” a
+/// kapu-tétel mellett (a menü magassága nem nő), lásd `isRowTile`.
 nonisolated func reportMenu(gateStarted: Bool) -> [ReportChoice] {
     ReportChoice.allCases.filter { !$0.isGate } + [gateStarted ? .kapuZaro : .kapuKezdo]
 }

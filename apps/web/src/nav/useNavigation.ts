@@ -3,6 +3,7 @@ import {
   addRecent,
   addSavedOther,
   DirectionsError,
+  fastestRouteIndex,
   greetingVoice,
   NavigationSession,
   NO_ENFORCEMENT_DATA,
@@ -36,6 +37,8 @@ export interface PlanState {
   status: PlanStatus;
   routes: NavRoute[];
   selected: number;
+  /** AW18: a felhasználó kézzel választott – a később érkező adat nem állítja vissza a leggyorsabbra. */
+  userPicked?: boolean;
 }
 
 /** Mit keresünk: úti célt, a Haza / Munka mentett helyet, vagy egy további mentett címet (Beállításokból). */
@@ -129,15 +132,21 @@ export function useNavigation(o: NavigationOptions, places: ReturnType<typeof us
   );
 
   const retryPlan = useCallback(() => plan && requestPlan(plan.dest), [plan, requestPlan]);
-  const selectRoute = useCallback((i: number) => setPlan((p) => (p ? { ...p, selected: i } : p)), []);
+  const selectRoute = useCallback((i: number) => setPlan((p) => (p ? { ...p, selected: i, userPicked: true } : p)), []);
   /** Érintés a térképen egy alternatív vonalra / címkére (A8d): az lesz a kiválasztott, a kártya átvált. */
-  const selectRouteById = useCallback((id: string) => setPlan((p) => (p ? { ...p, selected: pickRouteById(p.routes, p.selected, id) } : p)), []);
+  const selectRouteById = useCallback((id: string) => setPlan((p) => (p ? { ...p, selected: pickRouteById(p.routes, p.selected, id), userPicked: true } : p)), []);
   const cancelPlan = useCallback(() => {
     planSeq.current++;
     setPlan(null);
   }, []);
 
   const summaries = useMemo<RouteSummary[]>(() => (plan?.routes ?? []).map((r) => routeSummary(r, data, opts.current.now())), [plan?.routes, data]);
+  // AW18: a „Leggyorsabb” a legkisebb menetidejű (a kártyán mutatott idő), nem a Directions 0. útvonala; az előválasztás is
+  // ez – a szakasz-adat megérkezésekor újra, amíg a felhasználó nem választott kézzel
+  const fastest = useMemo(() => fastestRouteIndex(summaries.map((x) => x.durationS)), [summaries]);
+  useEffect(() => {
+    setPlan((p) => (p && p.status === 'ready' && !p.userPicked && p.selected !== fastest && fastest < p.routes.length ? { ...p, selected: fastest } : p));
+  }, [fastest, summaries]);
 
   // --- navigáció ---
   const start = useCallback(() => {
@@ -201,6 +210,7 @@ export function useNavigation(o: NavigationOptions, places: ReturnType<typeof us
     planTo: requestPlan,
     plan,
     summaries,
+    fastest,
     selectRoute,
     selectRouteById,
     retryPlan,

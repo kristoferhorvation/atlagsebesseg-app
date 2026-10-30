@@ -83,7 +83,11 @@ biztonsági zóna fölött lebeg.
   opacity + transform; hiszterézis: 1,5 s fennállás után jelenik meg, 3 s hiány után tűnik el,
   így a határérték körüli ingadozás nem villog. 
 - **Kerek gombok** (64 px, üveg): bejelentés, kézi mérés, beállítások; a kereső ugyanilyen, de felül, a GPS-pill sorában (AW16).
-- **Lap** (bottom sheet): bejelentés-rács (2 oszlop, 76 px-es csempék), beállítások.
+- **Lap** (bottom sheet): bejelentés-rács (2 oszlop, 76 px-es csempék), beállítások. **AW18:** egy 4 oszlopos rács (a
+  csempék 2 oszlopot foglalnak; a lap belső margójából 7-7 px, belső térköz 12 px), az utolsó sor 1 + 1 + 2: „Dugó” (lassan
+  halad, `near`) és „Beállt” (áll, `over`) kis csempe – 36 px-es ikon a 15 px-es felirat fölött –, mellettük a kapu-tétel
+  (16 px-es felirat); a hosszú szavak elválasztva (`hyphens: auto`). A menü 4 sor marad: hu / en 76 px-es sorok, sk / cs / pl
+  +1 px, de-ben egy 3 soros felirat miatt +11 px.
 - **Átlagmérés eleje / vége (AW16):** a bejelentés-rács alján két teljes szélességű csempe, „Átlagmérés eleje” és „Átlagmérés
   vége”: egy-egy ideiglenes kapu a jelenlegi helyről és haladási irányból (a meglévő kapu-jelentés) – ismeretlen mérési zóna
   bejelentésére; irány nélkül tiltott. A kézi mérés (stopper-gomb) **privát**: nem küld semmit a szerverre, hálózat nélkül is
@@ -108,7 +112,23 @@ biztonsági zóna fölött lebeg.
 - **Útvonalválasztó címke (AW17):** a „+N perc” buborék helye képernyő-pontban, az aktuális zoomon számolódik
   (`placeAltLabel`): az alternatíva saját (nem közös) szakaszának a kiválasztottól messze eső pontja mellé, fölé / alá / balra
   / jobbra; soha nem takarja a leágazást (12 px) és a cél-jelölőt (40 px-es doboz), és a lehető legkevesebbet takar a két
-  vonalból. Ha sehol sem fér ki, rálóghat.
+  vonalból. Ha sehol sem fér ki, rálóghat. **AW18:** a szövege a két kártyán mutatott, kerekített percekből számol (41 vs
+  42 perc → „−1 perc”, 1 perc is kiíródik); „Ugyanannyi idő” csak egyenlő kerekített percnél.
+- **Útvonalválasztó – „Leggyorsabb” (AW18):** a címke és az előválasztás a legkisebb (a kártyán mutatott) menetidejű útvonalé,
+  nem a Directions 0. útvonaláé; a többi „Alternatíva N”. A szakasz-adat későbbi megérkezésekor újra a leggyorsabbra áll,
+  amíg a felhasználó kézzel nem választott.
+- **Forgalom navigáció közben (AW18):** ha a friss ETA (2 percenkénti Mapbox-lekérés, újratervezés, helyi dugó-becslés)
+  legalább 3 perccel az indulási terv után van, az alsó sávban borostyán (`near`) pill: „+N perc dugó” (17 px / 650, a `near`
+  16%-os hátterén), közvetlenül az érkezési idő FÖLÖTT, annak oszlopától indulva – a sáv ilyenkor kétsoros (390 px-en a
+  sebesség és a Befejezés mellett az ETA oszlopa ~110 px, oda nem fér). Hang egyszer ≥ 3 percnél, aztán legfeljebb 5
+  percenként, ha a késés nőtt.
+- **„Dugóba kerültél?” (AW18):** dugó-állapotba lépéskor a manőverkártya alatt, a „Még ott van?” sor helyén és stílusában
+  (borostyán kártya, dugó-ikon, „Dugó” + „Dugóba kerültél?”, Igen / Nem, 56 px); a közeli kamera elsőbbséget kap, a közeledő
+  bejelentés utána jön. Igen → „Dugó” bejelentés a pozícióra (a meglévő folyamat, toast, jelölő a térképen); Nem → arra a
+  szakaszra (a következő manőverig) ebben az útban nem kérdez újra; válasz nélkül 15 s után eltűnik. Hang egyszer.
+- **Újratervezés-hiba (AW18):** „Az újratervezés nem sikerült – próbálom újra” (`over`), alatta 17 px-es halvány sor: „Újra
+  N mp múlva – koppints most”; az egész sor koppintható (azonnali próba; a Directions 5 s-os korlátján belül a korlát leteltekor).
+  Automatikus próba 5 → 10 → 20 → 30 s várakozással.
 - **Kereső (AW16):** kerek ikon-gomb (ugyanaz a stílus, mint az alsó kerek gomboké) a térkép tetején, a GPS-pill sorában, a
   jobb szélre zárva; csak az üres nézeten; érintésre teljes szélességű keresés.
 - **Toast**: rövid visszajelzés felül, 2,5 s.

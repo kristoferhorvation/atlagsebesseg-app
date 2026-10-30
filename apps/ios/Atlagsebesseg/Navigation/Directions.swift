@@ -6,10 +6,12 @@ import Foundation
 /// A Directions és a Geocoding nyelve (a webes `directionsLanguage`: az app nyelvének kódja).
 nonisolated func directionsLanguage(_ lang: Lang) -> String { lang.rawValue }
 
-/// A Directions-kérés címe: forgalmas profil, alternatívák, lépések, szalag- és hangutasítások, annotációk.
-nonisolated func directionsUrl(from: LatLon, to: LatLon, lang: Lang, token: String, alternatives: Bool = true, heading: Double? = nil) -> URL {
+/// A Directions-kérés címe: forgalmas profil, alternatívák, lépések, szalag- és hangutasítások, annotációk. AW18: `via`
+/// (a következő manőver) néma köztes pont (`waypoints=0;2`), hogy a friss forgalmi lekérés a jelenlegi útvonalon maradjon –
+/// ilyenkor alternatíva nincs (a Directions csak két pontnál ad).
+nonisolated func directionsUrl(from: LatLon, to: LatLon, lang: Lang, token: String, alternatives: Bool = true, heading: Double? = nil, via: LatLon? = nil) -> URL {
     var q: [URLQueryItem] = [
-        URLQueryItem(name: "alternatives", value: alternatives ? "true" : "false"),
+        URLQueryItem(name: "alternatives", value: via == nil && alternatives ? "true" : "false"),
         URLQueryItem(name: "steps", value: "true"),
         URLQueryItem(name: "banner_instructions", value: "true"),
         URLQueryItem(name: "voice_instructions", value: "true"),
@@ -20,10 +22,11 @@ nonisolated func directionsUrl(from: LatLon, to: LatLon, lang: Lang, token: Stri
         URLQueryItem(name: "language", value: directionsLanguage(lang)),
     ]
     // újratervezésnél a haladási irány: ne küldjön vissza ellenkező irányba
-    if let heading, heading.isFinite { q.append(URLQueryItem(name: "bearings", value: "\(Int(jsRound(heading))),45;")) }
+    if let heading, heading.isFinite { q.append(URLQueryItem(name: "bearings", value: "\(Int(jsRound(heading))),45;\(via == nil ? "" : ";")")) }
+    if via != nil { q.append(URLQueryItem(name: "waypoints", value: "0;2")) }
     q.append(URLQueryItem(name: "access_token", value: token))
     var c = URLComponents(string: "https://api.mapbox.com/directions/v5/mapbox/driving-traffic")!
-    c.path += "/" + String(format: "%.6f,%.6f;%.6f,%.6f", from.lon, from.lat, to.lon, to.lat)
+    c.path += "/" + ([from] + (via.map { [$0] } ?? []) + [to]).map { String(format: "%.6f,%.6f", $0.lon, $0.lat) }.joined(separator: ";")
     c.queryItems = q
     return c.url!
 }

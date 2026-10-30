@@ -237,6 +237,45 @@ Gyökér: `npm test` és `npm run typecheck` minden csomagra; `npm run test:all`
     Maradj. Példa (137 átlag, 130 határ, most 108, 2,0 / 7 km): Maradj **115**, várható **127** – a kód eddig is ezt adta.
     Fixtúra: `straight7` szakasz + `straight7-137-108` vezetés (TS + Swift). A mérés határa mindig a szakaszé, a Mapbox-tábla csak
     a bal alsó táblát és a piros km/h-t vezérli.
+- **AW18 (éles budapesti vezetés, Kristof 2026-10-30), weben és iOS-en:** a logika a `navigation/traffic.ts` /
+  `Navigation/Traffic.swift` + `NavigationSession`, a küszöbök a `TRAFFIC`-ban (iOS-re generálva).
+  - **Útvonalválasztó:** a „Leggyorsabb” címke és az előválasztás a legkisebb kártya-idejű útvonal (`fastestRouteIndex`,
+    `routeTagText`), nem a Directions 0. indexe; az adat későbbi megérkezésekor újra, amíg nincs kézi választás (`userPicked`).
+    A térképcímke (`altDeltaText(altS, selectedS)`) a két kártya kerekített perceiből számol (42 vs 41 → „−1 perc”).
+  - **Élő forgalom:** a 2 perces `alternatives` lekérés egyben a forgalom-frissítés (látható ajánlat mellett is fut): ha a
+    válaszban benne van a jelenlegi útvonal (`routeOverlap ≥ 0,9`), annak friss ideje adja a hátralévő időt a lekérés helyétől
+    (`fresh`); ha nincs, egy `traffic` lekérés megy a következő manőverre tett néma köztes ponttal (`via`, `waypoints=0;2`,
+    alternatíva nélkül – a Directions köztes ponttal nem ad alternatívát). Az újratervezés maga a friss lekérés. Új ajánlat
+    továbbra is az AW12-szabállyal (≥ 2 perc, megéri / lehet / nem éri meg). A Directions-kliens 10 s után `timeout`.
+  - **„+N perc dugó”:** a friss ETA (Mapbox / helyi dugó) − az indulási terv (`plannedEtaMs`, az első fixnél rögzítve) ≥ 3
+    perc → borostyán pill az érkezési idő mellett (`delayMin`); csak friss adattal vagy dugóban (a puszta lassú haladás nem
+    elég). Hang (`nav.voice.delay`, `VoiceKind` `traffic`) egyszer, aztán legfeljebb 5 percenként, ha nőtt.
+  - **Helyi dugó-érzékelés (`JamDetector`):** a 2 perces ablak átlaga (az útvonal menti legtávolabbi pont növekedéséből – a
+    GPS-zaj nem haladás) a várt tempó (a Directions nyers ideje ±250 m-en) fele alatt → dugó; vége ≥ 500 m megszakítás
+    nélkül a várt tempó 80%-a fölött (a lámpák közti rövid gyorsulás nem szakítja meg). Dugóba lépéskor „Dugóba kerültél?
+    Igen / Nem” a manőverkártya alatt (`jamAsk`, 15 s), hang egyszer; Igen → „Dugó” bejelentés (a meglévő folyamat) +
+    `bejelentett` minta, Nem → a szakaszra (a következő manőver helye a kulcs) nem kérdez újra. Dugóban az ETA a következő
+    manőverig (legfeljebb `jamAheadMaxM` = 3 km) a mért átlaggal (legalább 5 km/h), onnan a tervvel; a Mapbox és a helyi
+    becslés közül a nagyobb.
+  - **Bejelentés:** új típusok `dugo` (lassan halad) és `beallt` (áll), a menü utolsó sorában a kapu-tétel mellett
+    (`isRowTile`; egy 4 oszlopos rács, 1 + 1 + 2), 6 nyelven (angolul „Traffic” / „Standstill”, hogy egy sorba férjen); a
+    menüből küldött dugó / beállt is közösségi mintát ad (`reportedJam`); a kártya „Igen”-je egyetlen `bejelentett` mintát ad.
+  - **Alsó sáv dugónál kétsoros:** a „+N perc dugó” az érkezési idő fölött (390 px-en mellé nem fér).
+  - **Közösségi dugó-adat:** `jam_samples` tábla (migráció `20261030000100`, RLS mint a reports: olvasás mindenkinek, beszúrás
+    a saját nevére, módosítás nincs, a `created_at` a szerveré) + `active_jams` nézet (15 percnél frissebb). Feltöltés:
+    dugóba lépéskor és dugóban 2 percenként `erzekelt`, a végén `oldott`, bejelentésnél `bejelentett` (`drainJamSamples`).
+    Olvasás percenként az útvonal előttünk lévő 30 km-ére (`jamQueryBBox`); a más felhasználótól származó, azonos irányú
+    (±45°), friss minta az érintett szakasz (`length_m` a pont előtt) idejét a mért átlaggal írja felül, az újabb nyer
+    (`applyCommunityJams`). Szimulátorban nincs feltöltés (csak `window.__navJam` / napló). Élőben migrálva 2026-10-30.
+  - **Újratervezés-hiba:** automatikus próba 5 → 10 → 20 → 30 s (max 30) várakozással (`rerouteRetryDelayMs`), a kártya a
+    hátralévő másodpercet mutatja (`rerouteRetryInS`, `nav.rerouteRetryIn`), koppintásra azonnal (`retryReroute`; az előző
+    hívás után 5 s-on belül a korlát leteltekor). Az ok a konzolra: `[nav] reroute failed (http_503 | timeout | network |
+    NoRoute), attempt N, retry in S s` (technikai napló, ékezet nélkül – a felirat-őrök miatt). Visszatérve az útvonalra a
+    hiba-kártya eltűnik.
+  - **Szimulátor:** `?navsim&traffic` / `-traffic YES` (dugó mód: az 1. ablak letérés nélkül 5,2 km-ig, 2,2–2,8 km között
+    álló–induló araszolás, a friss lekérések `SIM_JAM` szerint +7 perccel, alternatíva nélkül; iOS: `navsim-traffic.json`),
+    `?fasterAlt` / `-fasterAlt YES` (a 2. útvonal 1 perccel gyorsabb), `?rerouteFail` / `-rerouteFail YES` (az újratervezés
+    HTTP 503). Az alap navsimben az M1-re visszatérő 50 km/h-s szakasz is dugónak számít (a terv ott ~110) – ez valós viselkedés.
 - **Paritási tartozás (AW12 + AW13 → iOS) lezárva az AOS12-ben (2026-10-29):** a `NavigationTests.swift` újra a
   `navigation.test.ts` teljes párja (86 = 86 `it`, azonos névvel), a webes `navSim.test.ts` 6 esete a `SimTests.swift`-ben.
   A közös Budapest→Győr fixtúra **AOS13-ban teljesen újra felvéve** méteres hangegységgel (`voice_units=metric`, mindkét

@@ -5044,6 +5044,47 @@
         }
       }
     },
+    "nav.delay" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "+{n} min kolona"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "+{n} Min. Stau"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "+{n} min traffic"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "+{n} perc dugó"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "+{n} min korek"
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "+{n} min zápcha"
+          }
+        }
+      }
+    },
     "nav.dest.aria" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -5245,6 +5286,47 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Príchod"
+          }
+        }
+      }
+    },
+    "nav.jam.question" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jsi v koloně?"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stehst du im Stau?"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stuck in traffic?"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dugóba kerültél?"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stoisz w korku?"
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Si v zápche?"
           }
         }
       }
@@ -7299,6 +7381,47 @@
         }
       }
     },
+    "nav.rerouteRetryIn" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Znovu za {s} s – klepni pro okamžitý pokus"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Neuer Versuch in {s} s – tippen für sofort"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Retrying in {s} s – tap to retry now"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Újra {s} mp múlva – koppints most"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ponowna próba za {s} s – dotknij, aby teraz"
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Znova o {s} s – ťukni pre okamžitý pokus"
+          }
+        }
+      }
+    },
     "nav.rerouting" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -7955,6 +8078,47 @@
         }
       }
     },
+    "nav.voice.delay" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kolona na trase, příjezd o {n} minut později."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stau auf der Route, Ankunft {n} Minuten später."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Traffic on your route, arriving {n} minutes later."
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dugó az útvonalon, az érkezés {n} perccel később."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Korek na trasie, przyjazd {n} minut później."
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zápcha na trase, príchod o {n} minút neskôr."
+          }
+        }
+      }
+    },
     "nav.voice.faster" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -8238,6 +8402,47 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Ahoj {name}, môžeme vyraziť!"
+          }
+        }
+      }
+    },
+    "nav.voice.jamAsk" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pomalý provoz. Jsi v koloně?"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stockender Verkehr. Stehst du im Stau?"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Slow traffic. Are you stuck in a traffic jam?"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lassú forgalom. Dugóba kerültél?"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wolny ruch. Stoisz w korku?"
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pomalá premávka. Si v zápche?"
           }
         }
       }
@@ -9755,6 +9960,88 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Nehoda"
+          }
+        }
+      }
+    },
+    "report.type.beallt" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stojí"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stillstand"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Standstill"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Beállt"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stoi"
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stojí"
+          }
+        }
+      }
+    },
+    "report.type.dugo" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kolona"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stau"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Traffic"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dugó"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Korek"
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zápcha"
           }
         }
       }

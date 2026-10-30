@@ -92,7 +92,7 @@ describe('beállítások', () => {
 
 describe('AW16: bejelentés-típusok', () => {
   it('a menü aljára kerül az „Átlagmérés eleje / vége”, az ideiglenes szakasz folyamat megszűnt', () => {
-    expect(REPORT_CHOICES.map((c) => c.id)).toEqual(['rendorseg', 'traffipax', 'baleset', 'akadaly', 'utlezaras', 'szakasz_hiba', 'kapu_kezdo', 'kapu_zaro']);
+    expect(REPORT_CHOICES.map((c) => c.id)).toEqual(['rendorseg', 'traffipax', 'baleset', 'akadaly', 'utlezaras', 'szakasz_hiba', 'dugo', 'beallt', 'kapu_kezdo', 'kapu_zaro']);
     expect(reportChoiceLabel('kapu_kezdo')).toBe('Átlagmérés eleje');
     expect(reportChoiceLabel('kapu_zaro')).toBe('Átlagmérés vége');
   });

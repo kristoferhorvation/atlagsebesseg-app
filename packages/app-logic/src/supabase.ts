@@ -3,6 +3,7 @@ import type { Section } from '@atlagsebesseg/core';
 import { rowToSection, type SectionRow } from '@atlagsebesseg/data/rows';
 import { rowToCamera, type CameraRow, type FixedCamera } from './cameras';
 import { rowToPlannedCheck, type PlannedCheck, type PlannedCheckRow } from './plannedChecks';
+import type { CommunityJam, JamSampleInsert } from './navigation/traffic';
 import type { ReportInsert } from './reports';
 import type { BBox } from './sectionCache';
 
@@ -121,5 +122,51 @@ export async function voteReport(client: SupabaseClient | null, reportId: string
   const { error } = await need(client)
     .from('report_votes')
     .upsert({ report_id: reportId, confirm }, { onConflict: 'report_id,user_id' });
+  if (error) throw error;
+}
+
+/** AW18: egy `active_jams` sor (a 15 percnél frissebb közösségi dugó-minta). */
+export interface JamRow {
+  id: string;
+  kind: string;
+  lat: number;
+  lon: number;
+  heading_deg: number | null;
+  avg_kmh: number;
+  length_m: number;
+  user_id: string;
+  created_at: string;
+}
+
+export const rowToCommunityJam = (row: JamRow, myUserId: string | null): CommunityJam => ({
+  id: row.id,
+  lat: row.lat,
+  lon: row.lon,
+  headingDeg: row.heading_deg,
+  avgKmh: row.avg_kmh,
+  lengthM: row.length_m,
+  createdAt: Date.parse(row.created_at),
+  own: myUserId !== null && row.user_id === myUserId,
+});
+
+/** AW18: friss közösségi dugó-minták a téglalapban (olvasás bejelentkezés nélkül is megy). */
+export async function listActiveJams(client: SupabaseClient | null, b: BBox): Promise<JamRow[]> {
+  const { data, error } = await need(client)
+    .from('active_jams')
+    .select('id,kind,lat,lon,heading_deg,avg_kmh,length_m,user_id,created_at')
+    .gte('lat', b.south)
+    .lte('lat', b.north)
+    .gte('lon', b.west)
+    .lte('lon', b.east)
+    .limit(500);
+  if (error) throw error;
+  return data as JamRow[];
+}
+
+/** AW18: dugó-minták feltöltése – anonim bejelentkezéssel. */
+export async function createJamSamples(client: SupabaseClient | null, rows: readonly JamSampleInsert[]): Promise<void> {
+  if (rows.length === 0) return;
+  await ensureSignedIn(client);
+  const { error } = await need(client).from('jam_samples').insert(rows);
   if (error) throw error;
 }

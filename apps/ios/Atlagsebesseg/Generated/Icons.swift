@@ -14,6 +14,8 @@ enum IconName: String, CaseIterable, Sendable {
     case akadaly
     case utlezaras
     case szakasz_hiba
+    case dugo
+    case beallt
     case kapu_kezdo
     case kapu_zaro
     case check
@@ -182,6 +184,43 @@ extension IconName {
             p.addLine(to: CGPoint(x: 14.5, y: 8.5))
             p.addLine(to: CGPoint(x: 17, y: 12.5))
             p.addLine(to: CGPoint(x: 5, y: 12.5))
+        case .dugo:
+            p.move(to: CGPoint(x: 2.5, y: 20))
+            p.addLine(to: CGPoint(x: 2.5, y: 16.5))
+            p.addLine(to: CGPoint(x: 4.5, y: 12))
+            p.addLine(to: CGPoint(x: 13.5, y: 12))
+            p.addLine(to: CGPoint(x: 15.5, y: 16.5))
+            p.addLine(to: CGPoint(x: 15.5, y: 20))
+            p.move(to: CGPoint(x: 2.5, y: 20))
+            p.addLine(to: CGPoint(x: 15.5, y: 20))
+            p.move(to: CGPoint(x: 10.5, y: 9.5))
+            p.addLine(to: CGPoint(x: 12, y: 5))
+            p.addLine(to: CGPoint(x: 20, y: 5))
+            p.addLine(to: CGPoint(x: 22, y: 9.5))
+            p.addLine(to: CGPoint(x: 22, y: 13))
+            p.move(to: CGPoint(x: 16.5, y: 13))
+            p.addLine(to: CGPoint(x: 22, y: 13))
+            p.move(to: CGPoint(x: 5.5, y: 22))
+            p.addLine(to: CGPoint(x: 5.5, y: 20))
+            p.move(to: CGPoint(x: 12.5, y: 22))
+            p.addLine(to: CGPoint(x: 12.5, y: 20))
+        case .beallt:
+            p.move(to: CGPoint(x: 4, y: 19.5))
+            p.addLine(to: CGPoint(x: 4, y: 16.5))
+            p.addLine(to: CGPoint(x: 6, y: 12))
+            p.addLine(to: CGPoint(x: 18, y: 12))
+            p.addLine(to: CGPoint(x: 20, y: 16.5))
+            p.addLine(to: CGPoint(x: 20, y: 19.5))
+            p.move(to: CGPoint(x: 3, y: 19.5))
+            p.addLine(to: CGPoint(x: 21, y: 19.5))
+            p.move(to: CGPoint(x: 7.5, y: 22))
+            p.addLine(to: CGPoint(x: 7.5, y: 19.5))
+            p.move(to: CGPoint(x: 16.5, y: 22))
+            p.addLine(to: CGPoint(x: 16.5, y: 19.5))
+            p.move(to: CGPoint(x: 10, y: 3))
+            p.addLine(to: CGPoint(x: 10, y: 8))
+            p.move(to: CGPoint(x: 14, y: 3))
+            p.addLine(to: CGPoint(x: 14, y: 8))
         case .kapu_kezdo:
             p.move(to: CGPoint(x: 4, y: 20))
             p.addLine(to: CGPoint(x: 4, y: 5))

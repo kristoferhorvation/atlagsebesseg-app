@@ -159,9 +159,9 @@ struct ReportPromptWatchTests {
 struct GateMenuTests {
     @Test("az „Átlagmérés eleje” és „vége” egy tétel a menü végén; elküldött eleje után „vége”")
     func menu() {
-        #expect(reportMenu(gateStarted: false).map(\.rawValue) == ["rendorseg", "traffipax", "baleset", "akadaly", "utlezaras", "szakasz_hiba", "kapu_kezdo"])
+        #expect(reportMenu(gateStarted: false).map(\.rawValue) == ["rendorseg", "traffipax", "baleset", "akadaly", "utlezaras", "szakasz_hiba", "dugo", "beallt", "kapu_kezdo"])
         #expect(reportMenu(gateStarted: true).last == .kapuZaro)
-        #expect(reportMenu(gateStarted: true).count == 7)
+        #expect(reportMenu(gateStarted: true).count == 9)
     }
 
     @Test("eleje → vége; a vége elküldése, illetve a mérés / navigáció vége visszaállítja; más típus nem változtat")
@@ -208,7 +208,7 @@ struct GreetingTests {
 struct ReportLogicTests {
     @Test("a menü tételei és sorrendje a webes REPORT_CHOICES; a kapu irány nélkül nem küldhető")
     func menu() {
-        #expect(ReportChoice.allCases.map(\.rawValue) == ["rendorseg", "traffipax", "baleset", "akadaly", "utlezaras", "szakasz_hiba", "kapu_kezdo", "kapu_zaro"])
+        #expect(ReportChoice.allCases.map(\.rawValue) == ["rendorseg", "traffipax", "baleset", "akadaly", "utlezaras", "szakasz_hiba", "dugo", "beallt", "kapu_kezdo", "kapu_zaro"])
         let f = GpsFix(lat: 47.5, lon: 19.05, timestamp: 0, speed: 20, accuracy: 5, heading: 359.6)
         #expect(reportFromFix(.rendorseg, f) == ReportInsert(type: .rendorseg, lat: 47.5, lon: 19.05, headingDeg: 0))
         #expect(reportFromFix(.kapuZaro, f)?.gateKind == "zaro")

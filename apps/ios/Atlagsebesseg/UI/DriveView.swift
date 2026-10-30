@@ -96,7 +96,7 @@ struct DriveView: View {
                     if let nav = model.nav, !measuringLayout {
                         // sáv-módban is elrendezve (nulla magasságú keretben, rejtve), hogy a teljes kártya alja mérhető
                         // maradjon: ebből dől el, mikor fér ki újra
-                        NavTopCard(view: nav, unit: unit, report: stepStrip ? nil : alert)
+                        NavTopCard(view: nav, unit: unit, report: stepStrip ? nil : alert, onJamAnswer: stepStrip ? nil : jamAnswer, onRetry: retry)
                             .fixedSize(horizontal: false, vertical: true)
                             .onGeometryChange(for: CGFloat.self) { $0.frame(in: .global).maxY } action: { navCardBottom = $0 }
                             .opacity(stepStrip ? 0 : 1)
@@ -106,7 +106,11 @@ struct DriveView: View {
                             .transition(.opacity.combined(with: .offset(y: -12)))
                     }
                     // AOS14: navigáció nélkül (vagy ha a felső kártya nem látszik) a közeledő bejelentés kártyája önállóan, ugyanott
-                    if let alert, !(model.nav != nil && !measuringLayout && !stepStrip) {
+                    // AW18: ha a felső kártya nem látszik (sáv-mód / mérés), a „Dugóba kerültél?” önálló borostyán kártyán, ugyanott
+                    if standaloneJamAsk {
+                        JamAskCard(onAnswer: jamAnswer)
+                            .transition(.opacity.combined(with: .offset(y: -12)))
+                    } else if let alert, !(model.nav != nil && !measuringLayout && !stepStrip) {
                         ReportAlertCard(alert: alert, unit: unit)
                             .transition(.opacity.combined(with: .offset(y: -12)))
                     }
@@ -144,7 +148,7 @@ struct DriveView: View {
                 .presentationBackground(Tokens.Colors.surfaceStrong)
         }
         .sheet(isPresented: $model.reportSheetOpen) {
-            ReportSheet(fix: view.lastFix, online: model.backend.configured, sending: model.reportSending, gateStarted: model.gateStarted, onPick: model.sendReport)
+            ReportSheet(fix: view.lastFix, online: model.backend.configured, sending: model.reportSending, gateStarted: model.gateStarted, onPick: { [model] in model.sendReport($0) })
                 .presentationDetents([.large])
                 .presentationBackground(Tokens.Colors.surfaceStrong)
         }
@@ -153,6 +157,16 @@ struct DriveView: View {
                 .presentationDetents([.large])
                 .presentationBackground(Tokens.Colors.surfaceStrong)
         }
+    }
+
+    /// AW18: a „Dugóba kerültél?” válasza és az újratervezés azonnali újrapróbája.
+    private var jamAnswer: (Bool) -> Void { { [model] in model.answerJam($0) } }
+    private var retry: () -> Void { { [model] in model.retryReroute() } }
+
+    /// AW18: a dugó-kérdés önálló kártyán, ha a felső kártya nem látszik (sáv-mód / mérés); a közeli kamera elsőbbséget kap.
+    private var standaloneJamAsk: Bool {
+        guard let nav = model.nav, nav.jamAsk, nav.phase != .arrived, nav.cameraNear == nil else { return false }
+        return measuringLayout || stepStrip
     }
 
     /// AOS14: a közeledő bejelentés kártyájának adatai (figyelmeztetés → „Még ott van?”).

@@ -188,6 +188,8 @@ export const REPORT_TONE: Record<ReportIconName, string> = {
   akadaly: 'hataron',
   utlezaras: 'tul',
   szakasz_hiba: 'semleges',
+  dugo: 'hataron',
+  beallt: 'tul',
   kapu_kezdo: 'kezi',
   kapu_zaro: 'kezi',
 };

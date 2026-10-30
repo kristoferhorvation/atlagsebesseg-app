@@ -47,10 +47,18 @@ struct ReportSheet: View {
             }
             let menu = reportMenu(gateStarted: gateStarted)
             LazyVGrid(columns: [GridItem(.flexible(), spacing: Tokens.Space.s2), GridItem(.flexible(), spacing: Tokens.Space.s2)], spacing: Tokens.Space.s2) {
-                ForEach(menu.filter { !$0.isGate }) { tile($0) }
+                ForEach(menu.filter { !$0.isGate && !$0.isRowTile }) { tile($0) }
             }
+            // AW18: az utolsó sor négy oszlopnyi: Dugó | Beállt | az egy kapu-tétel (két oszlop széles) – a menü nem lesz magasabb.
             // AOS14 javítás: egy kapu-tétel – elküldött „eleje” után ugyanez a sor „vége”
-            ForEach(menu.filter(\.isGate)) { tile($0) }
+            HStack(spacing: Tokens.Space.s2) {
+                HStack(spacing: Tokens.Space.s2) {
+                    ForEach(menu.filter(\.isRowTile)) { smallTile($0) }
+                }
+                .frame(maxWidth: .infinity)
+                ForEach(menu.filter(\.isGate)) { tile($0) }
+                    .frame(maxWidth: .infinity)
+            }
             Text(note)
                 .font(.inter(Tokens.Typography.caption.size, 500))
                 .foregroundStyle(Tokens.Colors.textMuted)
@@ -60,6 +68,34 @@ struct ReportSheet: View {
         }
         .padding(.horizontal, Tokens.Space.s4)
         .padding(.top, Tokens.Space.s3)
+    }
+
+    /// AW18: kis csempe az utolsó sorban – az ikon a felirat fölött, a nagy csempével azonos magasságban.
+    private func smallTile(_ c: ReportChoice) -> some View {
+        let disabled = !online || fix == nil || sending != nil
+        return Button { onPick(c) } label: {
+            VStack(spacing: 4) {
+                Icon(name: c.icon, size: 22)
+                    .foregroundStyle(c.tone.color)
+                    .frame(width: 34, height: 34)
+                    .background(c.tone.color.opacity(0.18), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                Text(c.label)
+                    .font(.inter(14, 600))
+                    .foregroundStyle(Tokens.Colors.text)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
+            }
+            .padding(.horizontal, 4)
+            .padding(.vertical, 6)
+            .frame(maxWidth: .infinity, minHeight: Tokens.Size.tile)
+            .background(sending == c ? c.tone.color.opacity(0.22) : Tokens.Colors.surfaceRaised, in: RoundedRectangle(cornerRadius: Tokens.Radius.tile, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: Tokens.Radius.tile, style: .continuous).strokeBorder(Tokens.Colors.stroke, lineWidth: 1))
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(PressScaleStyle())
+        .disabled(disabled)
+        .opacity(disabled ? 0.4 : 1)
+        .accessibilityLabel(c.label)
     }
 
     private func tile(_ c: ReportChoice) -> some View {
@@ -216,6 +252,55 @@ struct ReportAlertRow: View {
         .buttonStyle(PressScaleStyle())
         .disabled(!alert.canVote || alert.sending)
         .opacity(!alert.canVote || alert.sending ? 0.5 : 1)
+    }
+}
+
+/// AW18: „Dugóba kerültél? Igen / Nem” – a „Még ott van?” sor helyén és stílusában (borostyán kártyán, sötét betűvel). Igen:
+/// „Dugó” bejelentés a pozícióra; Nem: erre a szakaszra nem kérdez újra; válasz nélkül 15 s után eltűnik (a session dönti el).
+struct JamAskRow: View {
+    let onAnswer: (Bool) -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: Tokens.Space.s3) {
+            HStack(spacing: Tokens.Space.s3) {
+                Icon(name: .dugo, size: 40)
+                Text(t(.navJamQuestion)).font(.num(Tokens.Typography.title.size, 700)).tracking(-0.3).lineLimit(1).minimumScaleFactor(0.8)
+            }
+            HStack(spacing: Tokens.Space.s2) {
+                answer(true, icon: .check, text: t(.reportPromptYes))
+                answer(false, icon: .close, text: t(.reportPromptNo))
+            }
+        }
+        .foregroundStyle(Tokens.Colors.bg)
+        .padding(.top, 2)
+        .accessibilityElement(children: .contain)
+    }
+
+    private func answer(_ yes: Bool, icon: IconName, text: String) -> some View {
+        Button { onAnswer(yes) } label: {
+            HStack(spacing: Tokens.Space.s2) {
+                Icon(name: icon)
+                Text(text)
+            }
+            .font(.inter(Tokens.Typography.body.size, 640))
+            .frame(maxWidth: .infinity, minHeight: Tokens.Size.touch)
+            .foregroundStyle(Tokens.Colors.bg)
+            .background(Tokens.Colors.bg.opacity(0.16), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(PressScaleStyle())
+    }
+}
+
+/// AW18: a „Dugóba kerültél?” önálló borostyán kártyán (ha a felső kártya nem látszik).
+struct JamAskCard: View {
+    let onAnswer: (Bool) -> Void
+
+    var body: some View {
+        JamAskRow(onAnswer: onAnswer)
+            .padding(Tokens.Space.s4)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .glass(radius: 28, fill: Tokens.Colors.near)
     }
 }
 

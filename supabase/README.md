@@ -20,6 +20,11 @@ adatokat nem módosítja. **Az anonim bejelentkezést a Supabase-dashboardon be 
 - **reports** – közösségi bejelentés: `type`, `lat`, `lon`, `heading_deg` (irány), `user_id`
   (ki), `created_at` (mikor), `confirmations`, `denials`, `expires_at` (alapból +2 óra; minden
   megerősítés legalább +1 órára hosszabbít).
+  AW18: új típusok `dugo` (lassan halad) és `beallt` (áll).
+- **jam_samples** (AW18) – közösségi dugó-adat: `kind` (`erzekelt | bejelentett | oldott`), a mért szakasz végpontja
+  (`lat`, `lon`), `heading_deg`, `avg_kmh`, `length_m`, `user_id`, `created_at` (a szerveré, trigger). Az app 15 percnél
+  frissebb, azonos irányú, más felhasználótól származó mintával írja felül az érintett szakasz idejét az ETA-ban.
+- **active_jams** – nézet a 15 percnél frissebb mintákra (explicit oszloplistával).
 - **report_votes** – megerősítés/cáfolat, felhasználónként és bejelentésenként egy; a
   számlálókat trigger tartja karban.
 - **active_reports** – nézet a le nem járt bejelentésekre, **explicit oszloplistával** (A5): a
@@ -83,6 +88,7 @@ ennek hiányában az úthálózat `maxspeed`-je; 30 nap után lejár, ha egyik k
 | sections | mindenki (le nem járt) | bejelentkezve, csak `kozosseg` + `verified=false`, módosítás a sajátra | csak service_role |
 | reports | mindenki | bejelentkezve, saját névre; módosítás csak a sajátot (számlálót nem) | csak a sajátot |
 | report_votes | mindenki | bejelentkezve, saját névre, nem a saját bejelentésre | a saját szavazatot |
+| jam_samples | mindenki | bejelentkezve, saját névre; módosítás nincs | csak a sajátot |
 
 Az OSM/hivatalos szakaszokat az import a `service_role` kulccsal tölti (megkerüli az RLS-t);
 ez a kulcs soha nem kerül az appba vagy a repóba.

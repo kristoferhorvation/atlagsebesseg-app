@@ -1,11 +1,12 @@
-import { formatClock, formatDistance, formatTripDuration, t, type RouteSummary, type SpeedUnit } from '@atlagsebesseg/app-logic';
+import { formatClock, formatDistance, formatTripDuration, routeTagText, t, type RouteSummary, type SpeedUnit } from '@atlagsebesseg/app-logic';
 import type { PlanState } from '../nav/useNavigation';
 import { Icon } from './Icon';
 
-/** Útvonalválasztó kártya: idő, táv, szakaszellenőrzések és kamerák száma, késés dugó miatt; „Indítás”. */
+/** Útvonalválasztó kártya: idő, táv, szakaszellenőrzések és kamerák száma, késés dugó miatt; „Indítás”. AW18: a „Leggyorsabb” a `fastest` indexű. */
 export function RoutePicker({
   plan,
   summaries,
+  fastest,
   unit,
   now,
   onSelect,
@@ -15,6 +16,7 @@ export function RoutePicker({
 }: {
   plan: PlanState;
   summaries: readonly RouteSummary[];
+  fastest: number;
   unit: SpeedUnit;
   now: number;
   onSelect: (i: number) => void;
@@ -64,7 +66,9 @@ export function RoutePicker({
                     <span className="num">
                       {d.value} {d.unit} · {formatClock(now + s.durationS * 1000)}
                     </span>
-                    <span className="route-opt-tag">{i === 0 ? t('nav.picker.fastest') : t('nav.picker.alt', { n: i })}</span>
+                    <span className="route-opt-tag" data-fastest={i === fastest}>
+                      {routeTagText(i, fastest)}
+                    </span>
                   </div>
                   <div className="route-opt-meta">
                     <span data-zero={s.sections === 0}>

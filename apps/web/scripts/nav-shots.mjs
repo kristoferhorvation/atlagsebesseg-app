@@ -17,6 +17,9 @@
 // közeledő bejelentés: EGY kártya a kamera-figyelmeztetés helyén, 50 m-rel előtte helyben „Még ott van? Igen / Nem”,
 // az elhaladás után még 10 s-ig;
 // a menüben egy kapu-tétel („Átlagmérés eleje” → „vége”).
+// AW18: „Leggyorsabb” a legkisebb időn (?fasterAlt), a címke a kerekített percekből („−1 perc”); dugó mód (?traffic): „+N perc
+// dugó” az alsó sávban + hang, „Dugóba kerültél?” kártya, Igen → „Dugó” bejelentés a térképen + közösségi minta; újratervezés-
+// hiba (?rerouteFail): visszaszámlálás, koppintásra azonnali próba; Bejelentés menü: Dugó / Beállt a kapu-tétel sorában.
 //
 //   npm run dev -w @atlagsebesseg/web            # másik terminálban (a Mapbox-token az apps/web/.env-ben)
 //   npm run nav-shots -w @atlagsebesseg/web
@@ -68,7 +71,7 @@ try {
   await p.waitFor(q('.sheet .tiles'), 5000, 'bejelentés-menü');
   const tiles = await p.evaluate(`[...document.querySelectorAll('.sheet .tile')].map((t) => t.innerText.replace(/\\s+/g, ' ').trim())`);
   // AOS14 javítás: az „Átlagmérés eleje / vége” egy tétel (elküldés előtt „eleje”)
-  check('Bejelentés menü: alul egy kapu-tétel („Átlagmérés eleje”), az „Ideiglenes szakasz” megszűnt', tiles.at(-1) === 'Átlagmérés eleje' && tiles.length === 7 && !tiles.some((t) => /Ideiglenes/.test(t)), tiles.join(' | '));
+  check('Bejelentés menü: alul egy kapu-tétel („Átlagmérés eleje”), az „Ideiglenes szakasz” megszűnt', tiles.at(-1) === 'Átlagmérés eleje' && tiles.length === 9 && !tiles.some((t) => /Ideiglenes/.test(t)), tiles.join(' | '));
   if (!CHECK_ONLY) {
     await sleep(500);
     await p.shot(`${DATE}-bejelentes-menu.png`);
@@ -734,14 +737,14 @@ try {
   await click(rpg, 'button[aria-label="Bejelentés"]');
   await rpg.waitFor(q('.sheet .tiles'), 5000, 'bejelentés-menü');
   const g1 = await rpg.evaluate(`[...document.querySelectorAll('.sheet .tile')].map((t) => t.innerText.trim())`);
-  check('Bejelentés menü: 7 tétel, a végén EGY kapu-tétel „Átlagmérés eleje”', g1.length === 7 && g1.at(-1) === 'Átlagmérés eleje' && !g1.includes('Átlagmérés vége'), g1.join(' | '));
+  check('Bejelentés menü: 9 tétel (AW18: + Dugó, Beállt), a végén EGY kapu-tétel „Átlagmérés eleje”', g1.length === 9 && g1.at(-1) === 'Átlagmérés eleje' && !g1.includes('Átlagmérés vége'), g1.join(' | '));
   await click(rpg, '.sheet .tile[data-gate]');
   // fix alvás helyett: megvárjuk a küldést és a lap bezárását (különben a második megnyitás a bezáródó lapot látja)
   await rpg.waitFor(`window.__gateCalls.length === 1 && !${q('.sheet')}`, 5000, 'kapu elküldve, lap bezárva').catch(() => undefined);
   await click(rpg, 'button[aria-label="Bejelentés"]');
   await rpg.waitFor(q('.sheet .tiles'), 5000, 'bejelentés-menü 2');
   const g2 = await rpg.evaluate(`({ tiles: [...document.querySelectorAll('.sheet .tile')].map((t) => t.innerText.trim()), note: ${text('.sheet-note')}, calls: window.__gateCalls.length })`);
-  check('elküldés után ugyanaz a sor „Átlagmérés vége”, a jegyzet a végére emlékeztet', g2.calls === 1 && g2.tiles.length === 7 && g2.tiles.at(-1) === 'Átlagmérés vége' && /végét/.test(g2.note), JSON.stringify(g2));
+  check('elküldés után ugyanaz a sor „Átlagmérés vége”, a jegyzet a végére emlékeztet', g2.calls === 1 && g2.tiles.length === 9 && g2.tiles.at(-1) === 'Átlagmérés vége' && /végét/.test(g2.note), JSON.stringify(g2));
   if (!CHECK_ONLY) await rpg.shot(`${DATE}-bejelentes-menu-vege.png`);
   // navigáció közben a manőverkártya alatt (a kamera-sor helyén), ugyanígy
   const rn = await mk();
@@ -755,6 +758,74 @@ try {
   rn.close();
   check('nincs kezeletlen JS-kivétel (AOS14)', rpg.logs.length === 0 && gk.logs.length === 0, [...rpg.logs, ...gk.logs].join(' | '));
   rpg.close();
+
+  // ------------------------------------------------------------------
+  // AW18: útvonalválasztó, forgalom, dugó, újratervezés-hiba, menü
+  // ------------------------------------------------------------------
+  const pk = await mk();
+  await pk.goto('/?navsim&stage=picker&fasterAlt&speed=1&panel=0');
+  await pk.waitFor(MAP_READY, 60_000, 'térkép');
+  await pk.waitFor(`document.querySelectorAll('.route-opt').length === 2 && ${q('.route-label')}`, 30_000, 'útvonalválasztó');
+  await sleep(1000);
+  const pk1 = await pk.evaluate(`(() => { const o = [...document.querySelectorAll('.route-opt')]; return { tags: o.map((x) => x.querySelector('.route-opt-tag').innerText.trim()), times: o.map((x) => x.querySelector('b').innerText.trim()), checked: o.map((x) => x.getAttribute('aria-checked')), label: ${text('.route-label')} }; })()`);
+  check('AW18: a „Leggyorsabb” címke és az előválasztás a gyorsabb (2.) útvonalon, nem a Directions 0. útvonalán', pk1.tags.join('|') === 'Alternatíva 1|Leggyorsabb' && pk1.checked.join('|') === 'false|true', JSON.stringify(pk1));
+  await pk.evaluate(`document.querySelectorAll('.route-opt')[0].click(); true`);
+  await pk.waitFor(`/−1 perc/.test(${text('.route-label')})`, 10_000, 'címke a gyorsabbon').catch(() => undefined);
+  const pk2 = await pk.evaluate(`({ label: ${text('.route-label')}, times: [...document.querySelectorAll('.route-opt b')].map((x) => x.innerText.trim()) })`);
+  check('AW18: a lassabb kiválasztva a gyorsabb alternatíván „−1 perc” (a kártyák kerekített perceiből)', pk2.label === '−1 perc', JSON.stringify(pk2));
+  pk.close();
+
+  // dugó mód: a friss Mapbox-lekérés dugót mutat, a vezetés araszol (a bejelentés-küldés itt elfogva)
+  const tr = await mk();
+  await tr.goto('/?navsim&stage=nav&traffic&speed=12&panel=0');
+  await tr.waitFor(q('.nav-top'), 60_000, 'navigáció');
+  await tr.evaluate(`window.__repCalls = []; const f0 = window.fetch; window.fetch = (...a) => { const u = String(a[0]?.url ?? a[0]); if (/\\/rest\\/v1\\/reports/.test(u)) { window.__repCalls.push(u); return Promise.resolve(new Response(JSON.stringify([{ id: '00000000-0000-4000-8000-0000000000b1' }]), { status: 201, headers: { 'content-type': 'application/json' } })); } return f0(...a); }; true`);
+  await tr.waitFor(q('.nav-delay'), 120_000, '+N perc dugó');
+  const tr1 = await tr.evaluate(`({ text: ${text('.nav-delay')}, color: getComputedStyle(${q('.nav-delay')}).color, voice: (window.__navVoice ?? []).filter((v) => v.kind === 'traffic').map((v) => v.text), sameLine: (() => { const d = ${q('.nav-delay')}.getBoundingClientRect(); const b = ${q('.nav-bottom-eta b')}.getBoundingClientRect(); const e = ${q('.nav-end')}.getBoundingClientRect(); return d.bottom <= b.top + 2 && Math.abs(d.left - b.left) < 2 && d.right <= e.right && d.width > 60; })() })`);
+  check('AW18: a friss forgalmi lekérés után „+N perc dugó” borostyánban közvetlenül az érkezési idő fölött (teljesen látszik), hanggal', /^\+\d+ perc dugó$/.test(tr1.text) && tr1.color === 'rgb(255, 178, 36)' && tr1.sameLine && tr1.voice.some((v) => /^Dugó az útvonalon, az érkezés \d+ perccel később\.$/.test(v)), JSON.stringify(tr1));
+  await tr.waitFor(q('.nav-top .jam-ask-row'), 240_000, 'Dugóba kerültél?');
+  const tr2 = await tr.evaluate(`(() => { const top = ${q('.nav-top:not(.report-alert)')}; const row = top.querySelector('.jam-ask-row'); return { q: row.querySelector('.report-alert-q').innerText.trim(), btns: [...row.querySelectorAll('.btn')].map((b) => b.innerText.trim()), below: row.getBoundingClientRect().top >= top.querySelector('.nav-main').getBoundingClientRect().bottom - 1, amber: top.dataset.camera, voice: (window.__navVoice ?? []).filter((v) => /Dugóba kerültél/.test(v.text)).length, jam: (window.__navJam ?? []).map((x) => x.kind), pins: document.querySelectorAll('.report-pin').length }; })()`);
+  check('AW18: dugóba lépéskor „Dugóba kerültél? Igen / Nem” a manőverkártya alatt (a „Még ott van?” helyén), hang egyszer, érzékelt minta', tr2.q === 'Dugóba kerültél?' && tr2.btns.join('|') === 'Igen|Nem' && tr2.below && tr2.amber === 'true' && tr2.voice === 1 && tr2.jam.includes('erzekelt'), JSON.stringify(tr2));
+  await tr.evaluate(`window.__toasts = []; new MutationObserver(() => { const t = document.querySelector('.toast'); if (t) window.__toasts.push(t.innerText.trim()); }).observe(document.body, { childList: true, subtree: true }); true`);
+  await tr.evaluate(`${q('.jam-ask-row .btn')}.click(); true`);
+  await tr.waitFor(`window.__repCalls.length === 1 && !${q('.jam-ask-row')}`, 5000, 'Igen elküldve').catch(() => undefined);
+  await sleep(600);
+  const tr3 = await tr.evaluate(`({ calls: window.__repCalls.length, ask: !!${q('.jam-ask-row')}, pins: document.querySelectorAll('.report-pin').length, dugoPin: [...document.querySelectorAll('.report-pin')].some((e) => e.innerHTML.includes('M10.5 9.5 12 5h8')), toast: (window.__toasts ?? []).join(' | '), jam: (window.__navJam ?? []).map((x) => x.kind) })`);
+  check('AW18: „Igen” → „Dugó” bejelentés a pozícióra (a térképen), bejelentett közösségi minta, a kártya eltűnik', tr3.calls === 1 && !tr3.ask && tr3.dugoPin && tr3.pins === tr2.pins + 1 && /Dugó/.test(tr3.toast) && tr3.jam.includes('bejelentett'), JSON.stringify(tr3));
+  check('nincs kezeletlen JS-kivétel (AW18 dugó)', tr.logs.length === 0, tr.logs.join(' | '));
+  tr.close();
+
+  // újratervezés-hiba: visszaszámlálás, koppintásra azonnali próba, az ok a naplóban
+  const rf = await mk();
+  await rf.goto('/?navsim&stage=nav&rerouteFail&speed=2&panel=0');
+  await rf.waitFor(q('.nav-top'), 60_000, 'navigáció');
+  await rf.evaluate(`window.__warns = []; const w0 = console.warn; console.warn = (...a) => { window.__warns.push(a.map(String).join(' ')); w0(...a); }; true`);
+  await rf.waitFor(`${q('button.nav-reroute small')}`, 240_000, 'nem sikerült kártya');
+  const rf1 = await rf.evaluate(`({ title: ${text('button.nav-reroute span span')}, small: ${text('button.nav-reroute small')}, warns: window.__warns.filter((x) => x.includes('[nav] reroute failed')) })`);
+  await sleep(1200);
+  const rf2 = await rf.evaluate(`({ small: ${text('button.nav-reroute small')}, n: window.__warns.filter((x) => x.includes('[nav] reroute failed')).length })`);
+  const secs = (x) => Number(/(\d+) mp/.exec(x)?.[1] ?? NaN);
+  check('AW18: „Az újratervezés nem sikerült – próbálom újra”, alatta a következő próbáig hátralévő másodperc, fogy; az ok (http_503) a konzolon', rf1.title === 'Az újratervezés nem sikerült – próbálom újra' && /^Újra \d+ mp múlva – koppints most$/.test(rf1.small) && secs(rf2.small) < secs(rf1.small) && rf1.warns.some((x) => x.includes('http_503')), JSON.stringify({ rf1, rf2 }));
+  // a 2. hiba után 10 s a várakozás; amikor az előző hívás már 5 s-nál régebbi (a Directions-korlát), a koppintás azonnal próbál
+  await rf.waitFor(`window.__warns.filter((x) => x.includes('[nav] reroute failed')).length === 2`, 60_000, '2. próba');
+  await rf.waitFor(`Number(/(\\d+) mp/.exec(${text('button.nav-reroute small')})?.[1] ?? 99) <= 3`, 30_000, 'a korlát letelt');
+  const before = await rf.evaluate(`window.__warns.filter((x) => x.includes('[nav] reroute failed')).length`);
+  await rf.evaluate(`${q('button.nav-reroute')}.click(); true`);
+  await sleep(500);
+  const rf3 = await rf.evaluate(`({ n: window.__warns.filter((x) => x.includes('[nav] reroute failed')).length, last: window.__warns.at(-1), small: ${text('button.nav-reroute small')} })`);
+  check('AW18: koppintásra azonnal újrapróbál (új próba a naplóban, a következő várakozás 20 s)', rf3.n === before + 1 && /attempt 3, retry in 20 s/.test(rf3.last), JSON.stringify({ before, rf3 }));
+  rf.close();
+
+  // Bejelentés menü: Dugó / Beállt a kapu-tétel sorában, a menü nem lesz magasabb (4 sor)
+  const mn = await mk();
+  await mn.goto('/?navsim&panel=0');
+  await mn.waitFor(MAP_READY, 60_000, 'térkép');
+  await click(mn, 'button[aria-label="Bejelentés"]');
+  await mn.waitFor(q('.sheet .tile.small'), 5000, 'bejelentés-menü');
+  await sleep(500);
+  const mn1 = await mn.evaluate(`(() => { const t = [...document.querySelectorAll('.sheet .tile')]; const r = t.map((x) => x.getBoundingClientRect()); const last = t.slice(-3); return { labels: last.map((x) => x.innerText.replace(/\\s+/g, ' ').trim()), rows: new Set(r.map((x) => Math.round(x.top))).size, sameTop: new Set(last.map((x) => Math.round(x.getBoundingClientRect().top))).size === 1, h: r.map((x) => Math.round(x.height)), sheetH: Math.round(${q('.sheet')}.getBoundingClientRect().height), overflow: document.documentElement.scrollWidth > innerWidth, rightAligned: Math.abs(r.at(-1).right - Math.max(...r.map((x) => x.right))) < 1, spill: t.filter((x) => x.scrollWidth > x.clientWidth + 1).map((x) => x.innerText.trim()), inSheet: Math.max(...r.map((x) => x.right)) <= ${q('.sheet')}.getBoundingClientRect().right - 8 }; })()`);
+  check('AW18: Bejelentés menü – egy sorban „Dugó” és „Beállt” a kapu-tétel mellett; 4 sor, a csempék egyforma magasak, a felirat a csempén belül', mn1.labels.join('|') === 'Dugó|Beállt|Átlagmérés eleje' && mn1.rows === 4 && mn1.sameTop && new Set(mn1.h).size === 1 && !mn1.overflow && mn1.rightAligned && mn1.spill.length === 0 && mn1.inSheet, JSON.stringify(mn1));
+  mn.close();
 
   // ------------------------------------------------------------------
   // 3. marketing-képernyőképek (1×-es lejátszás, szimulátor-panel nélkül)

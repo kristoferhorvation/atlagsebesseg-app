@@ -3,7 +3,8 @@ import { t, type TKey } from './i18n';
 import type { GateReportInsert } from './gateReports';
 
 /** A `public.report_type` enum értékei (supabase/migrations). */
-export type ReportType = 'traffipax' | 'rendorseg' | 'baleset' | 'akadaly' | 'utlezaras' | 'szakasz_hiba' | 'ideiglenes_kapu';
+/** AW18: `dugo` (lassan halad) és `beallt` (áll) – a navigáció „Dugóba kerültél?” kártyája is `dugo`-t küld. */
+export type ReportType = 'traffipax' | 'rendorseg' | 'baleset' | 'akadaly' | 'utlezaras' | 'szakasz_hiba' | 'dugo' | 'beallt' | 'ideiglenes_kapu';
 
 /** Egyszerű (nem kapu) bejelentés sora; user_id-t a szerver adja. */
 export interface SimpleReportInsert {
@@ -31,6 +32,8 @@ export const REPORT_CHOICES: readonly { id: ReportChoice }[] = [
   { id: 'akadaly' },
   { id: 'utlezaras' },
   { id: 'szakasz_hiba' },
+  { id: 'dugo' },
+  { id: 'beallt' },
   { id: 'kapu_kezdo' },
   { id: 'kapu_zaro' },
 ];
@@ -38,6 +41,7 @@ export const REPORT_CHOICES: readonly { id: ReportChoice }[] = [
 /**
  * A bejelentés-lap tételei (AOS14 javítás): az „Átlagmérés eleje” és „vége” EGY tétel – az elküldött „eleje” után ugyanaz a
  * sor „Átlagmérés vége”, amíg el nem küldik, vagy a mérés / navigáció véget nem ér (`gateStartedAfter`); utána visszaáll.
+ * AW18: az utolsó sorban a „Dugó” és a „Beállt” a kapu-tétel mellett (a menü magassága nem nő), lásd {@link isRowTile}.
  */
 export function reportMenu(gateStarted: boolean): ReportChoice[] {
   return [...REPORT_CHOICES.map((c) => c.id).filter((id) => id !== 'kapu_kezdo' && id !== 'kapu_zaro'), gateStarted ? 'kapu_zaro' : 'kapu_kezdo'];
@@ -76,3 +80,9 @@ export function reportFromFix(choice: SimpleReportInsert['type'] | GateChoice, f
   }
   return { type: choice, lat: fix.lat, lon: fix.lon, heading_deg: heading(fix.heading) };
 }
+
+/** AW18: a menü utolsó sorának kis csempéi (egy sorban, a kapu-tétel mellett). */
+export const isRowTile = (c: ReportChoice): boolean => c === 'dugo' || c === 'beallt';
+
+/** AW18: a dugó-típusok (a közösségi dugó-mintát is küldik). */
+export const isJamReport = (c: ReportChoice | ReportType): boolean => c === 'dugo' || c === 'beallt';

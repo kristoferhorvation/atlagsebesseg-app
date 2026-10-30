@@ -68,13 +68,16 @@ final class RequestCounter {
 }
 
 nonisolated enum RouteRequestReason: String, Sendable {
-    /// Az első tervezés, újratervezés vagy alternatíva-figyelés.
-    case plan, reroute, alternatives
+    /// Az első tervezés, újratervezés, alternatíva-figyelés (AW18 óta egyben a 2 perces forgalom-frissítés), vagy
+    /// forgalom-lekérés a jelenlegi útvonalon (`traffic`, a `via` köztes ponttal), ha az alternatívák között nem volt meg.
+    case plan, reroute, alternatives, traffic
 }
 
 nonisolated struct RouteRequestContext: Sendable {
     var heading: Double?
     var reason: RouteRequestReason
+    /// AW18: néma köztes pont (a következő manőver), hogy a lekérés a jelenlegi útvonalon maradjon.
+    var via: LatLon? = nil
 }
 
 /// Az útvonal-kérés függvénye – a `NavigationSession` ezt kapja (élesben a `DirectionsClient`, a szimulátorban a fixtúra).
@@ -99,10 +102,13 @@ final class DirectionsClient {
     private let counter: RequestCounter
     private let now: () -> Double
     private let minGapMs: Double
+    private let timeoutMs: Double
     private var lastCallAt = -Double.infinity
 
     init(token: String, lang: @escaping () -> Lang, fetch: @escaping FetchData = urlSessionFetch, counter: RequestCounter,
-         now: @escaping () -> Double = { Date().timeIntervalSince1970 * 1000 }, minGapMs: Double = NAV_CONFIG.directionsMinGapMs) {
+         now: @escaping () -> Double = { Date().timeIntervalSince1970 * 1000 }, minGapMs: Double = NAV_CONFIG.directionsMinGapMs,
+         timeoutMs: Double = TRAFFIC.directionsTimeoutMs) {
+        self.timeoutMs = timeoutMs
         self.token = token
         self.lang = lang
         self.fetch = fetch
@@ -116,11 +122,22 @@ final class DirectionsClient {
         if now - lastCallAt < minGapMs { return Task { throw DirectionsError(code: "RateLimited") } }
         lastCallAt = now
         counter.increment()
-        let url = directionsUrl(from: from, to: to, lang: lang(), token: token, heading: ctx.heading)
+        let url = directionsUrl(from: from, to: to, lang: lang(), token: token, heading: ctx.heading, via: ctx.via)
         let fetch = fetch
+        let timeoutNs = UInt64(max(0, timeoutMs) * 1_000_000)
         let prefix = "r\(Int(jsRound(now / 1000)))-"
         return Task {
-            let (status, data) = try await fetch(url)
+            // AW18: időtúllépés (a naplóban „timeout”, a hálózati hiba „network”, a HTTP-hiba „http_<státusz>”)
+            let (status, data) = try await withThrowingTaskGroup(of: (status: Int, data: Data).self) { group in
+                group.addTask { try await fetch(url) }
+                group.addTask {
+                    try await Task.sleep(nanoseconds: timeoutNs)
+                    throw DirectionsError(code: "timeout")
+                }
+                let first = try await group.next()!
+                group.cancelAll()
+                return first
+            }
             // a Directions hibakódja (pl. NoRoute) 200-nál is, 4xx-nél is a törzsben jön
             let json = try? JSONSerialization.jsonObject(with: data)
             let ok = (200..<300).contains(status)

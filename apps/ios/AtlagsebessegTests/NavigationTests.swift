@@ -18,10 +18,11 @@ private func close(_ a: Double?, _ b: Double, _ digits: Int = 2) -> Bool {
 }
 
 /// Egyenes, kelet felé futó teszt-útvonal: `lengthM` hosszú, `durationS` idejű, lépésenként 1 km.
-private func lineRoute(lengthM: Double = 10_000, durationS: Double = 360, latOffset: Double = 0, limit: Double? = 90, id: String = "line") -> NavRoute {
+private func lineRoute(lengthM: Double = 10_000, durationS: Double = 360, latOffset: Double = 0, limit: Double? = 90, id: String = "line", startX: Double = 0) -> NavRoute {
     let proj = LocalProjection(LatLon(lat: ORIGIN.lat + latOffset, lon: ORIGIN.lon))
     let n = Int(jsRound(lengthM / 100))
-    let points = (0...n).map { proj.fromXY(XY(x: Double($0) * lengthM / Double(n), y: 0)) }
+    // AW18: `startX` – a kelet felé futó egyenes ennyi méterrel később indul (a friss, a jelenlegi pozíciótól kért útvonal)
+    let points = (0...n).map { proj.fromXY(XY(x: startX + Double($0) * lengthM / Double(n), y: 0)) }
     let km = Int((lengthM / 1000).rounded(.up))
     let steps = (0..<km).map { i -> NavStep in
         let last = i == km - 1
@@ -34,7 +35,7 @@ private func lineRoute(lengthM: Double = 10_000, durationS: Double = 360, latOff
             durationS: durationS * dist / lengthM,
             startM: Double(i) * 1000,
             name: "M1",
-            endManeuver: NavManeuver(type: type, modifier: modifier, instruction: last ? "Megérkezett" : "Forduljon jobbra", location: points[(i + 1) * 10]),
+            endManeuver: NavManeuver(type: type, modifier: modifier, instruction: last ? "Megérkezett" : "Forduljon jobbra", location: points[min((i + 1) * 10, n)]),
             banners: [
                 NavBanner(distanceAlongM: dist, primary: BannerText(text: "Kilométer \(i + 1)", type: type, modifier: modifier)),
                 NavBanner(distanceAlongM: 300, primary: BannerText(text: "Kilométer \(i + 1) közel", type: type, modifier: modifier)),
@@ -87,10 +88,12 @@ private func makeSection(_ route: NavRoute, _ fromM: Double, _ toM: Double, limi
 /// Munkamenet kézzel léptetett órával; a `fetchRoutes` hívásait rögzíti, a választ a teszt adja.
 @MainActor
 private final class Harness {
-    var calls: [(reason: RouteRequestReason, from: LatLon, to: LatLon)] = []
+    var calls: [(reason: RouteRequestReason, from: LatLon, to: LatLon, via: LatLon?, t: Double)] = []
     var t = T0
     var next: Result<[NavRoute], Error>
     var session: NavigationSession!
+    /// AW18: a session naplója (az újratervezés hibájának oka).
+    var logs: [String] = []
 
     init(_ route: NavRoute, voice: Bool = true, routable: LatLon? = nil) {
         next = .success([route])
@@ -99,18 +102,19 @@ private final class Harness {
             route: route,
             destination: NavDestination(name: "Cél", lat: dest.lat, lon: dest.lon, routable: routable),
             fetchRoutes: { [unowned self] from, to, ctx in
-                self.calls.append((ctx.reason, from, to))
+                self.calls.append((ctx.reason, from, to, ctx.via, self.t))
                 let r = self.next
                 return Task { try r.get() }
             },
             now: { [unowned self] in self.t },
             voice: voice,
-            lang: .hu
+            lang: .hu,
+            log: { [unowned self] in self.logs.append($0) }
         )
     }
 
     func respond(_ routes: [NavRoute]) { next = .success(routes) }
-    func fail() { next = .failure(DirectionsError(code: "halozat")) }
+    func fail(_ e: Error = DirectionsError(code: "halozat")) { next = .failure(e) }
 
     @discardableResult
     func feed(_ fix: GpsFix) -> NavView {
@@ -312,19 +316,50 @@ struct RerouteTests {
         #expect(h.calls.isEmpty)
     }
 
-    @Test("legfeljebb 1 újratervezés / 20 mp (sikertelen próba után is)")
-    func korlat() async {
+    @Test("AW18: sikertelen újratervezés után növekvő várakozással próbál újra (5 → 10 → 20 → 30 → 30 s), a kártya a hátralévő másodpercet mutatja, az ok a naplóba")
+    func backoff() async {
         let route = lineRoute()
-        let h = Harness(route)
-        h.fail()
-        for s in 0...5 { h.feed(at(route, 2000, 300, T0 + Double(s) * 1000)) }
-        await h.session.settle()
-        #expect(h.calls.count == 1)
+        let h = Harness(route, voice: false)
+        h.fail(DirectionsError(code: "http_503"))
+        for s in 0...130 {
+            h.feed(at(route, 2000, 300, T0 + Double(s) * 1000))
+            await h.session.settle()
+            if s == 7 { #expect(h.session.view().rerouteRetryInS == 3) }
+        }
+        // 5 s letérés → 1. próba; utána 5, 10, 20, 30, 30 s várakozás
+        #expect(h.calls.map { ($0.t - T0) / 1000 } == [5, 10, 20, 40, 70, 100, 130])
         #expect(h.session.view().rerouteFailed)
-        for s in 6..<25 { h.feed(at(route, 2000, 300, T0 + Double(s) * 1000)) }
-        #expect(h.calls.count == 1) // 5…24 mp: még a tilalmi időn belül
-        h.feed(at(route, 2000, 300, T0 + 25_000)) // 20 mp telt el a kísérlet (5. mp) óta
+        #expect(h.logs.first?.contains("http_503") == true)
+        #expect(h.logs.count == 7)
+    }
+
+    @Test("AW18: koppintásra azonnal újrapróbál; visszatérve az útvonalra a hiba-kártya eltűnik")
+    func koppintas() async {
+        let route = lineRoute()
+        let h = Harness(route, voice: false)
+        h.fail(URLError(.notConnectedToInternet))
+        for s in 0...12 {
+            h.feed(at(route, 2000, 300, T0 + Double(s) * 1000))
+            await h.session.settle()
+        }
+        // próbák: 5 s, 10 s (a következő a 20. s-nál lenne)
         #expect(h.calls.count == 2)
+        #expect(h.session.view().rerouteRetryInS == 8)
+        h.t = T0 + 16_000
+        h.session.retryReroute()
+        #expect(h.calls.count == 3)
+        #expect(h.calls[2].t == T0 + 16_000)
+        await h.session.settle()
+        #expect(h.logs.last?.contains("network") == true)
+        // az előző hívás után 5 s-on belül a koppintás a korlát leteltét várja (a visszaszámlálás ezt mutatja)
+        h.t = T0 + 18_000
+        h.session.retryReroute()
+        #expect(h.calls.count == 3)
+        #expect(h.session.view().rerouteRetryInS == 3)
+        // vissza az útvonalra: nincs több próba, a kártya eltűnik
+        h.feed(at(route, 2100, 0, T0 + 17_000))
+        #expect(h.session.view().rerouteFailed == false)
+        #expect(h.session.view().rerouteRetryInS == nil)
     }
 
     @Test("az új útvonal átveszi a helyet: routeVersion nő, a letérés megszűnik")
@@ -1111,13 +1146,15 @@ struct NavDictionaryTests {
 
 @Suite("alternatív útvonal a térképen: címke és kiválasztás (A8d)")
 struct AltLabelTests {
-    @Test("a címke szövege: „+1 perc” / „−2 perc”, egy percen belül „Ugyanannyi idő”")
+    @Test("AW18: a címke a kártyák kerekített perceiből: 42 vs 41 → „−1 perc”; „Ugyanannyi idő” csak egyenlő kerekített percnél")
     func cimkeSzoveg() {
-        #expect(altDeltaText(60, lang: .hu) == "+1 perc")
-        #expect(altDeltaText(-120, lang: .hu) == "−2 perc")
-        #expect(altDeltaText(-95, lang: .hu) == "−2 perc")
-        #expect(altDeltaText(25, lang: .hu) == "Ugyanannyi idő")
-        #expect(altDeltaText(180, lang: .en) == "+3 min")
+        #expect(altDeltaText(41 * 60, 42 * 60, lang: .hu) == "−1 perc")
+        #expect(altDeltaText(43 * 60, 41 * 60, lang: .hu) == "+2 perc")
+        // 41,5 → 42 és 41,2 → 41 perc a kártyán: 20 s különbség is „+1 perc”
+        #expect(altDeltaText(2490, 2470, lang: .hu) == "+1 perc")
+        // mindkettő 41 perc a kártyán
+        #expect(altDeltaText(2470, 2440, lang: .hu) == "Ugyanannyi idő")
+        #expect(altDeltaText(180, 60, lang: .en) == "+2 min")
     }
 
     @Test("a leágazás az alternatíva első, a kiválasztott sávján kívüli pontja; önmagától nem ágazik le")
@@ -1143,6 +1180,9 @@ struct AltLabelTests {
         #expect(l.index == 1)
         #expect(l.deltaS == 60)
         #expect(l.text == "+1 perc")
+        // AW18: élesben 42 perc (0.) vs 41 perc (1.): a kiválasztott 41 perces mellett a 42 perces „+1 perc”, fordítva „−1 perc”
+        #expect(altLabels(routes, [2520, 2460], 1, lang: .hu).first?.text == "+1 perc")
+        #expect(altLabels(routes, [2520, 2460], 0, lang: .hu).first?.text == "−1 perc")
         let a = coreRoute(routes[1])!
         let core = coreRoute(routes[0])!
         // a horgony az alternatíván van, a saját szakaszán, és onnan a legmesszebb van a kiválasztottól
@@ -1958,3 +1998,304 @@ struct AW17LabelTests {
     }
 }
 
+
+// MARK: AW18 – útvonalválasztó, élő forgalom, helyi dugó, közösségi dugó-adat
+
+/// Egyenletes haladás `fromS`-től `toS`-ig (mp-enként egy fix), `mps` sebességgel, `alongM`-től. Visszaadja a végső helyet.
+@MainActor
+@discardableResult
+private func drive(_ h: Harness, _ route: NavRoute, fromS: Int, toS: Int, alongM: Double, mps: Double, respond: ((Int, Double) -> [NavRoute]?)? = nil) async -> Double {
+    var along = alongM
+    for s in fromS...toS {
+        if s > fromS { along += mps }
+        if let r = respond?(s, along) { h.respond(r) }
+        h.feed(at(route, along, 0, T0 + Double(s) * 1000, speed: mps))
+        await h.session.settle()
+    }
+    return along
+}
+
+/// A 100 km-es, 3600 s-os egyenes friss változata a pozíciótól: a tervezett hátralévő idő + `extraS` dugó.
+private func freshFrom(_ alongM: Double, _ extraS: Double, lengthM: Double = 100_000, durationS: Double = 3600) -> NavRoute {
+    lineRoute(lengthM: lengthM - alongM, durationS: durationS * (lengthM - alongM) / lengthM + extraS, id: "fresh-\(alongM)", startX: alongM)
+}
+
+@Suite("AW18: útvonalválasztó – „Leggyorsabb” és a címke")
+struct AW18PickerTests {
+    @Test("a „Leggyorsabb” címke és az előválasztás a legkisebb menetidejű útvonal, nem a 0. index")
+    func leggyorsabb() {
+        // élesben: a Mapbox 0. útvonala 42 perc, az alternatíva 41
+        #expect(fastestRouteIndex([42 * 60, 41 * 60]) == 1)
+        #expect(fastestRouteIndex([41 * 60, 41 * 60, 45 * 60]) == 0)
+        #expect(fastestRouteIndex([50 * 60, 47 * 60, 46 * 60]) == 2)
+        #expect(fastestRouteIndex([]) == 0)
+        #expect(routeTagText(1, 1, lang: .hu) == "Leggyorsabb")
+        #expect(routeTagText(0, 1, lang: .hu) == "Alternatíva 1")
+        #expect(routeTagText(2, 1, lang: .hu) == "Alternatíva 2")
+        #expect(routeTagText(1, 0, lang: .hu) == "Alternatíva 1")
+    }
+}
+
+@Suite("AW18: élő forgalom navigáció közben")
+@MainActor
+struct AW18TrafficTests {
+    @Test("2 percenként friss lekérés; a jelenlegi útvonal friss ideje adja az ETA-t és a hátralévő időt (a lekérés helyétől)")
+    func frissLekeres() async {
+        let route = lineRoute(lengthM: 100_000, durationS: 3600)
+        let h = Harness(route, voice: false)
+        let v = 100_000.0 / 3600
+        let along = await drive(h, route, fromS: 0, toS: 119, alongM: 0, mps: v)
+        #expect(h.calls.isEmpty)
+        h.respond([freshFrom(along + v, 600)])
+        await drive(h, route, fromS: 120, toS: 120, alongM: along + v, mps: v)
+        #expect(h.reasons == [.alternatives])
+        let view = h.session.view()
+        // a tervezett hátralévő idő + 10 perc dugó
+        #expect(close(view.remainingS, 3600 - 120 + 600, -1))
+        #expect(close(view.etaMs, view.plannedEtaMs + 600_000, -4))
+        #expect(view.delayMin == 10)
+        // a friss útvonal mentén fogy tovább
+        await drive(h, route, fromS: 121, toS: 180, alongM: along + 2 * v, mps: v)
+        // a 10 perc a friss útvonal teljes hosszán oszlik el: 60 s alatt annak arányos része fogy
+        let left = 100_000 - 120 * v
+        #expect(close(h.session.view().remainingS, (3600 - 120 + 600) * (1 - 60 * v / left), -1))
+    }
+
+    @Test("ha a válaszban nincs a jelenlegi útvonal: forgalom-lekérés köztes ponttal a következő manőveren, a jelenlegi útvonalon")
+    func koztesPont() async throws {
+        let route = lineRoute(lengthM: 100_000, durationS: 3600)
+        let h = Harness(route, voice: false)
+        let v = 100_000.0 / 3600
+        var along = await drive(h, route, fromS: 0, toS: 119, alongM: 0, mps: v)
+        // csak egy másik (lassabb, 5 km-rel északabbra futó) útvonal jön
+        h.respond([lineRoute(lengthM: 100_000, durationS: 9000, latOffset: 0.05, id: "mas")])
+        along = await drive(h, route, fromS: 120, toS: 124, alongM: along + v, mps: v)
+        #expect(h.reasons == [.alternatives])
+        h.respond([freshFrom(along + v, 300)])
+        along = await drive(h, route, fromS: 125, toS: 125, alongM: along + v, mps: v)
+        #expect(h.reasons == [.alternatives, .traffic])
+        // a köztes pont a következő manőver (a lépés vége, 4 km-nél)
+        let via = try #require(h.calls[1].via)
+        let m = route.steps[3].endManeuver.location
+        #expect(close(via.lat, m.lat, 6))
+        #expect(close(via.lon, m.lon, 6))
+        #expect(h.session.view().delayMin == 5)
+        #expect(h.session.view().offer == nil)
+    }
+
+    @Test("a kérés címe köztes ponttal: három koordináta, waypoints=0;2, alternatíva nélkül; az irány az első ponté")
+    func koztesCim() throws {
+        let u = directionsUrl(from: LatLon(lat: 47.5, lon: 19), to: LatLon(lat: 47.7, lon: 17.6), lang: .hu, token: "pk.x", heading: 90, via: LatLon(lat: 47.55, lon: 18.9))
+        #expect(u.absoluteString.contains("/19.000000,47.500000;18.900000,47.550000;17.600000,47.700000?"))
+        let c = try #require(URLComponents(url: u, resolvingAgainstBaseURL: false))
+        let q = { (k: String) in c.queryItems?.first { $0.name == k }?.value }
+        #expect(q("waypoints") == "0;2")
+        #expect(q("alternatives") == "false")
+        #expect(q("bearings") == "90,45;;")
+        // köztes pont nélkül a régi forma
+        let plain = try #require(URLComponents(url: directionsUrl(from: LatLon(lat: 47.5, lon: 19), to: LatLon(lat: 47.7, lon: 17.6), lang: .hu, token: "pk.x", heading: 90), resolvingAgainstBaseURL: false))
+        let pq = { (k: String) in plain.queryItems?.first { $0.name == k }?.value }
+        #expect(pq("waypoints") == nil)
+        #expect(pq("alternatives") == "true")
+    }
+
+    @Test("„+N perc dugó” 3 perctől; a hang egyszer, aztán legfeljebb 5 percenként, ha a késés tovább nőtt")
+    func kesesHang() async {
+        let route = lineRoute(lengthM: 100_000, durationS: 3600)
+        let h = Harness(route)
+        let v = 100_000.0 / 3600
+        let extra: [Double] = [120, 240, 360, 480, 480]
+        await drive(h, route, fromS: 0, toS: 600, alongM: 0, mps: v) { s, along in
+            s % 120 == 0 && s > 0 ? [freshFrom(along, extra[s / 120 - 1])] : nil
+        }
+        let said = h.session.drainVoice().filter { $0.kind == .traffic }.map(\.text)
+        // 2 perc: nincs; 4 perc (240 s): „4 perccel” – egyszer; 6 perc (360 s): csak 2 perce szólt; 8 perc (480): 5 perc után, nőtt
+        #expect(said == ["Dugó az útvonalon, az érkezés 4 perccel később.", "Dugó az útvonalon, az érkezés 8 perccel később."])
+        #expect(h.session.view().delayMin == 8)
+    }
+
+    @Test("2 percnél kisebb késésnél nincs „+N perc dugó”; friss adat nélkül sincs (csak a lassabb haladás miatt)")
+    func nincsKeses() async {
+        let route = lineRoute(lengthM: 100_000, durationS: 3600)
+        let h = Harness(route, voice: false)
+        // a tervezett tempó felével halad, de friss adat még nincs (az első 2 percben)
+        await drive(h, route, fromS: 0, toS: 110, alongM: 0, mps: 100_000 / 3600 / 1.6)
+        #expect(h.session.view().delayMin == nil)
+    }
+
+    @Test("a Directions-kliens hibájának oka: időtúllépés „timeout”, HTTP „http_<státusz>”, hálózat „network”")
+    func hibaOka() async {
+        let counter = RequestCounter(store: MemoryStore(), now: { T0 })
+        let never = DirectionsClient(token: "pk.x", lang: { .hu }, fetch: { _ in
+            try await Task.sleep(nanoseconds: 10_000_000_000)
+            return (200, Data())
+        }, counter: counter, now: { T0 }, timeoutMs: 20)
+        let a = LatLon(lat: 47.5, lon: 19)
+        let b = LatLon(lat: 47.6, lon: 19.1)
+        let r1 = await never.routes(a, b, RouteRequestContext(heading: nil, reason: .reroute)).result
+        if case .failure(let e) = r1 { #expect(routeErrorKind(e) == "timeout") } else { Issue.record("nem bukott") }
+        let http = DirectionsClient(token: "pk.x", lang: { .hu }, fetch: { _ in (503, Data()) }, counter: counter, now: { T0 })
+        let r2 = await http.routes(a, b, RouteRequestContext(heading: nil, reason: .reroute)).result
+        if case .failure(let e) = r2 { #expect(routeErrorKind(e) == "http_503") } else { Issue.record("nem bukott") }
+        #expect(routeErrorKind(URLError(.notConnectedToInternet)) == "network")
+        #expect([1, 2, 3, 4, 5, 9].map(rerouteRetryDelayMs) == [5000, 10_000, 20_000, 30_000, 30_000, 30_000])
+    }
+}
+
+@Suite("AW18: helyi dugó-érzékelés")
+@MainActor
+struct AW18JamTests {
+    /// A detektor mp-enkénti etetése: `(mp, m/s)` szakaszok egymás után.
+    private func run(_ d: JamDetector, _ parts: [(Int, Double)], expected: Double = 25, t0: Int = 0, along0: Double = 0) -> (changes: [(s: Int, c: JamChange, along: Double)], s: Int, along: Double) {
+        var changes: [(s: Int, c: JamChange, along: Double)] = []
+        var s = t0
+        var along = along0
+        for (secs, mps) in parts {
+            for _ in 0..<secs {
+                s += 1
+                along += mps
+                if let c = d.update(Double(s) * 1000, along, mps, expected) { changes.append((s, c, along)) }
+            }
+        }
+        return (changes, s, along)
+    }
+
+    @Test("2 percen át a várt tempó felénél lassabban (állás + araszolás) → dugó; egy 1 perces állás nem dugó")
+    func belepes() {
+        let d = JamDetector()
+        let r = run(d, [(60, 0), (70, 3)])
+        #expect(r.changes.map(\.c) == [.enter])
+        #expect(r.changes[0].s >= 119 && r.changes[0].s <= 122)
+        #expect(d.active)
+        #expect(d.avgMps! < 3)
+        let free = JamDetector()
+        #expect(run(free, [(50, 0), (200, 25)]).changes.isEmpty)
+    }
+
+    @Test("dugóban a lámpák közti rövid (< 500 m) gyorsulás nem szakítja meg; ≥ 500 m a várt tempó közelében → vége")
+    func kilepes() {
+        let d = JamDetector()
+        _ = run(d, [(125, 1)])
+        #expect(d.active)
+        // 300 m gyorsulás, majd újra araszolás: marad
+        var r = run(d, [(12, 25), (30, 2)], t0: 125, along0: 125)
+        #expect(r.changes.isEmpty)
+        #expect(d.active)
+        // 500 m megszakítás nélkül a várt tempó 80%-a fölött
+        r = run(d, [(24, 22)], t0: r.s, along0: r.along)
+        #expect(r.changes.map(\.c) == [.exit])
+        #expect(!d.active)
+        #expect(close(d.clearedAvgMps, 22, 0))
+    }
+
+    @Test("a GPS-zaj álló helyzetben nem haladás (csak az útvonal menti előrehaladás számít)")
+    func zaj() {
+        let d = JamDetector()
+        var along = 1000.0
+        for s in 1...125 {
+            along += s % 2 == 1 ? 3 : -3
+            _ = d.update(Double(s) * 1000, along, 0, 25)
+        }
+        #expect(d.active)
+        #expect(d.avgMps! < 0.1)
+    }
+
+    @Test("dugóba lépéskor „Dugóba kerültél?” kártya + hang egyszer; 15 s után válasz nélkül eltűnik, a dugó-állapot marad")
+    func kartya() async {
+        let route = lineRoute()
+        let h = Harness(route)
+        await drive(h, route, fromS: 0, toS: 125, alongM: 100, mps: 2)
+        let v = h.session.view()
+        #expect(v.jam)
+        #expect(v.jamAsk)
+        let said = h.session.drainVoice().filter { $0.kind == .traffic }.map(\.text)
+        #expect(said.contains("Lassú forgalom. Dugóba kerültél?"))
+        await drive(h, route, fromS: 126, toS: 142, alongM: 352, mps: 2)
+        #expect(h.session.view().jamAsk == false)
+        #expect(h.session.view().jam)
+        #expect(h.session.drainVoice().filter { $0.text.contains("Dugóba") }.isEmpty)
+    }
+
+    @Test("„Nem” → ebben az útban ugyanarra a szakaszra nem kérdez újra; „Igen” → bejelentett közösségi minta")
+    func nemIgen() async {
+        let route = lineRoute()
+        let h = Harness(route, voice: false)
+        var along = await drive(h, route, fromS: 0, toS: 125, alongM: 0, mps: 1)
+        #expect(h.session.view().jamAsk)
+        h.session.answerJam(false)
+        #expect(h.session.view().jamAsk == false)
+        // kijön a dugóból (520 m), majd ugyanazon a lépésen (1 km-ig) újra beáll
+        along = await drive(h, route, fromS: 126, toS: 146, alongM: along + 26, mps: 26)
+        #expect(h.session.view().jam == false)
+        await drive(h, route, fromS: 147, toS: 275, alongM: along + 0.5, mps: 0.5)
+        #expect(h.session.view().jam)
+        #expect(h.session.view().jamAsk == false)
+        #expect(h.session.drainJamSamples().map(\.kind) == [.erzekelt, .oldott, .erzekelt])
+        h.session.answerJam(true)
+        let rep = h.session.drainJamSamples()
+        #expect(rep.count == 1)
+        #expect(rep.first?.kind == .bejelentett)
+        #expect(rep.first?.heading_deg == 90)
+        #expect(rep.first?.length_m == Int(TRAFFIC.reportedLengthM))
+    }
+
+    @Test("dugóban az ETA a mért átlaggal a következő manőverig, onnan a tervezett idővel; a nagyobb késés számít")
+    func dugoEta() async {
+        let route = lineRoute() // 10 km, 360 s, 1 km-es lépések
+        let h = Harness(route, voice: false)
+        // csak a helyi becslés (a 2 perces Mapbox-lekérés most nem ad választ)
+        h.fail(URLError(.notConnectedToInternet))
+        await drive(h, route, fromS: 0, toS: 125, alongM: 0, mps: 2)
+        let v = h.session.view()
+        #expect(v.jam)
+        // 250 m-nél: a következő manőverig (1000 m) 750 m / 2 m/s = 375 s, onnan a terv: 9 km → 324 s
+        #expect(close(v.remainingS, 375 + 324, -1))
+        // késés: 125 s + 699 s − 360 s ≈ 464 s → 8 perc
+        #expect(v.delayMin == 8)
+        // dugó közben 2 percenként új közösségi minta
+        #expect(h.session.drainJamSamples().map(\.kind) == [.erzekelt])
+        await drive(h, route, fromS: 126, toS: 246, alongM: 252, mps: 2)
+        #expect(h.session.drainJamSamples().map(\.kind) == [.erzekelt])
+    }
+}
+
+@Suite("AW18: közösségi dugó-adat")
+@MainActor
+struct AW18CommunityTests {
+    private let route = lineRoute() // 10 km, 360 s → 36 s / km
+    private func total(_ d: [Double]) -> Double { d.reduce(0, +) }
+    private func jam(lat: Double? = nil, lon: Double? = nil, headingDeg: Double? = 90, avgKmh: Double = 18, createdAt: Double = T0 - 60_000, own: Bool = false, id: String = "j") -> CommunityJam {
+        let p = at(route, 5000)
+        return CommunityJam(id: id, lat: lat ?? p.lat, lon: lon ?? p.lon, headingDeg: headingDeg, avgKmh: avgKmh, lengthM: 1000, createdAt: createdAt, own: own)
+    }
+
+    @Test("a 15 percnél frissebb, azonos irányú, más felhasználótól származó minta felülírja az érintett szakasz idejét a mért átlaggal")
+    func felulir() {
+        // 4–5 km: 1000 m / 5 m/s = 200 s a 36 s helyett
+        #expect(close(total(applyCommunityJams(route, route.segDurationS, [jam()], now: T0)), 360 - 36 + 200, 3))
+        // ellenirányú, saját, 16 perces, 100 m-re lévő: nem számít
+        #expect(close(total(applyCommunityJams(route, route.segDurationS, [jam(headingDeg: 270)], now: T0)), 360, 3))
+        #expect(close(total(applyCommunityJams(route, route.segDurationS, [jam(own: true)], now: T0)), 360, 3))
+        #expect(close(total(applyCommunityJams(route, route.segDurationS, [jam(createdAt: T0 - 16 * 60_000)], now: T0)), 360, 3))
+        let off = at(route, 5000, 100)
+        #expect(close(total(applyCommunityJams(route, route.segDurationS, [jam(lat: off.lat, lon: off.lon)], now: T0)), 360, 3))
+        // a frissebb nyer: a dugó után „oldott” 90 km/h-val → 1000 m / 25 m/s = 40 s
+        let cleared = jam(avgKmh: 90, createdAt: T0 - 10_000, id: "k")
+        #expect(close(total(applyCommunityJams(route, route.segDurationS, [cleared, jam()], now: T0)), 360 - 36 + 40, 3))
+    }
+
+    @Test("a munkamenet ETA-ja a közösségi adattal számol")
+    func sessionEta() {
+        let h = Harness(route, voice: false)
+        h.feed(at(route, 1000, 0, T0))
+        let before = h.session.view().remainingS
+        h.session.setCommunityJams([jam()])
+        #expect(close(h.session.view().remainingS - before, 164, 0))
+    }
+
+    @Test("a feltöltött minta: km/h egészre, irány 0–359, hossz legalább 1 m")
+    func minta() {
+        #expect(jamSample(.erzekelt, lat: 47.5, lon: 19, heading: 361.6, avgMps: 2.1, lengthM: 0.2) == JamSampleInsert(kind: .erzekelt, lat: 47.5, lon: 19, heading_deg: 2, avg_kmh: 8, length_m: 1))
+        #expect(jamSample(.bejelentett, lat: 47.5, lon: 19, heading: nil, avgMps: 0, lengthM: 300).heading_deg == nil)
+    }
+}

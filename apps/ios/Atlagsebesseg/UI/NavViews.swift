@@ -364,7 +364,8 @@ struct RoutePickerCard: View {
                 }
                 Text(cams).font(.num(17, 560)).foregroundStyle(Tokens.Colors.textMuted).lineLimit(1).minimumScaleFactor(0.8)
                 HStack(alignment: .firstTextBaseline, spacing: Tokens.Space.s2) {
-                    Text(i == 0 ? t(.navPickerFastest) : t(.navPickerAlt, ["n": String(i)]))
+                    // AW18: a „Leggyorsabb” a legkisebb menetidejű (nem a Mapbox 0. indexe)
+                    Text(routeTagText(i, model.fastestRoute))
                         .font(.inter(14, 650))
                         .foregroundStyle(selected ? Tokens.Colors.accent : Tokens.Colors.textMuted)
                         .fixedSize()
@@ -415,23 +416,45 @@ struct NavTopCard: View {
     let unit: SpeedUnit
     /// AOS14: a közeledő bejelentés – a kamera-sor helyén és stílusában (a közeli kamera elsőbbséget kap).
     var report: ReportAlertModel?
+    /// AW18: „Dugóba kerültél?” válasz (Igen / Nem); `nil`: nincs kérdés-sor.
+    var onJamAnswer: ((Bool) -> Void)?
+    /// AW18: koppintás a „nem sikerült” kártyára – azonnali újrapróba.
+    var onRetry: (() -> Void)?
 
     var body: some View {
         let arrived = view.phase == .arrived
         let busy = view.rerouting || view.offRoute
         let cam = busy || arrived ? nil : cameraNearText(view, unit)
-        let rep = cam != nil || busy ? nil : report
-        let amber = cam != nil || rep != nil
+        // AW18: a dugó-kérdés a közeledő bejelentés előtt (a közeli kamera elsőbbséget kap)
+        let jamAsk = cam == nil && !busy && !arrived && view.jamAsk && onJamAnswer != nil
+        let rep = cam != nil || busy || jamAsk ? nil : report
+        let amber = cam != nil || rep != nil || jamAsk
         let ink = amber ? Tokens.Colors.bg : Tokens.Colors.text
+        let failed = !view.rerouting && view.rerouteFailed
         VStack(alignment: .leading, spacing: Tokens.Space.s3) {
             if busy || view.rerouteFailed {
-                HStack(spacing: Tokens.Space.s3) {
-                    Icon(name: .restart, size: 34)
-                    Text(view.rerouting || !view.rerouteFailed ? t(.navRerouting) : t(.navRerouteFailed))
-                        .font(.inter(Tokens.Typography.body.size, 620))
-                        .lineLimit(2)
+                // AW18: a sikertelen újratervezés kártyája a következő próbáig hátralévő másodperccel; koppintásra azonnal
+                Button { onRetry?() } label: {
+                    HStack(spacing: Tokens.Space.s3) {
+                        Icon(name: .restart, size: 34)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(view.rerouting || !view.rerouteFailed ? t(.navRerouting) : t(.navRerouteFailed))
+                                .font(.inter(Tokens.Typography.body.size, 620))
+                                .lineLimit(2)
+                            if failed, let s = view.rerouteRetryInS {
+                                Text(t(.navRerouteRetryIn, ["s": String(s)]))
+                                    .font(.num(Tokens.Typography.caption.size + 1, 560))
+                                    .foregroundStyle(Tokens.Colors.textMuted)
+                                    .lineLimit(2)
+                            }
+                        }
+                        Spacer(minLength: 0)
+                    }
+                    .contentShape(Rectangle())
                 }
-                .foregroundStyle(!view.rerouting && view.rerouteFailed ? Tokens.Colors.near : Tokens.Colors.text)
+                .buttonStyle(.plain)
+                .disabled(!failed)
+                .foregroundStyle(failed ? Tokens.Colors.near : Tokens.Colors.text)
             } else if arrived {
                 HStack(spacing: Tokens.Space.s4) {
                     ManeuverGlyph(icon: .arrive, size: 64)
@@ -457,6 +480,8 @@ struct NavTopCard: View {
                 }
                 .padding(.top, 2)
                 .accessibilityAddTraits(.updatesFrequently)
+            } else if jamAsk, let onJamAnswer {
+                JamAskRow(onAnswer: onJamAnswer)
             } else if let rep {
                 ReportAlertRow(alert: rep, unit: unit)
             } else if let up = upcomingText(view, unit), !arrived {
@@ -486,7 +511,7 @@ struct NavTopCard: View {
         .animation(.easeOut(duration: Tokens.Motion.base), value: amber)
         .animation(.easeOut(duration: Tokens.Motion.base), value: rep?.prompt.phase)
         // a kérdés gombjai külön elérhetők maradjanak
-        .accessibilityElement(children: rep?.prompt.phase == .ask ? .contain : .combine)
+        .accessibilityElement(children: rep?.prompt.phase == .ask || jamAsk || failed ? .contain : .combine)
         .accessibilityLabel(view.next.instruction.isEmpty ? t(.navAria) : view.next.instruction)
     }
 }
@@ -541,7 +566,33 @@ struct NavBottomBar: View {
     var over = false
     let onEnd: () -> Void
 
+    /// A sebesség-oszlop szélessége (a dugó-pill ehhez igazodik).
+    private let speedColumn: CGFloat = 64
+
     var body: some View {
+        VStack(alignment: .leading, spacing: Tokens.Space.s2) {
+            // AW18: a friss ETA ≥ 3 perccel az indulási terv után – „+N perc dugó” borostyán kapszula a sáv felső sorában, az
+            // érkezési idő oszlopának elejéhez igazítva (390 pt-en a sebesség és a Befejezés mellé nem férne)
+            if let d = view.delayMin {
+                Text(trafficDelayLabel(d))
+                    .font(.inter(17, 650))
+                    .foregroundStyle(Tokens.Colors.near)
+                    .lineLimit(1)
+                    .fixedSize()
+                    .padding(.horizontal, Tokens.Space.s3)
+                    .padding(.vertical, 4)
+                    .background(Tokens.Colors.near.opacity(0.16), in: Capsule())
+                    .padding(.leading, showSpeed ? speedColumn + Tokens.Space.s4 : 0)
+            }
+            row
+        }
+        .foregroundStyle(Tokens.Colors.text)
+        .padding(.horizontal, Tokens.Space.s4)
+        .padding(.vertical, Tokens.Space.s3)
+        .glass(radius: Tokens.Radius.card, fill: Tokens.Colors.surfaceStrong)
+    }
+
+    private var row: some View {
         HStack(spacing: Tokens.Space.s4) {
             if showSpeed {
                 VStack(spacing: 0) {
@@ -549,7 +600,7 @@ struct NavBottomBar: View {
                         .foregroundStyle(over ? Tokens.Colors.over : Tokens.Colors.text)
                     Text(unitLabel(unit)).font(.inter(13, 560)).foregroundStyle(Tokens.Colors.textMuted)
                 }
-                .frame(minWidth: 64)
+                .frame(width: speedColumn)
             }
             VStack(alignment: .leading, spacing: 2) {
                 Text(formatClock(view.etaMs)).font(.num(28, 720)).accessibilityLabel(t(.navEta))
@@ -570,10 +621,6 @@ struct NavBottomBar: View {
                 .frame(height: Tokens.Size.touch)
                 .background(Tokens.Colors.over, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
         }
-        .foregroundStyle(Tokens.Colors.text)
-        .padding(.horizontal, Tokens.Space.s4)
-        .padding(.vertical, Tokens.Space.s3)
-        .glass(radius: Tokens.Radius.card, fill: Tokens.Colors.surfaceStrong)
     }
 }
 

@@ -9,6 +9,9 @@ export const PATHS = {
   akadaly: ['M10 3.5h4l5 16H5l5-16z', 'M7.7 12h8.6', 'M3.5 19.5h17'],
   utlezaras: ['M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z', 'M7 12h10'],
   szakasz_hiba: ['M5 21V4', 'M5 4.5h12l-2.5 4 2.5 4H5'],
+  // AW18: dugó (két autó egymás mögött) és beállt (autó + szünet-jel)
+  dugo: ['M2.5 20v-3.5L4.5 12h9l2 4.5V20', 'M2.5 20h13', 'M10.5 9.5 12 5h8l2 4.5V13', 'M16.5 13h5.5', 'M5.5 22v-2', 'M12.5 22v-2'],
+  beallt: ['M4 19.5v-3l2-4.5h12l2 4.5v3', 'M3 19.5h18', 'M7.5 22v-2.5', 'M16.5 22v-2.5', 'M10 3v5', 'M14 3v5'],
   kapu_kezdo: ['M4 20V5', 'M20 20V5', 'M4 5h16', 'M10.5 10.5v6l5-3z'],
   kapu_zaro: ['M4 20V5', 'M20 20V5', 'M4 5h16', 'M10 10.5h4.5v4.5H10z'],
   check: ['M5 12.5l4.5 4.5L19 7.5'],

@@ -44,9 +44,15 @@ export function divergenceAlongM(base: NavRoute, alt: NavRoute, bandM = ROUTE_MA
   return null;
 }
 
-/** Menetidő-különbség szövege: „+1 perc”, „−2 perc”, egy percen belül „≈ ugyanannyi”. */
-export function altDeltaText(deltaS: number): string {
-  const n = Math.round(deltaS / 60);
+/** A kártyán mutatott egész perc (mint a `formatTripDuration`: kerekítve, legalább 1). */
+const cardMinutes = (s: number): number => Math.max(1, Math.round(s / 60));
+
+/**
+ * Menetidő-különbség szövege: „+1 perc”, „−2 perc”. AW18: a két kártyán mutatott, kerekített percből számol (42 vs 41 →
+ * „−1 perc”), „Ugyanannyi idő” csak egyenlő kerekített percnél.
+ */
+export function altDeltaText(altS: number, selectedS: number): string {
+  const n = cardMinutes(altS) - cardMinutes(selectedS);
   if (n === 0) return t('nav.alt.same');
   return t(n > 0 ? 'nav.alt.slower' : 'nav.alt.faster', { n: Math.abs(n) });
 }
@@ -87,7 +93,9 @@ export function altLabels(routes: readonly NavRoute[], durationsS: readonly numb
         at = p;
       }
     }
-    const deltaS = (durationsS[index] ?? r.durationS) - (durationsS[selected] ?? base.durationS);
+    const altS = durationsS[index] ?? r.durationS;
+    const selS = durationsS[selected] ?? base.durationS;
+    const deltaS = altS - selS;
     out.push({
       routeId: r.id,
       index,
@@ -97,7 +105,7 @@ export function altLabels(routes: readonly NavRoute[], durationsS: readonly numb
       basePath: thin(base.points),
       altPath: thin(r.points),
       deltaS,
-      text: altDeltaText(deltaS),
+      text: altDeltaText(altS, selS),
     });
   });
   return out;

@@ -1,4 +1,19 @@
-import { altOfferCompactText, formatClock, formatDistance, formatTripDuration, reportVisual, speedIn, t, unitLabel, type ActiveReport, type AlternativeOffer, type NavView, type ReportPrompt, type SpeedUnit } from '@atlagsebesseg/app-logic';
+import {
+  altOfferCompactText,
+  formatClock,
+  formatDistance,
+  formatTripDuration,
+  reportVisual,
+  speedIn,
+  t,
+  trafficDelayLabel,
+  unitLabel,
+  type ActiveReport,
+  type AlternativeOffer,
+  type NavView,
+  type ReportPrompt,
+  type SpeedUnit,
+} from '@atlagsebesseg/app-logic';
 import { Icon } from './Icon';
 import { ManeuverIcon } from './ManeuverIcon';
 
@@ -54,6 +69,42 @@ function ReportAlertRow({ alert, unit }: { alert: ReportAlertProps; unit: SpeedU
   );
 }
 
+/** AW18: a „Dugóba kerültél? Igen / Nem” kártya válaszai (Igen: „Dugó” bejelentés a pozícióra). */
+export interface JamAskProps {
+  sending: boolean;
+  onAnswer: (yes: boolean) => void;
+}
+
+/** AW18: „Dugóba kerültél?” – a „Még ott van?” sor helyén és stílusában (a manőverkártya alatt). */
+function JamAskRow({ ask }: { ask: JamAskProps }) {
+  return (
+    <div className="nav-camera report-alert-row jam-ask-row" data-phase="ask" role="alert">
+      <div className="report-alert-head">
+        <Icon name="dugo" size={40} />
+        <b>{t('report.type.dugo')}</b>
+        <span className="report-alert-q">{t('nav.jam.question')}</span>
+      </div>
+      <div className="btn-row">
+        <button className="btn" disabled={ask.sending} onClick={() => ask.onAnswer(true)}>
+          <Icon name="check" /> {t('report.prompt.yes')}
+        </button>
+        <button className="btn" disabled={ask.sending} onClick={() => ask.onAnswer(false)}>
+          <Icon name="close" /> {t('report.prompt.no')}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/** AW18: ha a felső kártya nem látszik (mérés közben), a dugó-kérdés önállóan, ugyanott. */
+export function JamAskCard({ ask }: { ask: JamAskProps }) {
+  return (
+    <section className="nav-top glass report-alert" data-camera="true" aria-live="polite">
+      <JamAskRow ask={ask} />
+    </section>
+  );
+}
+
 /** Navigáció nélkül (vagy ha a felső kártya nem látszik) a bejelentés kártyája önállóan, a felső kártya helyén. */
 export function ReportAlertCard({ alert, unit }: { alert: ReportAlertProps; unit: SpeedUnit }) {
   return (
@@ -77,20 +128,57 @@ export function cameraNearText(view: NavView, unit: SpeedUnit): string | null {
  * Közeli kameránál (AW12) a kártya borostyánra vált, nagy kamera-ikonnal; elhaladás után vissza. AOS14: a közeledő
  * bejelentés ugyanígy (`report`), a kamera helyén – kérdés-fázisban Igen / Nem gombbal.
  */
-/** `hidden` (AOS13): a kártya nem fér ki – rejtve elrendezve marad (mérhető), a lépés egysoros sávként látszik. */
-export function NavTop({ view, unit, hidden = false, report = null }: { view: NavView; unit: SpeedUnit; hidden?: boolean; report?: ReportAlertProps | null }) {
+/**
+ * `hidden` (AOS13): a kártya nem fér ki – rejtve elrendezve marad (mérhető), a lépés egysoros sávként látszik. AW18: `jam` –
+ * a „Dugóba kerültél?” sor (a közeli kamera után, a bejelentés előtt); a sikertelen újratervezés sora a következő próbáig
+ * hátralévő másodperceket mutatja, koppintásra azonnal újrapróbál (`onRetryReroute`).
+ */
+export function NavTop({
+  view,
+  unit,
+  hidden = false,
+  report = null,
+  jam = null,
+  onRetryReroute,
+}: {
+  view: NavView;
+  unit: SpeedUnit;
+  hidden?: boolean;
+  report?: ReportAlertProps | null;
+  jam?: JamAskProps | null;
+  onRetryReroute?: () => void;
+}) {
   const arrived = view.phase === 'arrived';
   const busy = view.rerouting || view.offRoute;
   const cam = busy || arrived ? null : cameraNearText(view, unit);
+  // AW18: a dugó-kérdés a kamera után, a bejelentés előtt
+  const jamAsk = cam || busy || arrived ? null : jam;
   // AOS14: a közeledő bejelentés a kamera helyén (a közeli kamera elsőbbséget kap)
-  const rep = cam || busy ? null : report;
-  const up = cam || rep ? null : upcomingText(view, unit);
+  const rep = cam || busy || jamAsk ? null : report;
+  const up = cam || rep || jamAsk ? null : upcomingText(view, unit);
+  const failed = !view.rerouting && view.rerouteFailed;
   return (
-    <section className="nav-top glass" data-busy={busy} data-camera={cam !== null || rep !== null} data-strip={hidden} aria-hidden={hidden} aria-live="polite" aria-label={view.next.instruction || t('nav.aria')}>
-      {busy || view.rerouteFailed ? (
-        <div className="nav-reroute" data-failed={!view.rerouting && view.rerouteFailed}>
+    <section
+      className="nav-top glass"
+      data-busy={busy}
+      data-camera={cam !== null || rep !== null || jamAsk !== null}
+      data-strip={hidden}
+      aria-hidden={hidden}
+      aria-live="polite"
+      aria-label={view.next.instruction || t('nav.aria')}
+    >
+      {failed ? (
+        <button className="nav-reroute" data-failed="true" onClick={onRetryReroute}>
+          <Icon name="restart" size={34} />
+          <span className="nav-reroute-text">
+            <span>{t('nav.rerouteFailed')}</span>
+            {view.rerouteRetryInS !== null && <small className="num">{t('nav.rerouteRetryIn', { s: view.rerouteRetryInS })}</small>}
+          </span>
+        </button>
+      ) : busy ? (
+        <div className="nav-reroute" data-failed="false">
           <Icon name="restart" size={34} className={view.rerouting ? 'spin' : undefined} />
-          <span>{view.rerouting || !view.rerouteFailed ? t('nav.rerouting') : t('nav.rerouteFailed')}</span>
+          <span>{t('nav.rerouting')}</span>
         </div>
       ) : arrived ? (
         <div className="nav-main">
@@ -115,6 +203,7 @@ export function NavTop({ view, unit, hidden = false, report = null }: { view: Na
           <b className="num">{cam}</b>
         </div>
       )}
+      {jamAsk && <JamAskRow ask={jamAsk} />}
       {rep && <ReportAlertRow alert={rep} unit={unit} />}
       {up && !arrived && (
         <div className="nav-badge" data-kind={view.upcoming!.item.kind}>
@@ -173,7 +262,10 @@ export function NavBottom({
   onEnd: () => void;
 }) {
   return (
-    <section className="card glass compact nav-bottom" aria-label={t('nav.aria')}>
+    <section className="card glass compact nav-bottom" data-delay={view.delayMin !== null} data-speed={showSpeed} aria-label={t('nav.aria')}>
+      {/* AW18: a friss ETA legalább 3 perccel az indulási terv után – az érkezési idő fölött, az ETA oszlopától (390 px-en a
+          sebesség és a Befejezés mellett az ETA oszlopába nem fér, ezért a sáv ilyenkor kétsoros) */}
+      {view.delayMin !== null && <span className="nav-delay num">{trafficDelayLabel(view.delayMin)}</span>}
       {showSpeed && (
         <div className="nav-bottom-speed num" data-over={over}>
           {speedIn(currentKmh ?? 0, unit) ?? 0}

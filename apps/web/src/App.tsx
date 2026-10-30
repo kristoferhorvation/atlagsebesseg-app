@@ -6,8 +6,13 @@ import {
   cameraLabel,
   cameraVisibility,
   cameraWarning,
+  createJamSamples,
   createReports,
   currentUserId,
+  isJamReport,
+  jamQueryBBox,
+  listActiveJams,
+  rowToCommunityJam,
   detectBrowser,
   gpsPillAction,
   listActiveReports,
@@ -77,7 +82,7 @@ import { cameraIcon } from './ui/cameraIcon';
 import { Hud, ManualMini, SlowDown, toneOf } from './ui/Hud';
 import { Icon, type IconName } from './ui/Icon';
 import { LimitSign } from './ui/LimitSign';
-import { NavBottom, NavStrip, NavTop, OfferCard, ReportAlertCard, type ReportAlertProps } from './ui/NavHud';
+import { JamAskCard, NavBottom, NavStrip, NavTop, OfferCard, ReportAlertCard, type JamAskProps, type ReportAlertProps } from './ui/NavHud';
 import { RoutePicker } from './ui/RoutePicker';
 import { SearchScreen } from './ui/SearchScreen';
 import { PlannedBand } from './ui/PlannedBand';
@@ -94,6 +99,14 @@ const NAV_SIM = new URLSearchParams(location.search).has('navsim');
 /** `?navsim&alt=worth|maybe|not|aftergate`: a szimulált gyorsabb út kategóriája (AW12); alapból „megéri”. */
 const NAV_SIM_ALT: SimAltMode = (SIM_ALT_MODES as readonly string[]).includes(new URLSearchParams(location.search).get('alt') ?? '') ? (new URLSearchParams(location.search).get('alt') as SimAltMode) : 'worth';
 const SIM_MODE = new URLSearchParams(location.search).has('sim') || NAV_SIM;
+/**
+ * AW18: `?navsim&traffic` – dugó mód (a friss Mapbox-lekérések dugót mutatnak, a vezetés araszol); `&fasterAlt` – a
+ * tervezésnél a 2. útvonal 1 perccel gyorsabb; `&rerouteFail` – az újratervezés HTTP 503-mal bukik.
+ */
+const NAV_SIM_OPTS = (() => {
+  const q = new URLSearchParams(location.search);
+  return { traffic: q.has('traffic'), fasterAlt: q.has('fasterAlt'), rerouteFail: q.has('rerouteFail') };
+})();
 /** `?sim&panel=0`: a szimulátor vezérlője és jelzése nélkül (marketing-képernyőképekhez). */
 const SIM_PANEL = new URLSearchParams(location.search).get('panel') !== '0' && !NAV_SIM;
 /** `?sunAt=<ISO-idő>`: a térkép fénye ehhez az időponthoz (napszak-képernyőképekhez, AW16); alapból a valós idő. */
@@ -177,8 +190,8 @@ function Drive({ map }: { map: WebMapAdapter }) {
     [session.onFix],
   );
   const places = usePlaces();
-  const navSim = useMemo<NavSimData | null>(() => (NAV_SIM ? buildNavSim() : null), []);
-  const navFetch = useMemo(() => (navSim ? simRouteFetcher(navSim, NAV_SIM_ALT) : (directionsClient?.routes ?? null)), [navSim]);
+  const navSim = useMemo<NavSimData | null>(() => (NAV_SIM ? buildNavSim(Date.now(), { traffic: NAV_SIM_OPTS.traffic }) : null), []);
+  const navFetch = useMemo(() => (navSim ? simRouteFetcher(navSim, NAV_SIM_ALT, NAV_SIM_OPTS) : (directionsClient?.routes ?? null)), [navSim]);
   const loadData = useCallback(
     async (routes: readonly NavRoute[]): Promise<EnforcementData> =>
       navSim ? { sections: [...BUNDLED_SECTIONS, navSim.section], cameras: [...BUNDLED_CAMERAS, navSim.camera], planned: [] } : loadRouteData(routes),
@@ -570,7 +583,7 @@ function Drive({ map }: { map: WebMapAdapter }) {
 
   const [sending, setSending] = useState<ReportChoice | null>(null);
   const report = useCallback(
-    (choice: ReportChoice) => {
+    (choice: ReportChoice, opts: { jamSample?: boolean } = {}) => {
       const row = view.lastFix ? reportFromFix(choice, view.lastFix) : null;
       if (!row) return;
       const label = reportChoiceLabel(choice);
@@ -578,6 +591,8 @@ function Drive({ map }: { map: WebMapAdapter }) {
       createReports(supabase, [row])
         .then(([id]) => {
           if (id) feed.addOwn(ownReport(row, id, now()));
+          // AW18: a „Dugó” / „Beállt” bejelentés közösségi dugó-mintát is ad (a kártya „Igen”-jénél az `answerJam` adja)
+          if (isJamReport(choice) && opts.jamSample !== false) nav.session?.reportedJam();
           setGateStarted((g) => gateStartedAfter(g, { sent: choice }));
           showToast({ text: t('report.sent', { label }), tone: 'jo', icon: 'check' });
         })
@@ -587,8 +602,52 @@ function Drive({ map }: { map: WebMapAdapter }) {
           setSheet(null);
         });
     },
-    [view.lastFix, showToast, feed.addOwn, now],
+    [view.lastFix, showToast, feed.addOwn, now, nav.session],
   );
+
+  // AW18: „Dugóba kerültél?” – Igen: „Dugó” bejelentés a pozícióra (a meglévő folyamattal), Nem: erre a szakaszra nem kérdez újra
+  const jamAsk: JamAskProps | null =
+    nav.view?.jamAsk && nav.view.phase === 'navigating'
+      ? {
+          sending: sending !== null,
+          onAnswer: (yes) => {
+            nav.session?.answerJam(yes);
+            if (yes) report('dugo', { jamSample: false });
+          },
+        }
+      : null;
+
+  // AW18: a közösségi dugó-minták feltöltése (szimulátorban csak napló: window.__navJam)
+  useEffect(() => {
+    const s = nav.session;
+    if (!s) return;
+    const pump = () => {
+      const rows = s.drainJamSamples();
+      if (rows.length === 0) return;
+      if (SIM_MODE) {
+        const w = window as unknown as { __navJam?: unknown[] };
+        (w.__navJam ??= []).push(...rows);
+        return;
+      }
+      createJamSamples(supabase, rows).catch((e: unknown) => console.warn('[nav] jam_samples insert failed', e));
+    };
+    pump();
+    return s.subscribe(pump);
+  }, [nav.session]);
+  // AW18: mások friss dugó-mintái az útvonal előttünk lévő részén, percenként (szimulátorban nincs)
+  useEffect(() => {
+    const s = nav.session;
+    if (!s || SIM_MODE || !supabase) return;
+    const load = () => {
+      const v = s.view();
+      Promise.all([listActiveJams(supabase, jamQueryBBox(v.route, v.alongM)), currentUserId(supabase)])
+        .then(([rows, uid]) => s.setCommunityJams(rows.map((r) => rowToCommunityJam(r, uid))))
+        .catch((e: unknown) => console.warn('[nav] active_jams fetch failed', e));
+    };
+    load();
+    const id = setInterval(load, 60_000);
+    return () => clearInterval(id);
+  }, [nav.session]);
 
   // megerősítés / nincs ott (report_votes); szimulátorban csak helyben
   const [voting, setVoting] = useState(false);
@@ -650,9 +709,12 @@ function Drive({ map }: { map: WebMapAdapter }) {
           onBackground={session.interrupt}
         />
       )}
-      {nav.view && !measuringLayout && <NavTop view={nav.view} unit={settings.egyseg} hidden={stepStrip} report={reportAlert} />}
-      {/* AOS14: navigáció nélkül, vagy ha a felső kártya nem látszik, a bejelentés kártyája önállóan, ugyanott */}
-      {reportAlert && !(nav.view && !measuringLayout && !stepStrip) && <ReportAlertCard alert={reportAlert} unit={settings.egyseg} />}
+      {nav.view && !measuringLayout && (
+        <NavTop view={nav.view} unit={settings.egyseg} hidden={stepStrip} report={reportAlert} jam={jamAsk} onRetryReroute={() => nav.session?.retryReroute()} />
+      )}
+      {/* AOS14: navigáció nélkül, vagy ha a felső kártya nem látszik, a bejelentés kártyája önállóan, ugyanott (AW18: a dugó-kérdés előbb) */}
+      {jamAsk && !(nav.view && !measuringLayout && !stepStrip) && <JamAskCard ask={jamAsk} />}
+      {reportAlert && !jamAsk && !(nav.view && !measuringLayout && !stepStrip) && <ReportAlertCard alert={reportAlert} unit={settings.egyseg} />}
       <PlannedBand check={activePlanned} compact={measuring} />
 
       <div className="hud" ref={hudRef} data-hidden={nav.plan !== null || nav.searchFor !== null}>
@@ -744,6 +806,7 @@ function Drive({ map }: { map: WebMapAdapter }) {
         <RoutePicker
           plan={nav.plan}
           summaries={nav.summaries}
+          fastest={nav.fastest}
           unit={settings.egyseg}
           now={now()}
           onSelect={nav.selectRoute}

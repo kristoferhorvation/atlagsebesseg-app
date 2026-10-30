@@ -95,8 +95,11 @@ extension AppModel {
 
     /// Bejelentés a jelenlegi helyről (2. koppintás a típusra – nincs megerősítő lépés). A szimulátorban is a szerverre
     /// megy, mint a weben (AOS14 javítás); sikeres küldés után a kapu-tétel vált (`gateStartedAfter`).
-    func sendReport(_ choice: ReportChoice) {
+    /// AW18: a „Dugó” / „Beállt” bejelentés közösségi dugó-mintát is ad (`jamSample`; a „Dugóba kerültél?” Igen-je a
+    /// session-ből adja, ott `false`).
+    func sendReport(_ choice: ReportChoice, jamSample: Bool = true) {
         guard let fix = lastFix, let row = reportFromFix(choice, fix) else { return }
+        if choice.isJamReport && jamSample { navSession?.reportedJam() }
         let label = choice.label
         reportSending = choice
         let done = { [weak self] (id: String?) in

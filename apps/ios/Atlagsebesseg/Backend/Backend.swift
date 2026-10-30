@@ -94,6 +94,32 @@ final class Backend {
         try await client.from("report_votes").upsert(VoteRow(report_id: reportId, confirm: confirm), onConflict: "report_id,user_id").execute()
     }
 
+    // MARK: közösségi dugó-adat (AW18, a webes `listActiveJams` / `createJamSamples`)
+
+    /// A téglalap 15 percnél frissebb dugó-mintái (`active_jams` nézet), legfeljebb 500.
+    func activeJams(in b: BBox) async throws -> [CommunityJam] {
+        guard let client else { throw BackendError.nincsBeallitas }
+        async let rows: [JamRow] = client.from("active_jams")
+            .select("id,kind,lat,lon,heading_deg,avg_kmh,length_m,user_id,created_at")
+            .gte("lat", value: b.south)
+            .lte("lat", value: b.north)
+            .gte("lon", value: b.west)
+            .lte("lon", value: b.east)
+            .limit(500)
+            .execute()
+            .value
+        let uid = await currentUserId()
+        return try await rows.map { rowToCommunityJam($0, myUserId: uid) }
+    }
+
+    /// Dugó-minták feltöltése (anonim bejelentkezéssel).
+    func createJamSamples(_ rows: [JamSampleInsert]) async throws {
+        guard let client else { throw BackendError.nincsBeallitas }
+        if rows.isEmpty { return }
+        _ = try await ensureSignedIn()
+        try await client.from("jam_samples").insert(rows).execute()
+    }
+
     /// A téglalap szakaszai (`sections_in_bbox`).
     func sections(in b: BBox) async throws -> [Section] {
         guard let client else { throw BackendError.nincsBeallitas }

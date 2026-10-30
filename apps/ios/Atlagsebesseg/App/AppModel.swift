@@ -91,6 +91,8 @@ final class AppModel {
     /// AW15: a kézi mérés pillje navigáció közben (`nil`: nincs navigáció vagy nem fut kézi mérés – a nagy kártya).
     private(set) var manualPill: ManualPillState?
     @ObservationIgnored private var pillTimer: Timer?
+    /// AW18: a közösségi dugó-adat utolsó lekérése (ms).
+    @ObservationIgnored var lastJamFetchAt: Double?
 
     // MARK: bejelentések (AOS14)
 
@@ -216,7 +218,11 @@ final class AppModel {
             // (`-alt off`: nincs alternatíva – a kamera-sáv képernyőképéhez)
             let raw = UserDefaults.standard.string(forKey: "alt")
             let alt: NavSim.AltMode? = raw == "off" ? nil : raw.flatMap(NavSim.AltMode.init(rawValue:)) ?? .worth
-            simFetcher = (try? NavSim.mainRoutes()).flatMap(\.first).map { NavSim.fetcher(main: $0, nav: navData, alt: alt) }
+            // AW18: `-traffic YES` (dugós vezetés + friss lekérések), `-fasterAlt YES`, `-rerouteFail YES`
+            let args = UserDefaults.standard
+            simFetcher = (try? NavSim.mainRoutes()).flatMap(\.first).map {
+                NavSim.fetcher(main: $0, nav: navData, alt: alt, traffic: args.bool(forKey: "traffic"), fasterAlt: args.bool(forKey: "fasterAlt"), rerouteFail: args.bool(forKey: "rerouteFail"))
+            }
             s.hold(at: navData.from)
             runNavStage()
         } else {
@@ -304,6 +310,7 @@ final class AppModel {
     private func tick() {
         view = session.tick()
         navSession?.tick()
+        checkCommunityJams()
         syncNavMeasure()
         alerts.expire(now: nowMs())
         checkReports()

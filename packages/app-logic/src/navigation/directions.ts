@@ -6,10 +6,21 @@ import type { BannerText, Congestion, NavBanner, NavRoute, NavStep, NavVoice } f
 
 const BASE = 'https://api.mapbox.com/directions/v5/mapbox/driving-traffic';
 
-/** A Directions-kérés címe: forgalmas profil, alternatívák, lépések, szalag- és hangutasítások, annotációk. */
-export function directionsUrl(from: LatLon, to: LatLon, lang: Lang, token: string, opts: { alternatives?: boolean; heading?: number | null } = {}): string {
+/**
+ * A Directions-kérés címe: forgalmas profil, alternatívák, lépések, szalag- és hangutasítások, annotációk. AW18: `via`
+ * (a következő manőver) néma köztes pont (`waypoints=0;2`), hogy a friss forgalmi lekérés a jelenlegi útvonalon maradjon –
+ * ilyenkor alternatíva nincs (a Directions csak két pontnál ad).
+ */
+export function directionsUrl(
+  from: LatLon,
+  to: LatLon,
+  lang: Lang,
+  token: string,
+  opts: { alternatives?: boolean; heading?: number | null; via?: LatLon | null } = {},
+): string {
+  const via = opts.via ?? null;
   const q = new URLSearchParams({
-    alternatives: String(opts.alternatives ?? true),
+    alternatives: String(via ? false : (opts.alternatives ?? true)),
     steps: 'true',
     banner_instructions: 'true',
     voice_instructions: 'true',
@@ -20,9 +31,11 @@ export function directionsUrl(from: LatLon, to: LatLon, lang: Lang, token: strin
     language: directionsLanguage(lang),
   });
   // újratervezésnél a haladási irány: ne küldjön vissza ellenkező irányba
-  if (opts.heading !== null && opts.heading !== undefined && Number.isFinite(opts.heading)) q.set('bearings', `${Math.round(opts.heading)},45;`);
+  if (opts.heading !== null && opts.heading !== undefined && Number.isFinite(opts.heading)) q.set('bearings', `${Math.round(opts.heading)},45;${via ? ';' : ''}`);
+  if (via) q.set('waypoints', '0;2');
   q.set('access_token', token);
-  return `${BASE}/${from.lon.toFixed(6)},${from.lat.toFixed(6)};${to.lon.toFixed(6)},${to.lat.toFixed(6)}?${q}`;
+  const pts = [from, ...(via ? [via] : []), to].map((p) => `${p.lon.toFixed(6)},${p.lat.toFixed(6)}`).join(';');
+  return `${BASE}/${pts}?${q}`;
 }
 
 export class DirectionsError extends Error {

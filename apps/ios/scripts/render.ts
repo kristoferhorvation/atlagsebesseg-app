@@ -1,9 +1,9 @@
-import { ALT_OFFER, CAMERA_ALERT, DICTIONARIES, MEGSZOLITAS_MAX, REPORT_PROMPT, type ActiveReport, LANGUAGE_FLAGS, LANGUAGE_NAMES, LANGUAGES, MANUAL_PILL, NAV_CONFIG, NAV_COUNTRIES, NAV_FOLLOW, PLANNED_MATCH_M, PLANNED_OFF_FIXES, ROUTE_MATCH_M, type FixedCamera, type PlannedCheck, type TKey } from '@atlagsebesseg/app-logic';
+import { ALT_OFFER, CAMERA_ALERT, TRAFFIC, DICTIONARIES, MEGSZOLITAS_MAX, REPORT_PROMPT, type ActiveReport, LANGUAGE_FLAGS, LANGUAGE_NAMES, LANGUAGES, MANUAL_PILL, NAV_CONFIG, NAV_COUNTRIES, NAV_FOLLOW, PLANNED_MATCH_M, PLANNED_OFF_FIXES, ROUTE_MATCH_M, type FixedCamera, type PlannedCheck, type TKey } from '@atlagsebesseg/app-logic';
 import { Route, type LatLon } from '@atlagsebesseg/core';
 import { testCourse } from '@atlagsebesseg/core/test/helpers/trace';
 import { toSwift } from '@atlagsebesseg/design-tokens';
 import { PATHS } from '../../web/src/ui/Icon';
-import { buildNavSim, SIM_ALTS, SIM_EXIT_AFTER_GATE_M, SIM_FROM, SIM_PLACES } from '../../web/src/sim/navSim';
+import { buildNavSim, SIM_ALTS, SIM_EXIT_AFTER_GATE_M, SIM_FASTER_ALT_S, SIM_FROM, SIM_JAM, SIM_PLACES } from '../../web/src/sim/navSim';
 import { MANEUVER_PATHS } from '../../web/src/ui/ManeuverIcon';
 import { iconsSwift, maneuverIconsSwift } from './icons';
 import { buildSimulation, simCameras, simPlannedChecks, simReports, type SimScenario } from '../../web/src/sim/scenarios';
@@ -90,6 +90,12 @@ function appLogicConstants(): string {
     '/// kérdésre, az elhaladás után `showMs`-ig látható; ±`coneDeg` az „előttünk”, bejelentésenként egyszer.',
     'nonisolated enum REPORT_PROMPT {',
     ...Object.entries(REPORT_PROMPT).map(([k, v]) => `    static let ${k} = ${num(v)}`),
+    '}',
+    '/// AW18: élő forgalom (2 perces friss lekérés), „+N perc dugó” (≥ `delayShowS`, hang legfeljebb `delayRepeatMs`-enként),',
+    '/// helyi dugó-érzékelés (`jamWindowMs` ablak a várt tempó `jamSlowFraction`-ja alatt; vége `jamClearM` a `jamNearFraction` fölött),',
+    '/// a „Dugóba kerültél?” kártya `jamPromptMs`-ig, közösségi dugó-adat `communityMaxAgeMs`-ig, újratervezés-backoff (s).',
+    'nonisolated enum TRAFFIC {',
+    ...Object.entries(TRAFFIC).map(([k, v]) => (Array.isArray(v) ? `    static let ${k}: [Double] = [${v.map(num).join(', ')}]` : `    static let ${k} = ${num(v as number)}`)),
     '}',
     '/// A megszólítás (AOS14) legfeljebb ennyi karakter.',
     `nonisolated let MEGSZOLITAS_MAX = ${MEGSZOLITAS_MAX}`,
@@ -274,9 +280,40 @@ function simFixtures(): [string, string][] {
           sectionEndM: nav.sectionEndM,
           alts: SIM_ALTS,
           exitAfterGateM: SIM_EXIT_AFTER_GATE_M,
+          // AW18: `-fasterAlt YES` – a 2. útvonal ennyivel gyorsabb (s)
+          fasterAltS: SIM_FASTER_ALT_S,
         },
       },
       nav.samples,
+    ),
+  ]);
+  // AW18: a webes `?navsim&traffic` – az 1. ablak letérés nélkül, a dugón át araszolva; a friss lekérések a `jam` szakaszt
+  // `extraS` többletidővel mutatják (a többi ugyanaz, mint a navsim-ben)
+  const trafficNav = buildNavSim(0, { traffic: true });
+  files.push([
+    'navsim-traffic.json',
+    simFile(
+      {
+        id: 'navsim-traffic',
+        label: 'Budapest → Győr (dugó)',
+        leadInM: 0,
+        sections: [trafficNav.section],
+        cameras: [cameraRow(trafficNav.camera)],
+        planned: [plannedRow(navPlanned)],
+        reports: trafficNav.reports.map(reportRow),
+        nav: {
+          from: SIM_FROM,
+          places: SIM_PLACES,
+          detour: trafficNav.detour,
+          windows: trafficNav.windows,
+          sectionEndM: trafficNav.sectionEndM,
+          alts: SIM_ALTS,
+          exitAfterGateM: SIM_EXIT_AFTER_GATE_M,
+          fasterAltS: SIM_FASTER_ALT_S,
+          jam: SIM_JAM,
+        },
+      },
+      trafficNav.samples,
     ),
   ]);
   return files;

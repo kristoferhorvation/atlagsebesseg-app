@@ -1,5 +1,5 @@
 import { BUDAPEST_GYOR_DIRECTIONS } from '@atlagsebesseg/app-logic/nav-fixtures';
-import { parseDirections, type ActiveReport, type FixedCamera, type NavRoute, type NavStep, type Place, type RouteFetcher } from '@atlagsebesseg/app-logic';
+import { DirectionsError, parseDirections, type ActiveReport, type FixedCamera, type NavRoute, type NavStep, type Place, type RouteFetcher } from '@atlagsebesseg/app-logic';
 import { haversineM, LocalProjection, polylineLengthM, Route, type GpsFix, type LatLon, type Section } from '@atlagsebesseg/core';
 import { drive, type DriveSample } from '@atlagsebesseg/core/test/helpers/trace';
 
@@ -27,7 +27,57 @@ export async function simSearch(query: string): Promise<Place[]> {
   return SIM_PLACES.filter((p) => plain(p.name).includes(q) || plain(p.address).includes(q));
 }
 
-export const simMainRoutes = (): NavRoute[] => parseDirections(BUDAPEST_GYOR_DIRECTIONS, 'sim');
+/**
+ * A fixtúra két útvonala. AW18: `fasterAlt` (`?navsim&fasterAlt` / `-fasterAlt YES`) – a 2. útvonal 1 perccel gyorsabb a
+ * 0.-nál (élesben a Mapbox 0. útvonala 42 perc volt, az alternatíva 41): a „Leggyorsabb” címke és az előválasztás a 2.-ra kerül.
+ */
+export const simMainRoutes = (fasterAlt = false): NavRoute[] => {
+  const routes = parseDirections(BUDAPEST_GYOR_DIRECTIONS, 'sim');
+  if (!fasterAlt || routes.length < 2) return routes;
+  const [main, alt] = routes as [NavRoute, NavRoute];
+  return [main, scaleRouteDuration(alt, main.durationS - SIM_FASTER_ALT_S), ...routes.slice(2)];
+};
+
+/** AW18: a `fasterAlt` módban ennyivel gyorsabb a 2. útvonal (s). */
+export const SIM_FASTER_ALT_S = 60;
+
+/** Az útvonal idejét `totalS`-re skálázza (a szakaszidőkkel és a lépésekkel együtt). */
+function scaleRouteDuration(r: NavRoute, totalS: number): NavRoute {
+  const k = totalS / r.durationS;
+  return {
+    ...r,
+    durationS: totalS,
+    typicalDurationS: r.typicalDurationS === null ? null : r.typicalDurationS * k,
+    segDurationS: r.segDurationS.map((d) => d * k),
+    steps: r.steps.map((st) => ({ ...st, durationS: st.durationS * k })),
+  };
+}
+
+/**
+ * AW18: a „dugó” mód (`?navsim&traffic`, iOS: `-traffic YES`): a fő útvonalon `fromM`–`toM` között dugó. A friss Mapbox-
+ * lekérés (2 percenként / újratervezéskor) ezt `extraS` többletidővel mutatja; a vezetés ott araszol (álló–induló, a
+ * gyorsulások `SIM_JAM_BURST_M`-esek, 500 m alatt), így a helyi dugó-érzékelés is bekapcsol.
+ */
+export const SIM_JAM = { fromM: 2200, toM: 2800, extraS: 420 } as const;
+const SIM_JAM_BURST_M = 85;
+
+/** A fő útvonal a dugóval: a `SIM_JAM` szakasz ideje `extraS`-sel több (a friss lekérések erre épülnek). */
+export function jammedRoute(main: NavRoute, jam: { fromM: number; toM: number; extraS: number } = SIM_JAM): NavRoute {
+  const idx = main.segStartM.flatMap((m, i) => (m >= jam.fromM && m < jam.toM ? [i] : []));
+  const base = idx.reduce((a, i) => a + main.segDurationS[i]!, 0);
+  if (base <= 0) return main;
+  const k = (base + jam.extraS) / base;
+  const segDurationS = main.segDurationS.map((d, i) => (idx.includes(i) ? d * k : d));
+  return { ...main, segDurationS, durationS: main.durationS + jam.extraS, segCongestion: main.segCongestion.map((c, i) => (idx.includes(i) ? 'severe' : c)) };
+}
+
+/** A dugós mód sebessége a 1. ablakban (km/h, a megtett út szerint): a dugóban álló–induló araszolás (~12 km/h átlag). */
+export function simTrafficSpeedKmh(s: number): number {
+  if (s < 600) return 40;
+  if (s < SIM_JAM.fromM) return 50;
+  if (s < SIM_JAM.toM) return (s - SIM_JAM.fromM) % 100 < 100 - SIM_JAM_BURST_M ? 3 : 25;
+  return 50;
+}
 
 // ---------------------------------------------------------------------------
 // útvonal-műveletek
@@ -258,7 +308,7 @@ const slice = (main: NavRoute, fromM: number, toM: number): LatLon[] => {
  * szakaszellenőrzés (közeledés, mérés, a „túl gyors” állapottal) és egy kamera, a 3. ablakban az érkezés.
  * Az ablakok közt a pozíció ugrik (a 120 km-es út nem játszandó végig), az óra folytonos.
  */
-export function buildNavSim(t0 = Date.now()): NavSimData {
+export function buildNavSim(t0 = Date.now(), opts: { traffic?: boolean } = {}): NavSimData {
   const main = simMainRoutes()[0]!;
   const D = main.distanceM;
   const detour = buildDetour(main, 2000);
@@ -325,7 +375,10 @@ export function buildNavSim(t0 = Date.now()): NavSimData {
   const pathC = slice(main, D - 2600, D);
   const run = (path: LatLon[], at: number, speed: (s: number) => number, seed: number) =>
     drive({ path, t0: at, noiseM: 2.5, accuracy: 6, seed, speedKmh: speed });
-  const a = run(pathA, t0, (s) => (s < 600 ? 40 : s < 1900 ? 60 : SIM_DETOUR_SPEED_KMH), 11);
+  // AW18: dugós módban az 1. ablak letérés nélkül, a dugón át 5,2 km-ig
+  const a = opts.traffic
+    ? run(slice(main, 0, 5200), t0, simTrafficSpeedKmh, 11)
+    : run(pathA, t0, (s) => (s < 600 ? 40 : s < 1900 ? 60 : SIM_DETOUR_SPEED_KMH), 11);
   const aEnd = a.at(-1)!.t + 1000;
   const bStartS = 3200;
   const b = run(
@@ -344,14 +397,26 @@ export function buildNavSim(t0 = Date.now()): NavSimData {
   return { main, detour, section, sectionEndM: S0 + 3000, camera, reports, samples: [...a, ...b, ...c], windows: [0, a.length, a.length + b.length] };
 }
 
-/** A szimulátor Directions-szolgáltatója: tervezés a fixtúrából, újratervezés / alternatíva a fixtúra útvonalából. */
-export function simRouteFetcher(data: Pick<NavSimData, 'main' | 'detour' | 'sectionEndM'>, alt: SimAltMode = 'worth'): RouteFetcher {
+/**
+ * A szimulátor Directions-szolgáltatója: tervezés a fixtúrából, újratervezés / alternatíva a fixtúra útvonalából. AW18:
+ * `traffic` – a friss lekérések (alternatíva-figyelés, forgalom, újratervezés) a dugós fő útvonalból, alternatíva nélkül;
+ * `fasterAlt` – a tervezésnél a 2. útvonal 1 perccel gyorsabb; `rerouteFail` (`?rerouteFail` / `-rerouteFail YES`) – az
+ * újratervezés HTTP 503-mal bukik (a „nem sikerült” kártya visszaszámlálójához).
+ */
+export function simRouteFetcher(
+  data: Pick<NavSimData, 'main' | 'detour' | 'sectionEndM'>,
+  alt: SimAltMode = 'worth',
+  opts: { traffic?: boolean; fasterAlt?: boolean; rerouteFail?: boolean } = {},
+): RouteFetcher {
   let n = 0;
+  const jammed = opts.traffic ? jammedRoute(data.main) : null;
   return async (from, _to, ctx) => {
     await new Promise((r) => setTimeout(r, 120));
-    if (ctx.reason === 'plan') return simMainRoutes();
+    if (ctx.reason === 'plan') return simMainRoutes(opts.fasterAlt);
+    if (opts.rerouteFail && ctx.reason === 'reroute') throw new DirectionsError('http_503');
+    if (jammed) return [routeFrom(jammed, data.detour, from, `sim-${ctx.reason}-${++n}`)];
     const here = routeFrom(data.main, data.detour, from, `sim-${ctx.reason}-${++n}`);
-    if (ctx.reason === 'reroute') return [here];
+    if (ctx.reason === 'reroute' || ctx.reason === 'traffic') return [here];
     // alternatíva-figyelés: a jelenlegi útvonal frissített változata + egy gyorsabb, a kért kategóriával
     const { gainS, extraM } = SIM_ALTS[alt];
     if (alt !== 'aftergate') return [here, fasterAlternative(here, `sim-fast-${alt}-${n}`, gainS, extraM)];

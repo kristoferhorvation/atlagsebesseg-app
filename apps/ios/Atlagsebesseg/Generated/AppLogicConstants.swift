@@ -70,6 +70,27 @@ nonisolated enum REPORT_PROMPT {
     static let coneDeg = 45.0
     static let showMs = 10000.0
 }
+/// AW18: élő forgalom (2 perces friss lekérés), „+N perc dugó” (≥ `delayShowS`, hang legfeljebb `delayRepeatMs`-enként),
+/// helyi dugó-érzékelés (`jamWindowMs` ablak a várt tempó `jamSlowFraction`-ja alatt; vége `jamClearM` a `jamNearFraction` fölött),
+/// a „Dugóba kerültél?” kártya `jamPromptMs`-ig, közösségi dugó-adat `communityMaxAgeMs`-ig, újratervezés-backoff (s).
+nonisolated enum TRAFFIC {
+    static let refreshMs = 120000.0
+    static let delayShowS = 180.0
+    static let delayRepeatMs = 300000.0
+    static let jamWindowMs = 120000.0
+    static let jamSlowFraction = 0.5
+    static let jamNearFraction = 0.8
+    static let jamClearM = 500.0
+    static let jamPromptMs = 15000.0
+    static let jamAheadMaxM = 3000.0
+    static let jamMinKmh = 5.0
+    static let jamUploadMs = 120000.0
+    static let communityMaxAgeMs = 900000.0
+    static let communityHeadingDeg = 45.0
+    static let reportedLengthM = 300.0
+    static let rerouteBackoffS: [Double] = [5.0, 10.0, 20.0, 30.0]
+    static let directionsTimeoutMs = 10000.0
+}
 /// A megszólítás (AOS14) legfeljebb ennyi karakter.
 nonisolated let MEGSZOLITAS_MAX = 24
 
