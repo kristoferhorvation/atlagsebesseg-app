@@ -2,7 +2,7 @@ import AtlagsebessegCore
 import Foundation
 
 // AOS14: a packages/app-logic/src/reports.ts, reportFeed.ts és reportPrompt.ts portja (bejelentés, a térkép bejelentései,
-// „Még ott van?” közeledéskor). A Supabase-hívások a Backend.swift-ben, a kötés az AppModel+Reports.swift-ben.
+// közeledő bejelentés: figyelmeztetés → „Még ott van?”, egy kapu-tétel a menüben). A Supabase-hívások a Backend.swift-ben, a kötés az AppModel+Reports.swift-ben.
 
 /// A `public.report_type` enum értékei (supabase/migrations).
 nonisolated enum ReportType: String, Codable, Sendable {
@@ -289,52 +289,124 @@ final class ReportFeed {
     }
 }
 
-// MARK: „Még ott van?” (AOS14)
+// MARK: közeledő bejelentés – figyelmeztetés → „Még ott van?” (AOS14)
 
-/// A legközelebbi bejelentés, amelyre most rá kell kérdezni (a webes `reportPromptCandidate`; `skip`: már kérdeztük /
-/// szavaztunk rá). Előttünk (±`coneDeg`) `askM`-en belül, irány nélkül csak `nearM`-en belül; a sajátra soha.
+nonisolated enum ReportPromptPhase: String, Sendable {
+    case approach, ask
+}
+
+/// A kártya állapota (a webes `ReportPrompt`): melyik bejelentés, figyelmeztet vagy kérdez, és milyen messze van.
+nonisolated struct ReportPrompt: Equatable, Sendable {
+    var id: String
+    var phase: ReportPromptPhase
+    var distanceM: Double
+}
+
+/// A figyelmeztetés távolsága a sebességből (m/s), mint a közeli kameránál (a webes `reportAlertM`).
+nonisolated func reportAlertM(_ speedMps: Double?) -> Double {
+    max(CAMERA_ALERT.minM, CAMERA_ALERT.leadS * max(0, speedMps ?? 0))
+}
+
+nonisolated private func promptGeometry(_ fix: GpsFix, _ r: ActiveReport) -> (d: Double, ahead: Bool, behind: Bool) {
+    let p = LatLon(lat: r.lat, lon: r.lon)
+    let d = haversineM(fix, p)
+    let diff = fix.heading.map { angleDiffDeg($0, bearingDeg(fix, p)) }
+    return (d, diff.map { $0 <= REPORT_PROMPT.coneDeg } ?? false, diff.map { $0 > 90 } ?? false)
+}
+
+/// Ennyire meg kellett közelíteni, hogy a „mögöttünk van” elhaladásnak számítson (hajtűkanyarban a légvonal megtéveszt).
+nonisolated let REPORT_PASSED_NEAR_M = 100.0
+
+/// Elhaladtunk mellette (már a közelében voltunk, és most mögöttünk van), vagy messzire kerültünk (letértünk). Kanyarban a
+/// bejelentés kicsúszhat a ±`coneDeg` kúpból, hajtűkanyarban átmenetileg mögénk is kerülhet – az még nem elhaladás.
+nonisolated private func promptGone(_ g: (d: Double, ahead: Bool, behind: Bool), minD: Double, alertM: Double) -> Bool {
+    (g.behind && minD <= REPORT_PASSED_NEAR_M && g.d > REPORT_PROMPT.nearM) || g.d > 2 * alertM
+}
+
+nonisolated private func promptAsks(_ d: Double, _ ahead: Bool) -> Bool {
+    d <= REPORT_PROMPT.nearM || (ahead && d <= REPORT_PROMPT.askM)
+}
+
+/// A legközelebbi bejelentés, amelyre most figyelmeztetni kell (a webes `reportPromptCandidate`; `skip`: már volt /
+/// szavaztunk rá): előttünk (±`coneDeg`) a kamerával azonos távolságon belül, irány nélkül csak `nearM`-en belül.
 nonisolated func reportPromptCandidate(_ fix: GpsFix, _ reports: [ActiveReport], skip: (String) -> Bool) -> ActiveReport? {
+    let alertM = reportAlertM(fix.speed)
     var best: ActiveReport?
     var bestM = Double.infinity
     for r in reports where !r.own && !skip(r.id) {
-        let p = LatLon(lat: r.lat, lon: r.lon)
-        let d = haversineM(fix, p)
-        let ahead = fix.heading.map { angleDiffDeg($0, bearingDeg(fix, p)) <= REPORT_PROMPT.coneDeg } ?? false
-        guard d <= REPORT_PROMPT.nearM || (ahead && d <= REPORT_PROMPT.askM) else { continue }
-        if d < bestM {
+        let g = promptGeometry(fix, r)
+        guard g.d <= REPORT_PROMPT.nearM || (g.ahead && g.d <= alertM) else { continue }
+        if g.d < bestM {
             best = r
-            bestM = d
+            bestM = g.d
         }
     }
     return best
 }
 
-/// A kérdés állapota (a webes `ReportPromptWatch`): melyik bejelentésre kérdezünk most, és melyikre kérdeztünk már
-/// (egyszer kérdez). A kártya bezárul, ha szavaztunk, lejárt az ideje (`showMs`), vagy a bejelentés eltűnt.
+/// EGY kártya a kamera-figyelmeztetés helyén (a webes `ReportPromptWatch`): figyelmeztetés → `askM`-en belül helyben kérdés →
+/// vége (válasz, elhaladás, a kérdés után `showMs`, vagy a bejelentés eltűnt). Egy bejelentés egyszer kerül sorra.
 nonisolated final class ReportPromptWatch {
-    private var asked = Set<String>()
-    private var shown: (id: String, at: Double)?
+    private var done = Set<String>()
+    private var cur: (id: String, askAt: Double?, minD: Double)?
 
-    /// A most kérdezett bejelentés azonosítója (vagy `nil`).
-    func update(_ fix: GpsFix?, _ reports: [ActiveReport], voted: (String) -> Bool, now: Double) -> String? {
-        if let s = shown {
-            if now - s.at < REPORT_PROMPT.showMs, !voted(s.id), reports.contains(where: { $0.id == s.id }) { return s.id }
-            shown = nil
+    func update(_ fix: GpsFix?, _ reports: [ActiveReport], voted: (String) -> Bool, now: Double) -> ReportPrompt? {
+        if var c = cur {
+            let r = reports.first { $0.id == c.id }
+            let g = r.flatMap { r in fix.map { promptGeometry($0, r) } }
+            if let g { c.minD = min(c.minD, g.d) }
+            cur = c
+            let over = r == nil || voted(c.id) || (c.askAt.map { now - $0 >= REPORT_PROMPT.showMs } ?? false)
+                || (g.map { promptGone($0, minD: c.minD, alertM: reportAlertM(fix?.speed)) } ?? false)
+            if !over {
+                guard let g else { return ReportPrompt(id: c.id, phase: c.askAt == nil ? .approach : .ask, distanceM: .nan) }
+                if c.askAt == nil, promptAsks(g.d, g.ahead) { cur = (c.id, now, c.minD) }
+                return ReportPrompt(id: c.id, phase: cur?.askAt == nil ? .approach : .ask, distanceM: g.d)
+            }
+            finish()
         }
-        guard let fix, let c = reportPromptCandidate(fix, reports, skip: { asked.contains($0) || voted($0) }) else { return nil }
-        asked.insert(c.id)
-        shown = (c.id, now)
-        return c.id
+        guard let fix, let r = reportPromptCandidate(fix, reports, skip: { done.contains($0) || voted($0) }) else { return nil }
+        let g = promptGeometry(fix, r)
+        cur = (r.id, promptAsks(g.d, g.ahead) ? now : nil, g.d)
+        return ReportPrompt(id: r.id, phase: cur?.askAt == nil ? .approach : .ask, distanceM: g.d)
     }
 
-    /// A kártya bezárása (szavazat vagy ×); erre a bejelentésre többet nem kérdez.
-    func close() { shown = nil }
+    /// Válasz (Igen / Nem) vagy ×: a kártya eltűnik, erre a bejelentésre nem tér vissza.
+    func close() { finish() }
 
-    var current: String? { shown?.id }
+    var current: String? { cur?.id }
 
     func reset() {
-        asked = []
-        shown = nil
+        done = []
+        cur = nil
+    }
+
+    private func finish() {
+        if let c = cur { done.insert(c.id) }
+        cur = nil
+    }
+}
+
+// MARK: egy kapu-tétel (AOS14 javítás)
+
+/// A bejelentés-lap tételei (a webes `reportMenu`): az „Átlagmérés eleje” és „vége” EGY tétel a végén – elküldött „eleje”
+/// után „vége”, amíg el nem küldik, vagy a mérés / navigáció véget nem ér.
+nonisolated func reportMenu(gateStarted: Bool) -> [ReportChoice] {
+    ReportChoice.allCases.filter { !$0.isGate } + [gateStarted ? .kapuZaro : .kapuKezdo]
+}
+
+/// Az „eleje elküldve” állapot változása (a webes `gateStartedAfter`).
+nonisolated enum GateEvent: Sendable {
+    case sent(ReportChoice)
+    case activityEnded
+}
+
+nonisolated func gateStartedAfter(_ started: Bool, _ event: GateEvent) -> Bool {
+    switch event {
+    case .activityEnded: false
+    case .sent(.kapuKezdo): true
+    case .sent(.kapuZaro): false
+    case .sent: started
     }
 }
 

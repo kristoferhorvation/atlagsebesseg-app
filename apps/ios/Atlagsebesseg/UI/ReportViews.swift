@@ -21,6 +21,8 @@ struct ReportSheet: View {
     let fix: GpsFix?
     let online: Bool
     let sending: ReportChoice?
+    /// AOS14 javítás: az „Átlagmérés eleje” elküldve – az egyetlen kapu-tétel most „Átlagmérés vége”.
+    let gateStarted: Bool
     let onPick: (ReportChoice) -> Void
     @Environment(\.dismiss) private var dismiss
 
@@ -29,7 +31,7 @@ struct ReportSheet: View {
         if !online { return t(.reportNoteOffline) }
         if fix == nil { return t(.reportNoteNoGps) }
         if noHeading { return t(.reportNoteGateNoHeading) }
-        return t(.reportNoteDefault)
+        return gateStarted ? t(.reportNoteGateEnd) : t(.reportNoteDefault)
     }
 
     var body: some View {
@@ -43,11 +45,12 @@ struct ReportSheet: View {
                     .frame(width: Tokens.Size.touch, height: Tokens.Size.touch)
                     .accessibilityLabel(t(.commonClose))
             }
-            let simple = ReportChoice.allCases.filter { !$0.isGate }
+            let menu = reportMenu(gateStarted: gateStarted)
             LazyVGrid(columns: [GridItem(.flexible(), spacing: Tokens.Space.s2), GridItem(.flexible(), spacing: Tokens.Space.s2)], spacing: Tokens.Space.s2) {
-                ForEach(simple) { tile($0) }
+                ForEach(menu.filter { !$0.isGate }) { tile($0) }
             }
-            ForEach(ReportChoice.allCases.filter(\.isGate)) { tile($0) }
+            // AOS14 javítás: egy kapu-tétel – elküldött „eleje” után ugyanez a sor „vége”
+            ForEach(menu.filter(\.isGate)) { tile($0) }
             Text(note)
                 .font(.inter(Tokens.Typography.caption.size, 500))
                 .foregroundStyle(Tokens.Colors.textMuted)
@@ -89,8 +92,8 @@ struct ReportSheet: View {
     }
 }
 
-/// Egy térképi bejelentés kártyája: típus, mikor jelentették, megerősítés / nincs ott (`report_votes`). Közeledéskor
-/// (`prompt`) „Még ott van?” kérdéssel, Igen / Nem gombbal. Vezetés közben is kezelhető: minden gomb ≥ 56 pt.
+/// Egy térképi bejelentés kártyája koppintásra: típus, mikor jelentették, megerősítés / nincs ott (`report_votes`). Vezetés
+/// közben is kezelhető: minden gomb ≥ 56 pt. (A közeledő bejelentés kártyája külön: `ReportAlertRow`, felül.)
 struct ReportCard: View {
     let report: ActiveReport
     let now: Double
@@ -98,7 +101,6 @@ struct ReportCard: View {
     /// A saját korábbi szavazat (`nil`: még nem szavazott).
     let voted: Bool?
     let sending: Bool
-    var prompt = false
     let onVote: (Bool) -> Void
     let onClose: () -> Void
 
@@ -113,9 +115,6 @@ struct ReportCard: View {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(c.label).font(.inter(22, 640)).foregroundStyle(Tokens.Colors.text).lineLimit(1)
                     Text(timeAgo(now - report.createdAt)).font(.inter(Tokens.Typography.body.size - 3, 500)).foregroundStyle(Tokens.Colors.textMuted)
-                    if prompt {
-                        Text(t(.reportPromptQuestion)).font(.inter(20, 640)).foregroundStyle(c.tone.color).padding(.top, 4)
-                    }
                 }
                 Spacer(minLength: 0)
                 Button(action: onClose) { Icon(name: .close, size: 22) }
@@ -129,8 +128,8 @@ struct ReportCard: View {
                 Text(t(.reportCardOwn)).font(.inter(Tokens.Typography.body.size - 3, 500)).foregroundStyle(Tokens.Colors.textMuted)
             } else {
                 HStack(spacing: Tokens.Space.s2) {
-                    voteButton(true, icon: .check, text: t(prompt ? .reportPromptYes : .reportCardConfirm), tone: c.tone)
-                    voteButton(false, icon: .close, text: t(prompt ? .reportPromptNo : .reportCardGone), tone: c.tone)
+                    voteButton(true, icon: .check, text: t(.reportCardConfirm), tone: c.tone)
+                    voteButton(false, icon: .close, text: t(.reportCardGone), tone: c.tone)
                 }
             }
         }
@@ -155,6 +154,83 @@ struct ReportCard: View {
         )
         .disabled(!canVote || sending)
         .opacity(!canVote || sending ? 0.5 : 1)
+    }
+}
+
+/// A közeledő bejelentés kártyájának adatai (AOS14).
+struct ReportAlertModel {
+    let prompt: ReportPrompt
+    let report: ActiveReport
+    let canVote: Bool
+    let sending: Bool
+    let onVote: (Bool) -> Void
+}
+
+/// A közeledő bejelentés sora a kamera-sor kinézetével (borostyán kártyán, sötét betűvel): közeledéskor „Rendőrség 240 m”,
+/// `askM`-en belül UGYANEZ a sor helyben „Még ott van?” + Igen / Nem (nem jön új elem).
+struct ReportAlertRow: View {
+    let alert: ReportAlertModel
+    let unit: SpeedUnit
+
+    var body: some View {
+        let c = alert.report.choice
+        let ask = alert.prompt.phase == .ask
+        VStack(alignment: .leading, spacing: Tokens.Space.s3) {
+            HStack(spacing: Tokens.Space.s3) {
+                Icon(name: c.icon, size: 40)
+                if ask {
+                    VStack(alignment: .leading, spacing: 0) {
+                        Text(c.label).font(.inter(Tokens.Typography.body.size, 640)).lineLimit(1)
+                        Text(t(.reportPromptQuestion)).font(.num(Tokens.Typography.title.size, 700)).tracking(-0.3).lineLimit(1)
+                    }
+                } else {
+                    let d = formatDistance(alert.prompt.distanceM, unit)
+                    Text(t(.reportAlertAhead, ["label": c.label, "d": "\(d.value) \(d.unit)"]))
+                        .font(.num(Tokens.Typography.title.size, 700)).tracking(-0.3).lineLimit(1).minimumScaleFactor(0.8)
+                }
+            }
+            if ask {
+                HStack(spacing: Tokens.Space.s2) {
+                    answer(true, icon: .check, text: t(.reportPromptYes))
+                    answer(false, icon: .close, text: t(.reportPromptNo))
+                }
+            }
+        }
+        .foregroundStyle(Tokens.Colors.bg)
+        .padding(.top, 2)
+        .accessibilityElement(children: .contain)
+    }
+
+    private func answer(_ confirm: Bool, icon: IconName, text: String) -> some View {
+        Button { alert.onVote(confirm) } label: {
+            HStack(spacing: Tokens.Space.s2) {
+                Icon(name: icon)
+                Text(text)
+            }
+            .font(.inter(Tokens.Typography.body.size, 640))
+            .frame(maxWidth: .infinity, minHeight: Tokens.Size.touch)
+            .foregroundStyle(Tokens.Colors.bg)
+            .background(Tokens.Colors.bg.opacity(0.16), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(PressScaleStyle())
+        .disabled(!alert.canVote || alert.sending)
+        .opacity(!alert.canVote || alert.sending ? 0.5 : 1)
+    }
+}
+
+/// Navigáció nélkül (vagy ha a felső kártya nem látszik) a közeledő bejelentés kártyája önállóan, a felső kártya helyén és
+/// a kamera-figyelmeztetés stílusában.
+struct ReportAlertCard: View {
+    let alert: ReportAlertModel
+    let unit: SpeedUnit
+
+    var body: some View {
+        ReportAlertRow(alert: alert, unit: unit)
+            .padding(Tokens.Space.s4)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .glass(radius: 28, fill: Tokens.Colors.near)
+            .animation(.easeOut(duration: Tokens.Motion.base), value: alert.prompt.phase)
     }
 }
 

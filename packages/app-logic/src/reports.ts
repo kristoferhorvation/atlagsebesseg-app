@@ -35,6 +35,22 @@ export const REPORT_CHOICES: readonly { id: ReportChoice }[] = [
   { id: 'kapu_zaro' },
 ];
 
+/**
+ * A bejelentés-lap tételei (AOS14 javítás): az „Átlagmérés eleje” és „vége” EGY tétel – az elküldött „eleje” után ugyanaz a
+ * sor „Átlagmérés vége”, amíg el nem küldik, vagy a mérés / navigáció véget nem ér (`gateStartedAfter`); utána visszaáll.
+ */
+export function reportMenu(gateStarted: boolean): ReportChoice[] {
+  return [...REPORT_CHOICES.map((c) => c.id).filter((id) => id !== 'kapu_kezdo' && id !== 'kapu_zaro'), gateStarted ? 'kapu_zaro' : 'kapu_kezdo'];
+}
+
+/** Az „eleje elküldve” állapot: sikeres „eleje” → be, sikeres „vége” → ki, a mérés vagy a navigáció vége → ki. */
+export function gateStartedAfter(started: boolean, event: { sent: ReportChoice } | 'activityEnded'): boolean {
+  if (event === 'activityEnded') return false;
+  if (event.sent === 'kapu_kezdo') return true;
+  if (event.sent === 'kapu_zaro') return false;
+  return started;
+}
+
 /** A bejelentés-típus felirata az aktuális nyelven. */
 export const reportChoiceLabel = (id: ReportChoice): string => t(`report.type.${id}` as TKey);
 

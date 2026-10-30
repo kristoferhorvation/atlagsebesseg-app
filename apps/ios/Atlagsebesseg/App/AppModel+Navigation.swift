@@ -219,6 +219,7 @@ extension AppModel {
         updateManualPill()
         routeData = .none
         player.stopSpeaking()
+        updateGateActivity()
         updateLiveActivity()
     }
 
@@ -245,6 +246,7 @@ extension AppModel {
     /// A mérés állapota a navigációnak: a „Túl gyors” bemondáshoz, és az ajánlat mérés közbeni visszatartásához.
     func syncNavMeasure() {
         updateManualPill()
+        updateGateActivity()
         guard let s = navSession else { return }
         s.setMeasureStatus(view.phase == .meres ? view.status : nil)
         s.setMeasuring(view.phase == .meres || view.phase == .kezi)

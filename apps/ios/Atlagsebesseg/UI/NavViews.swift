@@ -413,12 +413,16 @@ func cameraNearText(_ view: NavView, _ unit: SpeedUnit) -> String? {
 struct NavTopCard: View {
     let view: NavView
     let unit: SpeedUnit
+    /// AOS14: a közeledő bejelentés – a kamera-sor helyén és stílusában (a közeli kamera elsőbbséget kap).
+    var report: ReportAlertModel?
 
     var body: some View {
         let arrived = view.phase == .arrived
         let busy = view.rerouting || view.offRoute
         let cam = busy || arrived ? nil : cameraNearText(view, unit)
-        let ink = cam == nil ? Tokens.Colors.text : Tokens.Colors.bg
+        let rep = cam != nil || busy ? nil : report
+        let amber = cam != nil || rep != nil
+        let ink = amber ? Tokens.Colors.bg : Tokens.Colors.text
         VStack(alignment: .leading, spacing: Tokens.Space.s3) {
             if busy || view.rerouteFailed {
                 HStack(spacing: Tokens.Space.s3) {
@@ -453,6 +457,8 @@ struct NavTopCard: View {
                 }
                 .padding(.top, 2)
                 .accessibilityAddTraits(.updatesFrequently)
+            } else if let rep {
+                ReportAlertRow(alert: rep, unit: unit)
             } else if let up = upcomingText(view, unit), !arrived {
                 HStack(spacing: Tokens.Space.s2) {
                     Icon(name: view.upcoming?.item.kind == .camera ? .cam_speed : .rendorseg, size: 20)
@@ -466,7 +472,7 @@ struct NavTopCard: View {
             if let then = view.then, !arrived, !busy {
                 // „Utána” – ikon + utcanév / rövid manőver-szó (AW12, `thenText`)
                 HStack(spacing: Tokens.Space.s2) {
-                    Text(t(.navThen)).font(.inter(Tokens.Typography.caption.size, 560)).foregroundStyle(cam == nil ? Tokens.Colors.textMuted : ink)
+                    Text(t(.navThen)).font(.inter(Tokens.Typography.caption.size, 560)).foregroundStyle(amber ? ink : Tokens.Colors.textMuted)
                     ManeuverGlyph(icon: then.icon, size: 24)
                     Text(then.text).font(.inter(Tokens.Typography.caption.size, 600)).lineLimit(1)
                 }
@@ -476,9 +482,11 @@ struct NavTopCard: View {
         .foregroundStyle(ink)
         .padding(Tokens.Space.s4)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .glass(radius: 28, fill: cam == nil ? Tokens.Colors.surfaceStrong : Tokens.Colors.near)
-        .animation(.easeOut(duration: Tokens.Motion.base), value: cam == nil)
-        .accessibilityElement(children: .combine)
+        .glass(radius: 28, fill: amber ? Tokens.Colors.near : Tokens.Colors.surfaceStrong)
+        .animation(.easeOut(duration: Tokens.Motion.base), value: amber)
+        .animation(.easeOut(duration: Tokens.Motion.base), value: rep?.prompt.phase)
+        // a kérdés gombjai külön elérhetők maradjanak
+        .accessibilityElement(children: rep?.prompt.phase == .ask ? .contain : .combine)
         .accessibilityLabel(view.next.instruction.isEmpty ? t(.navAria) : view.next.instruction)
     }
 }

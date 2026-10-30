@@ -14,7 +14,8 @@
 // hálózat nélkül, privát; a kereső kerek gombja felül, a jobb szélen; Bejelentés menü: „Átlagmérés eleje / vége”;
 // térképstílus-szabály napszakonként (?sunAt=): Világos = nappal, Színes = alkony nappal, éjjel mindkettő éjszakai.
 // AOS14: köszöntés az üres nézeten a kereső-gomb alatt („Szia Kristof!” / „Szia!”), köszönés a navigáció indításakor;
-// „Még ott van?” – közeledéskor magától nyíló bejelentés-kártya Igen / Nem gombbal, egyszer kérdez.
+// közeledő bejelentés: EGY kártya a kamera-figyelmeztetés helyén, 200 m-en belül helyben „Még ott van? Igen / Nem”;
+// a menüben egy kapu-tétel („Átlagmérés eleje” → „vége”).
 //
 //   npm run dev -w @atlagsebesseg/web            # másik terminálban (a Mapbox-token az apps/web/.env-ben)
 //   npm run nav-shots -w @atlagsebesseg/web
@@ -65,7 +66,8 @@ try {
   await click(p, 'button[aria-label="Bejelentés"]');
   await p.waitFor(q('.sheet .tiles'), 5000, 'bejelentés-menü');
   const tiles = await p.evaluate(`[...document.querySelectorAll('.sheet .tile')].map((t) => t.innerText.replace(/\\s+/g, ' ').trim())`);
-  check('Bejelentés menü: alul „Átlagmérés eleje” és „Átlagmérés vége”, az „Ideiglenes szakasz” megszűnt', tiles.slice(-2).join('|') === 'Átlagmérés eleje|Átlagmérés vége' && tiles.length === 8 && !tiles.some((t) => /Ideiglenes/.test(t)), tiles.join(' | '));
+  // AOS14 javítás: az „Átlagmérés eleje / vége” egy tétel (elküldés előtt „eleje”)
+  check('Bejelentés menü: alul egy kapu-tétel („Átlagmérés eleje”), az „Ideiglenes szakasz” megszűnt', tiles.at(-1) === 'Átlagmérés eleje' && tiles.length === 7 && !tiles.some((t) => /Ideiglenes/.test(t)), tiles.join(' | '));
   if (!CHECK_ONLY) {
     await sleep(500);
     await p.shot(`${DATE}-bejelentes-menu.png`);
@@ -625,21 +627,48 @@ try {
   check('navigáció indításakor köszönés: „Szia Kristof, indulhatunk!” (az indulási utasítás előtt)', gvoices[0] === 'Szia Kristof, indulhatunk!', gvoices.slice(0, 3).join(' | '));
   check('navigáció közben nincs köszöntő felirat', !(await gvo.evaluate(`!!${q('.greeting')}`)));
   gvo.close();
+  // AOS14 javítás: EGY kártya a kamera-figyelmeztetés helyén – navigáció nélkül önállóan a felső kártya helyén; előbb
+  // „Rendőrség 240 m”, 200 m-en belül UGYANAZ az elem helyben „Még ott van? Igen / Nem”
   const rpg = await mk();
   await rpg.goto('/?sim=jo&speed=4&panel=0');
   await rpg.waitFor(MAP_READY, 60_000, 'térkép');
-  await rpg.waitFor(q('.report-card[data-prompt]'), 90_000, '„Még ott van?” kártya');
-  const rpr = await rpg.evaluate(`(() => { const c = ${q('.report-card[data-prompt]')}; return { q: c.querySelector('.report-card-question')?.innerText.trim(), btns: [...c.querySelectorAll('.btn')].map((b) => b.innerText.trim()), title: c.querySelector('.report-card-title')?.innerText.trim(), h: Math.min(...[...c.querySelectorAll('.btn')].map((b) => b.getBoundingClientRect().height)) }; })()`);
-  check('közeledéskor magától nyíló kártya: „Még ott van?”, Igen / Nem (≥ 56 px)', rpr.q === 'Még ott van?' && rpr.btns.join('|') === 'Igen|Nem' && rpr.h >= 56, JSON.stringify(rpr));
+  await rpg.waitFor(`${q('.report-alert .report-alert-row')}?.dataset.phase === 'approach'`, 90_000, 'közeledő bejelentés');
+  const ap = await rpg.evaluate(`(() => { const c = ${q('.nav-top.report-alert')}; window.__alertEl = c.querySelector('.report-alert-row'); const r = c.getBoundingClientRect(); return { txt: c.innerText.replace(/\\s+/g, ' ').trim(), top: r.top, cam: c.dataset.camera, bg: getComputedStyle(c).backgroundColor, n: document.querySelectorAll('.report-alert-row').length, bottomCard: !!document.querySelector('.report-card') }; })()`);
+  check('közeledéskor figyelmeztető kártya felül (a kamera-figyelmeztetés stílusában): „Rendőrség 2xx m”', /^Rendőrség \d+ m$/.test(ap.txt) && ap.cam === 'true' && ap.top < 200 && ap.n === 1 && !ap.bottomCard, JSON.stringify(ap));
+  if (!CHECK_ONLY) await rpg.shot(`${DATE}-bejelentes-kozeledik.png`);
+  await rpg.waitFor(`${q('.report-alert-row')}?.dataset.phase === 'ask'`, 60_000, 'kérdés-fázis');
+  const rpr = await rpg.evaluate(`(() => { const row = ${q('.report-alert-row')}; return { same: row === window.__alertEl, q: row.querySelector('.report-alert-q')?.innerText.trim(), btns: [...row.querySelectorAll('.btn')].map((b) => b.innerText.trim()), h: Math.min(...[...row.querySelectorAll('.btn')].map((b) => b.getBoundingClientRect().height)), n: document.querySelectorAll('.report-alert-row').length, bottomCard: !!document.querySelector('.report-card') }; })()`);
+  check('200 m-en belül ugyanaz az elem helyben vált: „Még ott van?” Igen / Nem (≥ 56 px), nincs új kártya', rpr.same && rpr.q === 'Még ott van?' && rpr.btns.join('|') === 'Igen|Nem' && rpr.h >= 56 && rpr.n === 1 && !rpr.bottomCard, JSON.stringify(rpr));
   if (!CHECK_ONLY) await rpg.shot(`${DATE}-meg-ott-van.png`);
-  const rpFirst = rpr.title;
-  await rpg.evaluate(`${q('.report-card[data-prompt] .btn')}.click(); true`);
+  await rpg.evaluate(`${q('.report-alert-row .btn')}.click(); true`);
   await sleep(400);
-  check('„Igen”: köszönő toast, a kártya bezárul', /megerősítve/.test(await rpg.evaluate(text('.toast'))) && !(await rpg.evaluate(`!!${q('.report-card[data-prompt]')}`)));
-  // a következő kérdés már egy másik bejelentésre szól (ugyanarra nem kérdez újra)
-  await rpg.waitFor(q('.report-card[data-prompt]'), 90_000, 'következő kérdés').catch(() => undefined);
-  const rpNext = await rpg.evaluate(`${q('.report-card[data-prompt] .report-card-title')}?.innerText.trim() ?? null`);
-  check('egyszer kérdez: a következő kérdés másik bejelentésre szól', rpNext !== null && rpNext !== rpFirst, `${rpFirst} → ${rpNext}`);
+  check('„Igen”: köszönő toast, a kártya eltűnik', /megerősítve/.test(await rpg.evaluate(text('.toast'))) && !(await rpg.evaluate(`!!${q('.report-alert-row')}`)));
+  await rpg.waitFor(q('.report-alert .report-card-title, .report-alert-row'), 90_000, 'következő bejelentés').catch(() => undefined);
+  const rpNext = await rpg.evaluate(`${q('.report-alert-row b')}?.innerText.trim() ?? null`);
+  check('arra a bejelentésre nem tér vissza: a következő kártya másik bejelentésé', rpNext !== null && !/^Rendőrség/.test(rpNext), String(rpNext));
+  // egy kapu-tétel: „Átlagmérés eleje” → elküldve (a szerver-hívás itt elfogva) → ugyanaz a sor „Átlagmérés vége”
+  await rpg.evaluate(`window.__gateCalls = []; const f0 = window.fetch; window.fetch = (...a) => { const u = String(a[0]?.url ?? a[0]); if (/\\/rest\\/v1\\/reports/.test(u)) { window.__gateCalls.push(u); return Promise.resolve(new Response(JSON.stringify([{ id: '00000000-0000-4000-8000-0000000000a1' }]), { status: 201, headers: { 'content-type': 'application/json' } })); } return f0(...a); }; true`);
+  await click(rpg, 'button[aria-label="Bejelentés"]');
+  await rpg.waitFor(q('.sheet .tiles'), 5000, 'bejelentés-menü');
+  const g1 = await rpg.evaluate(`[...document.querySelectorAll('.sheet .tile')].map((t) => t.innerText.trim())`);
+  check('Bejelentés menü: 7 tétel, a végén EGY kapu-tétel „Átlagmérés eleje”', g1.length === 7 && g1.at(-1) === 'Átlagmérés eleje' && !g1.includes('Átlagmérés vége'), g1.join(' | '));
+  await click(rpg, '.sheet .tile[data-gate]');
+  await sleep(800);
+  await click(rpg, 'button[aria-label="Bejelentés"]');
+  await rpg.waitFor(q('.sheet .tiles'), 5000, 'bejelentés-menü 2');
+  const g2 = await rpg.evaluate(`({ tiles: [...document.querySelectorAll('.sheet .tile')].map((t) => t.innerText.trim()), note: ${text('.sheet-note')}, calls: window.__gateCalls.length })`);
+  check('elküldés után ugyanaz a sor „Átlagmérés vége”, a jegyzet a végére emlékeztet', g2.calls === 1 && g2.tiles.length === 7 && g2.tiles.at(-1) === 'Átlagmérés vége' && /végét/.test(g2.note), JSON.stringify(g2));
+  if (!CHECK_ONLY) await rpg.shot(`${DATE}-bejelentes-menu-vege.png`);
+  // navigáció közben a manőverkártya alatt (a kamera-sor helyén), ugyanígy
+  const rn = await mk();
+  await rn.goto('/?navsim&stage=nav&speed=2&at=40&panel=0');
+  await rn.waitFor(q('.nav-top'), 60_000, 'navigáció');
+  await rn.waitFor(q('.nav-top:not(.report-alert) .report-alert-row'), 120_000, 'bejelentés a manőverkártyán');
+  const rnv = await rn.evaluate(`(() => { const top = ${q('.nav-top:not(.report-alert)')}; const row = top.querySelector('.report-alert-row'); const main = top.querySelector('.nav-main').getBoundingClientRect(); return { below: row.getBoundingClientRect().top >= main.bottom - 1, cam: top.dataset.camera, alone: !!document.querySelector('.nav-top.report-alert') }; })()`);
+  check('navigációban a bejelentés a manőverkártya alatt, a kamera-sor helyén (borostyán kártya), nem külön elemként', rnv.below && rnv.cam === 'true' && !rnv.alone, JSON.stringify(rnv));
+  await rn.waitFor(`${q('.report-alert-row')}?.dataset.phase === 'ask'`, 60_000, 'kérdés a navigációban');
+  if (!CHECK_ONLY) await rn.shot(`${DATE}-nav-meg-ott-van.png`);
+  rn.close();
   check('nincs kezeletlen JS-kivétel (AOS14)', rpg.logs.length === 0 && gk.logs.length === 0, [...rpg.logs, ...gk.logs].join(' | '));
   rpg.close();
 

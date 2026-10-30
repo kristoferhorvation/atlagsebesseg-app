@@ -1,5 +1,5 @@
 import { BUDAPEST_GYOR_DIRECTIONS } from '@atlagsebesseg/app-logic/nav-fixtures';
-import { parseDirections, type FixedCamera, type NavRoute, type NavStep, type Place, type RouteFetcher } from '@atlagsebesseg/app-logic';
+import { parseDirections, type ActiveReport, type FixedCamera, type NavRoute, type NavStep, type Place, type RouteFetcher } from '@atlagsebesseg/app-logic';
 import { haversineM, LocalProjection, polylineLengthM, Route, type GpsFix, type LatLon, type Section } from '@atlagsebesseg/core';
 import { drive, type DriveSample } from '@atlagsebesseg/core/test/helpers/trace';
 
@@ -231,6 +231,8 @@ export interface NavSimData {
   /** A szakasz végkapuja a fő útvonal mentén (m). */
   sectionEndM: number;
   camera: FixedCamera;
+  /** AOS14: minta-bejelentés az 1. ablakban (a közeledő bejelentés kártyájához a manőverkártya alatt). */
+  reports: ActiveReport[];
   /** A bejátszott fixek: 1. ablak (indulás + letérés), 2. ablak (szakasz + kamera), 3. ablak (érkezés). */
   samples: DriveSample[];
   /** Az ablakok határai a `samples`-ben (indexek). */
@@ -294,6 +296,24 @@ export function buildNavSim(t0 = Date.now()): NavSimData {
     verified: true,
   };
 
+  // AOS14: rendőrség-bejelentés a fő útvonalon 1400 m-nél (az 1. ablakban, a letérés előtt), 12 perce jelentve
+  const rp = proj.pointAt(1400);
+  const reports: ActiveReport[] = [
+    {
+      id: 'sim-nav-report',
+      type: 'rendorseg',
+      gateKind: null,
+      lat: rp.lat,
+      lon: rp.lon,
+      headingDeg: proj.bearingAt(1400),
+      createdAt: t0 - 12 * 60_000,
+      expiresAt: t0 - 12 * 60_000 + 2 * 3600_000,
+      confirmations: 0,
+      denials: 0,
+      own: false,
+    },
+  ];
+
   const pathA = [...slice(main, 0, detour.fromAlongM), ...detour.points.slice(1), ...slice(main, detour.rejoinAlongM, 4600).slice(1)];
   const pathB = slice(main, S0 - 3200, S0 + 7000);
   const pathC = slice(main, D - 2600, D);
@@ -315,7 +335,7 @@ export function buildNavSim(t0 = Date.now()): NavSimData {
   );
   const bEnd = b.at(-1)!.t + 1000;
   const c = run(pathC, bEnd, (s) => (s < 1800 ? 100 : 50), 13);
-  return { main, detour, section, sectionEndM: S0 + 3000, camera, samples: [...a, ...b, ...c], windows: [0, a.length, a.length + b.length] };
+  return { main, detour, section, sectionEndM: S0 + 3000, camera, reports, samples: [...a, ...b, ...c], windows: [0, a.length, a.length + b.length] };
 }
 
 /** A szimulátor Directions-szolgáltatója: tervezés a fixtúrából, újratervezés / alternatíva a fixtúra útvonalából. */

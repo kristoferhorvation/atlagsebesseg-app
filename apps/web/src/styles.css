@@ -334,13 +334,6 @@ select:focus-visible {
   flex: none;
 }
 
-.report-card-question {
-  margin-top: 4px;
-  font-size: 20px;
-  font-weight: 640;
-  color: var(--tone);
-}
-
 .report-card .btn[data-active='true'] {
   background: color-mix(in srgb, var(--tone) 28%, transparent);
 }
@@ -2063,6 +2056,40 @@ a.list-row {
   font-weight: 700;
   letter-spacing: -0.01em;
   line-height: 1.15;
+}
+
+/* AOS14: a közeledő bejelentés sora a kamera-sor kinézetével; kérdés-fázisban Igen / Nem gombok a borostyán kártyán */
+/* önállóan (navigáció nélkül / sáv-módban): a kereső kerek gombjának sora alá, ne takarja */
+.nav-top.report-alert {
+  top: calc(env(safe-area-inset-top) + 40px + var(--size-round-button) + 8px);
+}
+
+.nav-top.report-alert .report-alert-row {
+  padding-top: 0;
+  border-top: 0;
+}
+
+.report-alert-row {
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.report-alert-head {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.report-alert-q {
+  font-size: var(--type-title-size);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.nav-top[data-camera='true'] .btn {
+  background: color-mix(in srgb, var(--color-bg) 16%, transparent);
+  color: var(--color-bg);
 }
 
 .nav-strip[data-camera='true'] {

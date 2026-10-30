@@ -263,6 +263,7 @@ function simFixtures(): [string, string][] {
         sections: [nav.section],
         cameras: [cameraRow(nav.camera)],
         planned: [plannedRow(navPlanned)],
+        reports: nav.reports.map(reportRow),
         // A11: a navigáció bejátszásához – indulási pont, helyi „keresés”, a letérés mellékútja, az ablakok mintaindexei
         // AOS12: a webes `?navsim&alt=…` forgatókönyvei – a végkapu helye és az alternatívák kategóriánként
         nav: {

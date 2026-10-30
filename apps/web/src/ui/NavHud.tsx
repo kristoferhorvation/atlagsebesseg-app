@@ -1,4 +1,4 @@
-import { altOfferCompactLines, formatClock, formatDistance, formatTripDuration, speedIn, t, unitLabel, type AlternativeOffer, type NavView, type SpeedUnit } from '@atlagsebesseg/app-logic';
+import { altOfferCompactLines, formatClock, formatDistance, formatTripDuration, reportVisual, speedIn, t, unitLabel, type ActiveReport, type AlternativeOffer, type NavView, type ReportPrompt, type SpeedUnit } from '@atlagsebesseg/app-logic';
 import { Icon } from './Icon';
 import { ManeuverIcon } from './ManeuverIcon';
 
@@ -17,6 +17,52 @@ export function upcomingText(view: NavView, unit: SpeedUnit): string | null {
   return t(u.item.kind === 'section' ? 'nav.upcoming.section' : 'nav.upcoming.planned', { d, x: x ?? '–' });
 }
 
+/** AOS14: a közeledő bejelentés a kártyán (a kamera-figyelmeztetés helyén és stílusában). */
+export interface ReportAlertProps {
+  prompt: ReportPrompt;
+  report: ActiveReport;
+  canVote: boolean;
+  sending: boolean;
+  onVote: (confirm: boolean) => void;
+}
+
+/**
+ * A bejelentés sora: közeledéskor „Rendőrség 240 m”, `askM`-en belül UGYANEZ a sor helyben „Még ott van?” + Igen / Nem
+ * (nem jön új elem). A kamera-sor (`.nav-camera`) kinézetével.
+ */
+function ReportAlertRow({ alert, unit }: { alert: ReportAlertProps; unit: SpeedUnit }) {
+  const v = reportVisual(alert.report);
+  const ask = alert.prompt.phase === 'ask';
+  return (
+    <div className="nav-camera report-alert-row" data-phase={alert.prompt.phase} role="alert">
+      <div className="report-alert-head">
+        <Icon name={v.icon} size={40} />
+        <b className="num">{ask ? v.label : t('report.alert.ahead', { label: v.label, d: dist(alert.prompt.distanceM, unit) })}</b>
+        {ask && <span className="report-alert-q">{t('report.prompt.question')}</span>}
+      </div>
+      {ask && (
+        <div className="btn-row">
+          <button className="btn" disabled={!alert.canVote || alert.sending} onClick={() => alert.onVote(true)}>
+            <Icon name="check" /> {t('report.prompt.yes')}
+          </button>
+          <button className="btn" disabled={!alert.canVote || alert.sending} onClick={() => alert.onVote(false)}>
+            <Icon name="close" /> {t('report.prompt.no')}
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** Navigáció nélkül (vagy ha a felső kártya nem látszik) a bejelentés kártyája önállóan, a felső kártya helyén. */
+export function ReportAlertCard({ alert, unit }: { alert: ReportAlertProps; unit: SpeedUnit }) {
+  return (
+    <section className="nav-top glass report-alert" data-camera="true" aria-live="polite">
+      <ReportAlertRow alert={alert} unit={unit} />
+    </section>
+  );
+}
+
 /** Közeli kamera: „Kamera 250 m · max 50” (határ nélkül csak a távolság). */
 export function cameraNearText(view: NavView, unit: SpeedUnit): string | null {
   const c = view.cameraNear;
@@ -28,16 +74,19 @@ export function cameraNearText(view: NavView, unit: SpeedUnit): string | null {
 
 /**
  * Felső kártya: következő manőver (ikon + távolság + út), alatta kisebben a rákövetkező, és a közeledő szakasz jelzése.
- * Közeli kameránál (AW12) a kártya borostyánra vált, nagy kamera-ikonnal; elhaladás után vissza.
+ * Közeli kameránál (AW12) a kártya borostyánra vált, nagy kamera-ikonnal; elhaladás után vissza. AOS14: a közeledő
+ * bejelentés ugyanígy (`report`), a kamera helyén – kérdés-fázisban Igen / Nem gombbal.
  */
 /** `hidden` (AOS13): a kártya nem fér ki – rejtve elrendezve marad (mérhető), a lépés egysoros sávként látszik. */
-export function NavTop({ view, unit, hidden = false }: { view: NavView; unit: SpeedUnit; hidden?: boolean }) {
+export function NavTop({ view, unit, hidden = false, report = null }: { view: NavView; unit: SpeedUnit; hidden?: boolean; report?: ReportAlertProps | null }) {
   const arrived = view.phase === 'arrived';
   const busy = view.rerouting || view.offRoute;
   const cam = busy || arrived ? null : cameraNearText(view, unit);
-  const up = cam ? null : upcomingText(view, unit);
+  // AOS14: a közeledő bejelentés a kamera helyén (a közeli kamera elsőbbséget kap)
+  const rep = cam || busy ? null : report;
+  const up = cam || rep ? null : upcomingText(view, unit);
   return (
-    <section className="nav-top glass" data-busy={busy} data-camera={cam !== null} data-strip={hidden} aria-hidden={hidden} aria-live="polite" aria-label={view.next.instruction || t('nav.aria')}>
+    <section className="nav-top glass" data-busy={busy} data-camera={cam !== null || rep !== null} data-strip={hidden} aria-hidden={hidden} aria-live="polite" aria-label={view.next.instruction || t('nav.aria')}>
       {busy || view.rerouteFailed ? (
         <div className="nav-reroute" data-failed={!view.rerouting && view.rerouteFailed}>
           <Icon name="restart" size={34} className={view.rerouting ? 'spin' : undefined} />
@@ -66,6 +115,7 @@ export function NavTop({ view, unit, hidden = false }: { view: NavView; unit: Sp
           <b className="num">{cam}</b>
         </div>
       )}
+      {rep && <ReportAlertRow alert={rep} unit={unit} />}
       {up && !arrived && (
         <div className="nav-badge" data-kind={view.upcoming!.item.kind}>
           <Icon name={view.upcoming!.item.kind === 'camera' ? 'cam_speed' : 'rendorseg'} size={22} /> {up}

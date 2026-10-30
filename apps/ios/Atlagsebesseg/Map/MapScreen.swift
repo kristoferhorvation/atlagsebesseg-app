@@ -205,7 +205,7 @@ struct MapScreen: View {
             ForEvery(model.plan == nil ? model.reports : []) { r in
                 MapViewAnnotation(coordinate: CLLocationCoordinate2D(latitude: r.lat, longitude: r.lon)) {
                     Button { model.selectReport(r.id) } label: {
-                        ReportPin(report: r, selected: r.id == model.shownReport?.report.id)
+                        ReportPin(report: r, selected: r.id == model.highlightedReportId)
                     }
                     .buttonStyle(.plain)
                 }

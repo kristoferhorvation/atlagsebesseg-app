@@ -16,6 +16,8 @@ import {
   plannedCheckActive,
   PlannedCheckWatch,
   ReportPromptWatch,
+  gateStartedAfter,
+  type ReportPrompt,
   greetingText,
   reportVisual,
   rowToActiveReport,
@@ -71,7 +73,7 @@ import { cameraIcon } from './ui/cameraIcon';
 import { Hud, ManualMini, SlowDown, toneOf } from './ui/Hud';
 import { Icon, type IconName } from './ui/Icon';
 import { LimitSign } from './ui/LimitSign';
-import { NavBottom, NavStrip, NavTop, OfferCard } from './ui/NavHud';
+import { NavBottom, NavStrip, NavTop, OfferCard, ReportAlertCard, type ReportAlertProps } from './ui/NavHud';
 import { RoutePicker } from './ui/RoutePicker';
 import { SearchScreen } from './ui/SearchScreen';
 import { PlannedBand } from './ui/PlannedBand';
@@ -308,17 +310,19 @@ function Drive({ map }: { map: WebMapAdapter }) {
     if (simReps.length) reloadReports();
   }, [simReps, reloadReports]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  // AOS14: „Még ott van?” – közeledéskor a bejelentés kártyája magától nyílik (bejelentésenként egyszer, 10 s-ig)
+  // AOS14: közeledő bejelentés – EGY kártya a kamera-figyelmeztetés helyén: figyelmeztetés, 200 m-en belül helyben
+  // „Még ott van?” (bejelentésenként egyszer; válasz, elhaladás vagy 10 s után eltűnik)
   const [promptWatch] = useState(() => new ReportPromptWatch());
-  const [promptId, setPromptId] = useState<string | null>(null);
+  const [prompt, setPrompt] = useState<ReportPrompt | null>(null);
   const feedRef = useRef(feed);
   feedRef.current = feed;
   const fixRef = useRef(view.lastFix);
   fixRef.current = view.lastFix;
   const checkPrompt = useCallback(() => {
     const f = feedRef.current;
-    const id = promptWatch.update(fixRef.current, f.reports, (rid) => f.myVote(rid) !== null, now());
-    setPromptId((prev) => (prev === id ? prev : id));
+    const p = promptWatch.update(fixRef.current, f.reports, (rid) => f.myVote(rid) !== null, now());
+    // a távolság 10 m-es lépésben frissül (nem minden óra-lépésnél új objektum)
+    setPrompt((prev) => (prev?.id === p?.id && prev?.phase === p?.phase && Math.round((prev?.distanceM ?? 0) / 10) === Math.round((p?.distanceM ?? 0) / 10) ? prev : p));
   }, [promptWatch, now]);
   useEffect(checkPrompt, [view.lastFix, feed.reports.length, checkPrompt]);
   useEffect(() => {
@@ -327,12 +331,10 @@ function Drive({ map }: { map: WebMapAdapter }) {
   }, [checkPrompt]);
   const closePrompt = useCallback(() => {
     promptWatch.close();
-    setPromptId(null);
+    setPrompt(null);
   }, [promptWatch]);
-  const tapped = feed.reports.find((r) => r.id === selectedId) ?? null;
-  // a koppintott jelölő kártyája elsőbbséget kap a kérdéssel szemben
-  const prompted = tapped ? null : (feed.reports.find((r) => r.id === promptId) ?? null);
-  const selected = tapped ?? prompted;
+  const prompted = prompt ? (feed.reports.find((r) => r.id === prompt.id) ?? null) : null;
+  const selected = feed.reports.find((r) => r.id === selectedId) ?? null;
   useEffect(() => {
     if (!selectedId || !measuring) return;
     const id = setTimeout(() => setSelectedId(null), REPORT_CARD_AUTOCLOSE_MS);
@@ -344,7 +346,8 @@ function Drive({ map }: { map: WebMapAdapter }) {
     // csak ha a halmaz (vagy a nyelv – a felirat) változik; a lista minden frissítésnél új tömb
     [pinsKey, lang],
   );
-  useEffect(() => map.showReports(pins, selected?.id ?? null), [map, pins, selected?.id]);
+  const highlighted = selected?.id ?? prompted?.id ?? null;
+  useEffect(() => map.showReports(pins, highlighted), [map, pins, highlighted]);
 
   // fix kamerák (A7): a beépített lista + szerver (szimulátorban a minta-kamerák is), a környéken
   const [simCams, setSimCams] = useState<FixedCamera[]>([]);
@@ -541,6 +544,16 @@ function Drive({ map }: { map: WebMapAdapter }) {
     session.stopManual();
   }, [session.stopManual]);
 
+  // AOS14 javítás: „Átlagmérés eleje / vége” egy tétel – elküldött eleje után „vége”, a mérés / navigáció végén vissza
+  const [gateStarted, setGateStarted] = useState(false);
+  const activeRef = useRef({ measuring: false, nav: false });
+  useEffect(() => {
+    const now = { measuring: view.phase === 'meres' || view.phase === 'kezi', nav: nav.view !== null };
+    const was = activeRef.current;
+    if ((was.measuring && !now.measuring) || (was.nav && !now.nav)) setGateStarted((g) => gateStartedAfter(g, 'activityEnded'));
+    activeRef.current = now;
+  }, [view.phase, nav.view !== null]);
+
   const [sending, setSending] = useState<ReportChoice | null>(null);
   const report = useCallback(
     (choice: ReportChoice) => {
@@ -551,6 +564,7 @@ function Drive({ map }: { map: WebMapAdapter }) {
       createReports(supabase, [row])
         .then(([id]) => {
           if (id) feed.addOwn(ownReport(row, id, now()));
+          setGateStarted((g) => gateStartedAfter(g, { sent: choice }));
           showToast({ text: t('report.sent', { label }), tone: 'jo', icon: 'check' });
         })
         .catch(() => showToast({ text: t('report.sendFail'), tone: 'tul', icon: 'report' }))
@@ -582,6 +596,9 @@ function Drive({ map }: { map: WebMapAdapter }) {
     [feed.vote, showToast, promptWatch, closePrompt],
   );
 
+  const reportAlert: ReportAlertProps | null =
+    prompt && prompted ? { prompt, report: prompted, canVote: SIM_MODE || supabase !== null, sending: voting, onVote: (c) => vote(prompted.id, c) } : null;
+
   const driving = view.phase === 'meres' || view.phase === 'kozeledik' || view.phase === 'kezi';
   // a bal alsó sebességhatár-tábla: mérés / közeledés közben a mérőkártya saját táblája szól
   const navSign = nav.view !== null && (view.phase === 'nincs_szakasz' || view.phase === 'befejezve' || view.phase === 'megszakadt' || view.phase === 'kezi_eredmeny' || pillCollapsed);
@@ -591,7 +608,7 @@ function Drive({ map }: { map: WebMapAdapter }) {
     <>
       <StatusPills
         onSearch={nav.view || driving || view.phase === 'kezi_eredmeny' ? undefined : () => nav.openSearch()}
-        greeting={greetingText(settings.megszolitas)}
+        greeting={reportAlert ? undefined : greetingText(settings.megszolitas)}
         geo={SIM_MODE ? 'aktiv' : geo}
         accuracy={accuracy}
         wake={wake.status}
@@ -606,7 +623,7 @@ function Drive({ map }: { map: WebMapAdapter }) {
           else wake.request();
         }}
       />
-      {NAV_SIM && navSim && <NavSimDriver data={navSim} active={nav.session !== null} onFix={onFix} onTick={session.tick} clock={clock} onSection={setSimSection} onCameras={setSimCams} />}
+      {NAV_SIM && navSim && <NavSimDriver data={navSim} active={nav.session !== null} onFix={onFix} onTick={session.tick} clock={clock} onSection={setSimSection} onCameras={setSimCams} onReports={setSimReps} />}
       {SIM_MODE && !NAV_SIM && (
         <SimDriver
           onFix={onFix}
@@ -619,7 +636,9 @@ function Drive({ map }: { map: WebMapAdapter }) {
           onBackground={session.interrupt}
         />
       )}
-      {nav.view && !measuringLayout && <NavTop view={nav.view} unit={settings.egyseg} hidden={stepStrip} />}
+      {nav.view && !measuringLayout && <NavTop view={nav.view} unit={settings.egyseg} hidden={stepStrip} report={reportAlert} />}
+      {/* AOS14: navigáció nélkül, vagy ha a felső kártya nem látszik, a bejelentés kártyája önállóan, ugyanott */}
+      {reportAlert && !(nav.view && !measuringLayout && !stepStrip) && <ReportAlertCard alert={reportAlert} unit={settings.egyseg} />}
       <PlannedBand check={activePlanned} compact={measuring} />
 
       <div className="hud" ref={hudRef} data-hidden={nav.plan !== null || nav.searchFor !== null}>
@@ -635,9 +654,8 @@ function Drive({ map }: { map: WebMapAdapter }) {
               canVote={SIM_MODE || supabase !== null}
               voted={feed.myVote(selected.id)}
               sending={voting}
-              prompt={selected === prompted}
               onVote={(c) => vote(selected.id, c)}
-              onClose={() => (selected === prompted ? closePrompt() : setSelectedId(null))}
+              onClose={() => setSelectedId(null)}
             />
           )}
           {!selected && selectedCam && <CameraCard key={selectedCam.id} camera={selectedCam} onClose={() => setSelectedCamId(null)} />}
@@ -731,6 +749,7 @@ function Drive({ map }: { map: WebMapAdapter }) {
           fix={view.lastFix}
           online={supabase !== null}
           sending={sending}
+          gateStarted={gateStarted}
           onPick={report}
           onClose={() => setSheet(null)}
         />
@@ -812,6 +831,7 @@ function NavSimDriver({
   clock,
   onSection,
   onCameras,
+  onReports,
 }: {
   data: NavSimData;
   active: boolean;
@@ -820,6 +840,7 @@ function NavSimDriver({
   clock: { current: () => number };
   onSection: (s: Section) => void;
   onCameras: (c: FixedCamera[]) => void;
+  onReports: (r: ActiveReport[]) => void;
 }) {
   const q = useMemo(() => new URLSearchParams(location.search), []);
   const speed = Math.max(1, Number(q.get('speed')) || 12);
@@ -827,9 +848,10 @@ function NavSimDriver({
   useLayoutEffect(() => {
     onSection(data.section);
     onCameras([data.camera]);
+    onReports(data.reports);
     // a képernyőkép-szkript innen tudja, hol vannak az ablakok (mintaindexek)
     (window as unknown as { __navSim?: unknown }).__navSim = { windows: data.windows, length: data.samples.length };
-  }, [data, onSection, onCameras]);
+  }, [data, onSection, onCameras, onReports]);
   // indulás előtt: állva a kiindulópontnál
   useEffect(() => {
     onFix(simIdleFix());

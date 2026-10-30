@@ -8980,6 +8980,47 @@
         }
       }
     },
+    "report.alert.ahead" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "{label} {d}"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "{label} {d}"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "{label} {d}"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "{label} {d}"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "{label} {d}"
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "{label} {d}"
+          }
+        }
+      }
+    },
     "report.card.aria" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -9181,6 +9222,47 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Do nahlásenia sa zapíše tvoja poloha a smer jazdy. Začiatok / koniec úsekového merania nahlási neznámu zónu: vždy jednu bránu na tvojej polohe."
+          }
+        }
+      }
+    },
+    "report.note.gateEnd" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Začátek úsekového měření jsi nahlásil – konec nahlas tady."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Du hast den Beginn der Abschnittskontrolle gemeldet – melde das Ende hier."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You reported the start of the average-speed check – report its end right here."
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Az Átlagmérés elejét elküldted – a végét ugyanitt jelezd."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zgłoszono początek pomiaru odcinkowego – koniec zgłoś tutaj."
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Začiatok úsekového merania si nahlásil – koniec nahlás tu."
           }
         }
       }

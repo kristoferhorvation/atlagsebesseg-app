@@ -167,17 +167,31 @@ Gyökér: `npm test` és `npm run typecheck` minden csomagra; `npm run test:all`
 - **AOS14 (2026-10-30), weben és iOS-en kész:**
   - **Bejelentés + szavazás iOS-en** (a web A5 + AW16 1:1 portja, `Logic/Reports.swift`, `App/AppModel+Reports.swift`,
     `UI/ReportViews.swift`): a figyelmeztető-ikon gomb (az alsó gombsor jobb szélén, mindig) nyitja a Bejelentés menüt a webes
-    `REPORT_CHOICES` tételeivel és sorrendjével (a kapuk alul, irány nélkül nem küldhetők); `reports` írás, `active_reports`
+    `REPORT_CHOICES` tételeivel és sorrendjével (a kapu alul, irány nélkül nem küldhető); `reports` írás, `active_reports`
     olvasás a látható téglalapra (`reportQuery`, a `MapScreen` küldi a kamera-mozdulatból) vagy a pozíció körül, 60 s-enként
     (`ReportFeed`); jelölők a térképen, koppintásra a kártya (Megerősítés / Nincs ott, `report_votes`, mérés közben 3 s után
-    zár), toast. A szimulátorban a webes `simReports` mintái (a generált `Resources/Sim/*.json` `reports` mezője); a küldés és
-    a szavazat ott csak helyben (a web a szerverre is küldene). `-reportOpen YES`: a menü nyitva (képernyőkép).
-  - **„Még ott van?” – ÚJ, weben és iOS-en** (Kristof döntése az AOS14 elején: a webnek eddig csak koppintásos kártyája volt):
-    `packages/app-logic/src/reportPrompt.ts` / `Logic/Reports.swift` (`ReportPromptWatch`, `reportPromptCandidate`,
-    `REPORT_PROMPT` – iOS-re generálva): előttünk (±45°) 200 m-en belül, irány nélkül 50 m-en belül magától nyílik a bejelentés
-    kártyája „Még ott van?” kérdéssel, Igen / Nem gombbal; bejelentésenként egyszer, a sajátra és a megszavazottra soha, válasz
-    nélkül 10 s után eltűnik; a koppintott jelölő kártyája elsőbbséget kap. Teszt: `reportPrompt.test.ts` ↔ `ReportTests.swift`
-    (azonos nevekkel).
+    zár), toast. A szimulátorban a webes `simReports` mintái (a generált `Resources/Sim/*.json` `reports` mezője; a navsim-ben
+    egy rendőrség-bejelentés 1400 m-nél). **Javítva (Kristof, 2026-10-30):** a szimulátor is az éles Supabase-re küldi a
+    bejelentést, mint a web (tesztadat, élesítés előtt mindkét platformon egyszerre zárjuk le); a szavazat a minta-bejelentésre
+    helyben marad (azok nincsenek a szerveren – a webes szimulátor ugyanígy), valódi bejelentésre a szerverre megy.
+    `-reportOpen YES`: a menü nyitva (képernyőkép). **Élő próba (csak DEBUG):** `-autoReport <típus>` (egyszer bejelent),
+    `-autoVoteId <uuid> -autoVote YES|NO` (egyszer szavaz) – a fej nélküli szimulátorban érintés nélkül; 2026-10-30-án
+    kipróbálva: a `reports` sor és a `report_votes` sor megjelent, a `confirmations` 1-re nőtt.
+  - **Egy kapu-tétel (javítva, weben és iOS-en):** az „Átlagmérés eleje” és „vége” EGY tétel a menü végén (`reportMenu`): sikeres
+    „eleje” után ugyanaz a sor „Átlagmérés vége” (jegyzet: `report.note.gateEnd`), amíg el nem küldik, vagy a mérés / navigáció
+    véget nem ér (`gateStartedAfter`); utána vissza „eleje”.
+  - **Közeledő bejelentés: EGY kártya – ÚJ, weben és iOS-en** (Kristof döntései az AOS14-ben: a webnek eddig csak koppintásos
+    kártyája volt; javítva: egy kártya a kamera-figyelmeztetés helyén). `packages/app-logic/src/reportPrompt.ts` /
+    `Logic/Reports.swift` (`ReportPromptWatch`, `reportPromptCandidate`, `reportAlertM`, `REPORT_PROMPT` – iOS-re generálva):
+    előttünk (±45°) a kamerával azonos `max(250 m, 10 s × v)` távolságon belül figyelmeztet („Rendőrség 240 m”,
+    `report.alert.ahead`), 200 m-en belül (irány nélkül 50 m-en belül) UGYANAZ a sor helyben „Még ott van? Igen / Nem”-re vált.
+    Helye: navigációban a manőverkártyán, a kamera-sor helyén és stílusában (a kártya borostyán; a közeli kamera elsőbbséget
+    kap); navigáció nélkül vagy sáv-módban önálló borostyán kártya ugyanott (weben a kereső-gomb sora alatt). Válasz, elhaladás
+    vagy a kérdés után 10 s → eltűnik, és arra a bejelentésre nem tér vissza; a sajátra és a megszavazottra soha. **Elhaladás**
+    csak akkor, ha már 100 m-en belül voltunk és most mögöttünk (>90°) van (`REPORT_PASSED_NEAR_M` – hajtűkanyarban a légvonal
+    megtéveszt), vagy ha 2 × a figyelmeztetési távolságnál messzebb kerültünk. A koppintott jelölő kártyája külön, lent (Megerősítés /
+    Nincs ott). Teszt: `reportPrompt.test.ts` ↔ `ReportTests.swift` (azonos nevekkel). Küszöbök (200 m, ±45°, 10 s, 50 m):
+    maradnak, éles vezetés után finomítjuk (Kristof).
   - **Live Activity (csak iOS, platformspecifikus):** `AtlagsebessegWidget` app-extension a `project.yml`-ben (a közös fájlok – az
     adatszerkezet `LiveActivity/DriveActivity.swift`, a tokenek, a betű `UI/InterFont.swift`, a manőver-rajzok és
     `Navigation/ManeuverIconKind.swift` – az app forrásaiból fordulnak, nem másolatok; a nézetek
@@ -187,7 +201,7 @@ Gyökér: `npm test` és `npm run typecheck` minden csomagra; `npm run test:all`
     együtt a mérés dominál, a manőver egy kompakt sorban. `LiveActivityController`: indul mérés / navigáció kezdetén, ≤ 1 Hz és
     csak változáskor frissít, a végén `.immediate` zárul, induláskor a korábbi futásból maradtakat lezárja; a háttér nem állítja
     le. **Korlát:** az ActivityKit háttérből nem indít új Live Activity-t – háttérben induló szakaszmérésnél csak a következő
-    előtérbe kerüléskor jelenik meg. **Képernyőkép:** a fej nélküli szimulátoron a lezárt képernyő és a Dynamic Island nem
+    előtérbe kerüléskor jelenik meg; **AOS15:** a Live Activity a GPS indításától állandóan látszik, térképképpel (Kristof döntése). **Képernyőkép:** a fej nélküli szimulátoron a lezárt képernyő és a Dynamic Island nem
     fotózható → `-livePreview YES` (a `-sim …` mellett): a widget saját nézetei az app élő állapotából (`Sim/LiveActivityPreview.swift`, mock).
   - **Köszöntés (web + iOS):** Beállítások › „Megszólítás” (opcionális, `megszolitas`, ≤ 24 karakter, `normalizeName`); az üres
     nézeten a kereső-gomb sora alatt, balra „Szia Kristof!” / „Szia!” (`greetingText`); navigáció indításakor (bekapcsolt hangos

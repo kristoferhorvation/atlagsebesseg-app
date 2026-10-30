@@ -98,8 +98,13 @@ final class AppModel {
     var reports: [ActiveReport] = []
     /// A jelölőre koppintva nyitott kártya.
     var selectedReportId: String?
-    /// „Még ott van?” – a közeledéskor magától nyílt kártya.
-    var reportPromptId: String?
+    /// A közeledő bejelentés kártyája (figyelmeztetés → „Még ott van?”, AOS14).
+    var reportPromptState: ReportPrompt?
+    /// AOS14 javítás: az „Átlagmérés eleje” elküldve – a menü egyetlen kapu-tétele most „Átlagmérés vége”.
+    var gateStarted = false
+    @ObservationIgnored var gateActivity = (measuring: false, nav: false)
+    @ObservationIgnored var liveTestReported = false
+    @ObservationIgnored var liveTestVoted = false
     /// A Bejelentés menü (a figyelmeztető-ikon gomb nyitja).
     var reportSheetOpen = false
     /// A küldés alatt álló bejelentés-típus.
