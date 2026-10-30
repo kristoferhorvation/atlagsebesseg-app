@@ -16,7 +16,6 @@ enum IconName: String, CaseIterable, Sendable {
     case szakasz_hiba
     case kapu_kezdo
     case kapu_zaro
-    case ideiglenes_szakasz
     case check
     case approx
     case arrowUp
@@ -205,17 +204,6 @@ extension IconName {
             p.addLine(to: CGPoint(x: 14.5, y: 10.5))
             p.addLine(to: CGPoint(x: 14.5, y: 15))
             p.addLine(to: CGPoint(x: 10, y: 15))
-            p.closeSubpath()
-        case .ideiglenes_szakasz:
-            p.move(to: CGPoint(x: 4, y: 20))
-            p.addLine(to: CGPoint(x: 4, y: 5))
-            p.move(to: CGPoint(x: 20, y: 20))
-            p.addLine(to: CGPoint(x: 20, y: 5))
-            p.move(to: CGPoint(x: 4, y: 5))
-            p.addLine(to: CGPoint(x: 20, y: 5))
-            p.move(to: CGPoint(x: 10.5, y: 10.5))
-            p.addLine(to: CGPoint(x: 10.5, y: 16.5))
-            p.addLine(to: CGPoint(x: 15.5, y: 13.5))
             p.closeSubpath()
         case .check:
             p.move(to: CGPoint(x: 5, y: 12.5))

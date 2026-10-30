@@ -44,9 +44,9 @@ export function SettingsSheet({
     { id: 'mph', label: 'mph' },
   ];
   const looks: { id: MapLook; label: string }[] = [
+    { id: 'vilagos', label: t('settings.look.light') },
     { id: 'szines', label: t('settings.look.color') },
     { id: 'visszafogott', label: t('settings.look.muted') },
-    { id: 'vilagos', label: t('settings.look.light') },
   ];
   return (
     <Sheet title={t('settings.title')} onClose={onClose}>

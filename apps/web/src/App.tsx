@@ -27,7 +27,6 @@ import {
   reportFromFix,
   t,
   type TKey,
-  tempSectionEndReports,
   type ReportChoice,
   type ReportInsert,
   type SessionView,
@@ -37,8 +36,10 @@ import {
   navResultCompact,
   navStepStrip,
   mapLightPreset,
+  strongGlassFor,
   manualPillTap,
   manualPillTick,
+  manualMiniStatus,
   navNeedsSpace,
   type ManualPillState,
 } from '@atlagsebesseg/app-logic';
@@ -66,7 +67,7 @@ import { simStartFromUrl, useSimulator } from './sim/useSimulator';
 import { buildNavSim, simIdleFix, simRouteFetcher, simSearch, SIM_ALT_MODES, SIM_PLACES, type NavSimData, type SimAltMode } from './sim/navSim';
 import { CameraCard } from './ui/CameraCard';
 import { cameraIcon } from './ui/cameraIcon';
-import { Hud, ManualPill, SlowDown, toneOf, type GateReportState } from './ui/Hud';
+import { Hud, ManualMini, SlowDown, toneOf } from './ui/Hud';
 import { Icon, type IconName } from './ui/Icon';
 import { LimitSign } from './ui/LimitSign';
 import { NavBottom, NavStrip, NavTop, OfferCard } from './ui/NavHud';
@@ -88,6 +89,17 @@ const NAV_SIM_ALT: SimAltMode = (SIM_ALT_MODES as readonly string[]).includes(ne
 const SIM_MODE = new URLSearchParams(location.search).has('sim') || NAV_SIM;
 /** `?sim&panel=0`: a szimulátor vezérlője és jelzése nélkül (marketing-képernyőképekhez). */
 const SIM_PANEL = new URLSearchParams(location.search).get('panel') !== '0' && !NAV_SIM;
+/** `?sunAt=<ISO-idő>`: a térkép fénye ehhez az időponthoz (napszak-képernyőképekhez, AW16); alapból a valós idő. */
+const SUN_AT = (() => {
+  const ms = Date.parse(new URLSearchParams(location.search).get('sunAt') ?? '');
+  return Number.isFinite(ms) ? ms : null;
+})();
+const sunAtNow = () => SUN_AT ?? Date.now();
+/** `?navsim&miniStatus=jo|lassits|tul_gyors`: a zsugorított kézi kártya státusz-színe kényszerítve (a képernyőképhez, AW16). */
+const MINI_STATUS_FORCED = (() => {
+  const v = new URLSearchParams(location.search).get('miniStatus');
+  return NAV_SIM && (v === 'jo' || v === 'lassits' || v === 'tul_gyors') ? v : null;
+})();
 /** A kamerák ekkora körzetben kerülnek a térképre (DOM-jelölők – nem az egész ország). */
 const CAMERA_RADIUS_M = 15_000;
 const NO_PLANNED: readonly PlannedCheck[] = [];
@@ -208,14 +220,15 @@ function Drive({ map }: { map: WebMapAdapter }) {
   const wake = useWakeLock(true);
 
   // térkép
-  const lightPreset = useLightPreset(view.lastFix, now);
+  const lightPreset = useLightPreset(view.lastFix, SUN_AT === null ? now : sunAtNow);
   const tone = toneOf(view);
   const highlightId = view.phase === 'meres' || view.phase === 'kozeledik' ? (view.section?.id ?? null) : null;
-  // AW15: „Világos” kinézetnél mindig nappali fény (a rétegek is a nappali tokeneket kapják)
-  useEffect(() => map.setLightPreset(mapLightPreset(settings.terkep, lightPreset)), [map, lightPreset, settings.terkep]);
+  // AW16: napközben a kinézet dönt (Világos = day, Színes = dusk); napnyugtakor és éjjel mindkettő a napszaké
+  const appliedPreset = mapLightPreset(settings.terkep, lightPreset);
+  useEffect(() => map.setLightPreset(appliedPreset), [map, appliedPreset]);
   useEffect(() => {
-    document.documentElement.dataset.look = settings.terkep;
-  }, [settings.terkep]);
+    document.documentElement.dataset.look = strongGlassFor(settings.terkep, appliedPreset) ? 'vilagos' : 'normal';
+  }, [settings.terkep, appliedPreset]);
   useEffect(() => map.setLook(settings.terkep), [map, settings.terkep]);
   useEffect(() => map.showSections(all, highlightId), [map, all, highlightId]);
   useEffect(() => map.setPosition(view.lastFix), [map, view.lastFix]);
@@ -396,6 +409,8 @@ function Drive({ map }: { map: WebMapAdapter }) {
     return () => clearInterval(id);
   }, [pillActive, now]);
   const pillCollapsed = pillActive && pill?.collapsed === true;
+  // a zsugorított kártya színe: az átlag a navigáció aktuális határához mérve (jó / lassíts / túl gyors)
+  const miniStatus = MINI_STATUS_FORCED ?? manualMiniStatus(view.manual?.averageKmh ?? null, view.currentKmh, nav.view?.limitKmh ?? null);
   const tapPill = useCallback(() => setPill((s) => s && manualPillTap(s, now())), [now]);
   // az elrendezés szerinti mérés: a pillé zsugorodott kézi mérés nem foglalja a helyet
   const measuringLayout = measuring && !pillCollapsed;
@@ -499,70 +514,18 @@ function Drive({ map }: { map: WebMapAdapter }) {
     return () => clearTimeout(id);
   }, [showToast]);
 
-  // Ideiglenes szakasz: kézi mérés + kezdő kapu induláskor, záró kapu a „Vége” gombra.
-  const [temp, setTemp] = useState<{ startSent: boolean } | null>(null);
-  const [gateState, setGateState] = useState<GateReportState>('nincs');
-  const [gateRows, setGateRows] = useState<ReportInsert[] | null>(null);
-  const sendGates = useCallback((rows: ReportInsert[]) => {
-    setGateRows(rows);
-    setGateState('kuldes');
-    // toast is, mert közeledéskor a szakasz-kártya elfedi a kézi összegzést
-    createReports(supabase, rows)
-      .then((ids) => {
-        ids.forEach((id, i) => rows[i] && feed.addOwn(ownReport(rows[i], id, now())));
-        setGateState('elkuldve');
-        showToast({ text: t('toast.tempSent'), tone: 'jo', icon: 'check' });
-      })
-      .catch(() => {
-        setGateState('hiba');
-        showToast({ text: t('toast.gatesFail'), tone: 'tul', icon: 'report' });
-      });
-  }, [showToast, feed.addOwn, now]);
-  useEffect(() => {
-    if (view.phase === 'megszakadt') setTemp(null);
-  }, [view.phase]);
-
-  const startTempSection = useCallback(() => {
-    const fix = view.lastFix;
-    session.startManual();
-    setGateState('nincs');
-    setSheet(null);
-    const start = fix ? reportFromFix('kapu_kezdo', fix) : null;
-    if (!start) {
-      // álló helyzetben még nincs irány: a kezdő kapu a mérés első pontjából, a végén megy el
-      setTemp({ startSent: false });
-      showToast({ text: t('toast.startLater'), tone: 'kezi', icon: 'kapu_kezdo' });
-      return;
-    }
-    setTemp({ startSent: false });
-    createReports(supabase, [start])
-      .then(([id]) => {
-        if (id) feed.addOwn(ownReport(start, id, now()));
-        setTemp((t) => t && { startSent: true });
-        showToast({ text: t('toast.startSent'), tone: 'jo', icon: 'check' });
-      })
-      .catch(() => showToast({ text: t('toast.startRetry'), tone: 'hataron', icon: 'kapu_kezdo' }));
-  }, [view.lastFix, session.startManual, showToast, feed.addOwn, now]);
-
+  // AW16: a kézi mérés privát – nem küld semmit a szerverre (a kapukat a Bejelentés menü „Átlagmérés eleje / vége” adja)
   const startManual = useCallback(() => {
-    setTemp(null);
-    setGateState('nincs');
     session.startManual();
   }, [session.startManual]);
 
   const stopManual = useCallback(() => {
-    const v = session.stopManual();
-    if (!temp || !v.manualResult) return;
-    setTemp(null);
-    const rows = tempSectionEndReports(v.manualResult, temp.startSent);
-    if (rows) sendGates(rows);
-    else setGateState('nem_hatarozhato');
-  }, [session.stopManual, temp, sendGates]);
+    session.stopManual();
+  }, [session.stopManual]);
 
   const [sending, setSending] = useState<ReportChoice | null>(null);
   const report = useCallback(
     (choice: ReportChoice) => {
-      if (choice === 'ideiglenes_szakasz') return startTempSection();
       const row = view.lastFix ? reportFromFix(choice, view.lastFix) : null;
       if (!row) return;
       const label = reportChoiceLabel(choice);
@@ -578,7 +541,7 @@ function Drive({ map }: { map: WebMapAdapter }) {
           setSheet(null);
         });
     },
-    [view.lastFix, showToast, startTempSection, feed.addOwn, now],
+    [view.lastFix, showToast, feed.addOwn, now],
   );
 
   // megerősítés / nincs ott (report_votes); szimulátorban csak helyben
@@ -608,6 +571,7 @@ function Drive({ map }: { map: WebMapAdapter }) {
   return (
     <>
       <StatusPills
+        onSearch={nav.view || driving || view.phase === 'kezi_eredmeny' ? undefined : () => nav.openSearch()}
         geo={SIM_MODE ? 'aktiv' : geo}
         accuracy={accuracy}
         wake={wake.status}
@@ -672,14 +636,9 @@ function Drive({ map }: { map: WebMapAdapter }) {
           )}
         </div>
         <div className="actions">
-          {pillCollapsed && <ManualPill view={view} unit={settings.egyseg} tempSection={temp !== null} onExpand={tapPill} />}
+          {pillCollapsed && <ManualMini view={view} unit={settings.egyseg} status={miniStatus} onExpand={tapPill} />}
           {!driving && view.phase !== 'kezi_eredmeny' && (
             <>
-              {!nav.view && (
-                <button className="round-btn glass" onClick={() => nav.openSearch()} aria-label={t('map.search')}>
-                  <Icon name="search" size={26} />
-                </button>
-              )}
               <button className="round-btn glass" onClick={() => setSheet('settings')} aria-label={t('map.settings')}>
                 <Icon name="sliders" size={26} />
               </button>
@@ -708,11 +667,8 @@ function Drive({ map }: { map: WebMapAdapter }) {
           gpsReady={view.lastFix !== null}
           navCompact={navResultCompact(view.phase, nav.view !== null)}
           onCollapseManual={pillActive ? tapPill : undefined}
-          tempSection={temp !== null}
-          gateState={gateState}
           onStopManual={stopManual}
           onDismiss={session.dismiss}
-          onRetryGates={() => gateRows && sendGates(gateRows)}
         />
         )}
       </div>
@@ -754,7 +710,6 @@ function Drive({ map }: { map: WebMapAdapter }) {
           fix={view.lastFix}
           online={supabase !== null}
           sending={sending}
-          manualRunning={view.phase === 'kezi'}
           onPick={report}
           onClose={() => setSheet(null)}
         />

@@ -1,8 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { formatDistance, formatDuration, progressOf, sectionSourceLabel, speedFloorIn, speedIn, speedStatus } from '../src/display';
-import { parseSettings, DEFAULT_SETTINGS } from '../src/settings';
-import { mapLightPreset, mapTheme, type LightPreset } from '../src/lightPreset';
-import { reportFromFix } from '../src/reports';
+import { parseSettings, DEFAULT_SETTINGS, MAP_LOOKS, type MapLook } from '../src/settings';
+import { lightPresetAt, mapLightPreset, mapTheme, strongGlassFor, type LightPreset } from '../src/lightPreset';
+import { REPORT_CHOICES, reportChoiceLabel, reportFromFix } from '../src/reports';
+import { setLanguage } from '../src/i18n';
 import { MapStore } from '../src/mapState';
 
 describe('speedStatus', () => {
@@ -49,19 +50,65 @@ describe('beállítások', () => {
       hangos_utasitasok: true,
     });
   });
-  it('a térkép alapból színes; a visszafogott megmarad, ismeretlen érték színes', () => {
+  it('a térkép alapból színes; a visszafogott megmarad, ismeretlen érték színes; a sorrend Világos, Színes, Visszafogott', () => {
     expect(DEFAULT_SETTINGS.terkep).toBe('szines');
     expect(parseSettings('{"terkep":"visszafogott"}').terkep).toBe('visszafogott');
     expect(parseSettings('{"terkep":"monochrome"}').terkep).toBe('szines');
+    expect(MAP_LOOKS).toEqual(['vilagos', 'szines', 'visszafogott']);
   });
-  it('AW15: „Világos” – tárolva megmarad, színes téma mindig nappali fénnyel; a másik kettő a napszakot követi', () => {
+  it('AW16: a téma a kinézetből; a „Világos” tárolva megmarad', () => {
     expect(parseSettings('{"terkep":"vilagos"}').terkep).toBe('vilagos');
     expect([mapTheme('szines'), mapTheme('visszafogott'), mapTheme('vilagos')]).toEqual(['default', 'monochrome', 'default']);
-    for (const p of ['dawn', 'day', 'dusk', 'night'] as LightPreset[]) {
-      expect(mapLightPreset('vilagos', p), p).toBe('day');
-      expect(mapLightPreset('szines', p), p).toBe(p);
-      expect(mapLightPreset('visszafogott', p), p).toBe(p);
+  });
+  it('AW16: lightPreset-szabály napszakonként és stílusonként (a sötét mód sehol nem számít)', () => {
+    // napszak szerinti alap → a ténylegesen alkalmazott fény
+    const expected: Record<MapLook, Record<LightPreset, LightPreset>> = {
+      vilagos: { day: 'day', dawn: 'dawn', dusk: 'dusk', night: 'night' },
+      szines: { day: 'dusk', dawn: 'dawn', dusk: 'dusk', night: 'night' },
+      visszafogott: { day: 'day', dawn: 'dawn', dusk: 'dusk', night: 'night' },
+    };
+    for (const look of MAP_LOOKS) for (const p of ['dawn', 'day', 'dusk', 'night'] as LightPreset[]) expect(mapLightPreset(look, p), `${look}/${p}`).toBe(expected[look][p]);
+  });
+  it('AW16: a végigfutó lánc (időpont + hely → stílus): délben, napnyugtakor és éjjel', () => {
+    const budapest = { lat: 47.5, lon: 19.04 };
+    const noon = Date.UTC(2026, 5, 21, 10, 0); // nyári dél (UTC)
+    const night = Date.UTC(2026, 5, 21, 23, 30);
+    const at = (look: MapLook, ms: number) => mapLightPreset(look, lightPresetAt(ms, budapest));
+    expect([at('vilagos', noon), at('szines', noon), at('visszafogott', noon)]).toEqual(['day', 'dusk', 'day']);
+    expect([at('vilagos', night), at('szines', night), at('visszafogott', night)]).toEqual(['night', 'night', 'night']);
+    // helyzet nélkül nappal
+    expect(mapLightPreset('szines', lightPresetAt(noon, null))).toBe('dusk');
+    expect(mapLightPreset('vilagos', lightPresetAt(noon, null))).toBe('day');
+  });
+  it('AW16: erősebb üveg csak a nappali fényű „Világos” térképen', () => {
+    expect(strongGlassFor('vilagos', 'day')).toBe(true);
+    expect(strongGlassFor('vilagos', 'night')).toBe(false);
+    expect(strongGlassFor('vilagos', 'dusk')).toBe(false);
+    expect(strongGlassFor('szines', 'day')).toBe(false);
+    expect(strongGlassFor('visszafogott', 'day')).toBe(false);
+  });
+});
+
+describe('AW16: bejelentés-típusok', () => {
+  it('a menü aljára kerül az „Átlagmérés eleje / vége”, az ideiglenes szakasz folyamat megszűnt', () => {
+    expect(REPORT_CHOICES.map((c) => c.id)).toEqual(['rendorseg', 'traffipax', 'baleset', 'akadaly', 'utlezaras', 'szakasz_hiba', 'kapu_kezdo', 'kapu_zaro']);
+    expect(reportChoiceLabel('kapu_kezdo')).toBe('Átlagmérés eleje');
+    expect(reportChoiceLabel('kapu_zaro')).toBe('Átlagmérés vége');
+  });
+  it('mindkettő a meglévő kapu-jelentés: ideiglenes_kapu, kezdő / záró, a jelenlegi hely és irány', () => {
+    const fix = { lat: 46, lon: 11, timestamp: 0, speed: 30, accuracy: 5, heading: 90 };
+    expect(reportFromFix('kapu_kezdo', fix)).toEqual({ type: 'ideiglenes_kapu', gate_kind: 'kezdo', lat: 46, lon: 11, heading_deg: 90, road: null, speed_limit_kmh: null });
+    expect(reportFromFix('kapu_zaro', fix)).toMatchObject({ type: 'ideiglenes_kapu', gate_kind: 'zaro', heading_deg: 90 });
+    // irány nélkül nincs kapu
+    expect(reportFromFix('kapu_zaro', { ...fix, heading: null })).toBeNull();
+  });
+  it('mind a 6 nyelven van felirata', () => {
+    for (const l of ['hu', 'en', 'de', 'sk', 'cs', 'pl'] as const) {
+      setLanguage(l);
+      expect(reportChoiceLabel('kapu_kezdo'), l).not.toBe('report.type.kapu_kezdo');
+      expect(reportChoiceLabel('kapu_zaro'), l).not.toBe(reportChoiceLabel('kapu_kezdo'));
     }
+    setLanguage('hu');
   });
 });
 

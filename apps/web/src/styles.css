@@ -813,6 +813,18 @@ select:focus-visible {
   pointer-events: none;
 }
 
+/* AW16: a kereső kerek gombja a GPS-pill sorában, a jobb szélre zárva (ugyanaz a stílus, mint az alsó kerek gomboké) */
+.top-search {
+  position: absolute;
+  top: calc(env(safe-area-inset-top) + 40px);
+  right: max(12px, env(safe-area-inset-right));
+  z-index: 3;
+}
+
+.pills[data-search] {
+  right: calc(max(12px, env(safe-area-inset-right)) + var(--size-round-button) + 8px);
+}
+
 .pill {
   pointer-events: auto;
   height: 36px;
@@ -2247,47 +2259,48 @@ a.list-row {
   font-weight: 600;
 }
 
-/* AW15: a kompakt kézi eredmény „Újra” gombja (kapu-küldési hiba) */
-.mini-btn.primary {
-  background: var(--color-text);
-  color: var(--color-sign-text);
-}
-
-/* AW15: navigáció közben a kézi mérés pillje a gombsor jobb oldalán – átlag + eltelt idő, bökésre a teljes kártya */
-.manual-pill {
-  height: var(--size-round-button);
-  padding: 0 18px 0 14px;
-  border-radius: var(--radius-pill);
-  display: inline-flex;
+/* AW16: navigáció közben a kézi mérés a mérőkártya lekicsinyített változata a gombsor jobb oldalán – nagy átlag a
+   státusz-színnel, alatta „km/h átlag” és az idő; bökésre a teljes kártya */
+.manual-mini {
+  min-width: 112px;
+  padding: 8px 14px 9px;
+  border-radius: var(--radius-card);
+  display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 10px;
+  gap: 0;
   border-color: color-mix(in srgb, var(--tone) 55%, transparent);
+  background: color-mix(in srgb, var(--tone) 12%, var(--color-surface));
   animation: rise var(--motion-base) var(--motion-ease);
 }
 
-.manual-pill svg {
-  color: var(--tone);
-}
-
-.manual-pill b {
-  font-size: 26px;
+.manual-mini b {
+  font-size: 40px;
+  line-height: 1.05;
   font-weight: 700;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.03em;
   color: var(--tone);
-  white-space: nowrap;
 }
 
-.manual-pill b small {
-  margin-left: 4px;
+.manual-mini small {
   font-size: var(--type-caption-size);
   font-weight: 560;
   color: var(--color-text-muted);
+  white-space: nowrap;
 }
 
-.manual-pill > span {
-  font-size: var(--type-body-size);
+.manual-mini > span {
+  margin-top: 2px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: var(--type-caption-size);
   font-weight: 600;
   color: var(--color-text-muted);
+}
+
+:root[data-look='vilagos'] .manual-mini {
+  background: color-mix(in srgb, var(--tone) 12%, var(--color-surface-strong));
 }
 
 @keyframes spin {

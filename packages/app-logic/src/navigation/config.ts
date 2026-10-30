@@ -99,10 +99,13 @@ export const NAV_FOLLOW = {
 } as const;
 
 /**
- * Kézi mérés navigáció közben (AW15): a kártya `collapseAfterMs` után kis pillé zsugorodik (a jobb oldalon), és akkor is,
- * ha a navigációnak hely kell – a következő manőver `maneuverNearM`-en belül, ajánlat-kártya vagy közeli kamera.
+ * Kézi mérés navigáció közben (AW15, AW16): a kártya `collapseAfterMs` után a mérőkártya lekicsinyített változatává
+ * zsugorodik (a jobb oldalon), és akkor is, ha a navigációnak hely kell – a következő manőver `maneuverNearM`-en belül,
+ * ajánlat-kártya vagy közeli kamera. Indítás után az első `collapseAfterMs`-ban a hely-igény sem csukja azonnal: ekkor
+ * `startSpaceCollapseMs` után (az indítástól) megy össze.
  */
 export const MANUAL_PILL = {
   collapseAfterMs: 5000,
+  startSpaceCollapseMs: 3000,
   maneuverNearM: 500,
 } as const;

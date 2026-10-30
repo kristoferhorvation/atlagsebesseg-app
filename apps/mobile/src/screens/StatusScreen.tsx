@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Switch, Text, View } from 'react-native';
-import { gateReportsFromManual, tileBBox, tileKey } from '@atlagsebesseg/app-logic';
+import { tileBBox, tileKey } from '@atlagsebesseg/app-logic';
 import { limitWithToleranceKmh, type GpsFix, type RequiredSpeed, type TrackerState } from '@atlagsebesseg/core';
-import { createReports, listActiveReports } from '../backend/reportsRepo';
+import { listActiveReports } from '../backend/reportsRepo';
 import { ensureSignedIn, supabase } from '../backend/supabase';
 import { useMap } from '../map';
 import { useAutoLightPreset } from '../map/useAutoLightPreset';
@@ -10,8 +10,6 @@ import { useSettings } from '../settings/useSettings';
 import { useLocationFixes } from '../tracking/useLocationFixes';
 import { useSections } from '../tracking/useSections';
 import { useTracking } from '../tracking/useTracking';
-
-type GateReportStatus = 'nincs' | 'kuldes' | 'elkuldve' | 'hiba';
 
 const STATE_LABEL: Record<TrackerState, string> = {
   nincs_szakasz: 'Nincs szakasz',
@@ -49,7 +47,6 @@ export function StatusScreen() {
     supabase ? 'bejelentkezes' : 'nincs_beallitva',
   );
   const [reportCount, setReportCount] = useState<number | null>(null);
-  const [gateStatus, setGateStatus] = useState<GateReportStatus>('nincs');
 
   useEffect(() => {
     if (!supabase) return;
@@ -79,16 +76,6 @@ export function StatusScreen() {
   useEffect(() => {
     map.showSections(sections, activeId);
   }, [map, sections, activeId]);
-
-  useEffect(() => setGateStatus('nincs'), [manualResult]);
-  const gateReports = manualResult ? gateReportsFromManual(manualResult) : null;
-  const reportGates = useCallback(() => {
-    if (!gateReports) return;
-    setGateStatus('kuldes');
-    createReports(gateReports)
-      .then(() => setGateStatus('elkuldve'))
-      .catch(() => setGateStatus('hiba'));
-  }, [gateReports]);
 
   const live = snapshot?.live;
   return (
@@ -142,15 +129,6 @@ export function StatusScreen() {
             átlag {kmh(manualResult.averageKmh)}
           </Text>
         )}
-        {gateReports && supabase && gateStatus !== 'elkuldve' && (
-          <Pressable style={styles.button} onPress={reportGates} disabled={gateStatus === 'kuldes'} accessibilityRole="button">
-            <Text style={styles.buttonText}>
-              {gateStatus === 'kuldes' ? 'Küldés…' : 'Ideiglenes ellenőrzés: kezdő- és zárókapu bejelentése'}
-            </Text>
-          </Pressable>
-        )}
-        {gateStatus === 'elkuldve' && <Text style={styles.text}>A két kapu bejelentve – mások megerősítésére vár.</Text>}
-        {gateStatus === 'hiba' && <Text style={styles.text}>A bejelentés nem sikerült (nincs hálózat?).</Text>}
         <View style={styles.row}>
           <Text style={styles.text}>Hatósági tűrés megjelenítése</Text>
           <Switch

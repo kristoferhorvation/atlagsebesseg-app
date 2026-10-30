@@ -34,6 +34,7 @@ import {
   maneuverIcon,
   NavigationSession,
   manualPillTap,
+  manualMiniStatus,
   manualPillTick,
   MANUAL_PILL,
   navNeedsSpace,
@@ -1462,7 +1463,7 @@ describe('AW15: kézi átlagmérés navigáció közben', () => {
     expect(navResultCompact('kezi_eredmeny', false)).toBe(false);
   });
 
-  it('a pill: navigáció nélkül nincs; induláskor teljes kártya, 5 s után pill; bökésre ki, újabb bökésre vagy 5 s után vissza', () => {
+  it('a zsugorított kártya: navigáció nélkül nincs; induláskor teljes kártya, 5 s után zsugorított; bökésre ki, újabb bökésre vagy 5 s után vissza', () => {
     expect(MANUAL_PILL.collapseAfterMs).toBe(5000);
     expect(manualPillTick(null, false, false, 0)).toBeNull();
     let s = manualPillTick(null, true, false, 1000)!;
@@ -1478,29 +1479,59 @@ describe('AW15: kézi átlagmérés navigáció közben', () => {
     expect(manualPillTick(s, true, false, 15_000)!.collapsed).toBe(true);
     // újabb bökésre azonnal vissza
     expect(manualPillTap(s, 11_000).collapsed).toBe(true);
-    // a navigáció vége / a mérés vége: nincs pill (a nagy kártya, ill. az eredmény)
+    // a navigáció vége / a mérés vége: nincs zsugorítás (a nagy kártya, ill. az eredmény)
     expect(manualPillTick(s, false, false, 11_000)).toBeNull();
     // változatlan állapotnál ugyanaz az objektum (a nézet nem renderel feleslegesen)
     expect(manualPillTick(s, true, false, 11_000)).toBe(s);
   });
 
-  it('a pill: magától összemegy, ha a navigációnak hely kell (manőver < 500 m, ajánlat, közeli kamera)', () => {
+  it('a zsugorított kártya: magától összemegy, ha a navigációnak hely kell (manőver < 500 m, ajánlat, közeli kamera)', () => {
     expect(navNeedsSpace({ maneuverM: 499, offer: false, cameraNear: false })).toBe(true);
     expect(navNeedsSpace({ maneuverM: 500, offer: false, cameraNear: false })).toBe(false);
     expect(navNeedsSpace({ maneuverM: null, offer: false, cameraNear: false })).toBe(false);
     expect(navNeedsSpace({ maneuverM: 3000, offer: true, cameraNear: false })).toBe(true);
     expect(navNeedsSpace({ maneuverM: 3000, offer: false, cameraNear: true })).toBe(true);
+    // a hely-igény a nyitott (felhasználó által kinyitott) kártyát azonnal összecsukja
     let s = manualPillTick(null, true, false, 0)!;
+    s = manualPillTick(s, true, false, 5000)!; // 5 s: zsugorított
+    s = manualPillTap(s, 6000); // a felhasználó kinyitja
+    expect(manualPillTick(s, true, false, 7000)!.collapsed).toBe(false);
+    expect(manualPillTick(s, true, true, 7000)!.collapsed).toBe(true); // felfutó él → azonnal
+    // ha a hely-igény már fennáll, miközben kinyitják: 5 s-ig nyitva marad
+    let t = manualPillTick(null, true, true, 0)!;
+    t = manualPillTick(t, true, true, 3000)!; // 3 s: összement
+    t = manualPillTap(t, 4000);
+    expect(manualPillTick(t, true, true, 8999)!.collapsed).toBe(false);
+    expect(manualPillTick(t, true, true, 9000)!.collapsed).toBe(true);
+  });
+
+  it('indítás után az első 5 s-ban nyitva marad hely-igény mellett is, de 3 s után összemegy (az indítástól)', () => {
+    expect(MANUAL_PILL.startSpaceCollapseMs).toBe(3000);
+    // indításkor már fennálló hely-igény: 0–2,999 s nyitva, 3 s-tól zsugorított
+    let s = manualPillTick(null, true, true, 10_000)!;
+    expect(s.collapsed).toBe(false);
+    expect(manualPillTick(s, true, true, 12_999)!.collapsed).toBe(false);
+    expect(manualPillTick(s, true, true, 13_000)!.collapsed).toBe(true);
+    // a hely-igény 1 s-nál jelenik meg: nem csuk azonnal, 3 s-nál igen
+    s = manualPillTick(null, true, false, 0)!;
     s = manualPillTick(s, true, true, 1000)!;
-    expect(s.collapsed).toBe(true);
-    // ha közben kinyitják, a fennálló helyigény nem csukja azonnal vissza – 5 s-ig nyitva marad
-    s = manualPillTap(s, 2000);
-    expect(manualPillTick(s, true, true, 3000)!.collapsed).toBe(false);
-    expect(manualPillTick(s, true, true, 7000)!.collapsed).toBe(true);
-    // új helyigény (felfutó él) a nyitott kártyát rögtön összecsukja
-    s = manualPillTick(manualPillTick(s, true, false, 3000)!, true, true, 3500)!;
-    expect(s.collapsed).toBe(true);
-    // induláskor fennálló helyigény: rögtön pill
-    expect(manualPillTick(null, true, true, 0)!.collapsed).toBe(true);
+    expect(s.collapsed).toBe(false);
+    expect(manualPillTick(s, true, true, 3000)!.collapsed).toBe(true);
+    // 4 s-nál jelenik meg: már elmúlt a 3 s → azonnal zsugorított
+    s = manualPillTick(null, true, false, 0)!;
+    expect(manualPillTick(s, true, true, 4000)!.collapsed).toBe(true);
+    // hely-igény nélkül marad az 5 s
+    s = manualPillTick(null, true, false, 0)!;
+    expect(manualPillTick(s, true, false, 4999)!.collapsed).toBe(false);
+    expect(manualPillTick(s, true, false, 5000)!.collapsed).toBe(true);
+  });
+
+  it('a zsugorított kártya státusz-színe a navigáció határából: jó / lassíts / túl gyors; ismeretlen határnál nincs', () => {
+    expect(manualMiniStatus(88, 90, 90)).toBe('jo');
+    expect(manualMiniStatus(95, 85, 90)).toBe('lassits');
+    expect(manualMiniStatus(95, 100, 90)).toBe('tul_gyors');
+    expect(manualMiniStatus(95, null, 90)).toBe('tul_gyors');
+    expect(manualMiniStatus(null, 80, 90)).toBeNull();
+    expect(manualMiniStatus(95, 85, null)).toBeNull();
   });
 });

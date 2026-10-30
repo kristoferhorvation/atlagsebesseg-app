@@ -179,7 +179,7 @@ export class ReportFeed {
 }
 
 /** Ikon (a webes `Icon` neve) és tónus egy bejelentés-típushoz – a bejelentés-lappal egyezően. */
-export type ReportIconName = Exclude<ReportType, 'ideiglenes_kapu'> | 'ideiglenes_szakasz' | 'kapu_kezdo' | 'kapu_zaro';
+export type ReportIconName = Exclude<ReportType, 'ideiglenes_kapu'> | 'kapu_kezdo' | 'kapu_zaro';
 
 export const REPORT_TONE: Record<ReportIconName, string> = {
   rendorseg: 'kezi',
@@ -188,7 +188,6 @@ export const REPORT_TONE: Record<ReportIconName, string> = {
   akadaly: 'hataron',
   utlezaras: 'tul',
   szakasz_hiba: 'semleges',
-  ideiglenes_szakasz: 'kezi',
   kapu_kezdo: 'kezi',
   kapu_zaro: 'kezi',
 };
@@ -196,7 +195,7 @@ export const REPORT_TONE: Record<ReportIconName, string> = {
 export function reportVisual(r: Pick<ActiveReport, 'type' | 'gateKind'>): { icon: ReportIconName; tone: string; label: string } {
   if (r.type === 'ideiglenes_kapu') {
     const icon = r.gateKind === 'zaro' ? 'kapu_zaro' : 'kapu_kezdo';
-    return { icon, tone: REPORT_TONE[icon], label: r.gateKind === 'zaro' ? t('report.gate.end') : reportChoiceLabel('ideiglenes_szakasz') };
+    return { icon, tone: REPORT_TONE[icon], label: reportChoiceLabel(icon) };
   }
   return { icon: r.type, tone: REPORT_TONE[r.type], label: reportChoiceLabel(r.type) };
 }

@@ -1,11 +1,11 @@
 export type SpeedUnit = 'kmh' | 'mph';
 
 /**
- * A térkép kinézete: színes (Mapbox Standard `default`), visszafogott (`monochrome`), vagy világos (AW15: `default` téma
- * mindig nappali fénnyel, a napszaktól és a sötét módtól függetlenül – `mapLightPreset`).
+ * A térkép kinézete (AW16): világos (`default` téma, napközben nappali fény), színes (`default` téma, napközben alkonyi
+ * fény – az alap) vagy visszafogott (`monochrome`); napnyugtakor és éjjel a fény mindháromnál azonos – `mapLightPreset`.
  */
 export type MapLook = 'szines' | 'visszafogott' | 'vilagos';
-export const MAP_LOOKS: readonly MapLook[] = ['szines', 'visszafogott', 'vilagos'];
+export const MAP_LOOKS: readonly MapLook[] = ['vilagos', 'szines', 'visszafogott'];
 
 export interface Settings {
   /** A kijelző a határ + hatósági tűrést is mutatja (a számítás mindig a szigorú határhoz). */

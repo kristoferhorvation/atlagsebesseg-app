@@ -25,9 +25,9 @@ struct SettingsSheet: View {
                         VStack(alignment: .leading, spacing: Tokens.Space.s2) {
                             Text(t(.settingsMap))
                             Picker(t(.settingsMap), selection: $model.settings.terkep) {
+                                Text(t(.settingsLookLight)).tag(MapLook.vilagos)
                                 Text(t(.settingsLookColor)).tag(MapLook.szines)
                                 Text(t(.settingsLookMuted)).tag(MapLook.visszafogott)
-                                Text(t(.settingsLookLight)).tag(MapLook.vilagos)
                             }
                             .pickerStyle(.segmented)
                             .labelsHidden()
@@ -36,15 +36,25 @@ struct SettingsSheet: View {
                         Text(t(.settingsPlannedHint)).font(.footnote).foregroundStyle(Tokens.Colors.textMuted)
                     }
                     // AW15: zászló + a saját nyelvén írt név, ábécérendben; az „Automatikus” legfelül – beágyazott lista, egy koppintás
-                    SwiftUI.Section(t(.settingsLanguage)) {
-                        Picker(t(.settingsLanguage), selection: language) {
-                            Text("\(t(.settingsLanguageAuto)) (\(L10n.systemLang.nativeName))").tag(Lang?.none)
-                            ForEach(languageMenu(), id: \.lang) { item in
-                                Text(item.label).tag(Optional(item.lang))
+                    SwiftUI.Section {
+                        // AW16: egy sor („Nyelv · 🇭🇺 Magyar”), koppintásra nyíló választó
+                        Menu {
+                            Picker(t(.settingsLanguage), selection: language) {
+                                Text("\(t(.settingsLanguageAuto)) (\(L10n.systemLang.nativeName))").tag(Lang?.none)
+                                ForEach(languageMenu(), id: \.lang) { item in
+                                    Text(item.label).tag(Optional(item.lang))
+                                }
                             }
+                        } label: {
+                            HStack {
+                                Text("\(t(.settingsLanguage)) · \(languageSummary)")
+                                    .foregroundStyle(Tokens.Colors.text)
+                                Spacer(minLength: Tokens.Space.s2)
+                                Image(systemName: "chevron.up.chevron.down").font(.footnote).foregroundStyle(Tokens.Colors.textMuted)
+                            }
+                            .contentShape(Rectangle())
                         }
-                        .pickerStyle(.inline)
-                        .labelsHidden()
+                        .accessibilityLabel(t(.settingsLanguage))
                     }
                     .id(Self.languageAnchor)
                     SwiftUI.Section(t(.iosSettingsGroupAlerts)) {
@@ -159,6 +169,12 @@ struct SettingsSheet: View {
     private static let languageAnchor = "language"
 
     /// A választott nyelv (`nil`: automatikus); azonnal érvényes, a feliratok újrarajzolódnak.
+    /// A sor értéke: a választott nyelv zászlóval és saját nevével, vagy „Automatikus (készülék nyelve)”.
+    private var languageSummary: String {
+        if let l = LangChoice.shared.preference { return languageMenu().first { $0.lang == l }?.label ?? l.nativeName }
+        return "\(t(.settingsLanguageAuto)) (\(L10n.systemLang.nativeName))"
+    }
+
     private var language: Binding<Lang?> {
         Binding(get: { LangChoice.shared.preference }, set: { LangChoice.shared.preference = $0 })
     }

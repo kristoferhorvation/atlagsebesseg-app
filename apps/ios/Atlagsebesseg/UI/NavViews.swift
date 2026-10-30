@@ -50,7 +50,7 @@ struct StatusPills: View {
     }
 
     var body: some View {
-        HStack(spacing: Tokens.Space.s2) {
+        HStack(alignment: .top, spacing: Tokens.Space.s2) {
             let p = gps
             Button { onGps?() } label: {
                 HStack(spacing: Tokens.Space.s2) {
@@ -74,21 +74,13 @@ struct StatusPills: View {
             .disabled(onGps == nil)
             .padding(.vertical, -10)
             .accessibilityLabel(p.text)
-            if let onSearch {
-                Button(action: onSearch) {
-                    Icon(name: .search, size: 20)
-                        .foregroundStyle(Tokens.Colors.text)
-                        .frame(width: 48, height: 36)
-                        .pillBackground()
-                        // a látható 36 pt köré 56 pt-es érintési cél (mint a webes `button.pill`)
-                        .frame(minWidth: Tokens.Size.touch, minHeight: Tokens.Size.touch)
-                        .contentShape(Rectangle())
-                }
-                .buttonStyle(.plain)
-                .padding(.vertical, -10)
-                .accessibilityLabel(t(.mapSearch))
-            }
             Spacer(minLength: 0)
+            // AW16: a kereső kerek gombja a GPS-pill sorában, a jobb szélre zárva (mint az alsó kerek gombok)
+            if let onSearch {
+                Button(action: onSearch) { Icon(name: .search, size: 26) }
+                    .buttonStyle(RoundButtonStyle())
+                    .accessibilityLabel(t(.mapSearch))
+            }
         }
     }
 }

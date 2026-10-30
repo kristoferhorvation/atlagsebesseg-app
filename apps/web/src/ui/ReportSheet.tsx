@@ -3,37 +3,37 @@ import type { GpsFix } from '@atlagsebesseg/core';
 import { Icon } from './Icon';
 import { Sheet } from './Sheet';
 
+const isGate = (c: ReportChoice) => c === 'kapu_kezdo' || c === 'kapu_zaro';
+
 /**
  * Bejelentés: 1. koppintás megnyitja, 2. koppintás a típusra azonnal elküldi a jelenlegi
- * helyről (és irányból) – nincs megerősítő lépés. Az „Ideiglenes szakasz kezdete” a kézi mérést
- * is elindítja (és bejelenti a kezdő kaput); a záró kaput a mérés „Vége” gombja küldi.
+ * helyről (és irányból) – nincs megerősítő lépés. AW16: a menü alján az „Átlagmérés eleje / vége” egy-egy ideiglenes
+ * kaput jelent be (ismeretlen mérési zóna); irány nélkül nem küldhető.
  */
 export function ReportSheet({
   fix,
   online,
   sending,
-  manualRunning,
   onPick,
   onClose,
 }: {
   fix: GpsFix | null;
   online: boolean;
   sending: ReportChoice | null;
-  /** Fut már kézi mérés – ilyenkor nem indítható ideiglenes szakasz. */
-  manualRunning: boolean;
   onPick: (c: ReportChoice) => void;
   onClose: () => void;
 }) {
-  const note = !online ? t('report.note.offline') : !fix ? t('report.note.noGps') : t('report.note.default');
+  const noHeading = fix !== null && fix.heading === null;
+  const note = !online ? t('report.note.offline') : !fix ? t('report.note.noGps') : noHeading ? t('report.note.gateNoHeading') : t('report.note.default');
   return (
     <Sheet title={t('report.title')} onClose={onClose}>
       <div className="tiles">
         {REPORT_CHOICES.map((c) => (
           <button
             key={c.id}
-            className={`tile${sending === c.id ? ' sending' : ''}${c.id === 'ideiglenes_szakasz' ? ' wide' : ''}`}
+            className={`tile${sending === c.id ? ' sending' : ''}${isGate(c.id) ? ' wide' : ''}`}
             data-tone={REPORT_TONE[c.id]}
-            disabled={!online || !fix || sending !== null || (c.id === 'ideiglenes_szakasz' && manualRunning)}
+            disabled={!online || !fix || sending !== null || (isGate(c.id) && noHeading)}
             onClick={() => onPick(c.id)}
           >
             <span className="ic">

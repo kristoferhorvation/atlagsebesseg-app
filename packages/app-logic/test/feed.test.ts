@@ -155,7 +155,7 @@ describe('bejelentés-sor és megjelenés', () => {
     expect(rowToActiveReport(row, null).own).toBe(false);
   });
   it('ikon és tónus a bejelentés-lappal egyezően, kapuknál kezdő/záró', () => {
-    expect(reportVisual(rowToActiveReport(row, null))).toEqual({ icon: 'kapu_zaro', tone: 'kezi', label: 'Ideiglenes szakasz vége' });
+    expect(reportVisual(rowToActiveReport(row, null))).toEqual({ icon: 'kapu_zaro', tone: 'kezi', label: 'Átlagmérés vége' });
     expect(reportVisual({ type: 'ideiglenes_kapu', gateKind: 'kezdo' }).icon).toBe('kapu_kezdo');
     expect(reportVisual({ type: 'traffipax', gateKind: null })).toEqual({ icon: 'traffipax', tone: 'hataron', label: 'Traffipax' });
   });

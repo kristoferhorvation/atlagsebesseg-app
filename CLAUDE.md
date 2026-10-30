@@ -142,6 +142,29 @@ Gyökér: `npm test` és `npm run typecheck` minden csomagra; `npm run test:all`
   - Helyhozzáférés (csak web): a GPS-pill újrakérésére jött PERMISSION_DENIED (1) a tiltott-lapot nyitja, Permissions API
     nélkül is (`pillRequestError`); az automatikus és az első-gesztusos kérés elutasítása nem nyit lapot.
   - Szimulátor: `-manual S` (a `-navStage nav` mellett kézi mérés, S mp múlva leáll; 0: fut), `-settingsOpen language`.
+- **AW16 (Kristof visszajelzése az AW15-re, 2026-10-30), weben és iOS-en kész:**
+  - **Kézi átlagmérés zsugorítva** (navigáció közben): nem pill, hanem a mérőkártya lekicsinyített változata a jobb oldalon
+    (`ManualMini`): a nagy átlag-szám a megszokott státusz-színnel (jó zöld / lassíts borostyán / túl gyors piros), alatta
+    „km/h átlag” és az eltelt idő; Leállítás nélkül. Bökésre a teljes kártya, bökésre vagy 5 s után vissza. A szín: az átlag a
+    navigáció aktuális útszakasz-határához mérve (`manualMiniStatus`: átlag ≤ határ → jó; felette, de a pillanatnyi sebesség
+    ≤ határ → lassíts; különben túl gyors; ismeretlen határnál a kézi-mérés színe). Auto-zsugor: manőver < 500 m, ajánlat-kártya,
+    közeli kamera. **Indítás után az első 5 s-ban** hely-igény mellett is nyitva marad, de 3 s után (az indítástól) összemegy
+    (`MANUAL_PILL.startSpaceCollapseMs`, `ManualPillState.initial`). A függvénynevek (`manualPillTick`/`manualPillTap`) maradtak.
+  - **A kézi mérés privát:** nem küld semmit a szerverre, hálózat nélkül is megy. Az „ideiglenes szakasz” folyamat (kézi
+    mérés + kezdő/záró kapu küldése, „Újra” gomb, `gate.*` / `toast.*` szövegek, `gateReportsFromManual`) kikerült. Helyette a
+    Bejelentés menü alján két új típus: **„Átlagmérés eleje”** és **„Átlagmérés vége”** (`kapu_kezdo` / `kapu_zaro`, 6 nyelv) –
+    a meglévő kapu-jelentés (`reportFromFix`, `ideiglenes_kapu` + `gate_kind`), ismeretlen mérési zóna bejelentésére; irány nélkül
+    nem küldhető. A core `ManualResult.gates` (TS + Swift, közös fixtúra) a paritás miatt érintetlen, az app már nem használja.
+  - **Térképstílus-szabály:** a készülék sötét módja SEHOL nem számít. Napközben a beállítás dönt: „Világos” = nappali fény
+    (`day`), „Színes” (alap) = alkonyi fény (`dusk`); hajnalban (`dawn`), napnyugtakor (`dusk`) és éjjel (`night`) mindkettő
+    a napszaké; „Visszafogott” a napszak szerint. Sorrend a választóban: Világos, Színes, Visszafogott (`MAP_LOOKS`). Az erősebb
+    üveg (`strongGlassFor`) csak a nappali fényű „Világos” térképen. `chooseLightPreset(phase)`, `lightPresetAt(now, pos)`,
+    `mapLightPreset(look, preset)` – webes és Swift-változat azonos szabállyal.
+  - **Kereső:** kerek ikon-gomb (mint az alsó kerek gombok) a térkép tetején, a GPS-pill sorában, a jobb szélre zárva; csak az üres
+    nézeten; az alsó gombsorból kikerült, iOS-en a kereső-pill helyett ugyanez. Érintésre teljes szélességű keresés, mint eddig.
+  - **iOS nyelvválasztó:** egy sor („Nyelv · 🇭🇺 Magyar”), koppintásra nyíló választó; a tárolás (`lang:v1`) és az azonnali váltás marad.
+  - **Paritási tartozás (AW16 → AOS14):** az iOS-nek még nincs bejelentés-funkciója – az „Átlagmérés eleje / vége” bejelentés-típus
+    az AOS14-ben jön a bejelentés-menüvel együtt (a szótárkulcsok és a `reportFromFix`-logika az app-logicban már megvan).
 - **Paritási tartozás (AW12 + AW13 → iOS) lezárva az AOS12-ben (2026-10-29):** a `NavigationTests.swift` újra a
   `navigation.test.ts` teljes párja (86 = 86 `it`, azonos névvel), a webes `navSim.test.ts` 6 esete a `SimTests.swift`-ben.
   A közös Budapest→Győr fixtúra **AOS13-ban teljesen újra felvéve** méteres hangegységgel (`voice_units=metric`, mindkét
@@ -153,6 +176,11 @@ Gyökér: `npm test` és `npm run typecheck` minden csomagra; `npm run test:all`
   ugrás előtti utolsó ablak elejéről játszik le. A bemondások szimulátorban a naplóba is mennek (`NAV-VOICE`). AOS12:
   `-alt worth|maybe|not|aftergate|off` (a webes `?alt=`; az adat a generált navsim-fixtúrából: `sectionEndM`, `alts`),
   `-geoHelp YES` (a tiltott-lap a képernyőképhez).
+
+## Web–iOS paritás (Kristof, 2026-10-30)
+- **A web a referencia:** minden webes funkció iOS-re is megy ugyanabban vagy a következő AOS-körben, kivéve a platformspecifikusat
+  (CarPlay, Live Activity, böngésző-engedély és hasonló). Paritás-hiány = **tartozás**: a CLAUDE.md-ben jelöljük, és a
+  zárójelentésben felsoroljuk, amíg nem zárul.
 
 ## Kör-rendszer
 - Kör-számozás (2026-10-29-től): **AW<n>** = web, **AOS<n>** = iOS; a sorszám az eddigi A1–A10-et folytatja

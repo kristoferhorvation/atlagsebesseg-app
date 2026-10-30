@@ -26,6 +26,7 @@ export function StatusPills({
   onWake,
   gpsAction,
   onGps,
+  onSearch,
 }: {
   geo: GeoStatus;
   accuracy: number | null;
@@ -36,6 +37,8 @@ export function StatusPills({
   onWake: () => void;
   gpsAction: GpsPillAction;
   onGps: () => void;
+  /** AW16: a kereső kerek gombja a pillek sorában, a jobb szélen (csak az üres nézeten); nélküle nincs gomb. */
+  onSearch?: () => void;
 }) {
   const pills: Pill[] = [];
   if (simMode) pills.push({ key: 'sim', tone: 'kezi', icon: 'play', text: 'Szimulátor' });
@@ -61,7 +64,8 @@ export function StatusPills({
   if (offline) pills.push({ key: 'net', tone: 'semleges', text: t('pill.offline') });
 
   return (
-    <div className={`pills${compact ? ' compact' : ''}`}>
+    <>
+    <div className={`pills${compact ? ' compact' : ''}`} data-search={onSearch ? '' : undefined}>
       {pills.map((p) => {
         const inner = (
           <>
@@ -80,5 +84,11 @@ export function StatusPills({
         );
       })}
     </div>
+    {onSearch && (
+      <button className="round-btn glass top-search" onClick={onSearch} aria-label={t('map.search')}>
+        <Icon name="search" size={26} />
+      </button>
+    )}
+    </>
   );
 }

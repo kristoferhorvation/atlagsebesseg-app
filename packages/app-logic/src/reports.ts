@@ -15,14 +15,14 @@ export interface SimpleReportInsert {
 
 export type ReportInsert = SimpleReportInsert | GateReportInsert;
 
-/** Egy ideiglenes kapu a jelenlegi helyről. */
+/** Egy ideiglenes kapu a jelenlegi helyről (az „Átlagmérés eleje / vége” bejelentés-típus). */
 export type GateChoice = 'kapu_kezdo' | 'kapu_zaro';
 
 /**
- * A bejelentés-lap választható elemei. Az `ideiglenes_szakasz` nem egy sor, hanem egy folyamat:
- * elindítja a kézi mérést és bejelenti a kezdő kaput; a mérés „Vége” gombja a záró kaput.
+ * A bejelentés-lap választható elemei. AW16: az „Átlagmérés eleje / vége” (`kapu_kezdo` / `kapu_zaro`) egy-egy ideiglenes
+ * kapu a jelenlegi helyről – ismeretlen mérési zóna bejelentése; a kézi mérés ettől független, privát.
  */
-export type ReportChoice = SimpleReportInsert['type'] | 'ideiglenes_szakasz';
+export type ReportChoice = SimpleReportInsert['type'] | GateChoice;
 
 export const REPORT_CHOICES: readonly { id: ReportChoice }[] = [
   { id: 'rendorseg' },
@@ -31,11 +31,12 @@ export const REPORT_CHOICES: readonly { id: ReportChoice }[] = [
   { id: 'akadaly' },
   { id: 'utlezaras' },
   { id: 'szakasz_hiba' },
-  { id: 'ideiglenes_szakasz' },
+  { id: 'kapu_kezdo' },
+  { id: 'kapu_zaro' },
 ];
 
 /** A bejelentés-típus felirata az aktuális nyelven. */
-export const reportChoiceLabel = (id: ReportChoice | SimpleReportInsert['type']): string => t(`report.type.${id}` as TKey);
+export const reportChoiceLabel = (id: ReportChoice): string => t(`report.type.${id}` as TKey);
 
 const heading = (h: number | null) => (h === null ? null : ((Math.round(h) % 360) + 360) % 360);
 

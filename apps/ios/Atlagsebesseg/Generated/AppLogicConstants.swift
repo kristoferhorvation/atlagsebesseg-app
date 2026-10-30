@@ -58,6 +58,7 @@ nonisolated enum NAV_FOLLOW {
 /// belül van (ajánlat, közeli kamera mellett is), a kártya pillé zsugorodik.
 nonisolated enum MANUAL_PILL {
     static let collapseAfterMs = 5000.0
+    static let startSpaceCollapseMs = 3000.0
     static let maneuverNearM = 500.0
 }
 

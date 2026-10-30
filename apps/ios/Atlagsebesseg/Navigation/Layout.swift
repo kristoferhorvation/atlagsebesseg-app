@@ -27,12 +27,14 @@ nonisolated func navResultCompact(_ phase: SessionPhase, navigating: Bool) -> Bo
     navigating && (phase == .befejezve || phase == .keziEredmeny)
 }
 
-/// AW15: a kézi mérés kártyája navigáció közben – pill (`collapsed`) vagy teljes kártya; az 5 s a teljes kártya
-/// kinyílásától számít (`expandedAt`, ms); a `space` az előző lépés „a navigációnak hely kell” értéke (az élhez).
+/// AW15 / AW16: a kézi mérés kártyája navigáció közben – zsugorított (`collapsed`) vagy teljes kártya; az 5 s a teljes kártya
+/// kinyílásától számít (`expandedAt`, ms); a `space` az előző lépés „a navigációnak hely kell” értéke (az élhez);
+/// `initial`: a mérés indítása óta a teljes kártya még nem csukódott össze és nem is nyitotta ki a felhasználó.
 nonisolated struct ManualPillState: Equatable, Sendable {
     var collapsed: Bool
     var expandedAt: Double
     var space: Bool
+    var initial: Bool
 }
 
 /// A navigáció helyigénye: közeli manőver (`maneuverNearM`-en belül), ajánlat-kártya vagy közeli kamera.
@@ -40,19 +42,24 @@ nonisolated func navNeedsSpace(maneuverM: Double?, offer: Bool, cameraNear: Bool
     offer || cameraNear || (maneuverM.map { $0 < MANUAL_PILL.maneuverNearM } ?? false)
 }
 
-/// Óra-lépés: `active` – navigáció közben fut a kézi mérés (nélküle `nil`: a nagy kártya). Induláskor teljes kártya;
-/// `collapseAfterMs` után, vagy amikor a navigációnak hely kell (felfutó él), összemegy.
+/// Óra-lépés: `active` – navigáció közben fut a kézi mérés (nélküle `nil`: a nagy kártya). Induláskor teljes kártya
+/// (`initial`): hely-igény mellett is nyitva marad, de `startSpaceCollapseMs` (3 s) után összemegy; hely-igény nélkül
+/// `collapseAfterMs` (5 s) után. Később a hely-igény felfutó éle azonnal összecsukja, különben az 5 s.
 nonisolated func manualPillTick(_ s: ManualPillState?, active: Bool, space: Bool, now: Double) -> ManualPillState? {
     guard active else { return nil }
-    let prev = s ?? ManualPillState(collapsed: false, expandedAt: now, space: false)
-    let collapse = !prev.collapsed && ((space && !prev.space) || now - prev.expandedAt >= MANUAL_PILL.collapseAfterMs)
+    let prev = s ?? ManualPillState(collapsed: false, expandedAt: now, space: false, initial: true)
+    let age = now - prev.expandedAt
+    let collapse = !prev.collapsed
+        && (age >= MANUAL_PILL.collapseAfterMs
+            || (prev.initial ? space && age >= MANUAL_PILL.startSpaceCollapseMs : space && !prev.space))
     if !collapse, let s, s.space == space { return s }
-    return ManualPillState(collapsed: prev.collapsed || collapse, expandedAt: prev.expandedAt, space: space)
+    return ManualPillState(collapsed: prev.collapsed || collapse, expandedAt: prev.expandedAt, space: space, initial: prev.initial && !collapse)
 }
 
-/// Bökés: a pill kinyílik (az 5 s újraindul), a teljes kártya összemegy.
+/// Bökés: a zsugorított kártya teljessé nyílik (az 5 s újraindul), a teljes összemegy.
 nonisolated func manualPillTap(_ s: ManualPillState, now: Double) -> ManualPillState {
     var n = s
+    n.initial = false
     if s.collapsed {
         n.collapsed = false
         n.expandedAt = now
@@ -60,4 +67,11 @@ nonisolated func manualPillTap(_ s: ManualPillState, now: Double) -> ManualPillS
         n.collapsed = true
     }
     return n
+}
+
+/// A zsugorított kézi kártya státusz-színe (AW16, a webes `manualMiniStatus`): a navigáció aktuális útszakasz-határához
+/// mérve; ismeretlen határnál `nil` (a kártya a kézi-mérés színét kapja).
+nonisolated func manualMiniStatus(_ averageKmh: Double?, _ currentKmh: Double?, _ limitKmh: Double?) -> SpeedStatus? {
+    guard let limitKmh else { return nil }
+    return speedStatus(averageKmh, currentKmh, limitKmh)
 }

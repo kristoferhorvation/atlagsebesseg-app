@@ -174,8 +174,8 @@ describe('formázás nyelv szerint', () => {
     expect(cameraSourceText({ verified: false, type: 'speed', sourceDate: '2026-10-28', country: 'HU' })).toBe('OpenStreetMap · unverified (2026-10-28)');
     expect(cameraWarning('DE')).toBe('In Germany the driver may not use this feature');
     expect(plannedLimitText({ speedLimitKmh: 90, limitSource: 'kresz_default' })).toBe('max ~90');
-    expect(reportVisual({ type: 'ideiglenes_kapu', gateKind: 'zaro' }).label).toBe('Temporary section end');
-    expect(REPORT_CHOICES.map((c) => reportChoiceLabel(c.id))).toEqual(['Police', 'Speed camera', 'Accident', 'Obstacle', 'Road closed', 'Faulty section', 'Temporary section start']);
+    expect(reportVisual({ type: 'ideiglenes_kapu', gateKind: 'zaro' }).label).toBe('Average check end');
+    expect(REPORT_CHOICES.map((c) => reportChoiceLabel(c.id))).toEqual(['Police', 'Speed camera', 'Accident', 'Obstacle', 'Road closed', 'Faulty section', 'Average check start', 'Average check end']);
     setLanguage('pl');
     expect(timeAgo(2 * 3600_000)).toBe('2 godz. temu');
   });

@@ -18,9 +18,6 @@ import { tNode } from '../i18n';
 import { Icon, type IconName } from './Icon';
 import { LimitSign } from './LimitSign';
 
-/** Az ideiglenes szakasz kapuinak küldése a mérés végén. */
-export type GateReportState = 'nincs' | 'kuldes' | 'elkuldve' | 'hiba' | 'nem_hatarozhato';
-
 export interface HudProps {
   view: SessionView;
   settings: Settings;
@@ -29,12 +26,8 @@ export interface HudProps {
   navCompact?: boolean;
   /** AW15: navigáció közben a kézi mérés teljes kártyája bökésre pillé zsugorodik (a gombok kivételével). */
   onCollapseManual?: () => void;
-  /** A kézi mérés egy ideiglenes szakasz (indításkor a kezdő kapu bejelentve, „Vége” = záró kapu). */
-  tempSection: boolean;
-  gateState: GateReportState;
   onStopManual: () => void;
   onDismiss: () => void;
-  onRetryGates: () => void;
 }
 
 export const STATUS_META: Record<SpeedStatus, { icon: IconName; label: TKey }> = {
@@ -48,13 +41,6 @@ const INTERRUPT_TEXT: Record<InterruptReason, TKey> = {
   letert: 'interrupt.offRoute',
   ellenirany: 'interrupt.wrongWay',
   jelvesztes: 'interrupt.gpsLoss',
-};
-
-const GATE_TEXT: Record<Exclude<GateReportState, 'nincs'>, TKey> = {
-  kuldes: 'gate.sending',
-  elkuldve: 'gate.sent',
-  hiba: 'gate.error',
-  nem_hatarozhato: 'gate.undetermined',
 };
 
 /** A kijelző tónusa (DESIGN.md): mérésnél a státusz, kézi módban az accent. */
@@ -254,10 +240,10 @@ export function Hud(p: HudProps) {
     case 'kezi': {
       const m = view.manual!;
       return (
-        <Card tone={tone} label={p.tempSection ? t('hud.tempSection') : t('hud.manual')} onTap={p.onCollapseManual}>
+        <Card tone={tone} label={t('hud.manual')} onTap={p.onCollapseManual}>
           <div className="row">
             <span className="chip">
-              <Icon name={p.tempSection ? 'kapu_kezdo' : 'stopwatch'} /> {p.tempSection ? t('hud.tempSection') : t('hud.manual')}
+              <Icon name="stopwatch" /> {t('hud.manual')}
             </span>
             <span className="title num muted">{formatDuration(m.elapsedMs)}</span>
           </div>
@@ -266,15 +252,9 @@ export function Hud(p: HudProps) {
             <div className="body muted">{t('hud.avg', { u })}</div>
             <div className="body num">{dist(m.distanceM, unit)}</div>
           </div>
-          {p.tempSection ? (
-            <button className="btn primary" onClick={p.onStopManual}>
-              <Icon name="kapu_zaro" /> {t('hud.manual.stopTemp')}
-            </button>
-          ) : (
-            <button className="btn danger" onClick={p.onStopManual}>
-              <Icon name="stop" /> {t('hud.manual.stop')}
-            </button>
-          )}
+          <button className="btn danger" onClick={p.onStopManual}>
+            <Icon name="stop" /> {t('hud.manual.stop')}
+          </button>
         </Card>
       );
     }
@@ -283,7 +263,7 @@ export function Hud(p: HudProps) {
       const r = view.manualResult!;
       if (p.navCompact)
         return (
-          // AW15: navigáció közben egy sor; kapu-küldési hibánál a sor végén kis „Újra” (a toast már jelezte a hibát)
+          // AW15: navigáció közben egy sor
           <Card tone={tone} label={t('hud.manualDone.aria')} compact>
             <div className="compact-row">
               <div className="compact-speed num tone">{speedIn(r.averageKmh, unit) ?? '–'}</div>
@@ -293,11 +273,6 @@ export function Hud(p: HudProps) {
                   <Icon name="stopwatch" size={16} /> {dist(r.distanceM, unit)} · {formatDuration(r.elapsedMs)}
                 </div>
               </div>
-              {p.gateState === 'hiba' && (
-                <button className="mini-btn primary" onClick={p.onRetryGates}>
-                  {t('hud.manualDone.retry')}
-                </button>
-              )}
               <button className="mini-btn" onClick={p.onDismiss}>
                 {t('common.done')}
               </button>
@@ -323,17 +298,9 @@ export function Hud(p: HudProps) {
               <span>{t('hud.manualDone.time')}</span>
             </div>
           </div>
-          {p.gateState !== 'nincs' && <div className="body muted">{t(GATE_TEXT[p.gateState])}</div>}
-          <div className={p.gateState === 'hiba' ? 'btn-row' : undefined}>
-            {p.gateState === 'hiba' && (
-              <button className="btn primary" onClick={p.onRetryGates}>
-                {t('gate.retry')}
-              </button>
-            )}
-            <button className="btn" onClick={p.onDismiss}>
-              {t('common.done')}
-            </button>
-          </div>
+          <button className="btn" onClick={p.onDismiss}>
+            {t('common.done')}
+          </button>
         </Card>
       );
     }
@@ -355,19 +322,19 @@ export function Hud(p: HudProps) {
 }
 
 /**
- * AW15: navigáció közben a kézi mérés kis pillé zsugorodik a jobb oldalon – átlag és eltelt idő, Leállítás nélkül;
- * bökésre a teljes kártya nyílik.
+ * AW16: navigáció közben a kézi mérés a mérőkártya lekicsinyített változata a jobb oldalon: a nagy átlag-szám a
+ * megszokott státusz-színnel (jó / lassíts / túl gyors; ismeretlen határnál a kézi-mérés színe), alatta „km/h átlag” és
+ * az eltelt idő; Leállítás gomb nélkül. Bökésre a teljes kártya nyílik.
  */
-export function ManualPill({ view, unit, tempSection, onExpand }: { view: SessionView; unit: Settings['egyseg']; tempSection: boolean; onExpand: () => void }) {
+export function ManualMini({ view, unit, status, onExpand }: { view: SessionView; unit: Settings['egyseg']; status: SpeedStatus | null; onExpand: () => void }) {
   const m = view.manual!;
   return (
-    <button className="manual-pill glass" data-tone="kezi" onClick={onExpand} aria-label={t('hud.manual.pillAria')}>
-      <Icon name={tempSection ? 'kapu_kezdo' : 'stopwatch'} size={22} />
-      <b className="num">
-        {speedIn(m.averageKmh, unit) ?? '–'}
-        <small>{unitLabel(unit)}</small>
-      </b>
-      <span className="num">{formatDuration(m.elapsedMs)}</span>
+    <button className="manual-mini glass" data-tone={status ?? 'kezi'} data-status={status ?? 'kezi'} onClick={onExpand} aria-label={t('hud.manual.pillAria')}>
+      <b className="num">{speedIn(m.averageKmh, unit) ?? '–'}</b>
+      <small>{t('hud.avg', { u: unitLabel(unit) })}</small>
+      <span className="num">
+        <Icon name="stopwatch" size={14} /> {formatDuration(m.elapsedMs)}
+      </span>
     </button>
   );
 }

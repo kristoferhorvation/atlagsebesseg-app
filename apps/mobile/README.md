@@ -41,9 +41,8 @@ a natív beállítás az `app.config.ts`-ben és a config pluginokban van.
   (hely + irány); a szerver 3 független megerősítés után szakaszt készít belőlük.
 - **Beállítás:** `hatosagi_tures_megjelenitese` (alapból ki) – ha be, a kijelző a határ + tűrést
   is mutatja (5% vagy 5 km/h, a nagyobb); a megengedett sebesség mindig a szigorú határhoz számol.
-- **Térkép világítása:** a rendszer világos/sötét módja és a helyi napállás alapján percenként
-  (`chooseLightPreset`, `packages/app-logic`): világos módban nappal `day`, hajnalban `dawn`, alkonyatkor `dusk`,
-  éjjel `night`; sötét módban nappal `dusk`, egyébként `night`.
+- **Térkép világítása:** a helyi napállás alapján percenként (`chooseLightPreset`, `packages/app-logic`):
+  nappal `day`, hajnalban `dawn`, alkonyatkor `dusk`, éjjel `night` (AW16 óta a sötét mód nem számít).
 
 ## Térkép-adapter
 

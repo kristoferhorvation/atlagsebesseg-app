@@ -7,13 +7,10 @@ nonisolated enum LightPreset: String, Sendable {
     case dawn, day, dusk, night
 }
 
-/// Térkép-előbeállítás a helyi napszakból és a rendszer világos/sötét módjából.
-/// - Világos mód: a napszak dönt (nappal → day, hajnal → dawn, alkony → dusk, éjszaka → night).
-/// - Sötét mód: sosem világos – nappal is `dusk`, szürkületben és éjjel `night`.
-/// - Helyzet nélkül (még nincs GPS): csak a rendszer módja (sötét → night, világos → day).
-nonisolated func chooseLightPreset(_ phase: SunPhase?, dark: Bool) -> LightPreset {
-    guard let phase else { return dark ? .night : .day }
-    if dark { return phase == .nappal ? .dusk : .night }
+/// Térkép-előbeállítás a helyi napszakból (AW16: a készülék sötét módja sehol nem számít): nappal → day, hajnal → dawn,
+/// alkony → dusk, éjszaka → night. Helyzet nélkül (még nincs GPS) nappal.
+nonisolated func chooseLightPreset(_ phase: SunPhase?) -> LightPreset {
+    guard let phase else { return .day }
     switch phase {
     case .nappal: return .day
     case .hajnal: return .dawn
@@ -22,16 +19,20 @@ nonisolated func chooseLightPreset(_ phase: SunPhase?, dark: Bool) -> LightPrese
     }
 }
 
-/// Előbeállítás egy időpontra és helyre (helyzet nélkül csak a rendszer módja számít).
-nonisolated func lightPresetAt(_ nowMs: Double, _ pos: (any Coordinate)?, dark: Bool) -> LightPreset {
-    chooseLightPreset(pos.map { sunPhase(nowMs, $0.lat, $0.lon) }, dark: dark)
+/// Napszak szerinti előbeállítás egy időpontra és helyre.
+nonisolated func lightPresetAt(_ nowMs: Double, _ pos: (any Coordinate)?) -> LightPreset {
+    chooseLightPreset(pos.map { sunPhase(nowMs, $0.lat, $0.lon) })
 }
 
-/// A Mapbox Standard téma a térkép kinézetéből (AW15: a „Világos” a színes téma) – a webes `mapTheme`.
+/// A Mapbox Standard téma a térkép kinézetéből (a „Világos” és a „Színes” is a színes téma) – a webes `mapTheme`.
 nonisolated func mapThemeIsMonochrome(_ look: MapLook) -> Bool { look == .visszafogott }
 
-/// A térképre ténylegesen alkalmazott fény (AW15, a webes `mapLightPreset`): „Világos” kinézetnél mindig nappal, a
-/// napszaktól és a sötét módtól függetlenül; a térkép-rétegek (pl. az alternatív útvonal színe) is ehhez igazodnak.
+/// A térképre ténylegesen alkalmazott fény (AW16, a webes `mapLightPreset`): a napszak szerinti `preset`-ből napközben a
+/// beállítás dönt (Világos = day, Színes = dusk, Visszafogott a napszak szerint); hajnalban, napnyugtakor és éjjel
+/// mindhárom ugyanazt kapja. A térkép-rétegek (pl. az alternatív útvonal színe) is ehhez igazodnak.
 nonisolated func mapLightPreset(_ look: MapLook, _ preset: LightPreset) -> LightPreset {
-    look == .vilagos ? .day : preset
+    preset == .day ? (look == .szines ? .dusk : .day) : preset
 }
+
+/// Erősebb üveg kell-e: csak ha a „Világos” térkép ténylegesen nappali fényben van (a webes `strongGlassFor`).
+nonisolated func strongGlassFor(_ look: MapLook, _ applied: LightPreset) -> Bool { look == .vilagos && applied == .day }

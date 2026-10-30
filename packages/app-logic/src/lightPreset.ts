@@ -3,32 +3,32 @@ import type { MapLook } from './settings';
 
 /** A Mapbox Standard stílus fény-előbeállítása. */
 export type LightPreset = 'dawn' | 'day' | 'dusk' | 'night';
-export type ColorScheme = 'light' | 'dark' | null | undefined;
 
 /**
- * Térkép-előbeállítás a helyi napszakból és a rendszer világos/sötét módjából.
- * - Világos mód: a napszak dönt (nappal → day, hajnal → dawn, alkony → dusk, éjszaka → night).
- * - Sötét mód: sosem világos – nappal is `dusk`, szürkületben és éjjel `night`.
- * - Helyzet nélkül (még nincs GPS): csak a rendszer módja (sötét → night, világos → day).
+ * Térkép-előbeállítás a helyi napszakból (AW16: a készülék sötét módja sehol nem számít): nappal → day, hajnal → dawn,
+ * alkony → dusk, éjszaka → night. Helyzet nélkül (még nincs GPS) nappal.
  */
-export function chooseLightPreset(phase: SunPhase | null, scheme: ColorScheme): LightPreset {
-  const dark = scheme === 'dark';
-  if (!phase) return dark ? 'night' : 'day';
-  if (dark) return phase === 'nappal' ? 'dusk' : 'night';
+export function chooseLightPreset(phase: SunPhase | null): LightPreset {
+  if (!phase) return 'day';
   return ({ nappal: 'day', hajnal: 'dawn', alkony: 'dusk', ejszaka: 'night' } as const)[phase];
 }
 
-/** Előbeállítás egy időpontra és helyre (helyzet nélkül csak a rendszer módja számít). */
-export function lightPresetAt(nowMs: number, pos: { lat: number; lon: number } | null, scheme: ColorScheme): LightPreset {
-  return chooseLightPreset(pos ? sunPhase(nowMs, pos.lat, pos.lon) : null, scheme);
+/** Napszak szerinti előbeállítás egy időpontra és helyre. */
+export function lightPresetAt(nowMs: number, pos: { lat: number; lon: number } | null): LightPreset {
+  return chooseLightPreset(pos ? sunPhase(nowMs, pos.lat, pos.lon) : null);
 }
 
-/** A Mapbox Standard `theme` a térkép kinézetéből (AW15: a „Világos” a színes téma). */
+/** A Mapbox Standard `theme` a térkép kinézetéből (a „Világos” és a „Színes” is a színes téma). */
 export const mapTheme = (look: MapLook): 'default' | 'monochrome' => (look === 'visszafogott' ? 'monochrome' : 'default');
 
 /**
- * A térképre ténylegesen alkalmazott fény (AW15): „Világos” kinézetnél mindig nappal (`day`), a napszaktól és a sötét
- * módtól függetlenül; egyébként a napszakból és a rendszer módjából számolt előbeállítás. A térkép-rétegek (pl. az
- * alternatív útvonal színe) is ehhez igazodnak, így világos térképen a nappali tokeneket kapják.
+ * A térképre ténylegesen alkalmazott fény (AW16). A napszak szerinti `preset`-ből (`lightPresetAt`) napközben a
+ * beállítás dönt: „Világos” = nappali fény (`day`), „Színes” = alkonyi fény (`dusk`), „Visszafogott” a napszak szerint.
+ * Hajnalban, napnyugtakor és éjjel mindhárom ugyanazt kapja (alkonyban dusk, éjjel night). A térkép-rétegek (pl. az
+ * alternatív útvonal színe) is ehhez igazodnak.
  */
-export const mapLightPreset = (look: MapLook, preset: LightPreset): LightPreset => (look === 'vilagos' ? 'day' : preset);
+export const mapLightPreset = (look: MapLook, preset: LightPreset): LightPreset =>
+  preset === 'day' ? (look === 'szines' ? 'dusk' : 'day') : preset;
+
+/** Erősebb üveg kell-e: csak ha a „Világos” térkép ténylegesen nappali fényben van (éjjel sötét a térkép). */
+export const strongGlassFor = (look: MapLook, applied: LightPreset): boolean => look === 'vilagos' && applied === 'day';

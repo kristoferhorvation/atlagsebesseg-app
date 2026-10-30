@@ -56,22 +56,53 @@ struct SettingsTests {
         #expect(Settings.parse(#"{"egyseg":"furlong","hatosagi_tures_megjelenitese":true}"#) == expected)
     }
 
-    @Test("a térkép alapból színes; a visszafogott megmarad, ismeretlen érték színes")
+    @Test("a térkép alapból színes; a visszafogott megmarad, ismeretlen érték színes; a sorrend Világos, Színes, Visszafogott")
     func terkep() {
         #expect(Settings.default.terkep == .szines)
         #expect(Settings.parse(#"{"terkep":"visszafogott"}"#).terkep == .visszafogott)
         #expect(Settings.parse(#"{"terkep":"monochrome"}"#).terkep == .szines)
+        #expect(MapLook.allCases == [.vilagos, .szines, .visszafogott])
     }
 
-    @Test("AW15: „Világos” – tárolva megmarad, színes téma mindig nappali fénnyel; a másik kettő a napszakot követi")
+    @Test("AW16: a téma a kinézetből; a „Világos” tárolva megmarad")
     func vilagosTerkep() {
         #expect(Settings.parse(#"{"terkep":"vilagos"}"#).terkep == .vilagos)
-        #expect(MapLook.allCases.map(mapThemeIsMonochrome) == [false, true, false])
-        for p in [LightPreset.dawn, .day, .dusk, .night] {
-            #expect(mapLightPreset(.vilagos, p) == .day, "\(p)")
-            #expect(mapLightPreset(.szines, p) == p, "\(p)")
-            #expect(mapLightPreset(.visszafogott, p) == p, "\(p)")
+        #expect(MapLook.allCases.map(mapThemeIsMonochrome) == [false, false, true])
+    }
+
+    @Test("AW16: lightPreset-szabály napszakonként és stílusonként (a sötét mód sehol nem számít)")
+    func lightPresetSzabaly() {
+        let expected: [MapLook: [LightPreset: LightPreset]] = [
+            .vilagos: [.day: .day, .dawn: .dawn, .dusk: .dusk, .night: .night],
+            .szines: [.day: .dusk, .dawn: .dawn, .dusk: .dusk, .night: .night],
+            .visszafogott: [.day: .day, .dawn: .dawn, .dusk: .dusk, .night: .night],
+        ]
+        for look in MapLook.allCases {
+            for p in [LightPreset.dawn, .day, .dusk, .night] {
+                #expect(mapLightPreset(look, p) == expected[look]![p], "\(look)/\(p)")
+            }
         }
+    }
+
+    @Test("AW16: a végigfutó lánc (időpont + hely → stílus): délben és éjjel")
+    func lightPresetLanc() {
+        struct Pos: Coordinate { let lat = 47.5; let lon = 19.04 }
+        let at: (MapLook, Double) -> LightPreset = { mapLightPreset($0, lightPresetAt($1, Pos())) }
+        let day = 1_782_036_000_000.0  // 2026-06-21 10:00 UTC
+        let night = 1_782_084_600_000.0  // 2026-06-21 23:30 UTC
+        #expect([at(.vilagos, day), at(.szines, day), at(.visszafogott, day)] == [.day, .dusk, .day])
+        #expect([at(.vilagos, night), at(.szines, night), at(.visszafogott, night)] == [.night, .night, .night])
+        #expect(mapLightPreset(.szines, lightPresetAt(day, nil)) == .dusk)
+        #expect(mapLightPreset(.vilagos, lightPresetAt(day, nil)) == .day)
+    }
+
+    @Test("AW16: erősebb üveg csak a nappali fényű „Világos” térképen")
+    func erosUveg() {
+        #expect(strongGlassFor(.vilagos, .day))
+        #expect(!strongGlassFor(.vilagos, .night))
+        #expect(!strongGlassFor(.vilagos, .dusk))
+        #expect(!strongGlassFor(.szines, .day))
+        #expect(!strongGlassFor(.visszafogott, .day))
     }
 
     @Test("oda-vissza: a mentett alak a webes kulcsokkal visszaolvasható")
@@ -152,25 +183,17 @@ private final class Network {
 
 @Suite("chooseLightPreset")
 struct LightPresetTests {
-    @Test("világos mód: a napszak dönt")
-    func vilagos() {
-        #expect(chooseLightPreset(.nappal, dark: false) == .day)
-        #expect(chooseLightPreset(.hajnal, dark: false) == .dawn)
-        #expect(chooseLightPreset(.alkony, dark: false) == .dusk)
-        #expect(chooseLightPreset(.ejszaka, dark: false) == .night)
+    @Test("a napszak dönt (a készülék sötét módja nem számít)")
+    func napszak() {
+        #expect(chooseLightPreset(.nappal) == .day)
+        #expect(chooseLightPreset(.hajnal) == .dawn)
+        #expect(chooseLightPreset(.alkony) == .dusk)
+        #expect(chooseLightPreset(.ejszaka) == .night)
     }
 
-    @Test("sötét mód: sosem világos")
-    func sotet() {
-        #expect(chooseLightPreset(.nappal, dark: true) == .dusk)
-        #expect(chooseLightPreset(.hajnal, dark: true) == .night)
-        #expect(chooseLightPreset(.ejszaka, dark: true) == .night)
-    }
-
-    @Test("helyzet nélkül a rendszer módja")
+    @Test("helyzet nélkül nappal")
     func helyzetNelkul() {
-        #expect(chooseLightPreset(nil, dark: true) == .night)
-        #expect(chooseLightPreset(nil, dark: false) == .day)
+        #expect(chooseLightPreset(nil) == .day)
     }
 }
 

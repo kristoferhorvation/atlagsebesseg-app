@@ -28,7 +28,6 @@ struct MapScreen: View {
     @State private var lastCenter: CLLocationCoordinate2D?
     @State private var lastFixAt: Double = 0
     @State private var cameraSeq = 0
-    @Environment(\.colorScheme) private var scheme
 
     private var view: SessionView { model.view }
     private var tone: Tone { toneOf(view) }
@@ -40,8 +39,8 @@ struct MapScreen: View {
     }
 
     /// A térkép fény-előbeállítása; az alternatíva színe ehhez igazodik (hajnal = nappali, alkony = éjjeli, mint a weben).
-    /// AW15: „Világos” kinézetnél mindig nappal (a rétegek is a nappali tokeneket kapják).
-    private var preset: LightPreset { mapLightPreset(model.settings.terkep, lightPresetAt(model.nowMs(), view.lastFix, dark: systemDark)) }
+    /// AW16: napközben a kinézet dönt (Világos = day, Színes = dusk); napnyugtakor és éjjel mindkettő a napszaké.
+    private var preset: LightPreset { mapLightPreset(model.settings.terkep, lightPresetAt(model.lightNowMs(), view.lastFix)) }
     private var dayLike: Bool { preset == .day || preset == .dawn }
     private var altColor: Color { dayLike ? Tokens.Colors.routeAltDay : Tokens.Colors.routeAltNight }
     private var altCasing: Color { dayLike ? Tokens.Colors.routeAltCasingDay : Tokens.Colors.routeAltCasingNight }
@@ -254,9 +253,6 @@ struct MapScreen: View {
             if follow, model.nav != nil, let fix = view.lastFix { recenter(fix, animated: true) }
         }
     }
-
-    /// A rendszer világos/sötét módja (a kártyák mindig sötétek; a térkép előbeállítása ebből és a napszakból).
-    private var systemDark: Bool { UITraitCollection.current.userInterfaceStyle == .dark || scheme == .dark }
 
     /// Útvonal-vonalak (AW11, pt): a kiválasztott 7 + 2 × 2 kontúr, az alternatíva 5 + 2 × 1,5 kontúr (mint a weben).
     private static let routeW = 7.0

@@ -1,4 +1,5 @@
 import type { SessionPhase } from '../session';
+import { speedStatus, type SpeedStatus } from '../display';
 import { MANUAL_PILL } from './config';
 
 /**
@@ -29,21 +30,22 @@ export function navStepStrip({ measuring, cardBottom, bottomTop, gap }: NavStepL
 
 /**
  * AOS13: navigáció közben a mérés eredménye (`befejezve`) egysoros, kompakt kártya: a nagy kártya a gombsorral együtt a
- * felső lépés-kártya – sávként is a pillek – alá érne. AW15: a kézi mérés eredménye (`kezi_eredmeny`) is; kapu-küldési
- * hibánál a sor végén kis „Újra” gomb, nagy kártya nélkül.
+ * felső lépés-kártya – sávként is a pillek – alá érne. AW15: a kézi mérés eredménye (`kezi_eredmeny`) is.
  */
 export function navResultCompact(phase: SessionPhase, navigating: boolean): boolean {
   return navigating && (phase === 'befejezve' || phase === 'kezi_eredmeny');
 }
 
 /**
- * AW15: a kézi mérés kártyája navigáció közben. Pill (`collapsed`) vagy teljes kártya; az 5 s a teljes kártya
- * kinyílásától számít (`expandedAt`, ms); a `space` az előző lépés „a navigációnak hely kell” értéke (az élhez).
+ * AW15 / AW16: a kézi mérés kártyája navigáció közben. Zsugorított kártya (`collapsed`) vagy teljes kártya; az 5 s a
+ * teljes kártya kinyílásától számít (`expandedAt`, ms); a `space` az előző lépés „a navigációnak hely kell” értéke (az
+ * élhez); `initial`: a mérés indítása óta a teljes kártya még nem csukódott össze és nem is nyitotta ki a felhasználó.
  */
 export interface ManualPillState {
   collapsed: boolean;
   expandedAt: number;
   space: boolean;
+  initial: boolean;
 }
 
 /** A navigáció helyigénye: közeli manőver (`maneuverNearM`-en belül), ajánlat-kártya vagy közeli kamera. */
@@ -53,18 +55,34 @@ export function navNeedsSpace(v: { maneuverM: number | null; offer: boolean; cam
 
 /**
  * Óra-lépés (bármikor hívható, pl. minden fixnél és időzítőről). `active`: navigáció közben fut a kézi mérés – nélküle
- * nincs pill (`null`: a mostani nagy kártya). Induláskor teljes kártya; `collapseAfterMs` után, vagy amikor a navigációnak
- * hely kell (felfutó él – ha a felhasználó közben kinyitja, 5 s-ig nyitva marad), összemegy.
+ * nincs zsugorítás (`null`: a mostani nagy kártya). Induláskor teljes kártya (`initial`): hely-igény mellett is nyitva
+ * marad, de `startSpaceCollapseMs` (3 s) után összemegy; hely-igény nélkül `collapseAfterMs` (5 s) után. Később (a
+ * felhasználó kinyitása után) a hely-igény felfutó éle azonnal összecsukja – ha a felhasználó közben kinyitja, 5 s-ig
+ * nyitva marad –, különben az 5 s.
  */
 export function manualPillTick(s: ManualPillState | null, active: boolean, space: boolean, now: number): ManualPillState | null {
   if (!active) return null;
-  const prev = s ?? { collapsed: false, expandedAt: now, space: false };
-  const collapse = !prev.collapsed && ((space && !prev.space) || now - prev.expandedAt >= MANUAL_PILL.collapseAfterMs);
+  const prev = s ?? { collapsed: false, expandedAt: now, space: false, initial: true };
+  const age = now - prev.expandedAt;
+  const collapse =
+    !prev.collapsed &&
+    (age >= MANUAL_PILL.collapseAfterMs ||
+      (prev.initial ? space && age >= MANUAL_PILL.startSpaceCollapseMs : space && !prev.space));
   if (!collapse && s && s.space === space) return s;
-  return { collapsed: prev.collapsed || collapse, expandedAt: prev.expandedAt, space };
+  return { collapsed: prev.collapsed || collapse, expandedAt: prev.expandedAt, space, initial: prev.initial && !collapse };
 }
 
-/** Bökés: a pill kinyílik (az 5 s újraindul), a teljes kártya összemegy. */
+/** Bökés: a zsugorított kártya teljessé nyílik (az 5 s újraindul), a teljes összemegy. */
 export function manualPillTap(s: ManualPillState, now: number): ManualPillState {
-  return s.collapsed ? { ...s, collapsed: false, expandedAt: now } : { ...s, collapsed: true };
+  return s.collapsed ? { ...s, collapsed: false, expandedAt: now, initial: false } : { ...s, collapsed: true, initial: false };
+}
+
+/**
+ * A zsugorított kézi kártya státusz-színe (AW16): a kézi mérésnek nincs saját határa, ezért a navigáció aktuális
+ * útszakasz-határához mérjük – az átlag ≤ határ → `jo`, az átlag felett, de a pillanatnyi sebesség a határ alatt →
+ * `lassits`, különben `tul_gyors`. Ismeretlen határnál `null` (a kártya a kézi-mérés színét kapja).
+ */
+export function manualMiniStatus(averageKmh: number | null, currentKmh: number | null, limitKmh: number | null): SpeedStatus | null {
+  if (limitKmh === null) return null;
+  return speedStatus(averageKmh, currentKmh, limitKmh);
 }

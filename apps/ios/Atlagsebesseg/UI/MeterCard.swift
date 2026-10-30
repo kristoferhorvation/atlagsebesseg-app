@@ -328,38 +328,43 @@ struct MeterCard: View {
 
 // MARK: elemek
 
-/// AW15: navigáció közben a kézi mérés kis pillje a gombsor jobb oldalán – átlag + eltelt idő, Leállítás nélkül;
-/// bökésre a teljes kártya nyílik.
-struct ManualPill: View {
+/// AW16: navigáció közben a kézi mérés a mérőkártya lekicsinyített változata a gombsor jobb oldalán: a nagy átlag-szám a
+/// megszokott státusz-színnel (ismeretlen határnál a kézi-mérés színe), alatta „km/h átlag” és az eltelt idő; Leállítás
+/// nélkül. Bökésre a teljes kártya nyílik.
+struct ManualMini: View {
     let view: SessionView
     let unit: SpeedUnit
+    let status: SpeedStatus?
     let onExpand: () -> Void
 
     var body: some View {
         let m = view.manual
+        let tone = status.map(Tone.status) ?? .kezi
         Button(action: onExpand) {
-            HStack(spacing: 10) {
-                Icon(name: .stopwatch, size: 22).foregroundStyle(Tone.kezi.color)
-                HStack(alignment: .firstTextBaseline, spacing: 4) {
-                    Text(speedIn(m?.averageKmh, unit).map(String.init) ?? "–")
-                        .font(.num(26, 700))
-                        .foregroundStyle(Tone.kezi.color)
-                    Text(unitLabel(unit))
-                        .font(.inter(Tokens.Typography.caption.size, 560))
-                        .foregroundStyle(Tokens.Colors.textMuted)
-                }
-                Text(formatDuration(m?.elapsedMs ?? 0))
-                    .font(.num(Tokens.Typography.body.size, 600))
+            VStack(spacing: 0) {
+                Text(speedIn(m?.averageKmh, unit).map(String.init) ?? "–")
+                    .font(.num(40, 700))
+                    .foregroundStyle(tone.color)
+                Text(t(.hudAvg, ["u": unitLabel(unit)]))
+                    .font(.inter(Tokens.Typography.caption.size, 560))
                     .foregroundStyle(Tokens.Colors.textMuted)
+                HStack(spacing: 4) {
+                    Icon(name: .stopwatch, size: 14)
+                    Text(formatDuration(m?.elapsedMs ?? 0)).font(.num(Tokens.Typography.caption.size, 600))
+                }
+                .foregroundStyle(Tokens.Colors.textMuted)
+                .padding(.top, 2)
             }
             .lineLimit(1)
             .fixedSize()
-            .padding(.leading, 14)
-            .padding(.trailing, 18)
-            .frame(height: Tokens.Size.roundButton)
-            .glass(radius: Tokens.Size.roundButton / 2)
-            .overlay(Capsule().strokeBorder(Tone.kezi.color.opacity(0.55), lineWidth: 1))
-            .contentShape(Capsule())
+            .frame(minWidth: 112)
+            .padding(.horizontal, 14)
+            .padding(.top, 8)
+            .padding(.bottom, 9)
+            .glass(radius: Tokens.Radius.card)
+            .overlay(RoundedRectangle(cornerRadius: Tokens.Radius.card).fill(tone.color.opacity(0.12)).allowsHitTesting(false))
+            .overlay(RoundedRectangle(cornerRadius: Tokens.Radius.card).strokeBorder(tone.color.opacity(0.55), lineWidth: 1))
+            .contentShape(RoundedRectangle(cornerRadius: Tokens.Radius.card))
         }
         .buttonStyle(.plain)
         .accessibilityLabel(t(.hudManualPillAria))

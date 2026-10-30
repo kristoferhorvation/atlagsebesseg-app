@@ -1617,7 +1617,7 @@ struct ManualPillTests {
         #expect(!navResultCompact(.keziEredmeny, navigating: false))
     }
 
-    @Test("a pill: navigáció nélkül nincs; induláskor teljes kártya, 5 s után pill; bökésre ki, újabb bökésre vagy 5 s után vissza")
+    @Test("a zsugorított kártya: navigáció nélkül nincs; induláskor teljes kártya, 5 s után zsugorított; bökésre ki, újabb bökésre vagy 5 s után vissza")
     func pillAllapotgep() throws {
         #expect(MANUAL_PILL.collapseAfterMs == 5000)
         #expect(manualPillTick(nil, active: false, space: false, now: 0) == nil)
@@ -1640,24 +1640,56 @@ struct ManualPillTests {
         #expect(manualPillTick(s, active: true, space: false, now: 11_000) == s)
     }
 
-    @Test("a pill: magától összemegy, ha a navigációnak hely kell (manőver < 500 m, ajánlat, közeli kamera)")
+    @Test("a zsugorított kártya: magától összemegy, ha a navigációnak hely kell (manőver < 500 m, ajánlat, közeli kamera)")
     func pillHelyigeny() throws {
         #expect(navNeedsSpace(maneuverM: 499, offer: false, cameraNear: false))
         #expect(!navNeedsSpace(maneuverM: 500, offer: false, cameraNear: false))
         #expect(!navNeedsSpace(maneuverM: nil, offer: false, cameraNear: false))
         #expect(navNeedsSpace(maneuverM: 3000, offer: true, cameraNear: false))
         #expect(navNeedsSpace(maneuverM: 3000, offer: false, cameraNear: true))
+        // a hely-igény a nyitott (felhasználó által kinyitott) kártyát azonnal összecsukja
         var s = try #require(manualPillTick(nil, active: true, space: false, now: 0))
+        s = try #require(manualPillTick(s, active: true, space: false, now: 5000))  // 5 s: zsugorított
+        s = manualPillTap(s, now: 6000)  // a felhasználó kinyitja
+        #expect(manualPillTick(s, active: true, space: false, now: 7000)?.collapsed == false)
+        #expect(manualPillTick(s, active: true, space: true, now: 7000)?.collapsed == true)  // felfutó él → azonnal
+        // ha a hely-igény már fennáll, miközben kinyitják: 5 s-ig nyitva marad
+        var t = try #require(manualPillTick(nil, active: true, space: true, now: 0))
+        t = try #require(manualPillTick(t, active: true, space: true, now: 3000))  // 3 s: összement
+        t = manualPillTap(t, now: 4000)
+        #expect(manualPillTick(t, active: true, space: true, now: 8999)?.collapsed == false)
+        #expect(manualPillTick(t, active: true, space: true, now: 9000)?.collapsed == true)
+    }
+
+    @Test("indítás után az első 5 s-ban nyitva marad hely-igény mellett is, de 3 s után összemegy (az indítástól)")
+    func indulasUtaniHelyigeny() throws {
+        #expect(MANUAL_PILL.startSpaceCollapseMs == 3000)
+        // indításkor már fennálló hely-igény: 0–2,999 s nyitva, 3 s-tól zsugorított
+        var s = try #require(manualPillTick(nil, active: true, space: true, now: 10_000))
+        #expect(!s.collapsed)
+        #expect(manualPillTick(s, active: true, space: true, now: 12_999)?.collapsed == false)
+        #expect(manualPillTick(s, active: true, space: true, now: 13_000)?.collapsed == true)
+        // a hely-igény 1 s-nál jelenik meg: nem csuk azonnal, 3 s-nál igen
+        s = try #require(manualPillTick(nil, active: true, space: false, now: 0))
         s = try #require(manualPillTick(s, active: true, space: true, now: 1000))
-        #expect(s.collapsed)
-        // ha közben kinyitják, a fennálló helyigény nem csukja azonnal vissza – 5 s-ig nyitva marad
-        s = manualPillTap(s, now: 2000)
-        #expect(manualPillTick(s, active: true, space: true, now: 3000)?.collapsed == false)
-        #expect(manualPillTick(s, active: true, space: true, now: 7000)?.collapsed == true)
-        // új helyigény (felfutó él) a nyitott kártyát rögtön összecsukja
-        let off = try #require(manualPillTick(s, active: true, space: false, now: 3000))
-        #expect(manualPillTick(off, active: true, space: true, now: 3500)?.collapsed == true)
-        // induláskor fennálló helyigény: rögtön pill
-        #expect(manualPillTick(nil, active: true, space: true, now: 0)?.collapsed == true)
+        #expect(!s.collapsed)
+        #expect(manualPillTick(s, active: true, space: true, now: 3000)?.collapsed == true)
+        // 4 s-nál jelenik meg: már elmúlt a 3 s → azonnal zsugorított
+        s = try #require(manualPillTick(nil, active: true, space: false, now: 0))
+        #expect(manualPillTick(s, active: true, space: true, now: 4000)?.collapsed == true)
+        // hely-igény nélkül marad az 5 s
+        s = try #require(manualPillTick(nil, active: true, space: false, now: 0))
+        #expect(manualPillTick(s, active: true, space: false, now: 4999)?.collapsed == false)
+        #expect(manualPillTick(s, active: true, space: false, now: 5000)?.collapsed == true)
+    }
+
+    @Test("a zsugorított kártya státusz-színe a navigáció határából: jó / lassíts / túl gyors; ismeretlen határnál nincs")
+    func zsugoritottStatusz() {
+        #expect(manualMiniStatus(88, 90, 90) == .jo)
+        #expect(manualMiniStatus(95, 85, 90) == .lassits)
+        #expect(manualMiniStatus(95, 100, 90) == .tulGyors)
+        #expect(manualMiniStatus(95, nil, 90) == .tulGyors)
+        #expect(manualMiniStatus(nil, 80, 90) == nil)
+        #expect(manualMiniStatus(95, 85, nil) == nil)
     }
 }

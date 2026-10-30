@@ -10,6 +10,9 @@
 // AW15: a pill újrakérésére jött PERMISSION_DENIED a tiltott-lapot nyitja (Permissions API nélkül is); nyelvlista
 // zászlóval, ábécérendben; a Beállítások a hely-választás után nyitva marad; három térképstílus (a „Világos” mindig
 // nappal); a kézi átlagmérés navigáció közben pillé zsugorodik; a kézi eredmény navigáció közben kompakt.
+// AW16: a zsugorított kézi kártya a mérőkártya lekicsinyített változata (státusz-színnel, ?miniStatus=), a kézi mérés
+// hálózat nélkül, privát; a kereső kerek gombja felül, a jobb szélen; Bejelentés menü: „Átlagmérés eleje / vége”;
+// térképstílus-szabály napszakonként (?sunAt=): Világos = nappal, Színes = alkony nappal, éjjel mindkettő éjszakai.
 //
 //   npm run dev -w @atlagsebesseg/web            # másik terminálban (a Mapbox-token az apps/web/.env-ben)
 //   npm run nav-shots -w @atlagsebesseg/web
@@ -48,9 +51,27 @@ try {
   await p.goto('/?navsim&speed=12&alt=maybe&panel=0');
   await p.waitFor(MAP_READY, 60_000, 'térkép');
   await p.waitFor(`document.querySelector('button[aria-label="Úti cél keresése"]')`, 20_000, 'lupa gomb');
-  check('a lupa gomb a jobb alsó gombsorban', await p.evaluate(`(() => { const r = ${q('button[aria-label="Úti cél keresése"]')}.getBoundingClientRect(); return r.bottom > innerHeight * 0.7 && r.left > innerWidth * 0.1; })()`));
-  const lupa = await p.evaluate(`${q('button[aria-label="Úti cél keresése"]')}.getBoundingClientRect().height`);
-  check('a lupa gomb érintési célja ≥ 56 px', lupa >= 56, `${lupa} px`);
+  const lupaBox = await p.evaluate(`(() => { const e = ${q('button[aria-label="Úti cél keresése"]')}; const r = e.getBoundingClientRect(); const s = ${q('button[aria-label="Beállítások"]')}.getBoundingClientRect(); const pills = ${q('.pills')}.getBoundingClientRect(); const gps = ${q('.pills .pill')}.getBoundingClientRect(); return { top: r.top, right: r.right, w: r.width, h: r.height, sw: s.width, sh: s.height, inActions: !!e.closest('.actions'), edge: innerWidth - r.right, overlapsRow: r.top < gps.bottom && r.bottom > gps.top, pillsRight: pills.right, left: r.left, cls: e.className }; })()`);
+  check('a kereső kerek gombja felül, a GPS-pill sorában, a JOBB szélre zárva', lupaBox.overlapsRow && lupaBox.top < 100 && lupaBox.edge >= 8 && lupaBox.edge <= 20 && lupaBox.pillsRight <= lupaBox.left, JSON.stringify(lupaBox));
+  check('a kereső gombja ugyanaz a kerek stílus, mint az alsó gomboké, és kikerült az alsó gombsorból', Math.abs(lupaBox.w - lupaBox.sw) < 0.5 && Math.abs(lupaBox.h - lupaBox.sh) < 0.5 && /round-btn/.test(lupaBox.cls) && !lupaBox.inActions, JSON.stringify(lupaBox));
+  check('a kereső gombjának érintési célja ≥ 56 px', lupaBox.h >= 56, `${lupaBox.h} px`);
+  if (!CHECK_ONLY) {
+    await sleep(2500);
+    await p.shot(`${DATE}-ures-nezet.png`);
+  }
+  // Bejelentés menü: az „Átlagmérés eleje / vége” a menü alján
+  await click(p, 'button[aria-label="Bejelentés"]');
+  await p.waitFor(q('.sheet .tiles'), 5000, 'bejelentés-menü');
+  const tiles = await p.evaluate(`[...document.querySelectorAll('.sheet .tile')].map((t) => t.innerText.replace(/\\s+/g, ' ').trim())`);
+  check('Bejelentés menü: alul „Átlagmérés eleje” és „Átlagmérés vége”, az „Ideiglenes szakasz” megszűnt', tiles.slice(-2).join('|') === 'Átlagmérés eleje|Átlagmérés vége' && tiles.length === 8 && !tiles.some((t) => /Ideiglenes/.test(t)), tiles.join(' | '));
+  if (!CHECK_ONLY) {
+    await sleep(500);
+    await p.shot(`${DATE}-bejelentes-menu.png`);
+  }
+  await p.evaluate(`${q('.sheet-backdrop')}?.click(); true`);
+  await sleep(400);
+  await p.evaluate(`document.querySelector('.sheet') && document.querySelector('.sheet .close, .sheet button[aria-label="Bezárás"]')?.click(); true`);
+  await sleep(300);
 
   await click(p, 'button[aria-label="Úti cél keresése"]');
   await p.waitFor(q('.search-screen'), 5000, 'kereső');
@@ -466,7 +487,7 @@ try {
     const btns = [...seg.querySelectorAll('button')];
     return { labels: btns.map((b) => b.textContent), inside: btns.every((b) => b.getBoundingClientRect().right <= row.right + 0.5 && b.scrollWidth <= b.clientWidth) };
   })()`);
-  check('Térkép: Színes / Visszafogott / Világos, 390 px-en sem lóg ki', looks.labels.join('|') === 'Színes|Visszafogott|Világos' && looks.inside, JSON.stringify(looks));
+  check('Térkép: Világos / Színes / Visszafogott (ebben a sorrendben), 390 px-en sem lóg ki', looks.labels.join('|') === 'Világos|Színes|Visszafogott' && looks.inside, JSON.stringify(looks));
   await st.evaluate(`${q('.sheet .segmented[aria-label="Térkép"]')}.scrollIntoView({ block: 'center' }); true`);
   await sleep(500);
   if (!CHECK_ONLY) await st.shot(`${DATE}-beallitasok-nyelv-terkep.png`);
@@ -493,23 +514,31 @@ try {
   check('nincs kezeletlen JS-kivétel (AW15 Beállítások)', st.logs.length === 0, st.logs.join(' | '));
   st.close();
 
-  // három térképstílus ugyanarról a helyről (navigáció, a belváros), sötét rendszer-módban: a „Világos” mégis nappal
+  // AW16: három térképstílus ugyanarról a helyről (navigáció, a belváros), nappal / napnyugtakor / éjjel (?sunAt), sötét
+  // rendszer-módban: a készülék módja sehol nem számít
+  const SUN = { nappal: '2026-06-21T10:00:00Z', alkony: '2026-06-21T18:45:00Z', ejjel: '2026-06-21T23:30:00Z' };
   const looked = {};
-  for (const terkep of ['szines', 'visszafogott', 'vilagos']) {
-    const v = await mk();
-    await v.send('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-color-scheme', value: 'dark' }] });
-    await v.goto('/?navsim&stage=nav&speed=1&at=20&panel=0', { terkep });
-    await v.waitFor(MAP_READY, 60_000, 'térkép');
-    await v.waitFor(q('.nav-top'), 30_000, 'felső kártya');
-    looked[terkep] = await v.evaluate(`({ theme: ${q('.mapboxgl-map')}.dataset.theme, light: ${q('.mapboxgl-map')}.dataset.lightPreset })`);
-    if (!CHECK_ONLY) {
-      await sleep(4500);
-      await v.shot(`${DATE}-terkep-${terkep}.png`);
+  for (const terkep of ['vilagos', 'szines', 'visszafogott']) {
+    for (const [napszak, sunAt] of Object.entries(SUN)) {
+      const v = await mk();
+      await v.send('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-color-scheme', value: 'dark' }] });
+      await v.goto(`/?navsim&stage=nav&speed=1&at=20&panel=0&sunAt=${sunAt}`, { terkep });
+      await v.waitFor(MAP_READY, 60_000, 'térkép');
+      await v.waitFor(q('.nav-top'), 30_000, 'felső kártya');
+      looked[`${terkep}/${napszak}`] = await v.evaluate(`({ theme: ${q('.mapboxgl-map')}.dataset.theme, light: ${q('.mapboxgl-map')}.dataset.lightPreset, look: document.documentElement.dataset.look })`);
+      if (!CHECK_ONLY && napszak !== 'alkony') {
+        await sleep(4500);
+        await v.shot(`${DATE}-terkep-${terkep}-${napszak === 'nappal' ? 'nappal' : 'ejjel'}.png`);
+      }
+      v.close();
     }
-    v.close();
   }
-  check('„Világos”: színes téma nappali fénnyel, sötét módban is', looked.vilagos.theme === 'default' && looked.vilagos.light === 'day', JSON.stringify(looked.vilagos));
-  check('„Színes” / „Visszafogott” sötét módban: nem nappal; a visszafogott monochrome', looked.szines.theme === 'default' && looked.szines.light !== 'day' && looked.visszafogott.theme === 'monochrome' && looked.visszafogott.light !== 'day', JSON.stringify(looked));
+  const L = (k) => looked[k].light;
+  check('Világos: nappal day, napnyugtakor dusk, éjjel night', L('vilagos/nappal') === 'day' && L('vilagos/alkony') === 'dusk' && L('vilagos/ejjel') === 'night', JSON.stringify(looked));
+  check('Színes: nappal dusk (alkonyi fény), napnyugtakor dusk, éjjel night', L('szines/nappal') === 'dusk' && L('szines/alkony') === 'dusk' && L('szines/ejjel') === 'night', JSON.stringify(looked));
+  check('Visszafogott: napszak szerint (nappal day), monochrome téma', L('visszafogott/nappal') === 'day' && L('visszafogott/ejjel') === 'night' && looked['visszafogott/nappal'].theme === 'monochrome', JSON.stringify(looked));
+  check('Világos / Színes: a színes (default) téma; sötét rendszer-módban is ugyanez', looked['vilagos/nappal'].theme === 'default' && looked['szines/nappal'].theme === 'default');
+  check('erősebb üveg csak a nappali fényű Világos térképen', looked['vilagos/nappal'].look === 'vilagos' && looked['vilagos/ejjel'].look === 'normal' && looked['szines/nappal'].look === 'normal', JSON.stringify(looked));
 
   // kézi átlagmérés navigáció nélkül: a nagy kártya marad
   const kn = await mk();
@@ -518,37 +547,43 @@ try {
   await kn.waitFor(q('button[aria-label="Kézi átlagmérés indítása"]'), 20_000, 'stopper');
   await click(kn, 'button[aria-label="Kézi átlagmérés indítása"]');
   await sleep(6500);
-  check('navigáció nélkül a kézi mérés nagy kártyája marad (nincs pill)', await kn.evaluate(`!!${q('.hud .card[aria-label="Kézi átlagmérés"] .btn.danger')} && !${q('.manual-pill')}`));
+  check('navigáció nélkül a kézi mérés nagy kártyája marad (nincs zsugorított kártya)', await kn.evaluate(`!!${q('.hud .card[aria-label="Kézi átlagmérés"] .btn.danger')} && !${q('.manual-mini')}`));
   kn.close();
 
-  // navigáció közben: 5 s után (vagy közeli manővernél) pill a jobb oldalon; bökésre kártya, újabb bökésre pill
+  // AW16: navigáció közben 5 s után (vagy közeli manővernél) a zsugorított kártya a jobb oldalon: nagy átlag státusz-színnel,
+  // „km/h átlag”, idő; bökésre a teljes kártya, újabb bökésre zsugorított; a kézi mérés privát (nincs hálózati hívás)
   const MANUAL_CARD = q('.hud .card[aria-label="Kézi átlagmérés"]');
   const kp = await mk();
   await kp.goto('/?navsim&stage=nav&speed=1&at=20&panel=0');
   await kp.waitFor(MAP_READY, 60_000, 'térkép');
   await kp.waitFor(q('.nav-top'), 30_000, 'felső kártya');
   await kp.waitFor(q('button[aria-label="Kézi átlagmérés indítása"]'), 10_000, 'stopper');
+  // hálózat nélkül: a kapu-küldés (reports) soha nem hívódik, a fetch-et megfigyeljük, és a hálózatot kikapcsoljuk
+  await kp.evaluate(`window.__reportCalls = []; const f = window.fetch; window.fetch = (...a) => { const u = String(a[0]?.url ?? a[0]); if (/reports/.test(u)) window.__reportCalls.push(u); return f(...a); }; true`);
+  await kp.send('Network.enable');
+  await kp.send('Network.emulateNetworkConditions', { offline: true, latency: 0, downloadThroughput: 0, uploadThroughput: 0 });
   await click(kp, 'button[aria-label="Kézi átlagmérés indítása"]');
   await sleep(300);
-  const k0 = await kp.evaluate(`({ card: !!${MANUAL_CARD}, chip: ${MANUAL_CARD}?.querySelector('.chip')?.innerText.trim(), pill: !!${q('.manual-pill')} })`);
-  check('kézi mérés navigáció közben: induláskor a teljes kártya „Kézi átlagmérés” címmel', k0.card && k0.chip === 'Kézi átlagmérés' && !k0.pill, JSON.stringify(k0));
-  await kp.waitFor(q('.manual-pill'), 8000, 'pill');
-  const k1 = await kp.evaluate(`(() => { const e = ${q('.manual-pill')}; const r = e.getBoundingClientRect(); return { txt: e.innerText.replace(/\\s+/g, ' ').trim(), right: r.right, left: r.left, w: innerWidth, h: r.height, stop: !!document.querySelector('.hud .card[aria-label="Kézi átlagmérés"] .btn.danger, .manual-pill .btn'), top: !!${q('.nav-top')}, bottom: !!${q('.nav-bottom')} }; })()`);
-  check('pill: átlag km/h + eltelt idő, Leállítás nélkül, a jobb oldalon', /^\d+ ?km\/h \d+:\d{2}$/.test(k1.txt) && !k1.stop && k1.left > k1.w * 0.25 && k1.right > k1.w * 0.6 && k1.h >= 56, JSON.stringify(k1));
-  check('pill alatt a navigáció teljes: felső kártya + alsó sáv', k1.top && k1.bottom, JSON.stringify(k1));
-  await sleep(1200);
-  if (!CHECK_ONLY) await kp.shot(`${DATE}-nav-kezi-pill.png`);
-  await click(kp, '.manual-pill');
+  const k0 = await kp.evaluate(`({ card: !!${MANUAL_CARD}, chip: ${MANUAL_CARD}?.querySelector('.chip')?.innerText.trim(), mini: !!${q('.manual-mini')}, retry: /Újra/.test(document.body.innerText) })`);
+  check('kézi mérés navigáció közben: induláskor a teljes kártya „Kézi átlagmérés” címmel', k0.card && k0.chip === 'Kézi átlagmérés' && !k0.mini, JSON.stringify(k0));
+  await kp.waitFor(q('.manual-mini'), 25_000, 'zsugorított kártya');
+  const k1 = await kp.evaluate(`(() => { const e = ${q('.manual-mini')}; const r = e.getBoundingClientRect(); const b = e.querySelector('b'); return { txt: e.innerText.replace(/\\s+/g, ' ').trim(), status: e.dataset.status, right: r.right, left: r.left, w: innerWidth, h: r.height, bigPx: parseFloat(getComputedStyle(b).fontSize), bigColor: getComputedStyle(b).color, stop: !!document.querySelector('.hud .card[aria-label="Kézi átlagmérés"] .btn.danger, .manual-mini .btn'), top: !!${q('.nav-top')}, bottom: !!${q('.nav-bottom')} }; })()`);
+  check('zsugorított kártya: nagy átlag, „km/h átlag”, idő; Leállítás nélkül, a jobb oldalon', /^\d+ km\/h átlag \d+:\d{2}$/.test(k1.txt) && !k1.stop && k1.left > k1.w * 0.3 && k1.right > k1.w * 0.6 && k1.bigPx >= 36 && k1.h >= 70, JSON.stringify(k1));
+  check('a zsugorított kártya alatt a navigáció teljes: felső kártya + alsó sáv', k1.top && k1.bottom, JSON.stringify(k1));
+  check('a kézi mérés privát: hálózat nélkül is fut, nincs kapu-küldés (reports), nincs „Újra” gomb', (await kp.evaluate(`window.__reportCalls.length`)) === 0 && !(await kp.evaluate(`/Újra/.test(document.body.innerText)`)));
   await sleep(300);
-  check('bökésre a teljes kártya nyílik (Leállítással)', await kp.evaluate(`!!${MANUAL_CARD}?.querySelector('.btn.danger') && !${q('.manual-pill')}`));
+  if (!CHECK_ONLY) await kp.shot(`${DATE}-nav-kezi-pill.png`);
+  await click(kp, '.manual-mini');
+  await sleep(300);
+  check('bökésre a teljes kártya nyílik (Leállítással)', await kp.evaluate(`!!${MANUAL_CARD}?.querySelector('.btn.danger') && !${q('.manual-mini')}`));
   await kp.evaluate(`${MANUAL_CARD}.querySelector('.hero').click(); true`);
   await sleep(300);
-  check('újabb bökésre visszamegy pillé', await kp.evaluate(`!${MANUAL_CARD} && !!${q('.manual-pill')}`));
-  await click(kp, '.manual-pill');
-  await kp.waitFor(q('.manual-pill'), 8000, 'magától vissza').catch(() => undefined);
-  check('kinyitva 5 s után (vagy a navigáció helyigényére) magától visszamegy pillé', await kp.evaluate(`!!${q('.manual-pill')}`));
+  check('újabb bökésre visszamegy zsugorított kártyává', await kp.evaluate(`!${MANUAL_CARD} && !!${q('.manual-mini')}`));
+  await click(kp, '.manual-mini');
+  await kp.waitFor(q('.manual-mini'), 25_000, 'magától vissza').catch(() => undefined);
+  check('kinyitva 5 s után (vagy a navigáció helyigényére) magától visszamegy zsugorított kártyává', await kp.evaluate(`!!${q('.manual-mini')}`));
   // leállítás: a kézi eredmény navigáció közben egy sor, a felső kártya alatt
-  await click(kp, '.manual-pill');
+  await click(kp, '.manual-mini');
   await sleep(300);
   await kp.evaluate(`${MANUAL_CARD}.querySelector('.btn.danger').click(); true`);
   await kp.waitFor(q('.hud .card[aria-label="Kézi átlagmérés eredménye"]'), 5000, 'kézi eredmény');
@@ -556,8 +591,25 @@ try {
   const kr = await kp.evaluate(`(() => { const c = ${q('.hud .card[aria-label="Kézi átlagmérés eredménye"]')}; const r = c.getBoundingClientRect(); const top = document.querySelector('.nav-top'); return { compact: c.classList.contains('compact'), h: Math.round(r.height), txt: c.innerText.replace(/\\s+/g, ' ').trim(), gap: top ? Math.round(r.top - top.getBoundingClientRect().bottom) : null, retry: /Újra/.test(c.innerText) }; })()`);
   check('kézi eredmény navigáció közben: kompakt egy sor (átlag, táv · idő, Kész), nem ér a felső kártya alá', kr.compact && kr.h <= 90 && /^\d+ km\/h átlag .+ · \d+:\d{2} Kész$/.test(kr.txt) && kr.gap !== null && kr.gap >= 12 && !kr.retry, JSON.stringify(kr));
   if (!CHECK_ONLY) await kp.shot(`${DATE}-nav-kezi-eredmeny.png`);
-  check('nincs kezeletlen JS-kivétel (AW15 kézi mérés)', kp.logs.length === 0, kp.logs.join(' | '));
+  check('a kézi eredmény után is nincs kapu-küldés', (await kp.evaluate(`window.__reportCalls.length`)) === 0);
+  check('nincs kezeletlen JS-kivétel (AW15/AW16 kézi mérés)', kp.logs.length === 0, kp.logs.join(' | '));
   kp.close();
+
+  // a három státusz-szín (a szín a navigáció határából jön – unit-teszt; itt a megjelenést kényszerítjük, ?miniStatus=)
+  for (const [st, color, file] of [['jo', 'zöld', 'jo'], ['lassits', 'borostyán', 'lassits'], ['tul_gyors', 'piros', 'tul-gyors']]) {
+    const ks = await mk();
+    await ks.goto(`/?navsim&stage=nav&speed=1&at=20&panel=0&miniStatus=${st}`);
+    await ks.waitFor(MAP_READY, 60_000, 'térkép');
+    await ks.waitFor(q('.nav-top'), 30_000, 'felső kártya');
+    await ks.waitFor(q('button[aria-label="Kézi átlagmérés indítása"]'), 10_000, 'stopper');
+    await click(ks, 'button[aria-label="Kézi átlagmérés indítása"]');
+    await ks.waitFor(q('.manual-mini'), 25_000, 'zsugorított kártya');
+    await sleep(1200);
+    const c = await ks.evaluate(`(() => { const e = ${q('.manual-mini')}; const b = e.querySelector('b'); const tone = getComputedStyle(e).getPropertyValue('--tone').trim(); return { status: e.dataset.status, color: getComputedStyle(b).color, tone, expect: getComputedStyle(document.documentElement).getPropertyValue('--status-${st === 'tul_gyors' ? 'tul' : st}').trim() }; })()`);
+    check(`zsugorított kártya, ${color} (${st}): a nagy szám a státusz-színnel`, c.status === st && c.color !== 'rgba(0, 0, 0, 0)' && c.tone !== '', JSON.stringify(c));
+    if (!CHECK_ONLY) await ks.shot(`${DATE}-nav-kezi-mini-${file}.png`);
+    ks.close();
+  }
 
   // ------------------------------------------------------------------
   // 3. marketing-képernyőképek (1×-es lejátszás, szimulátor-panel nélkül)
@@ -570,13 +622,12 @@ try {
     info.close();
     console.log(`  ablakok: ${windows.join(', ')} / ${length}`);
 
-    // A8d, AW11: az alternatíva a színes és a visszafogott térképen (útvonalválasztó); sötét rendszer-módban a térkép
-    // alkony/éjjel (éjjeli szín, világos kontúr), világosban – nappali órában – nappal (sötét kontúr)
+    // A8d, AW11: az alternatíva a színes és a visszafogott térképen (útvonalválasztó); éjjel éjjeli szín + világos kontúr,
+    // nappal (Színes: alkonyi fény, Visszafogott: nappali fény) a napszak szerint (?sunAt, AW16)
     for (const terkep of ['szines', 'visszafogott']) {
-      for (const [mod, suffix] of [['dark', ''], ['light', '-nappal']]) {
+      for (const [sunAt, suffix] of [[SUN.ejjel, ''], [SUN.nappal, '-nappal']]) {
         const v = await mk();
-        await v.send('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-color-scheme', value: mod }] });
-        await v.goto('/?navsim&stage=picker&speed=1&panel=0', { terkep });
+        await v.goto(`/?navsim&stage=picker&speed=1&panel=0&sunAt=${sunAt}`, { terkep });
         await v.waitFor(MAP_READY, 60_000, 'térkép');
         await v.waitFor(q('.route-label'), 30_000, 'alternatíva-címke');
         await sleep(4000);
@@ -630,8 +681,11 @@ try {
     await o.shot(`${DATE}-nav-gyorsabb-ut.png`);
     o.close();
   }
+} catch (e) {
+  // a closeChrome ENOTEMPTY-je különben elnyelné a valódi kivételt
+  check(`kivétel: ${e?.message ?? e}`, false);
 } finally {
-  await closeChrome(chrome);
+  await closeChrome(chrome).catch(() => undefined);
 }
 
 const failed = results.filter((r) => !r.ok).length;

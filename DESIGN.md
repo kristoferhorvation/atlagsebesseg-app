@@ -82,18 +82,21 @@ biztonsági zóna fölött lebeg.
   `title` címke + 44 px-es szám), **`lassits` és `tul_gyors` állapotban mindig, `jo`-ban soha** (a színe az állapoté: borostyán „Maradj X alatt”, piros „Lassíts · max X”, vagy „Nem hozható be”, ha a „max” már nem reális). Megjelenés/eltűnés `slow` (480 ms)
   opacity + transform; hiszterézis: 1,5 s fennállás után jelenik meg, 3 s hiány után tűnik el,
   így a határérték körüli ingadozás nem villog. 
-- **Kerek gombok** (64 px, üveg): bejelentés, kézi mérés, beállítások.
+- **Kerek gombok** (64 px, üveg): bejelentés, kézi mérés, beállítások; a kereső ugyanilyen, de felül, a GPS-pill sorában (AW16).
 - **Lap** (bottom sheet): bejelentés-rács (2 oszlop, 76 px-es csempék), beállítások.
-- **Ideiglenes szakasz (A4-döntés):** a bejelentés-rácsban **egy** teljes szélességű csempe,
-  „Ideiglenes szakasz kezdete”: elindítja a kézi mérést **és** bejelenti a kezdő kaput (ha még
-  nincs irány, a kezdő kapu a mérés első pontjából a végén megy el). Mérés közben a gomb
-  „Vége · záró kapu”: lezárja és bejelenti a záró kaput. A sima „Kézi átlagmérés” (stopper-gomb)
-  bejelentés nélkül marad külön. A két külön kapu-csempe megszűnt.
-- **Kézi átlagmérés navigáció közben (AW15):** a kártya 5 s után (vagy ha a navigációnak hely kell: manőver < 500 m,
-  ajánlat-kártya, közeli kamera) kis üvegpillé zsugorodik a gombsor jobb oldalán (64 px magas, stopper-ikon + átlag a
-  `kezi` tónusban + eltelt idő, Leállítás nélkül); bökésre a teljes kártya, újabb bökésre vagy 5 s után vissza. Pill
-  alatt a navigáció teljes (felső lépés-kártya, alsó érkezés-sáv). Navigáció nélkül a nagy kártya marad. Az eredmény
-  navigáció közben egysoros, kompakt kártya (mint a szakaszé); kapu-küldési hibánál a sor végén kis „Újra” gomb.
+- **Átlagmérés eleje / vége (AW16):** a bejelentés-rács alján két teljes szélességű csempe, „Átlagmérés eleje” és „Átlagmérés
+  vége”: egy-egy ideiglenes kapu a jelenlegi helyről és haladási irányból (a meglévő kapu-jelentés) – ismeretlen mérési zóna
+  bejelentésére; irány nélkül tiltott. A kézi mérés (stopper-gomb) **privát**: nem küld semmit a szerverre, hálózat nélkül is
+  megy; az „ideiglenes szakasz” folyamat, a kapu-küldés és az „Újra” gomb megszűnt.
+- **Kézi átlagmérés navigáció közben (AW16):** a kártya 5 s után (vagy ha a navigációnak hely kell: manőver < 500 m,
+  ajánlat-kártya, közeli kamera) a mérőkártya lekicsinyített változatává zsugorodik a gombsor jobb oldalán: a nagy átlag-szám
+  (40 px) a megszokott státusz-színnel (jó zöld / lassíts borostyán / túl gyors piros; ismeretlen határnál `kezi`), alatta kicsiben
+  „km/h átlag” és az eltelt idő; Leállítás nélkül. A szín az átlag a navigáció aktuális útszakasz-határához mérve. Bökésre a
+  teljes kártya, újabb bökésre vagy 5 s után vissza. Indítás után az első 5 s-ban hely-igény mellett is nyitva marad, de 3 s után
+  összemegy. A zsugorított kártya alatt a navigáció teljes. Navigáció nélkül a nagy kártya marad. Az eredmény navigáció közben
+  egysoros, kompakt kártya (mint a szakaszé).
+- **Kereső (AW16):** kerek ikon-gomb (ugyanaz a stílus, mint az alsó kerek gomboké) a térkép tetején, a GPS-pill sorában, a
+  jobb szélre zárva; csak az üres nézeten; érintésre teljes szélességű keresés.
 - **Toast**: rövid visszajelzés felül, 2,5 s.
 - **Bejelentések a térképen (A5):** minden aktív bejelentés ikonként (a bejelentés-lap ikonja
   és tónusa; kapunál kezdő/záró), 44 px-es kör 56 px-es érintési céllal, mindig a képernyő felé
@@ -145,13 +148,14 @@ Adatkövető átmenet (progress, kamera): 1000 ms lineáris – pont a GPS-ütem
 
 ## Térkép
 
-Mapbox Standard, `lightPreset` automatikusan (rendszermód + napállás), POI- és tömegközlekedési
+Mapbox Standard, `lightPreset` automatikusan (napállás + a térképstílus; a készülék sötét módja nem számít), POI- és tömegközlekedési
 címkék nélkül.
 
 **Téma (A4-döntés):** alapból a Standard `default` témája – a színes, 3D-s look marad. A nyugalmat
 a UI-rétegek adják (üveg, kevés saját szín, felső/alsó sötét átmenet), **nem a térkép
-szegényítése**. A Beállításokban „Térkép: Színes / Visszafogott / Világos” választó (`default` /
-`monochrome` / `default` mindig `day` fénnyel – AW15, apa kérése: vidámabb színek), alapból színes. „Világos” módban a
-térkép-rétegek a nappali tokeneket kapják (`routeAltDay` …), a kártyák sötétek maradnak, de az üveg-felületek a
-`surfaceStrong` kitöltést kapják (a halvány szöveg a legvilágosabb háttéren is ≥ 5:1). Kamera: pitch 60°, haladási irány felfelé, az autó a képernyő alsó harmadában
+szegényítése**. A Beállításokban „Térkép: Világos / Színes / Visszafogott” választó (`default` / `default` / `monochrome`), alapból
+színes. **Fény (AW16):** napközben a beállítás dönt – „Világos” = nappali fény (`day`), „Színes” = alkonyi fény (`dusk`);
+hajnalban (`dawn`), napnyugtakor (`dusk`) és éjjel (`night`) mindkettő a napszaké; „Visszafogott” végig a napszak szerint. A
+térkép-rétegek (pl. alternatív útvonal) az alkalmazott fényhez igazodnak. Nappali fényű „Világos” térképen az üveg-felületek a
+`surfaceStrong` kitöltést kapják (a halvány szöveg a legvilágosabb háttéren is ≥ 5:1), a kártyák sötétek maradnak. Kamera: pitch 60°, haladási irány felfelé, az autó a képernyő alsó harmadában
 (a HUD fölött). A szakaszok vonala halványan, az aktív a státuszszínnel, a megtett rész teltebb.

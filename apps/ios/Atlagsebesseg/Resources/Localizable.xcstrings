@@ -1149,211 +1149,6 @@
         }
       }
     },
-    "gate.error" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "cs" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Brány se nepodařilo odeslat – bez připojení?"
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Die Tore konnten nicht gesendet werden – keine Verbindung?"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Couldn’t send the gates – no connection?"
-          }
-        },
-        "hu" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "A kapukat nem sikerült elküldeni – nincs kapcsolat?"
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Nie udało się wysłać bram – brak połączenia?"
-          }
-        },
-        "sk" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Brány sa nepodarilo odoslať – žiadne pripojenie?"
-          }
-        }
-      }
-    },
-    "gate.retry" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "cs" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Odeslat znovu"
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Erneut senden"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Send again"
-          }
-        },
-        "hu" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Újraküldés"
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Wyślij ponownie"
-          }
-        },
-        "sk" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Odoslať znova"
-          }
-        }
-      }
-    },
-    "gate.sending" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "cs" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Odesílám brány…"
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Tore werden gesendet…"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Sending gates…"
-          }
-        },
-        "hu" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Kapuk küldése…"
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Wysyłanie bram…"
-          }
-        },
-        "sk" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Odosielam brány…"
-          }
-        }
-      }
-    },
-    "gate.sent" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "cs" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Dočasný úsek nahlášen – čeká na potvrzení od ostatních."
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Temporärer Abschnitt gemeldet – wartet auf Bestätigung durch andere."
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Temporary section reported – waiting for others to confirm."
-          }
-        },
-        "hu" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ideiglenes szakasz bejelentve – mások megerősítésére vár."
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Odcinek tymczasowy zgłoszony – czeka na potwierdzenie innych."
-          }
-        },
-        "sk" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Dočasný úsek nahlásený – čaká na potvrdenie od ostatných."
-          }
-        }
-      }
-    },
-    "gate.undetermined" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "cs" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Polohu bran nelze určit (málo dat GPS), neodeslali jsme je."
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Die Position der Tore lässt sich nicht bestimmen (zu wenig GPS-Daten), deshalb nicht gesendet."
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "The gate positions can’t be determined (too little GPS data), so we didn’t send them."
-          }
-        },
-        "hu" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "A kapuk helye nem határozható meg (kevés GPS-adat), nem küldtük el."
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Nie da się ustalić położenia bram (za mało danych GPS), więc ich nie wysłaliśmy."
-          }
-        },
-        "sk" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Polohu brán nemožno určiť (málo údajov GPS), neodoslali sme ich."
-          }
-        }
-      }
-    },
     "geo.active" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -3117,47 +2912,6 @@
         }
       }
     },
-    "hud.manual.stopTemp" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "cs" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Konec · koncová brána"
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ende · Endtor"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "End · closing gate"
-          }
-        },
-        "hu" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Vége · záró kapu"
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Koniec · brama końcowa"
-          }
-        },
-        "sk" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Koniec · koncová brána"
-          }
-        }
-      }
-    },
     "hud.manualDone.aria" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -3318,47 +3072,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "vzdialenosť (čiastočne odhad)"
-          }
-        }
-      }
-    },
-    "hud.manualDone.retry" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "cs" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Znovu"
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Erneut"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Retry"
-          }
-        },
-        "hu" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Újra"
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ponów"
-          }
-        },
-        "sk" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Znova"
           }
         }
       }
@@ -3646,47 +3359,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Meranie sa spúšťa…"
-          }
-        }
-      }
-    },
-    "hud.tempSection" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "cs" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Dočasný úsek"
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Temporärer Abschnitt"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Temporary section"
-          }
-        },
-        "hu" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ideiglenes szakasz"
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Odcinek tymczasowy"
-          }
-        },
-        "sk" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Dočasný úsek"
           }
         }
       }
@@ -9267,84 +8939,84 @@
         }
       }
     },
-    "report.gate.end" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "cs" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Konec dočasného úseku"
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Temporärer Abschnitt: Ende"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Temporary section end"
-          }
-        },
-        "hu" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ideiglenes szakasz vége"
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Koniec odcinka tymczasowego"
-          }
-        },
-        "sk" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Koniec dočasného úseku"
-          }
-        }
-      }
-    },
     "report.note.default" : {
       "extractionState" : "manual",
       "localizations" : {
         "cs" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Do nahlášení se zapíše tvoje poloha a směr jízdy. Dočasný úsek: na konci měření nahlásí koncovou bránu tlačítko „Konec“."
+            "value" : "Do nahlášení se zapíše tvoje poloha a směr jízdy. Začátek / konec úsekového měření nahlásí neznámou zónu: vždy jednu bránu na tvé poloze."
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Deine aktuelle Position und Fahrtrichtung werden mitgesendet. Temporärer Abschnitt: Am Ende der Messung meldet die Taste „Ende“ das Endtor."
+            "value" : "Deine aktuelle Position und Fahrtrichtung werden mitgesendet. Abschnittsmessung Anfang / Ende meldet eine unbekannte Zone: je ein Tor an deiner Position."
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Your current position and heading are included in the report. Temporary section: at the end of the measurement, the “End” button reports the closing gate."
+            "value" : "Your current position and heading are included in the report. Average check start / end report an unknown zone: one gate each, at your position."
           }
         },
         "hu" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "A jelenlegi helyed és haladási irányod kerül a bejelentésbe. Ideiglenes szakasz: a mérés végén a „Vége” gomb jelenti be a záró kaput."
+            "value" : "A jelenlegi helyed és haladási irányod kerül a bejelentésbe. Az Átlagmérés eleje / vége ismeretlen mérési zónát jelent be: egy-egy kaput a mostani helyeden."
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Do zgłoszenia trafia twoja pozycja i kierunek jazdy. Odcinek tymczasowy: na końcu pomiaru przycisk „Koniec” zgłasza bramę końcową."
+            "value" : "Do zgłoszenia trafia twoja pozycja i kierunek jazdy. Początek / koniec odcinkowego pomiaru zgłasza nieznaną strefę: po jednej bramce w twoim miejscu."
           }
         },
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Do nahlásenia sa zapíše tvoja poloha a smer jazdy. Dočasný úsek: na konci merania nahlási koncovú bránu tlačidlo „Koniec“."
+            "value" : "Do nahlásenia sa zapíše tvoja poloha a smer jazdy. Začiatok / koniec úsekového merania nahlási neznámu zónu: vždy jednu bránu na tvojej polohe."
+          }
+        }
+      }
+    },
+    "report.note.gateNoHeading" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Brána potřebuje směr jízdy – rozjeď se a zkus to znovu."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Für ein Tor wird die Fahrtrichtung benötigt – fahre los und versuche es erneut."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A gate needs a driving direction – start moving and try again."
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A kapuhoz haladási irány kell – indulj el, majd próbáld újra."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bramka wymaga kierunku jazdy – ruszaj i spróbuj ponownie."
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Brána potrebuje smer jazdy – rozbehni sa a skús znova."
           }
         }
       }
@@ -9636,43 +9308,84 @@
         }
       }
     },
-    "report.type.ideiglenes_szakasz" : {
+    "report.type.kapu_kezdo" : {
       "extractionState" : "manual",
       "localizations" : {
         "cs" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Začátek dočasného úseku"
+            "value" : "Začátek úsekového měření"
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Temporärer Abschnitt: Anfang"
+            "value" : "Abschnittsmessung: Anfang"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Temporary section start"
+            "value" : "Average check start"
           }
         },
         "hu" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Ideiglenes szakasz kezdete"
+            "value" : "Átlagmérés eleje"
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Początek odcinka tymczasowego"
+            "value" : "Początek odcinkowego pomiaru"
           }
         },
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Začiatok dočasného úseku"
+            "value" : "Začiatok úsekového merania"
+          }
+        }
+      }
+    },
+    "report.type.kapu_zaro" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Konec úsekového měření"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Abschnittsmessung: Ende"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Average check end"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Átlagmérés vége"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Koniec odcinkowego pomiaru"
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Koniec úsekového merania"
           }
         }
       }
@@ -12338,211 +12051,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "teraz"
-          }
-        }
-      }
-    },
-    "toast.gatesFail" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "cs" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Brány se nepodařilo odeslat"
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Die Tore konnten nicht gesendet werden"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Couldn’t send the gates"
-          }
-        },
-        "hu" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "A kapukat nem sikerült elküldeni"
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Nie udało się wysłać bram"
-          }
-        },
-        "sk" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Brány sa nepodarilo odoslať"
-          }
-        }
-      }
-    },
-    "toast.startLater" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "cs" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Měření začalo – startovní bránu pošleme na konci"
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Messung gestartet – das Starttor senden wir am Ende"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Measurement started – we’ll send the start gate at the end"
-          }
-        },
-        "hu" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Mérés indult – a kezdő kaput a végén küldjük"
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Pomiar ruszył – bramę startową wyślemy na końcu"
-          }
-        },
-        "sk" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Meranie sa začalo – štartovaciu bránu pošleme na konci"
-          }
-        }
-      }
-    },
-    "toast.startRetry" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "cs" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Startovní bránu zkusíme na konci poslat znovu"
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Das Starttor versuchen wir am Ende erneut"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "We’ll try the start gate again at the end"
-          }
-        },
-        "hu" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "A kezdő kaput a végén újra megpróbáljuk"
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Bramę startową spróbujemy wysłać ponownie na końcu"
-          }
-        },
-        "sk" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Štartovaciu bránu skúsime na konci poslať znova"
-          }
-        }
-      }
-    },
-    "toast.startSent" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "cs" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Startovní brána nahlášena"
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Starttor gemeldet"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Start gate reported"
-          }
-        },
-        "hu" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Kezdő kapu bejelentve"
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Brama startowa zgłoszona"
-          }
-        },
-        "sk" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Štartovacia brána nahlásená"
-          }
-        }
-      }
-    },
-    "toast.tempSent" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "cs" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Dočasný úsek nahlášen"
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Temporärer Abschnitt gemeldet"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Temporary section reported"
-          }
-        },
-        "hu" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ideiglenes szakasz bejelentve"
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Odcinek tymczasowy zgłoszony"
-          }
-        },
-        "sk" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Dočasný úsek nahlásený"
           }
         }
       }
