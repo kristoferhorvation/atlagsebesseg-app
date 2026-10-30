@@ -25,8 +25,6 @@ struct DriveView: View {
     private var measuringLayout: Bool { measuring && !model.manualPillCollapsed }
     /// A navigáció alsó sávja (érkezés, Befejezés): mérés nélkül, és a kézi mérés pillje mellett.
     private var navBottomShown: Bool { model.nav != nil && (view.phase == .nincsSzakasz || model.manualPillCollapsed) }
-    /// A zsugorított kézi kártya színe (AW16): az átlag a navigáció aktuális határához mérve.
-    private var manualStatus: SpeedStatus? { model.miniStatusForced ?? manualMiniStatus(view.manual?.averageKmh, view.currentKmh, model.nav?.limitKmh) }
     /// Navigáció közben a kézi mérés teljes kártyája bökésre zsugorodik (AW15).
     private var collapseManual: (() -> Void)? {
         guard model.manualPill != nil else { return nil }
@@ -155,7 +153,7 @@ struct DriveView: View {
                 }
                 Spacer()
                 if model.manualPillCollapsed {
-                    ManualMini(view: view, unit: unit, status: manualStatus, onExpand: model.tapManualPill)
+                    ManualMini(view: view, unit: unit, onExpand: model.tapManualPill)
                 }
                 if !model.follow && view.lastFix != nil {
                     Button { model.follow = true } label: { Icon(name: .crosshair, size: 26) }

@@ -68,10 +68,3 @@ nonisolated func manualPillTap(_ s: ManualPillState, now: Double) -> ManualPillS
     }
     return n
 }
-
-/// A zsugorított kézi kártya státusz-színe (AW16, a webes `manualMiniStatus`): a navigáció aktuális útszakasz-határához
-/// mérve; ismeretlen határnál `nil` (a kártya a kézi-mérés színét kapja).
-nonisolated func manualMiniStatus(_ averageKmh: Double?, _ currentKmh: Double?, _ limitKmh: Double?) -> SpeedStatus? {
-    guard let limitKmh else { return nil }
-    return speedStatus(averageKmh, currentKmh, limitKmh)
-}

@@ -90,8 +90,8 @@ biztonsági zóna fölött lebeg.
   megy; az „ideiglenes szakasz” folyamat, a kapu-küldés és az „Újra” gomb megszűnt.
 - **Kézi átlagmérés navigáció közben (AW16):** a kártya 5 s után (vagy ha a navigációnak hely kell: manőver < 500 m,
   ajánlat-kártya, közeli kamera) a mérőkártya lekicsinyített változatává zsugorodik a gombsor jobb oldalán: a nagy átlag-szám
-  (40 px) a megszokott státusz-színnel (jó zöld / lassíts borostyán / túl gyors piros; ismeretlen határnál `kezi`), alatta kicsiben
-  „km/h átlag” és az eltelt idő; Leállítás nélkül. A szín az átlag a navigáció aktuális útszakasz-határához mérve. Bökésre a
+  (40 px) mindig a kézi mérés semleges (accent, `kezi`) színében, mint a teljes kézi kártyán – kézi mérésnél nincs referencia, nincs
+  státusz-szín –, alatta kicsiben „km/h átlag” és az eltelt idő; Leállítás nélkül. Bökésre a
   teljes kártya, újabb bökésre vagy 5 s után vissza. Indítás után az első 5 s-ban hely-igény mellett is nyitva marad, de 3 s után
   összemegy. A zsugorított kártya alatt a navigáció teljes. Navigáció nélkül a nagy kártya marad. Az eredmény navigáció közben
   egysoros, kompakt kártya (mint a szakaszé).

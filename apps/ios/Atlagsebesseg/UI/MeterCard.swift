@@ -329,17 +329,16 @@ struct MeterCard: View {
 // MARK: elemek
 
 /// AW16: navigáció közben a kézi mérés a mérőkártya lekicsinyített változata a gombsor jobb oldalán: a nagy átlag-szám a
-/// megszokott státusz-színnel (ismeretlen határnál a kézi-mérés színe), alatta „km/h átlag” és az eltelt idő; Leállítás
+/// kézi-mérés (accent) színében – mint a teljes kézi kártyán, nincs referencia –, alatta „km/h átlag” és az eltelt idő; Leállítás
 /// nélkül. Bökésre a teljes kártya nyílik.
 struct ManualMini: View {
     let view: SessionView
     let unit: SpeedUnit
-    let status: SpeedStatus?
     let onExpand: () -> Void
 
     var body: some View {
         let m = view.manual
-        let tone = status.map(Tone.status) ?? .kezi
+        let tone = Tone.kezi
         Button(action: onExpand) {
             VStack(spacing: 0) {
                 Text(speedIn(m?.averageKmh, unit).map(String.init) ?? "–")

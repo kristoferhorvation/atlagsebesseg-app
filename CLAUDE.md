@@ -144,10 +144,10 @@ Gyökér: `npm test` és `npm run typecheck` minden csomagra; `npm run test:all`
   - Szimulátor: `-manual S` (a `-navStage nav` mellett kézi mérés, S mp múlva leáll; 0: fut), `-settingsOpen language`.
 - **AW16 (Kristof visszajelzése az AW15-re, 2026-10-30), weben és iOS-en kész:**
   - **Kézi átlagmérés zsugorítva** (navigáció közben): nem pill, hanem a mérőkártya lekicsinyített változata a jobb oldalon
-    (`ManualMini`): a nagy átlag-szám a megszokott státusz-színnel (jó zöld / lassíts borostyán / túl gyors piros), alatta
-    „km/h átlag” és az eltelt idő; Leállítás nélkül. Bökésre a teljes kártya, bökésre vagy 5 s után vissza. A szín: az átlag a
-    navigáció aktuális útszakasz-határához mérve (`manualMiniStatus`: átlag ≤ határ → jó; felette, de a pillanatnyi sebesség
-    ≤ határ → lassíts; különben túl gyors; ismeretlen határnál a kézi-mérés színe). Auto-zsugor: manőver < 500 m, ajánlat-kártya,
+    (`ManualMini`): a nagy átlag-szám mindig a kézi mérés semleges (accent, `kezi`) színében, mint a teljes kézi kártyán – kézi
+    mérésnél nincs referencia, a sofőr magának méri (**javítva:** az első AW16-változat a navigáció sebességhatárához mért
+    zöld / borostyán / piros színt adott, ez kikerült, a `-miniStatus` / `?miniStatus=` kapcsolókkal együtt); alatta
+    „km/h átlag” és az eltelt idő; Leállítás nélkül. Bökésre a teljes kártya, bökésre vagy 5 s után vissza. Auto-zsugor: manőver < 500 m, ajánlat-kártya,
     közeli kamera. **Indítás után az első 5 s-ban** hely-igény mellett is nyitva marad, de 3 s után (az indítástól) összemegy
     (`MANUAL_PILL.startSpaceCollapseMs`, `ManualPillState.initial`). A függvénynevek (`manualPillTick`/`manualPillTap`) maradtak.
   - **A kézi mérés privát:** nem küld semmit a szerverre, hálózat nélkül is megy. Az „ideiglenes szakasz” folyamat (kézi

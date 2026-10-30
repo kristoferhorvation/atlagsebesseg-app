@@ -10,7 +10,7 @@
 // AW15: a pill újrakérésére jött PERMISSION_DENIED a tiltott-lapot nyitja (Permissions API nélkül is); nyelvlista
 // zászlóval, ábécérendben; a Beállítások a hely-választás után nyitva marad; három térképstílus (a „Világos” mindig
 // nappal); a kézi átlagmérés navigáció közben pillé zsugorodik; a kézi eredmény navigáció közben kompakt.
-// AW16: a zsugorított kézi kártya a mérőkártya lekicsinyített változata (státusz-színnel, ?miniStatus=), a kézi mérés
+// AW16: a zsugorított kézi kártya a mérőkártya lekicsinyített változata (a kézi mérés accent színében, referencia nélkül), a kézi mérés
 // hálózat nélkül, privát; a kereső kerek gombja felül, a jobb szélen; Bejelentés menü: „Átlagmérés eleje / vége”;
 // térképstílus-szabály napszakonként (?sunAt=): Világos = nappal, Színes = alkony nappal, éjjel mindkettő éjszakai.
 //
@@ -567,12 +567,13 @@ try {
   const k0 = await kp.evaluate(`({ card: !!${MANUAL_CARD}, chip: ${MANUAL_CARD}?.querySelector('.chip')?.innerText.trim(), mini: !!${q('.manual-mini')}, retry: /Újra/.test(document.body.innerText) })`);
   check('kézi mérés navigáció közben: induláskor a teljes kártya „Kézi átlagmérés” címmel', k0.card && k0.chip === 'Kézi átlagmérés' && !k0.mini, JSON.stringify(k0));
   await kp.waitFor(q('.manual-mini'), 25_000, 'zsugorított kártya');
-  const k1 = await kp.evaluate(`(() => { const e = ${q('.manual-mini')}; const r = e.getBoundingClientRect(); const b = e.querySelector('b'); return { txt: e.innerText.replace(/\\s+/g, ' ').trim(), status: e.dataset.status, right: r.right, left: r.left, w: innerWidth, h: r.height, bigPx: parseFloat(getComputedStyle(b).fontSize), bigColor: getComputedStyle(b).color, stop: !!document.querySelector('.hud .card[aria-label="Kézi átlagmérés"] .btn.danger, .manual-mini .btn'), top: !!${q('.nav-top')}, bottom: !!${q('.nav-bottom')} }; })()`);
+  const k1 = await kp.evaluate(`(() => { const e = ${q('.manual-mini')}; const r = e.getBoundingClientRect(); const b = e.querySelector('b'); return { txt: e.innerText.replace(/\\s+/g, ' ').trim(), tone: e.dataset.tone, accent: (() => { const i = document.createElement('i'); i.dataset.tone = 'kezi'; i.style.color = 'var(--tone)'; document.body.append(i); const c = getComputedStyle(i).color; i.remove(); return c; })(), right: r.right, left: r.left, w: innerWidth, h: r.height, bigPx: parseFloat(getComputedStyle(b).fontSize), bigColor: getComputedStyle(b).color, stop: !!document.querySelector('.hud .card[aria-label="Kézi átlagmérés"] .btn.danger, .manual-mini .btn'), top: !!${q('.nav-top')}, bottom: !!${q('.nav-bottom')} }; })()`);
   check('zsugorított kártya: nagy átlag, „km/h átlag”, idő; Leállítás nélkül, a jobb oldalon', /^\d+ km\/h átlag \d+:\d{2}$/.test(k1.txt) && !k1.stop && k1.left > k1.w * 0.3 && k1.right > k1.w * 0.6 && k1.bigPx >= 36 && k1.h >= 70, JSON.stringify(k1));
+  check('a zsugorított kártya átlag-száma a kézi mérés accent színében, nem státusz-színben', k1.tone === 'kezi' && k1.bigColor === k1.accent, JSON.stringify(k1));
   check('a zsugorított kártya alatt a navigáció teljes: felső kártya + alsó sáv', k1.top && k1.bottom, JSON.stringify(k1));
   check('a kézi mérés privát: hálózat nélkül is fut, nincs kapu-küldés (reports), nincs „Újra” gomb', (await kp.evaluate(`window.__reportCalls.length`)) === 0 && !(await kp.evaluate(`/Újra/.test(document.body.innerText)`)));
   await sleep(300);
-  if (!CHECK_ONLY) await kp.shot(`${DATE}-nav-kezi-pill.png`);
+  if (!CHECK_ONLY) await kp.shot(`${DATE}-nav-kezi-mini.png`);
   await click(kp, '.manual-mini');
   await sleep(300);
   check('bökésre a teljes kártya nyílik (Leállítással)', await kp.evaluate(`!!${MANUAL_CARD}?.querySelector('.btn.danger') && !${q('.manual-mini')}`));
@@ -594,22 +595,6 @@ try {
   check('a kézi eredmény után is nincs kapu-küldés', (await kp.evaluate(`window.__reportCalls.length`)) === 0);
   check('nincs kezeletlen JS-kivétel (AW15/AW16 kézi mérés)', kp.logs.length === 0, kp.logs.join(' | '));
   kp.close();
-
-  // a három státusz-szín (a szín a navigáció határából jön – unit-teszt; itt a megjelenést kényszerítjük, ?miniStatus=)
-  for (const [st, color, file] of [['jo', 'zöld', 'jo'], ['lassits', 'borostyán', 'lassits'], ['tul_gyors', 'piros', 'tul-gyors']]) {
-    const ks = await mk();
-    await ks.goto(`/?navsim&stage=nav&speed=1&at=20&panel=0&miniStatus=${st}`);
-    await ks.waitFor(MAP_READY, 60_000, 'térkép');
-    await ks.waitFor(q('.nav-top'), 30_000, 'felső kártya');
-    await ks.waitFor(q('button[aria-label="Kézi átlagmérés indítása"]'), 10_000, 'stopper');
-    await click(ks, 'button[aria-label="Kézi átlagmérés indítása"]');
-    await ks.waitFor(q('.manual-mini'), 25_000, 'zsugorított kártya');
-    await sleep(1200);
-    const c = await ks.evaluate(`(() => { const e = ${q('.manual-mini')}; const b = e.querySelector('b'); const tone = getComputedStyle(e).getPropertyValue('--tone').trim(); return { status: e.dataset.status, color: getComputedStyle(b).color, tone, expect: getComputedStyle(document.documentElement).getPropertyValue('--status-${st === 'tul_gyors' ? 'tul' : st}').trim() }; })()`);
-    check(`zsugorított kártya, ${color} (${st}): a nagy szám a státusz-színnel`, c.status === st && c.color !== 'rgba(0, 0, 0, 0)' && c.tone !== '', JSON.stringify(c));
-    if (!CHECK_ONLY) await ks.shot(`${DATE}-nav-kezi-mini-${file}.png`);
-    ks.close();
-  }
 
   // ------------------------------------------------------------------
   // 3. marketing-képernyőképek (1×-es lejátszás, szimulátor-panel nélkül)

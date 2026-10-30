@@ -34,7 +34,6 @@ import {
   maneuverIcon,
   NavigationSession,
   manualPillTap,
-  manualMiniStatus,
   manualPillTick,
   MANUAL_PILL,
   navNeedsSpace,
@@ -1526,12 +1525,4 @@ describe('AW15: kézi átlagmérés navigáció közben', () => {
     expect(manualPillTick(s, true, false, 5000)!.collapsed).toBe(true);
   });
 
-  it('a zsugorított kártya státusz-színe a navigáció határából: jó / lassíts / túl gyors; ismeretlen határnál nincs', () => {
-    expect(manualMiniStatus(88, 90, 90)).toBe('jo');
-    expect(manualMiniStatus(95, 85, 90)).toBe('lassits');
-    expect(manualMiniStatus(95, 100, 90)).toBe('tul_gyors');
-    expect(manualMiniStatus(95, null, 90)).toBe('tul_gyors');
-    expect(manualMiniStatus(null, 80, 90)).toBeNull();
-    expect(manualMiniStatus(95, 85, null)).toBeNull();
-  });
 });

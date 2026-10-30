@@ -1,5 +1,4 @@
 import type { SessionPhase } from '../session';
-import { speedStatus, type SpeedStatus } from '../display';
 import { MANUAL_PILL } from './config';
 
 /**
@@ -75,14 +74,4 @@ export function manualPillTick(s: ManualPillState | null, active: boolean, space
 /** Bökés: a zsugorított kártya teljessé nyílik (az 5 s újraindul), a teljes összemegy. */
 export function manualPillTap(s: ManualPillState, now: number): ManualPillState {
   return s.collapsed ? { ...s, collapsed: false, expandedAt: now, initial: false } : { ...s, collapsed: true, initial: false };
-}
-
-/**
- * A zsugorított kézi kártya státusz-színe (AW16): a kézi mérésnek nincs saját határa, ezért a navigáció aktuális
- * útszakasz-határához mérjük – az átlag ≤ határ → `jo`, az átlag felett, de a pillanatnyi sebesség a határ alatt →
- * `lassits`, különben `tul_gyors`. Ismeretlen határnál `null` (a kártya a kézi-mérés színét kapja).
- */
-export function manualMiniStatus(averageKmh: number | null, currentKmh: number | null, limitKmh: number | null): SpeedStatus | null {
-  if (limitKmh === null) return null;
-  return speedStatus(averageKmh, currentKmh, limitKmh);
 }

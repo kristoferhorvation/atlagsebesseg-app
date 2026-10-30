@@ -323,13 +323,13 @@ export function Hud(p: HudProps) {
 
 /**
  * AW16: navigáció közben a kézi mérés a mérőkártya lekicsinyített változata a jobb oldalon: a nagy átlag-szám a
- * megszokott státusz-színnel (jó / lassíts / túl gyors; ismeretlen határnál a kézi-mérés színe), alatta „km/h átlag” és
+ * kézi-mérés (accent) színében – mint a teljes kézi kártyán, nincs referencia –, alatta „km/h átlag” és
  * az eltelt idő; Leállítás gomb nélkül. Bökésre a teljes kártya nyílik.
  */
-export function ManualMini({ view, unit, status, onExpand }: { view: SessionView; unit: Settings['egyseg']; status: SpeedStatus | null; onExpand: () => void }) {
+export function ManualMini({ view, unit, onExpand }: { view: SessionView; unit: Settings['egyseg']; onExpand: () => void }) {
   const m = view.manual!;
   return (
-    <button className="manual-mini glass" data-tone={status ?? 'kezi'} data-status={status ?? 'kezi'} onClick={onExpand} aria-label={t('hud.manual.pillAria')}>
+    <button className="manual-mini glass" data-tone="kezi" onClick={onExpand} aria-label={t('hud.manual.pillAria')}>
       <b className="num">{speedIn(m.averageKmh, unit) ?? '–'}</b>
       <small>{t('hud.avg', { u: unitLabel(unit) })}</small>
       <span className="num">

@@ -39,7 +39,6 @@ import {
   strongGlassFor,
   manualPillTap,
   manualPillTick,
-  manualMiniStatus,
   navNeedsSpace,
   type ManualPillState,
 } from '@atlagsebesseg/app-logic';
@@ -95,11 +94,6 @@ const SUN_AT = (() => {
   return Number.isFinite(ms) ? ms : null;
 })();
 const sunAtNow = () => SUN_AT ?? Date.now();
-/** `?navsim&miniStatus=jo|lassits|tul_gyors`: a zsugorított kézi kártya státusz-színe kényszerítve (a képernyőképhez, AW16). */
-const MINI_STATUS_FORCED = (() => {
-  const v = new URLSearchParams(location.search).get('miniStatus');
-  return NAV_SIM && (v === 'jo' || v === 'lassits' || v === 'tul_gyors') ? v : null;
-})();
 /** A kamerák ekkora körzetben kerülnek a térképre (DOM-jelölők – nem az egész ország). */
 const CAMERA_RADIUS_M = 15_000;
 const NO_PLANNED: readonly PlannedCheck[] = [];
@@ -409,8 +403,6 @@ function Drive({ map }: { map: WebMapAdapter }) {
     return () => clearInterval(id);
   }, [pillActive, now]);
   const pillCollapsed = pillActive && pill?.collapsed === true;
-  // a zsugorított kártya színe: az átlag a navigáció aktuális határához mérve (jó / lassíts / túl gyors)
-  const miniStatus = MINI_STATUS_FORCED ?? manualMiniStatus(view.manual?.averageKmh ?? null, view.currentKmh, nav.view?.limitKmh ?? null);
   const tapPill = useCallback(() => setPill((s) => s && manualPillTap(s, now())), [now]);
   // az elrendezés szerinti mérés: a pillé zsugorodott kézi mérés nem foglalja a helyet
   const measuringLayout = measuring && !pillCollapsed;
@@ -636,7 +628,7 @@ function Drive({ map }: { map: WebMapAdapter }) {
           )}
         </div>
         <div className="actions">
-          {pillCollapsed && <ManualMini view={view} unit={settings.egyseg} status={miniStatus} onExpand={tapPill} />}
+          {pillCollapsed && <ManualMini view={view} unit={settings.egyseg} onExpand={tapPill} />}
           {!driving && view.phase !== 'kezi_eredmeny' && (
             <>
               <button className="round-btn glass" onClick={() => setSheet('settings')} aria-label={t('map.settings')}>

@@ -1682,14 +1682,4 @@ struct ManualPillTests {
         #expect(manualPillTick(s, active: true, space: false, now: 4999)?.collapsed == false)
         #expect(manualPillTick(s, active: true, space: false, now: 5000)?.collapsed == true)
     }
-
-    @Test("a zsugorított kártya státusz-színe a navigáció határából: jó / lassíts / túl gyors; ismeretlen határnál nincs")
-    func zsugoritottStatusz() {
-        #expect(manualMiniStatus(88, 90, 90) == .jo)
-        #expect(manualMiniStatus(95, 85, 90) == .lassits)
-        #expect(manualMiniStatus(95, 100, 90) == .tulGyors)
-        #expect(manualMiniStatus(95, nil, 90) == .tulGyors)
-        #expect(manualMiniStatus(nil, 80, 90) == nil)
-        #expect(manualMiniStatus(95, 85, nil) == nil)
-    }
 }

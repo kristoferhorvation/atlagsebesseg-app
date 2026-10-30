@@ -138,11 +138,6 @@ final class AppModel {
         return raw.flatMap { ISO8601DateFormatter().date(from: $0) }.map { $0.timeIntervalSince1970 * 1000 } ?? nowMs()
     }
 
-    /// `-miniStatus jo|lassits|tul_gyors`: a zsugorított kézi kártya színe kényszerítve (képernyőképhez; a webes `?miniStatus=`).
-    var miniStatusForced: SpeedStatus? {
-        sim == nil ? nil : UserDefaults.standard.string(forKey: "miniStatus").flatMap { ["jo": .jo, "lassits": .lassits, "tul_gyors": .tulGyors][$0] }
-    }
-
     var lastFix: GpsFix? { view.lastFix }
 
     var allSections: [Section] { sections }
