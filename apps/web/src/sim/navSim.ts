@@ -129,8 +129,12 @@ function routeFrom(main: NavRoute, detour: SimDetour, from: LatLon, id: string):
   return splice(main, [from, route.pointAt(join)], join, id);
 }
 
-/** A szimulált lehajtó távolsága az alternatíva elejétől (m): a mérés közbeni ajánlatnál a szakaszon belül van. */
-const SIM_EXIT_M = 400;
+/**
+ * A szimulált lehajtó távolsága az alternatíva elejétől (m): a mérés közbeni ajánlatnál a szakaszon belül van. AW17:
+ * 400 → 800 m, mert a „Megéri” ajánlat 500 m-en belül magától elfogad – a kártya így városi tempónál is ~20 s-ig
+ * látszik.
+ */
+const SIM_EXIT_M = 800;
 
 /** Az első lépést a lehajtó helyén kettévágja: a lehajtó-manőver az, ami a jelenlegi útvonalon nincs meg. */
 function withExit(steps: NavStep[], route: Route, exitM: number): NavStep[] {

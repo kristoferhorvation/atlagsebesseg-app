@@ -1,4 +1,4 @@
-import { LANGUAGE_NAMES, MEGSZOLITAS_MAX, languageMenu, normalizeName, t, type MapLook, type SavedPlaces, type Settings, type SpeedUnit } from '@atlagsebesseg/app-logic';
+import { LANGUAGE_NAMES, MEGSZOLITAS_MAX, languageMenu, normalizeName, t, voiceInstructionsHint, type MapLook, type SavedPlaces, type Settings, type SpeedUnit } from '@atlagsebesseg/app-logic';
 import { DEFAULT_TOLERANCE } from '@atlagsebesseg/core';
 import { useLanguage, useVoiceStatus } from '../i18n';
 import { Sheet } from './Sheet';
@@ -128,17 +128,12 @@ export function SettingsSheet({
         <div className="list-row">
           <div>
             <div className="label">{t('settings.voiceInstructions')}</div>
-            <div className="hint">{t('settings.voiceInstructionsHint')}</div>
-          </div>
-          <Switch label={t('settings.voiceInstructions')} checked={settings.hangos_utasitasok} onChange={(v) => update({ hangos_utasitasok: v })} />
-        </div>
-        <div className="list-row">
-          <div>
-            <div className="label">{t('settings.voice')}</div>
+            {/* AW17: a hang elérhetősége zárójelben a leírás végén (a külön „Hang” sor megszűnt) */}
             <div className="hint" data-voice={voice}>
-              {t(voice === 'ok' ? 'settings.voice.ok' : voice === 'missing' ? 'settings.voice.missing' : 'settings.voice.unsupported')}
+              {voiceInstructionsHint(voice)}
             </div>
           </div>
+          <Switch label={t('settings.voiceInstructions')} checked={settings.hangos_utasitasok} onChange={(v) => update({ hangos_utasitasok: v })} />
         </div>
       </div>
 

@@ -365,11 +365,12 @@ private struct Fixture {
     let alt: NavRoute
     let core: Route
 
-    init() throws {
+    /// `gainS`: 600 s → „Megéri”, `MAYBE_GAIN_S` → „Lehet”, `NOT_GAIN_S` → „Nem éri meg”.
+    init(gainS: Double = 600) throws {
         let routes = try fixtureRoutes()
         main = routes[0]
         core = coreRoute(main)!
-        alt = scaleDurations(routes[1], main.durationS - 600, "alt")
+        alt = scaleDurations(routes[1], main.durationS - gainS, "alt")
     }
 
     func sectionOn(_ fromM: Double, _ toM: Double) -> Section {
@@ -388,6 +389,10 @@ private struct Fixture {
     /// A lehajtó helye a fő útvonal mentén, ha az ajánlat az 1000 m-es pozíción érkezik.
     var exitAlong: Double { 1000 + firstNewManeuver(main, alt)!.distanceM }
 }
+
+/// A Budapest→Győr alternatívája ennyi nyereséggel „Lehet” (a 7,3 km-es kerülő ára ~2,3 perc), 130 s-mal „Nem éri meg”.
+private let MAYBE_GAIN_S = 240.0
+private let NOT_GAIN_S = 130.0
 
 @Suite("alternatíva-figyelés")
 @MainActor
@@ -428,8 +433,8 @@ struct AlternativeTests {
         #expect(await offerWith(600 - 108, 600) == nil)
     }
 
-    private func measuringOn(_ sectionToM: Double) async throws -> (Harness, Fixture) {
-        let f = try Fixture()
+    private func measuringOn(_ sectionToM: Double, gainS: Double = 600) async throws -> (Harness, Fixture) {
+        let f = try Fixture(gainS: gainS)
         let h = Harness(f.main)
         h.session.setData(EnforcementData(sections: [f.sectionOn(400, sectionToM)]))
         h.respond([f.main, f.alt])
@@ -519,9 +524,10 @@ struct AlternativeTests {
         #expect(h.session.view().offer != nil)
     }
 
-    @Test("bemondás Waze-mintára: azonnal, majd 500 m-nél még egyszer")
+    @Test("bemondás Waze-mintára („Lehet”): azonnal, majd 500 m-nél még egyszer")
     func waze() async throws {
-        let (h, f) = try await measuringOn(70_000)
+        let (h, f) = try await measuringOn(70_000, gainS: MAYBE_GAIN_S)
+        #expect(h.session.view().offer?.verdict == .maybe)
         let exitAlong = 1000 + firstNewManeuver(f.main, f.alt)!.distanceM
         #expect(h.session.drainVoice().filter { $0.kind == .faster }.count == 1)
         h.feed(f.fix(exitAlong - 2000, T0 + 125_000))
@@ -533,9 +539,9 @@ struct AlternativeTests {
         #expect(h.session.drainVoice().filter { $0.kind == .faster }.isEmpty)
     }
 
-    @Test("a lehajtót 50 m-rel elhagyva az ajánlat eltűnik")
+    @Test("a lehajtót 50 m-rel elhagyva az ajánlat eltűnik („Lehet”)")
     func elhagyva() async throws {
-        let (h, f) = try await measuringOn(70_000)
+        let (h, f) = try await measuringOn(70_000, gainS: MAYBE_GAIN_S)
         let exitAlong = 1000 + firstNewManeuver(f.main, f.alt)!.distanceM
         h.feed(f.fix(exitAlong - 100, T0 + 130_000))
         #expect(h.session.view().offer != nil)
@@ -567,6 +573,42 @@ struct AlternativeTests {
         #expect(h.session.view().route.id == "alt2")
         #expect(h.session.view().routeVersion > version)
         #expect(h.session.view().offer == nil)
+    }
+
+    @Test("AW17: a „Megéri” ajánlat a lehajtó előtt 500 m-en belül magától elfogad, a 45 s kivárása nélkül; a hang a kézi elfogadásé")
+    func autoValtas() async throws {
+        let (h, f) = try await measuringOn(70_000)
+        #expect(h.session.view().offer?.verdict == .worth)
+        let exitAlong = 1000 + firstNewManeuver(f.main, f.alt)!.distanceM
+        h.feed(f.fix(exitAlong - 600, T0 + 125_000))
+        #expect(h.session.view().offer != nil)
+        _ = h.session.drainVoice()
+        // 10 s-mal az ajánlat után (a 45 s-ból még bőven van), 450 m-rel a lehajtó előtt
+        let v = h.feed(f.fix(exitAlong - 450, T0 + 130_000))
+        #expect(v.offer == nil)
+        #expect(v.route.id == "alt")
+        let auto = h.session.drainVoice()
+        // nincs külön „Gyorsabb út, lehajtó 500 méternél”: a váltás után az új útvonal szól, mint kézi elfogadásnál
+        #expect(!auto.contains { $0.kind == .faster })
+        let (mh, mf) = try await measuringOn(70_000)
+        mh.feed(mf.fix(exitAlong - 600, T0 + 125_000))
+        _ = mh.session.drainVoice()
+        mh.session.acceptOffer()
+        mh.feed(mf.fix(exitAlong - 450, T0 + 130_000))
+        let manual = mh.session.drainVoice()
+        #expect(auto.map { "\($0.kind)|\($0.text)" } == manual.map { "\($0.kind)|\($0.text)" })
+    }
+
+    @Test("AW17: „Lehet” és „Nem éri meg” ajánlatnál 500 m-en belül sincs automatikus váltás")
+    func nincsAutoValtas() async throws {
+        for (gainS, verdict) in [(MAYBE_GAIN_S, AltVerdict.maybe), (NOT_GAIN_S, AltVerdict.not)] {
+            let (h, f) = try await measuringOn(70_000, gainS: gainS)
+            #expect(h.session.view().offer?.verdict == verdict, "\(verdict)")
+            let exitAlong = 1000 + firstNewManeuver(f.main, f.alt)!.distanceM
+            let v = h.feed(f.fix(exitAlong - 300, T0 + 130_000))
+            #expect(v.offer?.verdict == verdict, "\(verdict)")
+            #expect(v.route.id == f.main.id, "\(verdict)")
+        }
     }
 
     @Test("a le nem kezelt ajánlat lejár")
@@ -1091,7 +1133,7 @@ struct AltLabelTests {
         #expect(divergenceAlongM(main, main) == nil)
     }
 
-    @Test("címke csak az alternatíván, a leágazás után ~300 m-rel, a kártya menetidejével számolva")
+    @Test("címke csak az alternatíván, horgony a saját szakasz legtávolabbi pontján, a kártya menetidejével számolva")
     func cimkeHelye() throws {
         let routes = try fixtureRoutes()
         let labels = altLabels(routes, [3600, 3660], 0, lang: .hu)
@@ -1101,9 +1143,17 @@ struct AltLabelTests {
         #expect(l.index == 1)
         #expect(l.deltaS == 60)
         #expect(l.text == "+1 perc")
-        let p = coreRoute(routes[1])!.project(l.at)
-        #expect(p.crossM < 1)
-        #expect(close(p.alongM - divergenceAlongM(routes[0], routes[1])!, ALT_LABEL_AFTER_M, -1))
+        let a = coreRoute(routes[1])!
+        let core = coreRoute(routes[0])!
+        // a horgony az alternatíván van, a saját szakaszán, és onnan a legmesszebb van a kiválasztottól
+        #expect(a.project(l.at).crossM < 1)
+        #expect(l.own.count > 10)
+        let far = core.project(l.at).crossM
+        for p in l.own { #expect(core.project(p).crossM <= far + 1e-6) }
+        #expect(far > 1000)
+        // a saját szakasz minden pontja a kiválasztott sávján kívül van; a leágazás az alternatíván
+        for p in l.own { #expect(core.project(p).crossM > ROUTE_MATCH_M) }
+        #expect(close(a.project(l.divergence).alongM, divergenceAlongM(routes[0], routes[1])!, 0))
     }
 
     @Test("kiválasztás-váltás: az érintett alternatíva lesz a kiválasztott, a címke a másikra kerül, előjelet vált")
@@ -1358,20 +1408,27 @@ struct WorthVoiceTests {
 
 @Suite("AW13: kétsoros kompakt ajánlat")
 struct CompactOfferTests {
-    @Test("„Kijárat 56” / „2,1 km · −7 perc”; név nélkül „Lehajtó 2,1 km-nél” / „−7 perc”; ismeretlen lehajtónál a cím")
-    func ketSor() {
+    @Test("AW17: „Kijárat 56 · 2,5 km · −7 perc gyorsabb”; név nélkül „Lehajtó 2,5 km-nél · −7 perc gyorsabb”; ismeretlen lehajtónál a cím")
+    func egySor() {
         let title = "Megéri · −7 perc, +4 km"
-        let lines = { (gainS: Double, exitAlongM: Double?, exitName: String?, lang: Lang) in
-            altOfferCompactLines(title: title, gainS: gainS, exitAlongM: exitAlongM, exitName: exitName, exitKm: "2,1", lang: lang)
-        }
         let gain = 7.0 * 60 + 10
-        #expect(lines(gain, 12_000, "Kijárat 56", .hu) == ("Kijárat 56", "2,1 km · −7 perc"))
-        #expect(lines(gain, 12_000, nil, .hu) == ("Lehajtó 2,1 km-nél", "−7 perc"))
-        #expect(lines(gain, 12_000, "", .hu) == ("Lehajtó 2,1 km-nél", "−7 perc"))
-        #expect(lines(gain, nil, "Kijárat 56", .hu) == (title, nil))
-        #expect(lines(20, 12_000, "Kijárat 56", .hu).1 == "2,1 km · −1 perc")
+        let lines = { (gainS: Double, exitAlongM: Double?, exitName: String?, lang: Lang) in
+            altOfferCompactLines(title: title, gainS: gainS, exitAlongM: exitAlongM, exitName: exitName, exitKm: "2,5", lang: lang)
+        }
+        let text = { (exitAlongM: Double?, exitName: String?, lang: Lang) in
+            altOfferCompactText(title: title, gainS: gain, exitAlongM: exitAlongM, exitName: exitName, exitKm: "2,5", lang: lang)
+        }
+        #expect(lines(gain, 12_000, "Kijárat 56", .hu) == ("Kijárat 56", "2,5 km · −7 perc gyorsabb"))
+        #expect(text(12_000, "Kijárat 56", .hu) == "Kijárat 56 · 2,5 km · −7 perc gyorsabb")
+        #expect(text(12_000, nil, .hu) == "Lehajtó 2,5 km-nél · −7 perc gyorsabb")
+        #expect(text(12_000, "", .hu) == "Lehajtó 2,5 km-nél · −7 perc gyorsabb")
+        #expect(text(nil, "Kijárat 56", .hu) == title)
+        #expect(lines(20, 12_000, "Kijárat 56", .hu).1 == "2,5 km · −1 perc gyorsabb")
+        // a „gyorsabb” szó mind a 6 nyelven ott van
+        let faster: [Lang: String] = [.hu: "gyorsabb", .en: "faster", .de: "schneller", .sk: "rýchlejšie", .cs: "rychleji", .pl: "szybciej"]
         for lang in Lang.allCases {
-            #expect(matches(lines(gain, 12_000, "Kijárat 56", lang).1, #"^2,1 km · −7 \S+$"#), "\(lang)")
+            #expect(matches(text(12_000, "Kijárat 56", lang), "^Kijárat 56 · 2,5 km · −7 \\S+ ?\(faster[lang]!)$"), "\(lang)")
+            #expect(text(12_000, nil, lang).contains(faster[lang]!), "\(lang)")
         }
     }
 }
@@ -1683,3 +1740,205 @@ struct ManualPillTests {
         #expect(manualPillTick(s, active: true, space: false, now: 5000)?.collapsed == true)
     }
 }
+
+// MARK: AW17 – elrendezés, „Utána” 5 km-en belül, tábla és mérés, Beállítások
+
+@Suite("AW17: elrendezés, „Utána” 5 km-en belül, tábla és mérés, Beállítások")
+@MainActor
+struct AW17LayoutTests {
+    @Test("az „Utána” sor csak akkor, ha a következő manőver 5 km-en belül van")
+    func utana5km() throws {
+        let main = try fixtureRoutes()[0]
+        let core = coreRoute(main)!
+        // egy 5 km-nél hosszabb lépés, amely után még jön manőver (az autópálya-szakasz)
+        let step = try #require(main.steps.enumerated().first { $0.element.distanceM > NAV_CONFIG.thenWithinM + 1000 && $0.offset + 2 < main.steps.count }?.element)
+        func fix(_ alongM: Double, _ t: Double) -> GpsFix {
+            let p = core.pointAt(alongM)
+            return GpsFix(lat: p.lat, lon: p.lon, timestamp: t, speed: 25, accuracy: 5, heading: nil)
+        }
+        let h = Harness(main)
+        let endM = step.startM + step.distanceM
+        let far = h.feed(fix(endM - NAV_CONFIG.thenWithinM - 500, T0))
+        #expect(far.next.distanceM > NAV_CONFIG.thenWithinM)
+        #expect(far.then == nil)
+        let near = h.feed(fix(endM - NAV_CONFIG.thenWithinM + 500, T0 + 1000))
+        #expect(near.next.distanceM <= NAV_CONFIG.thenWithinM)
+        #expect(near.then != nil)
+    }
+
+    @Test("alsó sáv: mérés közben nincs benne sebesség (a mérőkártya „most” mezője mutatja), máskor van")
+    func alsoSavSebesseg() {
+        #expect(!navBottomShowsSpeed(.meres))
+        for phase in [SessionPhase.nincsSzakasz, .kozeledik, .befejezve, .megszakadt, .kezi, .keziEredmeny] {
+            #expect(navBottomShowsSpeed(phase), "\(phase)")
+        }
+    }
+
+    @Test("alsó sáv km/h: piros, ha a kijelzett sebesség a bal alsó tábla limitje fölött van; limit nélkül soha")
+    func pirosKmh() {
+        #expect(navSpeedOver(111, 110))
+        #expect(!navSpeedOver(110.4, 110))
+        #expect(navSpeedOver(110.5, 110))
+        #expect(!navSpeedOver(110, 110))
+        #expect(!navSpeedOver(150, nil))
+        #expect(!navSpeedOver(nil, 50))
+    }
+
+    @Test("mérés + ajánlat egyszerre: a mérőkártya egysoros; ajánlat nélkül vagy mérésen kívül teljes")
+    func egysorosMero() {
+        #expect(navMeterCompact(.meres, offer: true))
+        #expect(!navMeterCompact(.meres, offer: false))
+        #expect(!navMeterCompact(.kozeledik, offer: true))
+        #expect(!navMeterCompact(.befejezve, offer: true))
+    }
+
+    @Test("szakaszon belüli alacsonyabb Mapbox-tábla (110) nem változtatja a mérés határát (130) – csak a bal alsó tábla követi")
+    func tablaEsMeres() {
+        let route = lineRoute(lengthM: 10_000, durationS: 300, limit: 110)
+        let section = makeSection(route, 1000, 9000, limit: 130)
+        let h = Harness(route)
+        h.session.setData(EnforcementData(sections: [section]))
+        let measure = TrackingSession([section], now: { [h] in h.t })
+        let v120 = 120 / 3.6
+        var nav = h.feed(at(route, 0, 0, T0, speed: v120))
+        var meter = measure.onFix(at(route, 0, 0, T0, speed: v120))
+        for s in 1...150 {
+            let fix = at(route, Double(s) * v120, 0, T0 + Double(s) * 1000, speed: v120)
+            nav = h.feed(fix)
+            meter = measure.onFix(fix)
+        }
+        // a navigáció táblája a Mapbox-limit (110), a mérés a szakasz határával (130) számol
+        #expect(nav.limitKmh == 110)
+        #expect(nav.enforcement.first { $0.kind == .section }?.limitKmh == 130)
+        #expect(meter.phase == .meres)
+        #expect(meter.section?.speedLimitKmh == 130)
+        #expect(close(meter.live?.averageKmh, 120, 0))
+        #expect(meter.status == .jo)
+        // 120 > 110: az alsó sáv piros (csak a tábla követi), a mérés állapota jó (130 alatt)
+        #expect(navSpeedOver(meter.currentKmh, nav.limitKmh))
+    }
+
+    @Test("Beállítások: a hang elérhetősége zárójelben a „Hangos utasítások” leírásának végén")
+    func hangInfo() {
+        #expect(voiceInstructionsHint(.ok, lang: .hu) == "Fordulók, szakaszellenőrzés és „túl gyors” bemondása (Van hang ehhez a nyelvhez)")
+        #expect(matches(voiceInstructionsHint(.missing, lang: .hu), #"^Fordulók, .* \(Ehhez a nyelvhez nincs hang az eszközön – .*\)$"#))
+        #expect(matches(voiceInstructionsHint(.unsupported, lang: .hu), #"\(A böngésző nem tud beszélni\)$"#))
+        #expect(!L10nKey.allCases.map(\.rawValue).contains("settings.voice"))
+        #expect(voiceInstructionsHint(.ok, lang: .en) == "Spoken turns, section checks and “too fast” warnings (A voice is available for this language)")
+    }
+}
+
+@Suite("AW17: az útvonalválasztó „+N perc” címkéjének helye (képernyő-pixelben)")
+struct AW17LabelTests {
+    private let VP = (w: 390.0, h: 844.0)
+    private let LABEL = (w: 72.0, h: 30.0)
+
+    private func dist(_ p: Px, _ line: [Px]) -> Double {
+        var d = Double.infinity
+        for i in 0..<(line.count - 1) {
+            let a = line[i], b = line[i + 1]
+            let len2 = pow(b.x - a.x, 2) + pow(b.y - a.y, 2)
+            let u = len2 == 0 ? 0 : max(0, min(1, ((p.x - a.x) * (b.x - a.x) + (p.y - a.y) * (b.y - a.y)) / len2))
+            d = min(d, hypot(p.x - (a.x + u * (b.x - a.x)), p.y - (a.y + u * (b.y - a.y))))
+        }
+        return d
+    }
+
+    private func boxDist(_ p: Px, _ b: LabelBox) -> Double {
+        hypot(p.x - max(b.x, min(p.x, b.x + b.w)), p.y - max(b.y, min(p.y, b.y + b.h)))
+    }
+
+    private func pts(_ xy: [(Double, Double)], dy: Double = 0) -> [Px] { xy.map { Px(x: $0.0, y: $0.1 + dy) } }
+
+    @Test("szintetikus: a horgony a legtávolabbi pont, a címke tőle elfelé (fölé), vonalat nem takar")
+    func szintetikusFole() throws {
+        let base = pts([(0, 500), (400, 500)])
+        let alt = pts([(0, 500), (100, 500), (100, 300), (200, 280), (300, 300), (300, 500), (400, 500)])
+        let own = pts([(100, 400), (100, 300), (150, 290), (200, 280), (250, 290), (300, 300), (300, 400)])
+        let p = try #require(placeAltLabel(own: own, base: base, alt: alt, divergence: Px(x: 100, y: 500), label: (60, 28), viewport: (400, 800)))
+        #expect(p.anchor == Px(x: 200, y: 280))
+        #expect(p.side == .above)
+        #expect(p.box == LabelBox(x: 170, y: 280 - ALT_LABEL_PLACE.gapPx - 28, w: 60, h: 28))
+    }
+
+    @Test("szintetikus: ha a legtávolabbi pont mellett minden oldal a célt takarná, a következő legtávolabbi a horgony")
+    func szintetikusCel() throws {
+        // a kiválasztott a (300,500)-nál ér véget (cél); az alternatíva legtávolabbi pontja a cél-jelölőn van (30 px-rel
+        // fölötte): bármelyik oldalra kerülne, a jelölőt takarná
+        let base = pts([(0, 500), (300, 500)])
+        let alt = pts([(0, 500), (100, 500), (150, 515), (300, 470), (300, 500)])
+        let own = pts([(150, 515), (300, 470)])
+        let p = try #require(placeAltLabel(own: own, base: base, alt: alt, divergence: Px(x: 100, y: 500), label: (60, 28), viewport: (400, 800)))
+        #expect(p.anchor == Px(x: 150, y: 515))
+        #expect(boxDist(Px(x: 300, y: 500), p.box) >= ALT_LABEL_PLACE.divergenceClearPx)
+    }
+
+    @Test("szintetikus: a képernyő szélén nem lóg ki, ha máshová kifér; ha sehová, rálóghat")
+    func szintetikusSzel() throws {
+        let base = pts([(0, 500), (400, 500)], dy: -260)
+        let alt = pts([(0, 500), (100, 500), (100, 300), (200, 280), (300, 300), (300, 500), (400, 500)], dy: -260)
+        let own = pts([(100, 300), (200, 280), (300, 300)], dy: -260)
+        let p = try #require(placeAltLabel(own: own, base: base, alt: alt, divergence: Px(x: 100, y: 240), label: (60, 28), viewport: (400, 800)))
+        #expect(p.anchor == Px(x: 200, y: 20))
+        #expect(p.side != .above)
+        #expect(p.box.y >= 0)
+        // apró nézet: sehová sem fér ki – akkor is van hely (rálóg)
+        #expect(placeAltLabel(own: own, base: base, alt: alt, divergence: Px(x: 100, y: 240), label: (60, 28), viewport: (40, 40)) != nil)
+        #expect(placeAltLabel(own: [], base: base, alt: alt, divergence: Px(x: 100, y: 240), label: (60, 28), viewport: (400, 800)) == nil)
+    }
+
+    @Test("Budapest→Győr, M19 kiválasztva, címke a Győr-belvárosi alternatíván: nem takarja a leágazást és a célt, a saját szakasz legtávolabbi része mellett")
+    func budapestGyorM19() throws { try fixtureCase(0) }
+
+    @Test("Budapest→Győr, Győr-belváros kiválasztva, címke az M19-es alternatíván: nem takarja a leágazást és a célt, a saját szakasz legtávolabbi része mellett")
+    func budapestGyorBelvaros() throws { try fixtureCase(1) }
+
+    /// A két Budapest→Győr eset közös törzse.
+    private func fixtureCase(_ selected: Int) throws {
+        let routes = try fixtureRoutes()
+        let l = try #require(altLabels(routes, routes.map(\.durationS), selected).first)
+        let all = routes.flatMap(\.points)
+        let lat = all.map(\.lat), lon = all.map(\.lon)
+        let center = LatLon(lat: (lat.min()! + lat.max()!) / 2, lon: (lon.min()! + lon.max()!) / 2)
+        // a nézet, mint az útvonalválasztóban: felül 120, alul 400 (a kártya), oldalt 36 px
+        let pad = (top: 120.0, bottom: 400.0, side: 36.0)
+        let area = (w: VP.w, h: VP.h - pad.bottom)
+        let shiftY = (pad.top - pad.bottom) / 2
+        func project(_ p: LatLon, _ z: Double) -> Px {
+            let q = mercatorScreen(p, center: center, zoom: z, viewport: VP)
+            return Px(x: q.x, y: q.y + shiftY)
+        }
+        func fits(_ z: Double) -> Bool {
+            all.allSatisfy { p in
+                let q = project(p, z)
+                return q.x >= pad.side && q.x <= VP.w - pad.side && q.y >= pad.top && q.y <= VP.h - pad.bottom
+            }
+        }
+        var zoom = 12.0
+        while !fits(zoom) { zoom -= 0.05 }
+        let base = l.basePath.map { project($0, zoom) }
+        let alt = l.altPath.map { project($0, zoom) }
+        let own = l.own.map { project($0, zoom) }
+        let divergence = project(l.divergence, zoom)
+        let p = try #require(placeAltLabel(own: own, base: base, alt: alt, divergence: divergence, label: LABEL, viewport: area))
+        // a horgony a saját szakasz pontja, a legtávolabbi közelében (legalább 80%-a) azok közül, amelyek mellett van a
+        // leágazástól és a céltól szabad oldal
+        let far = dist(p.anchor, base)
+        #expect(own.contains(p.anchor))
+        let clear = ALT_LABEL_PLACE.divergenceClearPx + ALT_LABEL_PLACE.gapPx + LABEL.h
+        let dest = base.last!
+        let free = own.filter { hypot($0.x - divergence.x, $0.y - divergence.y) >= clear && hypot($0.x - dest.x, $0.y - dest.y) >= clear }
+        #expect(far >= 0.8 * (free.map { dist($0, base) }.max() ?? 0))
+        // a leágazást nem takarja, a horgony mellett van (rés), a képernyőn belül
+        #expect(boxDist(divergence, p.box) >= ALT_LABEL_PLACE.divergenceClearPx)
+        #expect(boxDist(dest, p.box) >= ALT_LABEL_PLACE.divergenceClearPx)
+        // a cél-jelölő (alsó csúcsával a célon) dobozát sem takarja
+        let pin = ALT_LABEL_PLACE.destPinPx
+        #expect(!(p.box.x < dest.x + pin / 2 && p.box.x + p.box.w > dest.x - pin / 2 && p.box.y < dest.y && p.box.y + p.box.h > dest.y - pin))
+        #expect(close(boxDist(p.anchor, p.box), ALT_LABEL_PLACE.gapPx, 6))
+        #expect(p.box.x >= 0)
+        #expect(p.box.x + p.box.w <= area.w)
+        #expect(p.box.y + p.box.h <= area.h)
+    }
+}
+

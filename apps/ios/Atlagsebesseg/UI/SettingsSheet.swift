@@ -1,3 +1,4 @@
+import AVFoundation
 import AtlagsebessegCore
 import SwiftUI
 
@@ -84,8 +85,10 @@ struct SettingsSheet: View {
                         Text(t(.iosSettingsAlertModeHint)).font(.footnote).foregroundStyle(Tokens.Colors.textMuted)
                         // A11: a navigáció bemondásai (fordulók, szakaszellenőrzés, „túl gyors”, gyorsabb út)
                         Toggle(t(.settingsVoiceInstructions), isOn: $model.settings.hangosUtasitasok)
-                        Text(t(.settingsVoiceInstructionsHint)).font(.footnote).foregroundStyle(Tokens.Colors.textMuted)
+                        // AW17: a hang elérhetősége zárójelben a leírás végén (mint a weben; külön „Hang” sor nincs)
+                        Text(voiceInstructionsHint(voiceAvailability)).font(.footnote).foregroundStyle(Tokens.Colors.textMuted)
                     }
+                    .id(Self.voiceAnchor)
                     SwiftUI.Section(t(.settingsGroupPlaces)) {
                         slotRow(t(.navPlaceHome), model.saved.home, .home)
                         slotRow(t(.navPlaceWork), model.saved.work, .work)
@@ -127,8 +130,12 @@ struct SettingsSheet: View {
                 }
                 .scrollContentBackground(.hidden)
                 .onAppear {
-                    // `-settingsOpen language`: a nyelvválasztóhoz görget (a képernyőképhez)
-                    if UserDefaults.standard.string(forKey: "settingsOpen") == "language" { scroll.scrollTo(Self.languageAnchor, anchor: .top) }
+                    // `-settingsOpen language|voice`: a nyelvválasztóhoz / a hangos utasításokhoz görget (a képernyőképhez)
+                    switch UserDefaults.standard.string(forKey: "settingsOpen") {
+                    case "language": scroll.scrollTo(Self.languageAnchor, anchor: .top)
+                    case "voice": scroll.scrollTo(Self.voiceAnchor, anchor: .top)
+                    default: break
+                    }
                 }
                 // a mentett hely keresője a lap fölött; bezárva (választás vagy mégse) a lap ugyanott marad
                 .fullScreenCover(isPresented: Binding(get: { model.placeSearchOpen }, set: { if !$0 { model.closeSearch() } })) {
@@ -179,9 +186,15 @@ struct SettingsSheet: View {
     }
 
     private static let languageAnchor = "language"
+    private static let voiceAnchor = "voice"
 
     /// A választott nyelv (`nil`: automatikus); azonnal érvényes, a feliratok újrarajzolódnak.
     /// A sor értéke: a választott nyelv zászlóval és saját nevével, vagy „Automatikus (készülék nyelve)”.
+    /// Van-e a készüléken felolvasó hang az app nyelvén (az `AlertPlayer` ugyanígy választ hangot).
+    private var voiceAvailability: VoiceAvailability {
+        AVSpeechSynthesisVoice(language: L10n.lang.locale.identifier.replacingOccurrences(of: "_", with: "-")) != nil ? .ok : .missing
+    }
+
     private var languageSummary: String {
         if let l = LangChoice.shared.preference { return languageMenu().first { $0.lang == l }?.label ?? l.nativeName }
         return "\(t(.settingsLanguageAuto)) (\(L10n.systemLang.nativeName))"

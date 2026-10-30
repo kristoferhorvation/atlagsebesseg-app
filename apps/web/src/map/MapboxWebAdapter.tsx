@@ -2,7 +2,7 @@ import type { FeatureCollection, LineString, MultiLineString, MultiPolygon, Poly
 import mapboxgl, { type GeoJSONSource, type Map as MbMap } from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { useEffect, useRef } from 'react';
-import { mapTheme, MapStore, NAV_FOLLOW, navFollowZoom, type LightPreset, type MapLook } from '@atlagsebesseg/app-logic';
+import { mapTheme, MapStore, NAV_FOLLOW, navFollowZoom, placeAltLabel, type LightPreset, type MapLook } from '@atlagsebesseg/app-logic';
 import { bearingDeg, haversineM, LocalProjection, type GpsFix, type LatLon, type Section } from '@atlagsebesseg/core';
 import { color } from '@atlagsebesseg/design-tokens';
 import { iconSvg } from '../ui/Icon';
@@ -158,7 +158,11 @@ class MapController {
   private destMarker: mapboxgl.Marker | null = null;
   private readonly pins = new Map<string, { marker: mapboxgl.Marker; el: HTMLButtonElement; key: string }>();
   private readonly cams = new Map<string, { marker: mapboxgl.Marker; el: HTMLButtonElement; key: string }>();
-  private readonly routeLabels = new Map<string, { marker: mapboxgl.Marker; el: HTMLButtonElement }>();
+  private readonly routeLabels = new Map<string, { marker: mapboxgl.Marker; el: HTMLButtonElement; label: NonNullable<MapRoute['label']> }>();
+  /** AW17: a címkék újrahelyezése mozgáskor, képkockánként legfeljebb egyszer. */
+  private labelRaf = 0;
+  /** Az útvonalválasztó alsó kártyája ennyit takar (px) – a címke e fölött számol látható területtel. */
+  private labelPadBottom = 0;
 
   constructor(
     container: HTMLElement,
@@ -207,6 +211,10 @@ class MapController {
     this.map.on('movestart', this.onUserMove);
     this.map.on('move', this.onUserMove);
     this.map.on('moveend', this.onMoveEnd);
+    this.map.on('move', this.queueLabelPlacement);
+    // a mozgás végén mindig (ha a képkocka-ütem ritka – háttérlap, headless –, a rAF-os újrahelyezés késhet)
+    this.map.on('moveend', () => this.placeRouteLabels());
+    this.map.on('resize', this.queueLabelPlacement);
     this.map.on('click', () => this.handlers.onReportTap(null));
     this.map.on('click', 'route-alt-hit', (e) => {
       // a közös szakaszon (a leágazás előtt) a kiválasztott vonal is ott van: ilyenkor nincs váltás
@@ -224,6 +232,7 @@ class MapController {
 
   destroy(): void {
     cancelAnimationFrame(this.raf);
+    cancelAnimationFrame(this.labelRaf);
     clearTimeout(this.viewTimer);
     this.unsubscribe();
     for (const p of this.pins.values()) p.marker.remove();
@@ -446,9 +455,10 @@ class MapController {
           this.handlers.onRouteTap(r.id);
         });
         const marker = new mapboxgl.Marker({ element: el, rotationAlignment: 'viewport', pitchAlignment: 'viewport' });
-        l = { marker, el };
+        l = { marker, el, label: r.label };
         this.routeLabels.set(r.id, l);
       }
+      l.label = r.label;
       l.el.dataset.routeId = r.id;
       l.el.firstElementChild!.textContent = r.label.text;
       l.el.setAttribute('aria-label', r.label.aria);
@@ -458,6 +468,46 @@ class MapController {
       if (keep.has(id)) continue;
       l.marker.remove();
       this.routeLabels.delete(id);
+    }
+    this.placeRouteLabels();
+  }
+
+  private queueLabelPlacement = (): void => {
+    if (this.routeLabels.size === 0 || this.labelRaf) return;
+    this.labelRaf = requestAnimationFrame(() => {
+      this.labelRaf = 0;
+      this.placeRouteLabels();
+    });
+  };
+
+  /**
+   * AW17: a címke a saját szakasz képernyőn legtávolabbi pontja mellé kerül (fölé / alá / balra / jobbra), nem takarja a
+   * leágazást, és a lehető legkevesebbet takar az útvonalakból (`placeAltLabel`, képernyő-pixelben, az aktuális zoomon).
+   * A jelölő a buborék közepére kerül (a buborék mérete a DOM-ból).
+   */
+  private placeRouteLabels(): void {
+    if (this.routeLabels.size === 0) return;
+    const c = this.map.getContainer();
+    const viewport = { w: c.clientWidth, h: Math.max(1, c.clientHeight - this.labelPadBottom) };
+    const proj = (p: LatLon) => {
+      const q = this.map.project([p.lon, p.lat]);
+      return { x: q.x, y: q.y };
+    };
+    for (const l of this.routeLabels.values()) {
+      const bubble = l.el.firstElementChild as HTMLElement;
+      const label = { w: bubble.offsetWidth || 64, h: bubble.offsetHeight || 28 };
+      const place = placeAltLabel({
+        own: l.label.own.map(proj),
+        base: l.label.basePath.map(proj),
+        alt: l.label.altPath.map(proj),
+        divergence: proj(l.label.divergence),
+        label,
+        viewport,
+      });
+      if (!place) continue;
+      const at = this.map.unproject([place.box.x + place.box.w / 2, place.box.y + place.box.h / 2]);
+      l.el.dataset.side = place.side;
+      l.marker.setLngLat(at);
     }
   }
 
@@ -514,6 +564,7 @@ class MapController {
     this.recenter = null;
     const b = new mapboxgl.LngLatBounds();
     for (const p of fit.points) b.extend([p.lon, p.lat]);
+    this.labelPadBottom = fit.padBottom;
     this.map.fitBounds(b, { padding: { top: fit.padTop, bottom: fit.padBottom, left: 36, right: 36 }, pitch: 0, bearing: 0, duration: 900, maxZoom: 15 });
   }
 

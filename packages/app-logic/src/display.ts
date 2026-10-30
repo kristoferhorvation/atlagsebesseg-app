@@ -13,6 +13,18 @@ export function speedStatus(averageKmh: number | null, projectedKmh: number | nu
   return meterState({ averageKmh, projectedKmh, speedLimitKmh: limitKmh });
 }
 
+/** A felolvasó hang elérhetősége az app nyelvén (a böngésző / a készülék szerint). */
+export type VoiceAvailability = 'ok' | 'missing' | 'unsupported';
+
+/**
+ * AW17: a „Hangos utasítások” sor leírása, a végén zárójeles info-mondattal a hang elérhetőségéről – a külön, nem
+ * kattintható „Hang (hangos utasítások)” sor megszűnt.
+ */
+export function voiceInstructionsHint(voice: VoiceAvailability): string {
+  const key: TKey = voice === 'ok' ? 'settings.voice.ok' : voice === 'missing' ? 'settings.voice.missing' : 'settings.voice.unsupported';
+  return `${t('settings.voiceInstructionsHint')} (${t(key)})`;
+}
+
 export const KMH_PER_MPH = 1.609344;
 
 /** km/h → a választott egységre, egészre kerekítve (`null` marad `null`). */

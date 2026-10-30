@@ -29,12 +29,18 @@ const straightPts = toLatLon(line({ x: 0, y: 0 }, { x: 0, y: 6000 }));
 const { geometry: _g, ...courseNoGeometry } = course.section;
 const straightSection: Section = { ...courseNoGeometry, id: 'S', start: straightPts[0]!, end: straightPts[straightPts.length - 1]!, lengthM: 6000 };
 
+/** AW17: 7 km-es egyenes (geometria nélküli) szakasz, 130-as határ – a „Maradj X alatt” / „várható” ellenőrzéséhez. */
+const straight7Pts = toLatLon(line({ x: 0, y: 0 }, { x: 0, y: 7000 }));
+const straight7Section: Section = { ...courseNoGeometry, id: 'S7', start: straight7Pts[0]!, end: straight7Pts[straight7Pts.length - 1]!, lengthM: 7000 };
+
 export interface SectionsFixture {
   origin: LatLon;
   leadInM: number;
   course: Section;
   second: Section;
   straight: Section;
+  /** AW17: 7 km-es egyenes szakasz (130). */
+  straight7: Section;
   /** Egy távoli kezdőpont (50 km keletre) a setSections-teszt „MASIK” szakaszához. */
   farStart: LatLon;
 }
@@ -45,6 +51,7 @@ export const SECTIONS: SectionsFixture = {
   course: course.section,
   second: secondSection,
   straight: straightSection,
+  straight7: straight7Section,
   farStart: toLatLon([{ x: 50_000, y: 0 }])[0]!,
 };
 
@@ -128,6 +135,11 @@ export const DRIVES: readonly DriveSpec[] = [
     name: 'straight-130',
     description: 'egyenes (geometria nélküli) szakasz, 130 km/h',
     options: () => ({ path: toLatLon(line({ x: 0, y: -2500 }, { x: 0, y: 7000 })), speedKmh: () => 130 }),
+  },
+  {
+    name: 'straight7-137-108',
+    description: 'AW17: 7 km-es egyenes szakasz, az első 5 km 137, utána 108 km/h',
+    options: () => ({ path: toLatLon(line({ x: 0, y: -2500 }, { x: 0, y: 9000 })), speedKmh: (s) => (s < 2500 + 5000 ? 137 : 108) }),
   },
   ...Array.from({ length: 20 }, (_, i): DriveSpec => {
     const seed = i + 1;

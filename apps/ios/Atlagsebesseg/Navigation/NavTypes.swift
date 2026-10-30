@@ -129,6 +129,8 @@ nonisolated struct NavConfig: Sendable {
     var enforcementBandM: Double
     /// Ekkora távolságtól jelezzük a közeledő szakaszt a felső kártyán (m).
     var enforcementWarnM: Double
+    /// AW17: az „Utána” sor csak akkor látszik, ha a következő manőver ennyin belül van (m).
+    var thenWithinM: Double
     /// Ekkora távolságtól mondjuk be a közeledő szakaszt (m).
     var enforcementVoiceM: Double
     /// A cél ennyire közel: megérkeztünk (m).

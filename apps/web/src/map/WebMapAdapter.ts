@@ -34,8 +34,11 @@ export interface MapRoute {
   id: string;
   selected: boolean;
   runs: { points: LatLon[]; level: 'normal' | 'moderate' | 'heavy' }[];
-  /** Alternatívánál a buborék a leágazás után (menetidő-különbség a kiválasztotthoz képest); egyébként `null`. */
-  label: { at: LatLon; text: string; aria: string } | null;
+  /**
+   * Alternatívánál a buborék (menetidő-különbség a kiválasztotthoz képest); egyébként `null`. AW17: a helye képernyő-
+   * pixelben, az aktuális zoomon számolódik (`placeAltLabel`) a saját szakaszból, a leágazásból és a két útvonalból.
+   */
+  label: { at: LatLon; text: string; aria: string; own: LatLon[]; divergence: LatLon; basePath: LatLon[]; altPath: LatLon[] } | null;
 }
 
 export interface MapFit {

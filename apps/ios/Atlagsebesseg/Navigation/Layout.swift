@@ -68,3 +68,23 @@ nonisolated func manualPillTap(_ s: ManualPillState, now: Double) -> ManualPillS
     }
     return n
 }
+
+/// AW17: navigáció közben az alsó sáv (sebesség · érkezés · hátralévő · Befejezés) mindig a képernyő alján van, a
+/// mérőkártya fölötte. Szakaszmérés közben a pillanatnyi sebesség kikerül a sávból – a mérőkártya „most” mezője mutatja;
+/// a kézi mérés kártyáján nincs „most”, ott marad.
+nonisolated func navBottomShowsSpeed(_ phase: SessionPhase) -> Bool {
+    phase != .meres
+}
+
+/// AW17: az alsó sáv km/h-ja piros, ha a (kijelzett, egészre kerekített) pillanatnyi sebesség a bal alsó tábla limitje
+/// fölött van. Csak szín – hang, rezgés, értesítés nincs. Limit vagy sebesség nélkül nem piros.
+nonisolated func navSpeedOver(_ currentKmh: Double?, _ signKmh: Double?) -> Bool {
+    guard let currentKmh, let signKmh else { return false }
+    return jsRound(currentKmh) > signKmh
+}
+
+/// AW17: mérés + „Gyorsabb út” ajánlat egyszerre: a mérőkártya nagy átlag-száma egysorosra zsugorodik (átlag
+/// státusz-színnel + „most / várható” + tábla egy sorban), hogy az ajánlat elférjen; az ajánlat eltűnése után visszanő.
+nonisolated func navMeterCompact(_ phase: SessionPhase, offer: Bool) -> Bool {
+    phase == .meres && offer
+}

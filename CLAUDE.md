@@ -88,8 +88,8 @@ Gyökér: `npm test` és `npm run typecheck` minden csomagra; `npm run test:all`
   pill iOS-en nincs); érintésre teljes szélességű keresőmező nyílik a térkép tetején (billentyűzet, mentett címek
   chip-sora, az utolsó 10 cím), alul nincs kereső (Kristof, 2026-10-29). **Alternatív útvonal (AW11, AOS12-ben portolva):**
   a kiválasztott `route` 7 pt + 2 × 2 pt `routeCasing`, az alternatíva 5 pt `routeAltDay`/`routeAltNight` + 1,5 pt
-  kontúr (nappal / hajnal 55/45 sötét, éjjel / alkony 70/30 világos), „+/− perc” címke a leágazás után 300 m-rel
-  (`altLabels`), érintésre (vonal vagy címke) arra vált. Mérés közben a mérőkártya a fő,
+  kontúr (nappal / hajnal 55/45 sötét, éjjel / alkony 70/30 világos), „+/− perc” címke (`altLabels`; AW17 óta a helye
+  képernyő-pontban számolt, lásd lent), érintésre (vonal vagy címke) arra vált. Mérés közben a mérőkártya a fő,
   a navigációs lépés egysoros sáv fölötte; a „Lassíts” sáv e fölé kerül. **AOS13 (weben és iOS-en):** az alsó
   kártya-csoport soha nem ér a felső lépés-kártya alá – ha a teljes kártya (+ 12 pt) nem fér ki, a lépés mérésen kívül is
   egysoros sáv (`navStepStrip`, `navigation/layout.ts` / `Navigation/Layout.swift`; a rejtett kártyát is mérjük, az alsó
@@ -211,6 +211,29 @@ Gyökér: `npm test` és `npm run typecheck` minden csomagra; `npm run test:all`
     utasításoknál) „Szia Kristof, indulhatunk!” / „Szia, indulhatunk!” (`greetingVoice`, az indulási utasítás előtt); kézi
     mérésnél nincs. 6 nyelv, a hang az app nyelvén.
   - **Paritási tartozás (iOS):** a fix kamera koppintásos kártyája (webes `CameraCard`) iOS-en még nincs (az AOS14 előtti hiány).
+- **AW17 (Kristof, 2026-10-30), weben és iOS-en kész:**
+  - **Elrendezés navigáció közben:** az alsó sáv (`NavBottom` / `NavBottomBar`) mindig a képernyő alján, a mérőkártya és minden
+    más kártya fölötte; szakaszmérés közben sebesség nélkül (`navBottomShowsSpeed`), a km/h piros, ha a bal alsó tábla
+    (Mapbox-limit, `nav.limitKmh`) fölött van (`navSpeedOver`, csak szín). Mérés + ajánlat: egysoros mérőkártya
+    (`navMeterCompact`). A külön kerek „Befejezés” gomb megszűnt (a sávban mindig ott van). Mivel a közeledés-kártya is az alsó sáv
+    fölé kerül, a lépés-sáv (`navStepStrip`) már a mérés előtt is megjelenhet, ha a teljes felső kártya nem fér ki.
+  - **Ajánlat:** kompakt szöveg „Kijárat 56 · 2,5 km · −7 perc gyorsabb” (`altOfferCompactText`, `nav.offer.compactDetail` /
+    `nav.offer.compactFaster`, 6 nyelv). **Auto-váltás:** „Megéri” ajánlatnál a lehajtó 500 m-en belül (`ALT_OFFER.autoSwitchExitM`)
+    azonnal elfogad, nem várja ki a 45 s-ot; „Lehet” / „Nem éri meg” esetén nincs. A hang a kézi elfogadásé – külön elfogadás-
+    bemondás nincs a kódban: az új útvonal következő manőver-bemondása szól (ugyanabban a lépésben, mint kézi elfogadásnál), a
+    „lehajtó 500 méternél” ismétlés elmarad. A szimulátor lehajtója 400 → 800 m (különben a kártya azonnal eltűnne).
+  - **„Utána” sor** csak akkor, ha a következő manőver `NAV_CONFIG.thenWithinM` (5 km) belül van.
+  - **Útvonalválasztó címke:** `altLabels` a saját (nem közös) szakaszt (`own`), a leágazást, és a két ritkított útvonalat adja;
+    `placeAltLabel` (közös TS = Swift logika, képernyő-pontban): a (horgony, oldal) párok pontozása – soha nem takarja a leágazást
+    (12 px) és a cél-jelölőt (40 px-es doboz), kifér a képernyőre, a legkevesebb vonalat takarja, a horgony minél messzebb a
+    kiválasztottól (`6 · d`). Web: `map.project` a `move`/`moveend`-re; iOS: `proxy.map.points(for:)` a kamera-változásra.
+  - **Beállítások:** a külön „Hang (hangos utasítások)” sor (`settings.voice`) törölve; a hang elérhetősége zárójelben a „Hangos
+    utasítások” leírásának végén (`voiceInstructionsHint`; iOS-en `AVSpeechSynthesisVoice` szerint).
+  - **Mérés-függvény (core, ellenőrizve):** „Maradj X alatt” = `requiredSpeed` (a hátralévő úton ennyivel a kapunál pontosan a
+    határ az átlag), „várható” = `projectedAverageKmh` (a mostani sebességgel); a kettő nem mond ellent: várható ≤ határ ⇔ most ≤
+    Maradj. Példa (137 átlag, 130 határ, most 108, 2,0 / 7 km): Maradj **115**, várható **127** – a kód eddig is ezt adta.
+    Fixtúra: `straight7` szakasz + `straight7-137-108` vezetés (TS + Swift). A mérés határa mindig a szakaszé, a Mapbox-tábla csak
+    a bal alsó táblát és a piros km/h-t vezérli.
 - **Paritási tartozás (AW12 + AW13 → iOS) lezárva az AOS12-ben (2026-10-29):** a `NavigationTests.swift` újra a
   `navigation.test.ts` teljes párja (86 = 86 `it`, azonos névvel), a webes `navSim.test.ts` 6 esete a `SimTests.swift`-ben.
   A közös Budapest→Győr fixtúra **AOS13-ban teljesen újra felvéve** méteres hangegységgel (`voice_units=metric`, mindkét
@@ -221,7 +244,8 @@ Gyökér: `npm test` és `npm run typecheck` minden csomagra; `npm run test:all`
   (mint a webes `/?navsim`); `-navStage search|picker|nav` (és `-navQuery`) egy állapotba ugrik, a `-simSeek` az
   ugrás előtti utolsó ablak elejéről játszik le. A bemondások szimulátorban a naplóba is mennek (`NAV-VOICE`). AOS12:
   `-alt worth|maybe|not|aftergate|off` (a webes `?alt=`; az adat a generált navsim-fixtúrából: `sectionEndM`, `alts`),
-  `-geoHelp YES` (a tiltott-lap a képernyőképhez).
+  `-geoHelp YES` (a tiltott-lap a képernyőképhez). AW17: `-navPick N` (az útvonalválasztóban az N. útvonal kiválasztva),
+  `-settingsOpen voice` (a Beállítások a hangos utasításoknál).
 
 ## Web–iOS paritás (Kristof, 2026-10-30)
 - **A web a referencia:** minden webes funkció iOS-re is megy ugyanabban vagy a következő AOS-körben, kivéve a platformspecifikusat

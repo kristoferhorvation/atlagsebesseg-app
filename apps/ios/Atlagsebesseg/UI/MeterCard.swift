@@ -10,6 +10,8 @@ struct MeterCard: View {
     var onDismiss: () -> Void = {}
     /// Navigáció közben (AOS13) a mérés eredménye egy sor (`navResultCompact`; AW15: a kézi mérésé is).
     var compact = false
+    /// AW17: mérés + „Gyorsabb út” ajánlat egyszerre – a mérőkártya egy sor (`navMeterCompact`), hogy az ajánlat elférjen.
+    var meterCompact = false
     /// AW15: navigáció közben a kézi mérés teljes kártyája bökésre pillé zsugorodik (a Leállítás gomb kivételével).
     var onCollapseManual: (() -> Void)?
 
@@ -21,7 +23,7 @@ struct MeterCard: View {
     var body: some View {
         let tone = toneOf(view)
         switch view.phase {
-        case .meres: measuring(tone)
+        case .meres: if meterCompact { measuringCompact(tone) } else { measuring(tone) }
         case .kozeledik: approaching(tone)
         case .befejezve: if compact { finishedCompact(tone) } else { finished(tone) }
         case .megszakadt: interrupted(tone)
@@ -79,6 +81,36 @@ struct MeterCard: View {
             .fixedSize(horizontal: false, vertical: true)
             ProgressRow(value: view.progress ?? 0, label: dist(live.remainingM), tone: tone)
         }
+    }
+
+    /// AW17: egy sor – átlag a státusz színével, most · várható, tábla; az ajánlat eltűnése után visszanő.
+    private func measuringCompact(_ tone: Tone) -> some View {
+        let s = view.section!
+        let live = view.live!
+        return HStack(alignment: .center, spacing: Tokens.Space.s3) {
+            HStack(alignment: .firstTextBaseline, spacing: 4) {
+                Text(speedIn(live.averageKmh, unit).map(String.init) ?? "–")
+                    .font(.num(Tokens.Typography.title.size, 700))
+                    .tracking(Tokens.Typography.title.trackingPt)
+                    .foregroundStyle(tone.color)
+                Text(u).font(.inter(Tokens.Typography.body.size, 560)).foregroundStyle(Tokens.Colors.textMuted)
+            }
+            .lineLimit(1)
+            .fixedSize()
+            Spacer(minLength: 0)
+            MeterFigure(label: t(.hudNow), value: speedIn(view.currentKmh, unit), over: (view.currentKmh ?? 0) > s.speedLimitKmh, size: 28)
+            Text("·").font(.inter(24, 600)).foregroundStyle(Tokens.Colors.textFaint).accessibilityHidden(true)
+            MeterFigure(label: t(.hudExpected), value: speedIn(live.projectedKmh, unit), over: false, size: 28)
+            LimitSign(kmh: s.speedLimitKmh, unit: unit, small: true)
+        }
+        .frame(minHeight: 48)
+        .padding(.vertical, Tokens.Space.s3)
+        .padding(.horizontal, Tokens.Space.s5)
+        .background(CardBackground(tone: tone, glow: 0.1))
+        .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+        .glass(radius: 24)
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel(t(.hudMeasure))
     }
 
     private func approaching(_ tone: Tone) -> some View {
@@ -474,6 +506,7 @@ private struct MeterFigure: View {
     let label: String
     let value: Int?
     let over: Bool
+    var size: CGFloat = 44
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -481,8 +514,8 @@ private struct MeterFigure: View {
                 .font(.inter(Tokens.Typography.body.size, Tokens.Typography.body.weight))
                 .foregroundStyle(Tokens.Colors.textMuted)
             Text(value.map(String.init) ?? "–")
-                .font(.num(44, 700))
-                .tracking(-0.03 * 44)
+                .font(.num(size, 700))
+                .tracking(-0.03 * size)
                 .foregroundStyle(over ? Tokens.Colors.near : Tokens.Colors.text)
                 .lineLimit(1)
         }

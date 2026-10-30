@@ -16,6 +16,8 @@ export interface NavConfig {
   enforcementBandM: number;
   /** Ekkora távolságtól jelezzük a közeledő szakaszt a felső kártyán (m). */
   enforcementWarnM: number;
+  /** AW17: az „Utána” sor csak akkor látszik, ha a következő manőver ennyin belül van (m). */
+  thenWithinM: number;
   /** Ekkora távolságtól mondjuk be a közeledő szakaszt (m). */
   enforcementVoiceM: number;
   /** A cél ennyire közel: megérkeztünk (m). */
@@ -44,6 +46,7 @@ export const NAV_CONFIG: NavConfig = {
   offerTtlMs: 45_000,
   enforcementBandM: ROUTE_MATCH_M,
   enforcementWarnM: 2000,
+  thenWithinM: 5000,
   enforcementVoiceM: 500,
   arriveM: 30,
   tooFastRepeatMs: 30_000,
@@ -74,6 +77,11 @@ export const ALT_OFFER = {
    * a távolabbi lehajtó a mérés végéig vár (m).
    */
   exitAfterGateM: 1000,
+  /**
+   * AW17: a „Megéri” ajánlat a lehajtó előtt ennyin belül magától elfogad (nem várja ki a 45 s-ot); „Lehet” / „Nem éri
+   * meg” esetén nincs automatikus váltás (m).
+   */
+  autoSwitchExitM: 500,
 } as const;
 
 /** Kamera-közeledés a felső sávon: `max(minM, leadS × sebesség)` távolságon belül borostyán sáv + egy rezgés. */

@@ -19,6 +19,7 @@ nonisolated let NAV_CONFIG = NavConfig(
     offerTtlMs: 45000.0,
     enforcementBandM: 40.0,
     enforcementWarnM: 2000.0,
+    thenWithinM: 5000.0,
     enforcementVoiceM: 500.0,
     arriveM: 30.0,
     tooFastRepeatMs: 30000.0,
@@ -40,6 +41,7 @@ nonisolated enum ALT_OFFER {
     static let kSlow = 1.0
     static let kFast = 0.3
     static let exitAfterGateM = 1000.0
+    static let autoSwitchExitM = 500.0
 }
 /// Kamera-közeledés a felső sávon (AW12): `max(minM, leadS × sebesség)` távolságon belül.
 nonisolated enum CAMERA_ALERT {

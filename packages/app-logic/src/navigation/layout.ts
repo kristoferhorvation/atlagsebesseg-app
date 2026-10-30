@@ -75,3 +75,28 @@ export function manualPillTick(s: ManualPillState | null, active: boolean, space
 export function manualPillTap(s: ManualPillState, now: number): ManualPillState {
   return s.collapsed ? { ...s, collapsed: false, expandedAt: now, initial: false } : { ...s, collapsed: true, initial: false };
 }
+
+/**
+ * AW17: navigáció közben az alsó sáv (sebesség · érkezés · hátralévő · Befejezés) mindig a képernyő alján van, a
+ * mérőkártya fölötte. Szakaszmérés közben a pillanatnyi sebesség kikerül a sávból – a mérőkártya „most” mezője mutatja;
+ * a kézi mérés kártyáján nincs „most”, ott marad.
+ */
+export function navBottomShowsSpeed(phase: SessionPhase): boolean {
+  return phase !== 'meres';
+}
+
+/**
+ * AW17: az alsó sáv km/h-ja piros, ha a (kijelzett, egészre kerekített) pillanatnyi sebesség a bal alsó tábla limitje
+ * fölött van. Csak szín – hang, rezgés, értesítés nincs. Limit vagy sebesség nélkül nem piros.
+ */
+export function navSpeedOver(currentKmh: number | null, signKmh: number | null): boolean {
+  return currentKmh !== null && signKmh !== null && Math.round(currentKmh) > signKmh;
+}
+
+/**
+ * AW17: mérés + „Gyorsabb út” ajánlat egyszerre: a mérőkártya nagy átlag-száma egysorosra zsugorodik (átlag
+ * státusz-színnel + „most / várható” + tábla egy sorban), hogy az ajánlat elférjen; az ajánlat eltűnése után visszanő.
+ */
+export function navMeterCompact(phase: SessionPhase, offer: boolean): boolean {
+  return phase === 'meres' && offer;
+}

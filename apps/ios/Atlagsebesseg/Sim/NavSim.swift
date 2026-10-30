@@ -133,7 +133,8 @@ enum NavSim {
     }
 
     /// A szimulált lehajtó távolsága az alternatíva elejétől (m): a mérés közbeni ajánlatnál a szakaszon belül van.
-    static let defaultExitM = 400.0
+    /// AW17: 400 → 800 m (a webes `SIM_EXIT_M`), mert a „Megéri” ajánlat 500 m-en belül magától elfogad.
+    static let defaultExitM = 800.0
 
     /// Az első lépést a lehajtó helyén kettévágja: a lehajtó-manőver az, ami a jelenlegi útvonalon nincs meg.
     private static func withExit(_ steps: [NavStep], _ route: Route, _ exitM: Double) -> [NavStep] {

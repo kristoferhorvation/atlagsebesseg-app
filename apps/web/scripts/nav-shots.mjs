@@ -106,13 +106,26 @@ try {
   check('címke az alternatíván: „+N perc” / „−N perc”', /^([+−]\d+ perc|Ugyanannyi idő)$/.test(label0.txt), label0.txt);
   check('a címke érintési célja ≥ 56 px', label0.h >= 56 && label0.w >= 56, `${label0.w}×${label0.h} px`);
   check('egyetlen címke (csak az alternatíván)', (await p.evaluate(`document.querySelectorAll('.route-label').length`)) === opts.length - 1);
+  // AW17: a címke a saját szakasz legtávolabbi pontja mellett (fölé / alá / balra / jobbra), a választó-kártya fölött
+  const LABEL_POS = `(() => { const e = ${q('.route-label-bubble')}; const r = e.getBoundingClientRect(); const pk = ${q('.picker')}.getBoundingClientRect(); return { side: ${q('.route-label')}.dataset.side, above: r.bottom <= pk.top + 1, inX: r.left >= 0 && r.right <= innerWidth, l: Math.round(r.left), r: Math.round(r.right), w: innerWidth }; })()`;
+  await p.waitFor(`(${LABEL_POS}).inX`, 5000, 'címke a végleges helyén').catch(() => undefined);
+  const pos0 = await p.evaluate(LABEL_POS);
+  check('AW17: a címke oldala kiszámolt (fölé / alá / balra / jobbra), a képernyőn és a választó-kártya fölött', ['above', 'below', 'left', 'right'].includes(pos0.side) && pos0.above && pos0.inX, JSON.stringify(pos0));
   await click(p, '.route-label');
   await p.waitFor(`${checked} === 1`, 3000, 'kiválasztás-váltás');
   const label1 = await p.evaluate(`(() => { const e = ${q('.route-label')}; return { txt: e.innerText.trim(), id: e.dataset.routeId }; })()`);
   check('érintésre az alternatíva lesz a kiválasztott, a kártya átvált', label1.id !== label0.id, `${label0.id} → ${label1.id}`);
   check('a címke a másik útvonalra kerül, ellentétes előjellel', label0.txt === 'Ugyanannyi idő' || label0.txt[0] !== label1.txt[0], `${label0.txt} → ${label1.txt}`);
+  await p.waitFor(`(${LABEL_POS}).inX`, 5000, 'címke a végleges helyén').catch(() => undefined);
+  const pos1 = await p.evaluate(LABEL_POS);
+  check('AW17: a másik alternatíván is kiszámolt helyen, a választó-kártya fölött', ['above', 'below', 'left', 'right'].includes(pos1.side) && pos1.above && pos1.inX, JSON.stringify(pos1));
+  if (!CHECK_ONLY) await p.shot(`${DATE}-nav-cimke-gyor-kivalasztva.png`);
   await click(p, '.route-opt');
   await p.waitFor(`${checked} === 0`, 3000, 'vissza az ajánlottra');
+  if (!CHECK_ONLY) {
+    await sleep(600);
+    await p.shot(`${DATE}-nav-cimke-m19-kivalasztva.png`);
+  }
 
   await click(p, '.picker-start');
   await p.waitFor(q('.nav-top'), 10_000, 'felső kártya');
@@ -121,6 +134,10 @@ try {
   check('felső kártya: távolság + út/irány', /\d+(,\d)? ?(m|km)/.test(top0), top0);
   const bottom0 = await p.evaluate(text('.nav-bottom'));
   check('alsó sáv: érkezés, hátralévő idő, táv, Befejezés', /\d{1,2}:\d{2}/.test(bottom0) && /km/.test(bottom0) && /Befejezés/.test(bottom0), bottom0);
+  // AW17: az alsó sáv mindig a képernyő alján (a HUD utolsó eleme), mérésen kívül a pillanatnyi sebességgel
+  const BOTTOM = `(() => { const b = ${q('.nav-bottom')}; if (!b) return null; const r = b.getBoundingClientRect(); const c = document.querySelector('.hud > .card:not(.nav-bottom)'); const cr = c?.getBoundingClientRect(); return { last: b === ${q('.hud')}.lastElementChild, gap: Math.round(innerHeight - r.bottom), speed: !!b.querySelector('.nav-bottom-speed'), cardAbove: cr ? cr.bottom <= r.top + 1 : null, card: c?.getAttribute('aria-label') ?? null, compact: c?.classList.contains('compact') ?? null }; })()`;
+  const b0 = await p.evaluate(BOTTOM);
+  check('AW17: az alsó sáv a képernyő alján, sebességgel (mérésen kívül)', b0.last && b0.gap <= 40 && b0.speed, JSON.stringify(b0));
   // AW12: navigáció közben a pozíció-jel az alsó harmadban (az út előre látszik); az „Utána” sor nem a teljes mondat
   // a kamera fókusza képkockánként közelít (headless Chrome-ban ritka a rAF): a beállást várjuk, legfeljebb 10 s-ig
   const PUCK_Y = `(() => { const r = ${q('.puck')}.getBoundingClientRect(); return (r.top + r.height / 2) / innerHeight; })()`;
@@ -128,9 +145,16 @@ try {
   const puckY = await p.evaluate(PUCK_Y);
   check('követő kamera: a pozíció-jel a képernyő alsó harmadában', puckY > 0.68, `${(puckY * 100).toFixed(0)}% magasságban`);
   const thenTexts = new Set();
+  // AW17: az „Utána” sor csak 5 km-en belüli következő manővernél; a km/h piros, ha a bal alsó tábla fölött van
+  const thenSamples = [];
+  const speedSamples = [];
   const sampleThen = async () => {
-    const x = await p.evaluate(`${q('.nav-then-text')}?.innerText ?? null`);
-    if (x) thenTexts.add(x);
+    const x = await p.evaluate(
+      `({ then: ${q('.nav-then-text')}?.innerText ?? null, dist: ${q('.nav-top:not([data-strip=true]) .nav-dist')}?.innerText ?? null, speed: ${q('.nav-bottom-speed')}?.firstChild?.textContent ?? null, over: ${q('.nav-bottom-speed')}?.dataset.over ?? null, sign: ${q('.sign-slot .sign')}?.innerText ?? null })`,
+    );
+    if (x.then) thenTexts.add(x.then);
+    if (x.dist) thenSamples.push(x);
+    if (x.speed !== null && x.sign) speedSamples.push(x);
   };
   await sampleThen();
   const sign = await p.evaluate(`(() => { const e = ${q('.sign-slot .sign')}; if (!e) return null; const r = e.getBoundingClientRect(); return { txt: e.innerText, left: r.left, bottom: r.bottom }; })()`);
@@ -163,10 +187,16 @@ try {
   check('közeledő szakasz: „Szakaszellenőrzés … · max 110”', /^Szakaszellenőrzés \d+(,\d)? (km|m) · max 110$/.test(badge), badge);
 
   // mérés közben: egysoros sáv a mérőkártya fölött, a felső kártya eltűnik
-  await p.waitFor(q('.nav-strip'), 120_000, 'összevont sáv');
+  // (AW17: a közeledés kártyája az alsó sáv fölött már a mérés előtt sávvá zsugoríthatja a lépést – a mérőkártyát várjuk)
+  await p.waitFor(`${q('.nav-strip')} && document.querySelector('.hud > .card[aria-label="Mérés"]')`, 120_000, 'összevont sáv');
   check('mérés közben a navigációs utasítás egysoros sávvá zsugorodik', !(await p.evaluate(`!!${q('.nav-top')}`)));
   const strip = await p.evaluate(`(() => { const s = ${q('.nav-strip')}.getBoundingClientRect(); const c = document.querySelector('.hud .card:not(.nav-bottom)').getBoundingClientRect(); return { h: s.height, above: s.bottom <= c.top + 1 }; })()`);
   check('a sáv egysoros és a mérőkártya fölött van', strip.h <= 60 && strip.above, JSON.stringify(strip));
+  // AW17: mérés közben is az alsó sáv a képernyő alján, a mérőkártya fölötte; a sávban nincs sebesség (a „most” mutatja)
+  await p.waitFor(`document.querySelector('.hud > .card[aria-label="Mérés"]')`, 30_000, 'mérőkártya').catch(() => undefined);
+  const bm = await p.evaluate(BOTTOM);
+  check('AW17: mérés közben az alsó sáv legalul, a mérőkártya fölötte, a sávban nincs sebesség', bm.last && bm.gap <= 40 && !bm.speed && bm.cardAbove === true && bm.card === 'Mérés', JSON.stringify(bm));
+  check('AW17: mérés közben a „most” a mérőkártyán', /most/.test(await p.evaluate(text('.hud > .card[aria-label="Mérés"]'))));
   await p.waitFor(`${q('.nav-top')} && !${q('.nav-strip')}`, 120_000, 'mérés után vissza a teljes nézet');
   check('mérés után vissza a teljes navigációs nézet', true);
   // AOS13: a mérés eredménye navigáció közben egysoros kártya, a teljes felső kártya alatt (nem fedi egymást)
@@ -201,6 +231,11 @@ try {
   check('hang: „Túl gyors”', voice.some((v) => v.kind === 'tooFast'));
   check('hang: gyorsabb út („lehet”: „…, te döntesz”)', voice.some((v) => v.kind === 'faster' && v.text === 'Gyorsabb út, 3 perc, 5 kilométer kerülő, te döntesz'), voice.find((v) => v.kind === 'faster')?.text);
   check('„Utána” sor: utcanév / rövid manőver-szó, nem a teljes mondat', thenTexts.size > 0 && [...thenTexts].every((x) => !SENTENCE.test(x)), [...thenTexts].join(' | '));
+  const km = (d) => (/km/.test(d) ? parseFloat(d.replace(',', '.')) * 1000 : parseFloat(d));
+  const badThen = thenSamples.filter((x) => x.then && km(x.dist) > 5000);
+  check('AW17: „Utána” sor csak 5 km-en belüli következő manővernél', thenSamples.some((x) => x.then) && badThen.length === 0, `${thenSamples.length} minta; hibás: ${JSON.stringify(badThen.slice(0, 3))}`);
+  const badSpeed = speedSamples.filter((x) => (x.over === 'true') !== Number(x.speed) > Number(x.sign));
+  check('AW17: az alsó sáv km/h-ja pontosan akkor piros, ha a bal alsó tábla fölött van', speedSamples.length > 0 && badSpeed.length === 0, `${speedSamples.length} minta, ebből piros ${speedSamples.filter((x) => x.over === 'true').length}; hibás: ${JSON.stringify(badSpeed.slice(0, 3))}`);
 
   // befejezés
   await click(p, '.nav-end');
@@ -222,6 +257,14 @@ try {
   check('Beállítások: Hangos utasítások, Mentett helyek (Haza, Munka), Útvonal-kérések ma', /Hangos utasítások/.test(sheet) && /Haza/.test(sheet) && /Munka/.test(sheet) && /Útvonal-kérések ma/.test(sheet));
   check('a hangos utasítások alapból be vannak', (await s.evaluate(`document.querySelector('[role=switch][aria-label="Hangos utasítások"]').getAttribute('aria-checked')`)) === 'true');
   check('Beállítások: „Új hely mentése”', /Új hely mentése/.test(sheet));
+  // AW17: nincs külön „Hang (hangos utasítások)” sor; a hang elérhetősége zárójelben a leírás végén
+  const vh = await s.evaluate(`${q('.hint[data-voice]')}?.innerText ?? ''`);
+  check('AW17: Beállítások – nincs külön „Hang” sor, a hang-info zárójelben a „Hangos utasítások” leírásában', !/Hang \(hangos utasítások\)/.test(sheet) && /^Fordulók, .*\(.+\)$/.test(vh), vh);
+  if (!CHECK_ONLY) {
+    await s.evaluate(`${q('.hint[data-voice]')}.scrollIntoView({ block: 'center' }); true`);
+    await sleep(400);
+    await s.shot(`${DATE}-beallitasok-hangos-utasitasok.png`);
+  }
   s.close();
 
   // ------------------------------------------------------------------
@@ -304,6 +347,26 @@ try {
     check(`ajánlat „${alt}”: fogyó csík a kiemelt gomb alatt, szám nélkül`, !!t1 && t1.inPrimary && t1.n === 1 && t1.below && t1.h <= 4 && t1.txt === '', JSON.stringify(t1));
     check(`ajánlat „${alt}”: a csík fogy`, !!t1 && !!t2 && t2.scale < t1.scale && t1.scale <= 1, `${t1?.scale.toFixed(2)} → ${t2?.scale.toFixed(2)}`);
     if (!CHECK_ONLY) await o.shot(`${DATE}-nav-ajanlat-${name}.png`);
+    if (alt === 'worth') {
+      // AW17: 500 m-en belül a „Megéri” magától elfogad (a 45 s kivárása nélkül), külön 500 m-es bemondás nélkül
+      // (a szimulátor a fő vonalon halad tovább, ezért a váltás után újratervez – a váltás pillanatát pollozzuk)
+      let lastScale = null;
+      let switched = null;
+      for (let i = 0; i < 400 && !switched; i++) {
+        const st = await o.evaluate(`({ route: window.__navRouteId, scale: (${TIMER})?.scale ?? null })`);
+        if (/^sim-fast-worth/.test(st.route ?? '')) switched = st.route;
+        else if (st.scale !== null) lastScale = st.scale;
+        await sleep(50);
+      }
+      const sw = await o.evaluate(`({ said500: (window.__navVoice ?? []).some((x) => x.text === 'Gyorsabb út, lehajtó 500 méternél'), offer: !!${q('.nav-offer')} })`);
+      check('AW17: „Megéri” – a lehajtó előtt 500 m-en belül magától átvált (a 45 s lejárta előtt)', !!switched && !sw.offer && lastScale !== null && lastScale > 0.05, `${switched}, ${JSON.stringify(sw)}, csík utoljára ${lastScale?.toFixed(2)}`);
+      check('AW17: auto-váltáskor nincs „lehajtó 500 méternél” ismétlés', !sw.said500);
+    } else if (alt === 'maybe') {
+      // „Lehet”: nincs auto-váltás – a lehajtó elhagyásáig a régi útvonal marad
+      await o.waitFor(`!${q('.nav-offer')}`, 60_000, 'a „lehet” ajánlat eltűnik').catch(() => undefined);
+      const route = await o.evaluate(`window.__navRouteId`);
+      check('AW17: „Lehet” – nincs automatikus váltás', !/^sim-fast/.test(route ?? ''), route);
+    }
     o.close();
   }
 
@@ -324,21 +387,28 @@ try {
   await g.waitFor(MAP_READY, 60_000, 'térkép');
   await g.waitFor(q('.nav-strip'), 120_000, 'mérés');
   await g.waitFor(q('.nav-offer-compact'), 120_000, 'kompakt ajánlat mérés közben');
-  const ga = await g.evaluate(`({ strip: !!${q('.nav-strip')}, l1: ${text('.nav-offer-compact .nav-offer-title')}, l2: ${text('.nav-offer-compact .nav-offer-exit')} })`);
-  // a cím és a lehajtó ténylegesen látszik (az innerText a nullára nyomott szöveget is visszaadná)
+  const ga = await g.evaluate(`({ strip: !!${q('.nav-strip')}, l1: ${text('.nav-offer-compact .nav-offer-title')} })`);
   const head = await g.evaluate(`(() => { const h = ${q('.nav-offer-compact .nav-offer-head')}.getBoundingClientRect(); const c = ${q('.nav-offer-compact')}.getBoundingClientRect(); return { w: Math.round(h.width), card: Math.round(c.width) }; })()`);
-  check('kompakt ajánlat: a cím és a lehajtó látszik (a gombok mellett)', head.w >= 120, `${head.w} / ${head.card} px`);
+  check('kompakt ajánlat: a szöveg látszik (a gombok mellett)', head.w >= 120, `${head.w} / ${head.card} px`);
   const gVoice = await g.evaluate(`(window.__navVoice ?? []).filter((x) => x.kind === 'faster').map((x) => x.text)`);
-  check('kapu utáni (1 km-en belüli) lehajtó: mérés közben azonnal kompakt ajánlat', ga.strip && !!ga.l1, `${ga.l1} / ${ga.l2}`);
-  // kétsoros: „Kijárat 56” / „2,1 km · −7 perc”; 390 px-en egyik sor sem vágódik le
-  check('kompakt ajánlat kétsoros: lehajtó neve / „2,1 km · −7 perc”', !/Megéri|Lehajtó/.test(ga.l1) && /^\d+,\d km · −7 perc$/.test(ga.l2), `${ga.l1} / ${ga.l2}`);
-  const clip = await g.evaluate(
-    `[...document.querySelectorAll('.nav-offer-compact .nav-offer-head > *')].map((e) => ({ t: e.textContent, sw: e.scrollWidth, cw: e.clientWidth }))`,
-  );
-  check('kompakt ajánlat: 390 px-en sincs levágott sor', clip.length === 2 && clip.every((c) => c.sw <= c.cw), clip.map((c) => `${c.t} ${c.sw}/${c.cw}`).join(' | '));
+  check('kapu utáni (1 km-en belüli) lehajtó: mérés közben azonnal kompakt ajánlat', ga.strip && !!ga.l1, ga.l1);
+  // AW17: „Kijárat 56 · 2,5 km · −7 perc gyorsabb”; 390 px-en sem vágódik le (tördelhető)
+  check('AW17: kompakt ajánlat: „Kijárat 56 · N,N km · −7 perc gyorsabb”', /^Kijárat 56 · \d+,\d km · −7 perc gyorsabb$/.test(ga.l1), ga.l1);
+  const clip = await g.evaluate(`(() => { const e = ${q('.nav-offer-compact .nav-offer-title')}; return { sw: e.scrollWidth, cw: e.clientWidth, sh: e.scrollHeight, ch: e.clientHeight }; })()`);
+  check('kompakt ajánlat: 390 px-en sincs levágott szöveg', clip.sw <= clip.cw && clip.sh <= clip.ch + 1, JSON.stringify(clip));
+  // AW17: mérés + ajánlat – a mérőkártya egysoros, az ajánlat fölötte, az alsó sáv legalul
+  const LAYOUT = `(() => { const c = document.querySelector('.hud > .card[aria-label="Mérés"]'); const b = ${q('.nav-bottom')}; const o = ${q('.nav-offer')}; if (!c || !b) return null; const cr = c.getBoundingClientRect(); const br = b.getBoundingClientRect(); return { compact: c.classList.contains('compact'), h: Math.round(c.offsetHeight), cardAboveBottom: cr.bottom <= br.top + 1, offerAbove: o ? o.getBoundingClientRect().bottom <= cr.top + 1 : null, bottomLast: b === ${q('.hud')}.lastElementChild, speed: !!b.querySelector('.nav-bottom-speed') }; })()`;
+  const lay = await g.evaluate(LAYOUT);
+  check('AW17: mérés + ajánlat – a mérőkártya egysoros, az ajánlat fölötte, az alsó sáv legalul (sebesség nélkül)', lay?.compact === true && lay.h <= 110 && lay.cardAboveBottom && lay.offerAbove === true && lay.bottomLast && !lay.speed, JSON.stringify(lay));
   check('kapu utáni lehajtó: bemondás a lehajtó távolságával', gVoice.length === 1 && /^Gyorsabb út, 7 perc megtakarítás, lehajtó \d+,\d kilométernél$/.test(gVoice[0]), gVoice.join(' | '));
   await sleep(600);
-  if (!CHECK_ONLY) await g.shot(`${DATE}-nav-ajanlat-kapu-utan.png`);
+  if (!CHECK_ONLY) await g.shot(`${DATE}-nav-meres-ajanlat.png`);
+  // az ajánlat eltűnése után (Elvet – vagy, ha közben 500 m-en belülre ért, az auto-váltás) a mérőkártya visszanő
+  await g.evaluate(`${q('.nav-offer-compact .btn')}?.click(); true`);
+  await g.waitFor(`!${q('.nav-offer')}`, 5000, 'ajánlat eltűnt');
+  await sleep(400);
+  const lay2 = await g.evaluate(LAYOUT);
+  check('AW17: az ajánlat eltűnése után a mérőkártya visszanő', lay2?.compact === false && lay2.h > 150 && lay2.cardAboveBottom && lay2.bottomLast, JSON.stringify(lay2));
   check('nincs kezeletlen JS-kivétel (AW12–13-oldalak)', g.logs.length === 0, g.logs.join(' | '));
   g.close();
 

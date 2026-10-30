@@ -37,7 +37,10 @@ import {
   type EnforcementData,
   type NavigationSession,
   type NavRoute,
+  navBottomShowsSpeed,
+  navMeterCompact,
   navResultCompact,
+  navSpeedOver,
   navStepStrip,
   mapLightPreset,
   strongGlassFor,
@@ -247,6 +250,11 @@ function Drive({ map }: { map: WebMapAdapter }) {
   useEffect(() => map.setNavFollow(navFollowOn), [map, navFollowOn]);
   // közeli kamera: egy rezgés kameránként (hang nélküli módban is; ahol a böngésző támogatja)
   const nearCamId = nav.view?.cameraNear?.item.id ?? null;
+  // AW17: a szimulátorban a jelenlegi útvonal azonosítója a böngészős ellenőrzésnek (auto-váltás)
+  const navRouteId = nav.view?.route.id ?? null;
+  useEffect(() => {
+    if (SIM_MODE) (window as unknown as { __navRouteId?: string | null }).__navRouteId = navRouteId;
+  }, [navRouteId]);
   useEffect(() => {
     if (!nearCamId) return;
     if (SIM_MODE) {
@@ -257,7 +265,7 @@ function Drive({ map }: { map: WebMapAdapter }) {
   }, [nearCamId]);
 
   // tervezett útvonalak és a cél a térképen; navigáció közben csak a jelenlegi útvonal
-  // az alternatívákon címke a leágazás után (A8d): menetidő-különbség a kiválasztotthoz képest
+  // az alternatívákon címke (A8d): menetidő-különbség a kiválasztotthoz képest; AW17: a saját szakasz legtávolabbi pontjánál
   const routesShown = useMemo<{ routes: MapRoute[]; dest: LatLon | null }>(() => {
     const toMap = (r: NavRoute, selected: boolean, label: MapRoute['label'] = null): MapRoute => ({ id: r.id, selected, runs: congestionRuns(r), label });
     // megérkezve az útvonal maradéka (pl. az útra illesztett végpontig tartó csonk) már nem látszik, csak a cél jelölője
@@ -267,7 +275,7 @@ function Drive({ map }: { map: WebMapAdapter }) {
       const labels = altLabels(routes, nav.summaries.map((x) => x.durationS), selected);
       const labelOf = (i: number): MapRoute['label'] => {
         const l = labels.find((x) => x.index === i);
-        return l ? { at: l.at, text: l.text, aria: t('nav.alt.aria', { d: l.text }) } : null;
+        return l ? { at: l.at, text: l.text, aria: t('nav.alt.aria', { d: l.text }), own: l.own, divergence: l.divergence, basePath: l.basePath, altPath: l.altPath } : null;
       };
       return { routes: routes.map((r, i) => toMap(r, i === selected, labelOf(i))), dest: nav.plan.dest };
     }
@@ -435,7 +443,10 @@ function Drive({ map }: { map: WebMapAdapter }) {
   const tapPill = useCallback(() => setPill((s) => s && manualPillTap(s, now())), [now]);
   // az elrendezés szerinti mérés: a pillé zsugorodott kézi mérés nem foglalja a helyet
   const measuringLayout = measuring && !pillCollapsed;
-  const navBottomShown = nav.view !== null && (view.phase === 'nincs_szakasz' || pillCollapsed);
+  // AW17: navigáció közben az alsó sáv MINDIG a képernyő alján; a mérőkártya (és minden más kártya) fölötte, soha nem
+  // alatta és nem helyette. Szakasz nélkül (vagy a zsugorított kézi mérésnél) csak a sáv látszik.
+  const navBottomShown = nav.view !== null;
+  const hudCardShown = !(nav.view !== null && (view.phase === 'nincs_szakasz' || pillCollapsed));
 
   // AOS13: a felső lépés-kártya egysoros sávvá zsugorodik, ha a teljes kártya az alsó csoport alá érne (mérés közben
   // mindig). A rejtett kártyát is mérjük, az alsó csoport tetejét pedig a sáv nélkül – így a kettő nem kapcsolgat
@@ -465,10 +476,11 @@ function Drive({ map }: { map: WebMapAdapter }) {
     const update = () => {
       const h = window.innerHeight;
       const top = h - el.offsetHeight;
-      // navigációban az alsó kártyához (a HUD utolsó eleme) mérünk: a tábla és a gombok a szélén vannak, középen a térkép
-      // látszik; elrendezés szerint (offsetTop), mert a FLIP-animáció transzformja alatt a látszó hely még a régi
-      const last = el.lastElementChild instanceof HTMLElement ? el.lastElementChild : null;
-      const cardTop = last ? top + last.offsetTop : top;
+      // navigációban a legfelső alsó kártyához mérünk (AW17: a mérőkártya az alsó sáv fölött; nélküle az alsó sáv): a
+      // tábla és a gombok a szélén vannak, középen a térkép látszik; elrendezés szerint (offsetTop), mert a FLIP-animáció
+      // transzformja alatt a látszó hely még a régi
+      const card = el.querySelector<HTMLElement>(':scope > .card');
+      const cardTop = card ? top + card.offsetTop : top;
       map.setFocusY(
         navFollowOn
           ? Math.max(0.18, Math.min(NAV_FOLLOW.focusY, (cardTop - NAV_FOLLOW.focusGapPx) / h))
@@ -686,29 +698,33 @@ function Drive({ map }: { map: WebMapAdapter }) {
               </button>
             </>
           )}
-          {nav.view && !navBottomShown && (
-            <button className="round-btn glass" onClick={nav.end} aria-label={t('nav.end')}>
-              <Icon name="stop" size={26} />
-            </button>
-          )}
           <button className="round-btn glass report" onClick={() => setSheet('report')} aria-label={t('map.report')}>
             <Icon name="report" size={28} />
           </button>
         </div>
         {nav.view && (measuringLayout || stepStrip) && <NavStrip view={nav.view} unit={settings.egyseg} />}
-        {nav.view && navBottomShown ? (
-          <NavBottom view={nav.view} unit={settings.egyseg} currentKmh={view.currentKmh} onEnd={nav.end} />
-        ) : (
-        <Hud
-          key={phaseKey(view)}
-          view={view}
-          settings={settings}
-          gpsReady={view.lastFix !== null}
-          navCompact={navResultCompact(view.phase, nav.view !== null)}
-          onCollapseManual={pillActive ? tapPill : undefined}
-          onStopManual={stopManual}
-          onDismiss={session.dismiss}
-        />
+        {hudCardShown && (
+          <Hud
+            key={phaseKey(view)}
+            view={view}
+            settings={settings}
+            gpsReady={view.lastFix !== null}
+            navCompact={navResultCompact(view.phase, nav.view !== null)}
+            meterCompact={navMeterCompact(view.phase, nav.view?.offer != null)}
+            onCollapseManual={pillActive ? tapPill : undefined}
+            onStopManual={stopManual}
+            onDismiss={session.dismiss}
+          />
+        )}
+        {nav.view && navBottomShown && (
+          <NavBottom
+            view={nav.view}
+            unit={settings.egyseg}
+            currentKmh={view.currentKmh}
+            showSpeed={navBottomShowsSpeed(view.phase)}
+            over={navSpeedOver(view.currentKmh, nav.view.limitKmh)}
+            onEnd={nav.end}
+          />
         )}
       </div>
 

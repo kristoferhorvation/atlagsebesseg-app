@@ -21,6 +21,8 @@ struct MapScreen: View {
     @State private var mapBearing: Double = 0
     @State private var routesFC = FeatureCollection(features: [])
     @State private var altLabels: [AltLabel] = []
+    /// AW17: a címkék képernyő-pontban számolt helye (a buborék közepe), útvonal-azonosító szerint.
+    @State private var altLabelAt: [String: CLLocationCoordinate2D] = [:]
     /// A követő kamera simított értékei (AW12): zoom és a pozíció helye a képernyőn (0 = fent, 1 = lent).
     @State private var zoomShown: Double?
     @State private var focusShown: Double = NAV_FOLLOW.focusY
@@ -163,7 +165,7 @@ struct MapScreen: View {
 
             // az alternatív útvonal címkéje: „+4 perc” / „−3 perc”; koppintásra erre vált
             ForEvery(altLabels) { label in
-                MapViewAnnotation(coordinate: CLLocationCoordinate2D(latitude: label.at.lat, longitude: label.at.lon)) {
+                MapViewAnnotation(coordinate: altLabelAt[label.id] ?? CLLocationCoordinate2D(latitude: label.at.lat, longitude: label.at.lon)) {
                     Button { model.selectRoute(label.index) } label: {
                         Text(label.text)
                             .font(.num(15, 680))
@@ -248,8 +250,10 @@ struct MapScreen: View {
             if let m = proxy.map {
                 let r = m.coordinateBounds(for: CameraOptions(cameraState: e.cameraState))
                 model.setReportView(BBox(south: r.south, west: r.west, north: r.north, east: r.east))
+                placeAltLabels(m)
             }
         }
+        .onChange(of: altLabels) { if let m = proxy.map { placeAltLabels(m) } }
         .ignoresSafeArea()
         .onAppear {
             rebuild()
@@ -377,8 +381,35 @@ struct MapScreen: View {
         // a kiválasztott a végére: a GeoJSON-sorrendben is fölül
         let order = p.routes.indices.filter { $0 != p.selected } + [p.selected]
         routesFC = FeatureCollection(features: order.flatMap { features(p.routes[$0], selected: $0 == p.selected) })
-        // a címke a leágazás után 300 m-rel, a kártya menetidejével (a webes `altLabels`, AW11)
+        // a címke a saját szakasz legtávolabbi részén, a kártya menetidejével (a webes `altLabels`, AW11 / AW17)
         altLabels = model.summaries.count == p.routes.count ? Atlagsebesseg.altLabels(p.routes, model.summaries.map(\.durationS), p.selected) : []
+    }
+
+    /// AW17: a címke a saját szakasz képernyőn legtávolabbi része mellé kerül (fölé / alá / balra / jobbra), nem takarja a
+    /// leágazást és a célt, és a lehető legkevesebbet takar az útvonalakból (`placeAltLabel`, képernyő-pontban, az aktuális
+    /// zoomon; a webes adapter `placeRouteLabels` párja). A látható rész a tervező kártya fölötti fél képernyő.
+    private func placeAltLabels(_ m: MapboxMap) {
+        guard !altLabels.isEmpty else {
+            if !altLabelAt.isEmpty { altLabelAt = [:] }
+            return
+        }
+        let screen = UIScreen.main.bounds.size
+        let viewport = (w: Double(screen.width), h: Double(screen.height * 0.5))
+        func proj(_ pts: [LatLon]) -> [Px] {
+            m.points(for: pts.map { CLLocationCoordinate2D(latitude: $0.lat, longitude: $0.lon) }).map { Px(x: Double($0.x), y: Double($0.y)) }
+        }
+        var next: [String: CLLocationCoordinate2D] = [:]
+        for l in altLabels {
+            // a buborék mérete: 34 pt magas, a szöveg szélessége (15 pt-es számok) + 2 × 12 pt
+            let label = (w: Double(l.text.count) * 9 + 26, h: 34.0)
+            guard let place = placeAltLabel(
+                own: proj(l.own), base: proj(l.basePath), alt: proj(l.altPath), divergence: proj([l.divergence])[0], label: label, viewport: viewport
+            ) else { continue }
+            next[l.id] = m.coordinate(for: CGPoint(x: place.box.x + place.box.w / 2, y: place.box.y + place.box.h / 2))
+        }
+        if next.count != altLabelAt.count || next.contains(where: { k, v in altLabelAt[k].map { abs($0.latitude - v.latitude) + abs($0.longitude - v.longitude) > 1e-7 } ?? true }) {
+            altLabelAt = next
+        }
     }
 
     /// Tervezéskor a térkép az összes útvonalra igazodik (a kártya fölötti részre).

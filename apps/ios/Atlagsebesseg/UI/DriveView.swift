@@ -23,8 +23,9 @@ struct DriveView: View {
     private var driving: Bool { [.meres, .kozeledik, .kezi].contains(view.phase) }
     /// Az elrendezés szerinti mérés: a pillé zsugorodott kézi mérés nem foglalja a helyet (AW15).
     private var measuringLayout: Bool { measuring && !model.manualPillCollapsed }
-    /// A navigáció alsó sávja (érkezés, Befejezés): mérés nélkül, és a kézi mérés pillje mellett.
-    private var navBottomShown: Bool { model.nav != nil && (view.phase == .nincsSzakasz || model.manualPillCollapsed) }
+    /// AW17: navigáció közben az alsó sáv MINDIG a képernyő alján; a mérőkártya (és minden más kártya) fölötte, soha nem
+    /// alatta és nem helyette. Szakasz nélkül (vagy a zsugorított kézi mérésnél) csak a sáv látszik, kártya nélkül.
+    private var hudCardHidden: Bool { model.nav != nil && (view.phase == .nincsSzakasz || model.manualPillCollapsed) }
     /// Navigáció közben a kézi mérés teljes kártyája bökésre zsugorodik (AW15).
     private var collapseManual: (() -> Void)? {
         guard model.manualPill != nil else { return nil }
@@ -205,11 +206,6 @@ struct DriveView: View {
                         .buttonStyle(RoundButtonStyle())
                         .accessibilityLabel(t(.mapRecenter))
                 }
-                if model.nav != nil && !navBottomShown {
-                    Button { model.endNav() } label: { Icon(name: .stop, size: 26) }
-                        .buttonStyle(RoundButtonStyle())
-                        .accessibilityLabel(t(.navEnd))
-                }
                 if view.phase == .nincsSzakasz || view.phase == .kozeledik {
                     Button { model.startManual() } label: { Icon(name: .stopwatch, size: 26) }
                         .buttonStyle(RoundButtonStyle())
@@ -221,9 +217,8 @@ struct DriveView: View {
                     .accessibilityLabel(t(.mapReport))
             }
         }
-        if let nav = model.nav, navBottomShown {
+        if let nav = model.nav, hudCardHidden {
             if stripShown { strip(nav) }
-            NavBottomBar(view: nav, unit: unit, currentKmh: view.currentKmh, onEnd: model.endNav)
         } else {
             // a „Lassíts” sáv a navigációs sáv fölé kerül (nem takarja el a lépést)
             ZStack(alignment: .top) {
@@ -240,6 +235,7 @@ struct DriveView: View {
                         onStopManual: model.stopManual,
                         onDismiss: model.dismiss,
                         compact: navResultCompact(view.phase, navigating: model.nav != nil),
+                        meterCompact: navMeterCompact(view.phase, offer: model.nav?.offer != nil),
                         onCollapseManual: collapseManual
                     )
                 }
@@ -247,6 +243,13 @@ struct DriveView: View {
                     .alignmentGuide(.top) { $0[.bottom] + 4 }
             }
             .animation(.easeOut(duration: Tokens.Motion.base), value: view.phase)
+            .animation(.easeOut(duration: Tokens.Motion.base), value: model.nav?.offer != nil)
+        }
+        if let nav = model.nav {
+            NavBottomBar(
+                view: nav, unit: unit, currentKmh: view.currentKmh, showSpeed: navBottomShowsSpeed(view.phase),
+                over: navSpeedOver(view.currentKmh, nav.limitKmh), onEnd: model.endNav
+            )
         }
     }
 

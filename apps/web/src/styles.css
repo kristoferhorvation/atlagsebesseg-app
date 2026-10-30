@@ -405,6 +405,25 @@ select:focus-visible {
   line-height: 1.2;
 }
 
+/* AW17: mérés + ajánlat – a mérőkártya egy sorban (átlag · most · várható · tábla) */
+.meter-compact {
+  gap: 10px;
+}
+
+.meter-compact .meter-num {
+  font-size: 28px;
+}
+
+.meter-compact .meter-fig .body {
+  font-size: var(--type-caption-size);
+}
+
+/* az átlag a saját szélességén; a „most · várható · tábla” a jobb szélre zárva */
+.meter-compact .compact-speed {
+  flex: none;
+  margin-right: auto;
+}
+
 /* AOS13: a mérés eredménye navigáció közben egy sorban */
 .compact-speed.tone {
   color: var(--tone);
@@ -1158,10 +1177,6 @@ a.list-row {
   max-width: none;
   height: 48px;
   font-size: 17px;
-}
-
-.hint[data-voice='missing'] {
-  color: var(--color-planned);
 }
 
 /* ---------- indítóképernyő ---------- */
@@ -2163,6 +2178,11 @@ a.list-row {
   white-space: nowrap;
 }
 
+/* AW17: a bal alsó tábla limitje fölött piros – csak szín */
+.nav-bottom-speed[data-over='true'] {
+  color: var(--color-over);
+}
+
 .nav-bottom-speed small {
   display: block;
   font-size: 16px;
@@ -2262,9 +2282,8 @@ a.list-row {
 .nav-offer-compact .nav-offer-title {
   min-width: 0;
   font-size: var(--type-caption-size);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
 }
 
 .nav-offer-compact .nav-offer-exit {

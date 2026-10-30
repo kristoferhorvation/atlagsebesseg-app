@@ -18,6 +18,8 @@ public enum Fixtures {
         public let course: Section
         public let second: Section
         public let straight: Section
+        /// AW17: 7 km-es egyenes szakasz (130).
+        public let straight7: Section
         /// Egy távoli kezdőpont (50 km keletre) a setSections-teszt „MASIK” szakaszához.
         public let farStart: LatLon
     }

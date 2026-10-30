@@ -132,6 +132,10 @@ extension AppModel {
             switch result {
             case .success(let routes):
                 self.plan = PlanState(dest: dest, status: .ready, routes: routes)
+                // `-navPick N` (AW17, szimulátor): az N. útvonal kiválasztva – a címke képernyőképéhez (fej nélkül nincs koppintás)
+                if self.sim != nil, UserDefaults.standard.object(forKey: "navPick") != nil {
+                    self.selectRoute(UserDefaults.standard.integer(forKey: "navPick"))
+                }
                 self.recomputeSummaries()
                 self.fitVersion += 1
                 // egyszeri előtöltés az ajánlott és az alternatív útvonalakra együtt (navigáció közben nem töltünk újra)

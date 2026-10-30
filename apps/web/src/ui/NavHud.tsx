@@ -1,4 +1,4 @@
-import { altOfferCompactLines, formatClock, formatDistance, formatTripDuration, reportVisual, speedIn, t, unitLabel, type ActiveReport, type AlternativeOffer, type NavView, type ReportPrompt, type SpeedUnit } from '@atlagsebesseg/app-logic';
+import { altOfferCompactText, formatClock, formatDistance, formatTripDuration, reportVisual, speedIn, t, unitLabel, type ActiveReport, type AlternativeOffer, type NavView, type ReportPrompt, type SpeedUnit } from '@atlagsebesseg/app-logic';
 import { Icon } from './Icon';
 import { ManeuverIcon } from './ManeuverIcon';
 
@@ -152,14 +152,34 @@ export function NavStrip({ view, unit }: { view: NavView; unit: SpeedUnit }) {
   );
 }
 
-/** Alsó sáv: pillanatnyi sebesség, érkezés, hátralévő idő és táv, „Befejezés”. */
-export function NavBottom({ view, unit, currentKmh, onEnd }: { view: NavView; unit: SpeedUnit; currentKmh: number | null; onEnd: () => void }) {
+/**
+ * Alsó sáv: pillanatnyi sebesség, érkezés, hátralévő idő és táv, „Befejezés” – AW17: navigáció közben mindig a képernyő
+ * alján, a mérőkártya fölötte. Mérés közben sebesség nélkül (`showSpeed`, a mérőkártya „most” mezője mutatja); a km/h
+ * piros, ha a bal alsó tábla limitje fölött van (`over`) – csak szín, hang és rezgés nincs.
+ */
+export function NavBottom({
+  view,
+  unit,
+  currentKmh,
+  showSpeed,
+  over,
+  onEnd,
+}: {
+  view: NavView;
+  unit: SpeedUnit;
+  currentKmh: number | null;
+  showSpeed: boolean;
+  over: boolean;
+  onEnd: () => void;
+}) {
   return (
     <section className="card glass compact nav-bottom" aria-label={t('nav.aria')}>
-      <div className="nav-bottom-speed num">
-        {speedIn(currentKmh ?? 0, unit) ?? 0}
-        <small>{unitLabel(unit)}</small>
-      </div>
+      {showSpeed && (
+        <div className="nav-bottom-speed num" data-over={over}>
+          {speedIn(currentKmh ?? 0, unit) ?? 0}
+          <small>{unitLabel(unit)}</small>
+        </div>
+      )}
       <div className="nav-bottom-eta">
         <b className="num" aria-label={t('nav.eta')}>
           {formatClock(view.etaMs)}
@@ -182,7 +202,7 @@ const exitLine = (o: AlternativeOffer): string | null =>
 /**
  * Felugró ajánlat (AW12): „Megéri · −7 perc, +4 km” / „Lehet · −2 perc, +1 km” / „Nem éri meg · +20 km kerülő, −10 perc”,
  * alatta a lehajtó; Elfogad / Elvet (56 px-es gombok). A kiemelt gomb az, ami 45 s után magától történik; alatta vékony,
- * fogyó csík mutatja a hátralévő időt, szám nélkül (AW13). Mérés közben kompakt, kétsoros: „Kijárat 56” / „2,1 km · −7 perc”.
+ * fogyó csík mutatja a hátralévő időt, szám nélkül (AW13). Mérés közben kompakt: „Kijárat 56 · 2,5 km · −7 perc gyorsabb” (AW17).
  */
 export function OfferCard({ offer, onAccept, onDecline }: { offer: AlternativeOffer; onAccept: () => void; onDecline: () => void }) {
   const exit = exitLine(offer);
@@ -206,14 +226,13 @@ export function OfferCard({ offer, onAccept, onDecline }: { offer: AlternativeOf
       {exit && <div className="nav-offer-exit num">{exit}</div>}
     </div>
   );
-  // mérés közben: kompakt, a mérőkártya (státusz) fölött, két sorban: „Kijárat 56” / „2,1 km · −7 perc”
+  // mérés közben: kompakt, a mérőkártya (státusz) fölött: „Kijárat 56 · 2,5 km · −7 perc gyorsabb” (AW17) – keskeny
+  // képernyőn tördelve, nem levágva
   if (offer.compact) {
-    const [line1, line2] = altOfferCompactLines(offer);
     return (
       <section className="nav-offer nav-offer-compact glass" data-verdict={offer.verdict} role="alertdialog" aria-label={offer.title}>
         <div className="nav-offer-head">
-          <div className="title nav-offer-title">{line1}</div>
-          {line2 && <div className="nav-offer-exit num">{line2}</div>}
+          <div className="title nav-offer-title num">{altOfferCompactText(offer)}</div>
         </div>
         {buttons}
       </section>

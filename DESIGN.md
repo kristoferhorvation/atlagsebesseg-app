@@ -95,6 +95,18 @@ biztonsági zóna fölött lebeg.
   teljes kártya, újabb bökésre vagy 5 s után vissza. Indítás után az első 5 s-ban hely-igény mellett is nyitva marad, de 3 s után
   összemegy. A zsugorított kártya alatt a navigáció teljes. Navigáció nélkül a nagy kártya marad. Az eredmény navigáció közben
   egysoros, kompakt kártya (mint a szakaszé).
+- **Navigáció – elrendezés (AW17, web és iOS):** az alsó navigációs sáv (sebesség · érkezés · hátralévő · Befejezés)
+  navigáció közben **mindig a képernyő alján**; a mérőkártya (és minden más alsó kártya) fölötte, soha nem alatta és nem
+  helyette. Szakaszmérés közben a sávban nincs pillanatnyi sebesség (a mérőkártya „most” mezője mutatja), csak érkezés +
+  hátralévő + Befejezés. A sáv km/h-ja `over` (piros), ha a kijelzett sebesség a bal alsó tábla limitje fölött van – csak
+  szín, hang, rezgés, értesítés nincs. Mérés + „Gyorsabb út” ajánlat egyszerre: a mérőkártya **egysoros** (átlag 30 px a
+  státusz színével · „most / várható” 28 px · kis tábla), az ajánlat eltűnése után visszanő. A kompakt ajánlat egy szöveg:
+  „Kijárat 56 · 2,5 km · −7 perc gyorsabb” (keskeny képernyőn tördelve, nem levágva). A manőverkártya „Utána” sora csak
+  5 km-en belüli következő manővernél látszik.
+- **Útvonalválasztó címke (AW17):** a „+N perc” buborék helye képernyő-pontban, az aktuális zoomon számolódik
+  (`placeAltLabel`): az alternatíva saját (nem közös) szakaszának a kiválasztottól messze eső pontja mellé, fölé / alá / balra
+  / jobbra; soha nem takarja a leágazást (12 px) és a cél-jelölőt (40 px-es doboz), és a lehető legkevesebbet takar a két
+  vonalból. Ha sehol sem fér ki, rálóghat.
 - **Kereső (AW16):** kerek ikon-gomb (ugyanaz a stílus, mint az alsó kerek gomboké) a térkép tetején, a GPS-pill sorában, a
   jobb szélre zárva; csak az üres nézeten; érintésre teljes szélességű keresés.
 - **Toast**: rövid visszajelzés felül, 2,5 s.

@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { meterState } from '../src/metrics';
 import { SectionTracker, type TrackerSnapshot, type TrackerState } from '../src/tracker';
 import type { GpsFix, Section } from '../src/types';
 import { loadDrive, loadSections } from './helpers/fixtures';
@@ -290,5 +291,24 @@ describe('SectionTracker – robusztusság', () => {
     expect(last.lastResult).not.toBeNull();
     const expected = (L / ((trueTimeAt(samples, IN + L) - trueTimeAt(samples, IN)) / 1000)) * 3.6;
     expect(Math.abs(last.lastResult!.averageKmh - expected)).toBeLessThan(0.5);
+  });
+});
+
+describe('SectionTracker – AW17: Maradj / várható a 7 km-es fixtúrán', () => {
+  it('5 km 137-tel, utána 108-cal: 2,0 km-rel a kapu előtt a „Maradj” 115, a „várható” 127, állapot: lassíts', () => {
+    const samples = loadDrive('straight7-137-108');
+    const { snaps } = run([fx.straight7], fixes(samples));
+    // az első minta 108 km/h-val (5 km után, a bevezető 2,5 km-rel együtt)
+    const snap = snapAt(samples, snaps, 2500 + 5000 + 40);
+    const live = snap.live!;
+    expect(live.currentKmh).toBeCloseTo(108, 6);
+    expect(live.averageKmh!).toBeCloseTo(137, 1);
+    expect(live.remainingM).toBeGreaterThan(1900);
+    expect(live.remainingM).toBeLessThan(2000);
+    expect(live.required.kind).toBe('ok');
+    expect(Math.round(live.required.kind === 'ok' ? live.required.maxKmh : 0)).toBe(115);
+    expect(Math.round(live.projectedKmh!)).toBe(127);
+    expect(snap.live!.slowDownKmh).toBe(0);
+    expect(meterState({ averageKmh: live.averageKmh, projectedKmh: live.projectedKmh, speedLimitKmh: fx.straight7.speedLimitKmh })).toBe('lassits');
   });
 });

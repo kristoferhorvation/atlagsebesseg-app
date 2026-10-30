@@ -128,7 +128,12 @@ try {
   );
   const voice = await p.evaluate(`document.querySelector('.hint[data-voice]')?.textContent`);
   const voiceKind = await p.evaluate(`document.querySelector('.hint[data-voice]')?.dataset.voice`);
-  check('hang-sor a Beállításokban', !!voice, `${voiceKind}: ${voice}`);
+  // AW17: nincs külön „Hang” sor – a hang elérhetősége zárójelben a „Hangos utasítások” leírásának végén
+  check(
+    'hang-info zárójelben a „Hangos utasítások” leírásában, külön „Hang” sor nélkül',
+    /^Fordulók, .*\(.+\)$/.test(voice ?? '') && !(await p.evaluate(`document.querySelector('.sheet').innerText`)).includes('Hang (hangos utasítások)'),
+    `${voiceKind}: ${voice}`,
+  );
   await p.evaluate(`(() => { const s = document.querySelector('.sheet .select'); Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value').set.call(s, 'en'); s.dispatchEvent(new Event('change', { bubbles: true })); })(); true`);
   await p.waitFor(`document.querySelector('.sheet .title')?.textContent === 'Settings'`, 5000, 'angol cím');
   check('váltás után a Beállítások angolul', true, await p.evaluate(`document.querySelector('.sheet .title').textContent`));

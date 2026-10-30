@@ -6,6 +6,18 @@ import Foundation
 /// A mérőkártya állapota: jó / lassíts / túl gyors (DESIGN.md; a logika a core `meterState`-je).
 typealias SpeedStatus = MeterState
 
+/// A felolvasó hang elérhetősége az app nyelvén (iOS-en a készülék hangjai szerint; „unsupported” csak a weben van).
+nonisolated enum VoiceAvailability: String, Sendable {
+    case ok, missing, unsupported
+}
+
+/// AW17: a „Hangos utasítások” sor leírása, a végén zárójeles info-mondattal a hang elérhetőségéről – a külön, nem
+/// kattintható „Hang (hangos utasítások)” sor megszűnt (a webes `voiceInstructionsHint`).
+nonisolated func voiceInstructionsHint(_ voice: VoiceAvailability, lang: Lang? = nil) -> String {
+    let key: L10nKey = voice == .ok ? .settingsVoiceOk : voice == .missing ? .settingsVoiceMissing : .settingsVoiceUnsupported
+    return "\(t(.settingsVoiceInstructionsHint, lang: lang)) (\(t(key, lang: lang)))"
+}
+
 /// Az állapot az átlagból és a várható végső átlagból; befejezve mindkettő a végső átlag. Átlag nélkül `nil`.
 nonisolated func speedStatus(_ averageKmh: Double?, _ projectedKmh: Double?, _ limitKmh: Double) -> SpeedStatus? {
     meterState(averageKmh: averageKmh, projectedKmh: projectedKmh, speedLimitKmh: limitKmh)

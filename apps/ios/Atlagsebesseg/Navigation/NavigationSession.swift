@@ -288,6 +288,12 @@ final class NavigationSession {
             collectVoice()
             return
         }
+        // AW17: a „megéri” ajánlat a lehajtó előtt 500 m-en belül magától elfogad (nem várja ki a 45 s-ot); a hang a kézi
+        // elfogadáséval azonos (az új útvonal manőver-bemondása – ezért a bemondások összegyűjtése előtt), a 500 m-es
+        // „Gyorsabb út” ismétlés így elmarad
+        if let o = offer, o.verdict == .worth, let x = o.exitAlongM, x - along <= ALT_OFFER.autoSwitchExitM {
+            acceptOffer()
+        }
         collectVoice()
 
         // letérés: 50 m-nél távolabb, 5 mp-ig (nagyon pontatlan fixnél nem ítélünk)
@@ -571,7 +577,8 @@ final class NavigationSession {
             let step = steps[idx]
             let left = max(0, step.startM + step.distanceM - along)
             next = maneuverOf(step, left, left)
-            if idx + 1 < steps.count, step.endManeuver.type != "arrive" {
+            // AW17: az „Utána” sor csak akkor, ha a következő manőver `thenWithinM`-en (5 km) belül van
+            if idx + 1 < steps.count, step.endManeuver.type != "arrive", left <= cfg.thenWithinM {
                 var m = maneuverOf(steps[idx + 1], steps[idx + 1].distanceM, 0)
                 m.text = thenText(steps[idx + 1], idx + 2 < steps.count ? steps[idx + 2] : nil, m.icon, lang: lang)
                 then = m

@@ -5993,37 +5993,78 @@
         "cs" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "{km} km · −{n} min"
+            "value" : "{km} km · −{n} min rychleji"
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "{km} km · −{n} Min."
+            "value" : "{km} km · −{n} Min. schneller"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "{km} km · −{n} min"
+            "value" : "{km} km · −{n} min faster"
           }
         },
         "hu" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "{km} km · −{n} perc"
+            "value" : "{km} km · −{n} perc gyorsabb"
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "{km} km · −{n} min"
+            "value" : "{km} km · −{n} min szybciej"
           }
         },
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "{km} km · −{n} min"
+            "value" : "{km} km · −{n} min rýchlejšie"
+          }
+        }
+      }
+    },
+    "nav.offer.compactFaster" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "−{n} min rychleji"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "−{n} Min. schneller"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "−{n} min faster"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "−{n} perc gyorsabb"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "−{n} min szybciej"
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "−{n} min rýchlejšie"
           }
         }
       }
@@ -11395,47 +11436,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Jednotka"
-          }
-        }
-      }
-    },
-    "settings.voice" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "cs" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Hlas (hlasové pokyny)"
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Stimme (Sprachansagen)"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Voice (spoken directions)"
-          }
-        },
-        "hu" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Hang (hangos utasítások)"
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Głos (komunikaty głosowe)"
-          }
-        },
-        "sk" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Hlas (hlasové pokyny)"
           }
         }
       }

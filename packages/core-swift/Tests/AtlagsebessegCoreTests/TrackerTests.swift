@@ -339,3 +339,24 @@ struct TrackerRobustnessTests {
         #expect(abs(r.last.lastResult!.averageKmh - expected) < 0.5)
     }
 }
+
+@Suite("SectionTracker – AW17: Maradj / várható a 7 km-es fixtúrán")
+struct StayBelowTrackerTests {
+    @Test("5 km 137-tel, utána 108-cal: 2,0 km-rel a kapu előtt a „Maradj” 115, a „várható” 127, állapot: lassíts")
+    func maradjVarhato() throws {
+        let samples = drive("straight7-137-108")
+        let r = run([fx.straight7], fixes(samples))
+        // az első minta 108 km/h-val (5 km után, a bevezető 2,5 km-rel együtt)
+        let live = try #require(snapAt(samples, r.snaps, 2500 + 5000 + 40).live)
+        #expect(closeTo(live.currentKmh, 108, 6))
+        #expect(closeTo(live.averageKmh, 137, 1))
+        #expect(live.remainingM > 1900)
+        #expect(live.remainingM < 2000)
+        #expect(live.required.kind == "ok")
+        #expect(live.required.maxKmh!.rounded() == 115)
+        #expect(live.projectedKmh!.rounded() == 127)
+        #expect(live.slowDownKmh == 0)
+        #expect(meterState(averageKmh: live.averageKmh, projectedKmh: live.projectedKmh, speedLimitKmh: fx.straight7.speedLimitKmh) == .lassits)
+    }
+}
+

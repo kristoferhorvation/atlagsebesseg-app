@@ -862,6 +862,24 @@
     "source": "osm",
     "verified": false
   },
+  "straight7": {
+    "id": "S7",
+    "country": "IT",
+    "road": "A99",
+    "direction": "Dél → Kelet",
+    "start": {
+      "lat": 44.5,
+      "lon": 11.3
+    },
+    "end": {
+      "lat": 44.562952425460715,
+      "lon": 11.3
+    },
+    "lengthM": 7000,
+    "speedLimitKmh": 130,
+    "source": "osm",
+    "verified": false
+  },
   "farStart": {
     "lat": 44.5,
     "lon": 11.930437993268011

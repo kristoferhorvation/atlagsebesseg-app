@@ -183,3 +183,44 @@ struct MeterStateTests {
         #expect(meterBar(.tulGyors, .nincsKorlat) == nil)
     }
 }
+
+@Suite("AW17: „Maradj X alatt” és „várható” együtt")
+struct StayBelowExpectedTests {
+    @Test("137 átlag, 130 határ, most 108, 2,0 km hátra a 7 km-ből → Maradj 115, várható 127")
+    func pelda() throws {
+        // 5 km 137-tel: 131,4 s; a 130-as átlaghoz a 7 km legalább 193,8 s → 62,5 s marad a 2 km-re
+        let elapsedMs = (5.0 / 137) * 3_600_000
+        let req = requiredSpeed(lengthM: 7000, speedLimitKmh: 130, distanceDoneM: 5000, elapsedMs: elapsedMs)
+        #expect(req.kind == "ok")
+        let maxKmh = try #require(req.maxKmh)
+        #expect(closeTo(maxKmh, 115.28, 2))
+        #expect(maxKmh.rounded() == 115)
+        let projected = try #require(projectedAverageKmh(lengthM: 7000, distanceDoneM: 5000, elapsedMs: elapsedMs, currentKmh: 108))
+        #expect(closeTo(projected, 127.24, 1))
+        #expect(projected.rounded() == 127)
+        let state = meterState(averageKmh: 137, projectedKmh: projected, speedLimitKmh: 130)
+        #expect(state == .lassits)
+        #expect(meterBar(state, req) == .max(maxKmh: maxKmh))
+        // a „Maradj” értékével továbbmenve a kapunál pontosan a határ az átlag
+        #expect(closeTo(projectedAverageKmh(lengthM: 7000, distanceDoneM: 5000, elapsedMs: elapsedMs, currentKmh: maxKmh), 130, 9))
+    }
+
+    @Test("a kettő nem mond ellent: a várható ≤ határ pontosan akkor, ha most ≤ a Maradj-érték")
+    func nincsEllentmondas() {
+        for avg in [125.0, 131, 137, 145] {
+            for doneM in [1000.0, 3500, 5000, 6500] {
+                for now in [80.0, 100, 108, 115, 120, 140] {
+                    let elapsedMs = (doneM / 1000 / avg) * 3_600_000
+                    let req = requiredSpeed(lengthM: 7000, speedLimitKmh: 130, distanceDoneM: doneM, elapsedMs: elapsedMs, minPracticalFraction: 0)
+                    let projected = projectedAverageKmh(lengthM: 7000, distanceDoneM: doneM, elapsedMs: elapsedMs, currentKmh: now)!
+                    if req.kind == "nincs_korlat" {
+                        #expect(projected <= 130 + 1e-9, "\(avg)/\(doneM)/\(now)")
+                    } else {
+                        #expect((projected <= 130 + 1e-9) == (now <= req.maxKmh! + 1e-9), "\(avg)/\(doneM)/\(now)")
+                    }
+                }
+            }
+        }
+    }
+}
+

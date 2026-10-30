@@ -24,6 +24,8 @@ export interface HudProps {
   gpsReady: boolean;
   /** Navigáció közben (AOS13) a mérés eredménye egy sor (`navResultCompact`; AW15: a kézi mérésé is). */
   navCompact?: boolean;
+  /** AW17: mérés + „Gyorsabb út” ajánlat egyszerre – a mérőkártya egy sor (`navMeterCompact`), hogy az ajánlat elférjen. */
+  meterCompact?: boolean;
   /** AW15: navigáció közben a kézi mérés teljes kártyája bökésre pillé zsugorodik (a gombok kivételével). */
   onCollapseManual?: () => void;
   onStopManual: () => void;
@@ -101,6 +103,33 @@ export function Hud(p: HudProps) {
       ) : (
         <span className="chip neutral">{t('hud.starting')}</span>
       );
+      const nowOver = (view.currentKmh ?? 0) > s.speedLimitKmh;
+      if (p.meterCompact)
+        return (
+          // AW17: egy sor – átlag a státusz színével, most · várható, tábla; az ajánlat eltűnése után visszanő
+          <Card tone={tone} label={t('hud.measure')} compact>
+            <div className="compact-row meter-compact">
+              <div className="compact-speed num tone">
+                {speedIn(live.averageKmh, unit) ?? '–'}
+                <small> {u}</small>
+              </div>
+              <div className="meter-fig">
+                <span className="body muted">{t('hud.now')}</span>
+                <b className="meter-num num" data-over={nowOver}>
+                  {speedIn(view.currentKmh, unit) ?? '–'}
+                </b>
+              </div>
+              <span className="meter-sep" aria-hidden="true">
+                ·
+              </span>
+              <div className="meter-fig">
+                <span className="body muted">{t('hud.expected')}</span>
+                <b className="meter-num num">{speedIn(live.projectedKmh, unit) ?? '–'}</b>
+              </div>
+              <LimitSign kmh={s.speedLimitKmh} unit={unit} small />
+            </div>
+          </Card>
+        );
       return (
         <Card tone={tone} label={t('hud.measure')}>
           <div className="row">
@@ -123,7 +152,7 @@ export function Hud(p: HudProps) {
             <div className="meter-fig">
               <span className="body muted">{t('hud.now')}</span>
               {/* az állapot nem változik: a „most” önállóan jelzi, ha a pillanatnyi sebesség a határ felett van */}
-              <b className="meter-num num" data-over={(view.currentKmh ?? 0) > s.speedLimitKmh}>{speedIn(view.currentKmh, unit) ?? '–'}</b>
+              <b className="meter-num num" data-over={nowOver}>{speedIn(view.currentKmh, unit) ?? '–'}</b>
             </div>
             <span className="meter-sep" aria-hidden="true">
               ·

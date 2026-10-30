@@ -145,3 +145,36 @@ describe('meterState / meterBar', () => {
     expect(meterBar('tul_gyors', { kind: 'nincs_korlat' })).toBeNull();
   });
 });
+
+describe('AW17: „Maradj X alatt” és „várható” együtt', () => {
+  it('137 átlag, 130 határ, most 108, 2,0 km hátra a 7 km-ből → Maradj 115, várható 127', () => {
+    // 5 km 137-tel: 131,4 s; a 130-as átlaghoz a 7 km legalább 193,8 s → 62,5 s marad a 2 km-re
+    const input = { lengthM: 7000, distanceDoneM: 5000, elapsedMs: (5 / 137) * 3_600_000 };
+    const req = requiredSpeed({ ...input, speedLimitKmh: 130 });
+    expect(req.kind).toBe('ok');
+    if (req.kind !== 'ok') return;
+    expect(req.maxKmh).toBeCloseTo(115.28, 2);
+    expect(Math.round(req.maxKmh)).toBe(115);
+    const projected = projectedAverageKmh({ ...input, currentKmh: 108 })!;
+    expect(projected).toBeCloseTo(127.24, 1);
+    expect(Math.round(projected)).toBe(127);
+    const state = meterState({ averageKmh: 137, projectedKmh: projected, speedLimitKmh: 130 });
+    expect(state).toBe('lassits');
+    expect(meterBar(state, req)).toEqual({ kind: 'max', maxKmh: req.maxKmh });
+    // a „Maradj” értékével továbbmenve a kapunál pontosan a határ az átlag
+    expect(projectedAverageKmh({ ...input, currentKmh: req.maxKmh })).toBeCloseTo(130, 9);
+  });
+
+  it('a kettő nem mond ellent: a várható ≤ határ pontosan akkor, ha most ≤ a Maradj-érték', () => {
+    const L = 7000;
+    for (const avg of [125, 131, 137, 145])
+      for (const doneM of [1000, 3500, 5000, 6500])
+        for (const now of [80, 100, 108, 115, 120, 140]) {
+          const input = { lengthM: L, distanceDoneM: doneM, elapsedMs: (doneM / 1000 / avg) * 3_600_000 };
+          const req = requiredSpeed({ ...input, speedLimitKmh: 130, minPracticalFraction: 0 });
+          const projected = projectedAverageKmh({ ...input, currentKmh: now })!;
+          if (req.kind === 'nincs_korlat') expect(projected, `${avg}/${doneM}/${now}`).toBeLessThanOrEqual(130 + 1e-9);
+          else expect(projected <= 130 + 1e-9, `${avg}/${doneM}/${now}`).toBe(now <= req.maxKmh + 1e-9);
+        }
+  });
+});

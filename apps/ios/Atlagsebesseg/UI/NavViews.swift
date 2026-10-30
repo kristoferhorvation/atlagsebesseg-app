@@ -530,20 +530,27 @@ struct NavStrip: View {
     }
 }
 
-/// Alsó sáv: pillanatnyi sebesség, érkezés, hátralévő idő és táv, „Befejezés”.
+/// Alsó sáv: pillanatnyi sebesség, érkezés, hátralévő idő és táv, „Befejezés” – AW17: navigáció közben mindig a képernyő
+/// alján, a mérőkártya fölötte. Mérés közben sebesség nélkül (`showSpeed`, a mérőkártya „most” mezője mutatja); a km/h
+/// piros, ha a bal alsó tábla limitje fölött van (`over`) – csak szín, hang és rezgés nincs.
 struct NavBottomBar: View {
     let view: NavView
     let unit: SpeedUnit
     let currentKmh: Double?
+    var showSpeed = true
+    var over = false
     let onEnd: () -> Void
 
     var body: some View {
         HStack(spacing: Tokens.Space.s4) {
-            VStack(spacing: 0) {
-                Text(String(speedIn(currentKmh ?? 0, unit) ?? 0)).font(.num(34, 720))
-                Text(unitLabel(unit)).font(.inter(13, 560)).foregroundStyle(Tokens.Colors.textMuted)
+            if showSpeed {
+                VStack(spacing: 0) {
+                    Text(String(speedIn(currentKmh ?? 0, unit) ?? 0)).font(.num(34, 720))
+                        .foregroundStyle(over ? Tokens.Colors.over : Tokens.Colors.text)
+                    Text(unitLabel(unit)).font(.inter(13, 560)).foregroundStyle(Tokens.Colors.textMuted)
+                }
+                .frame(minWidth: 64)
             }
-            .frame(minWidth: 64)
             VStack(alignment: .leading, spacing: 2) {
                 Text(formatClock(view.etaMs)).font(.num(28, 720)).accessibilityLabel(t(.navEta))
                 Text("\(formatTripDuration(view.remainingS)) · \(dist(view.remainingM, unit))")
@@ -572,8 +579,8 @@ struct NavBottomBar: View {
 
 /// Felugró ajánlat (AW12): „Megéri · −7 perc, +4 km” / „Lehet · −2 perc, +1 km” / „Nem éri meg · +20 km kerülő, −10 perc”,
 /// alatta a lehajtó; Elvet / Elfogad (56 pt-es gombok). A kiemelt gomb az, ami 45 s után magától történik; alatta vékony,
-/// fogyó csík mutatja a hátralévő időt, szám nélkül (AW13). Mérés közben kompakt, kétsoros: „Kijárat 56” / „2,1 km · −7
-/// perc” (a kategória a sor színéből látszik). A webes `OfferCard` kinézete.
+/// fogyó csík mutatja a hátralévő időt, szám nélkül (AW13). Mérés közben kompakt: „Kijárat 56 · 2,5 km · −7 perc
+/// gyorsabb” (AW17; a kategória a sor színéből látszik). A webes `OfferCard` kinézete.
 struct OfferCard: View {
     let offer: AlternativeOffer
     let onAccept: () -> Void
@@ -608,15 +615,13 @@ struct OfferCard: View {
 
     var body: some View {
         if offer.compact {
-            let (line1, line2) = altOfferCompactLines(title: offer.title, gainS: offer.gainS, exitAlongM: offer.exitAlongM, exitName: offer.exitName, exitKm: offer.exitKm)
+            // AW17: „Kijárat 56 · 2,5 km · −7 perc gyorsabb” – keskeny képernyőn tördelve, nem levágva
+            let text = altOfferCompactText(title: offer.title, gainS: offer.gainS, exitAlongM: offer.exitAlongM, exitName: offer.exitName, exitKm: offer.exitKm)
             HStack(spacing: Tokens.Space.s2) {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(line1).font(.inter(Tokens.Typography.caption.size, 650)).foregroundStyle(tint).lineLimit(1).minimumScaleFactor(0.8)
-                    if let line2 {
-                        Text(line2).font(.num(13, 560)).foregroundStyle(Tokens.Colors.textMuted).lineLimit(1).minimumScaleFactor(0.8)
-                    }
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
+                Text(text).font(.num(Tokens.Typography.caption.size, 650)).foregroundStyle(tint)
+                    .lineLimit(3)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .frame(maxWidth: .infinity, alignment: .leading)
                 small(t(.navOfferDecline), primary: !acceptByDefault, action: onDecline)
                 small(t(.navOfferAccept), primary: acceptByDefault, action: onAccept)
             }

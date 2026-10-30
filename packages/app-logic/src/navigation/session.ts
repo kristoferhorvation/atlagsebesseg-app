@@ -290,6 +290,12 @@ export class NavigationSession {
       this.collectVoice();
       return;
     }
+    // AW17: a „megéri” ajánlat a lehajtó előtt 500 m-en belül magától elfogad (nem várja ki a 45 s-ot); a hang a kézi
+    // elfogadáséval azonos (az új útvonal manőver-bemondása – ezért a bemondások összegyűjtése előtt), a 500 m-es
+    // „Gyorsabb út” ismétlés így elmarad
+    if (this.offer && this.offer.verdict === 'worth' && this.offer.exitAlongM !== null && this.offer.exitAlongM - this.along <= ALT_OFFER.autoSwitchExitM) {
+      this.acceptOffer();
+    }
     this.collectVoice();
 
     // letérés: 50 m-nél távolabb, 5 mp-ig (nagyon pontatlan fixnél nem ítélünk)
@@ -601,7 +607,8 @@ export class NavigationSession {
     const next = this.maneuverOf(step, left, left);
     const following = steps[idx + 1];
     let then: ManeuverView | null = null;
-    if (following && step.endManeuver.type !== 'arrive') {
+    // AW17: az „Utána” sor csak akkor, ha a következő manőver `thenWithinM`-en (5 km) belül van
+    if (following && step.endManeuver.type !== 'arrive' && left <= this.cfg.thenWithinM) {
       const m = this.maneuverOf(following, following.distanceM, 0);
       then = { ...m, text: thenText(following, steps[idx + 2], m.icon) };
     }
