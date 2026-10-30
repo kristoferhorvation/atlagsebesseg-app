@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { LocalProjection, type GpsFix } from '@atlagsebesseg/core';
 import { BUNDLED_CAMERAS } from '../src/bundledCameras';
-import { cameraSourceText, cameraVisibility, cameraWarning, visibleCameras, type FixedCamera } from '../src/cameras';
+import { cameraCardDetail, cameraCardMeta, cameraDirection, cameraSourceText, cameraVisibility, cameraWarning, visibleCameras, type FixedCamera } from '../src/cameras';
 import {
   inPlannedZone,
   onPlannedLine,
@@ -238,6 +238,24 @@ describe('jogi láthatóság (camera_visibility.json)', () => {
   it('a kártya forrás-sora', () => {
     expect(cameraSourceText({ verified: true, type: 'complex', sourceDate: '2015-11', country: 'HU' })).toContain('VÉDA');
     expect(cameraSourceText({ verified: false, type: 'speed', sourceDate: '2026-10-28', country: 'HU' })).toContain('nem ellenőrzött');
+  });
+
+  it('a kamera-kártya: irány a haladáshoz képest, távolság, út és limit (AOS15)', () => {
+    expect(cameraDirection({ headingDeg: null }, 90)).toBe('any');
+    expect(cameraDirection({ headingDeg: 80 }, null)).toBe('one');
+    expect(cameraDirection({ headingDeg: 80 }, 90)).toBe('ours');
+    expect(cameraDirection({ headingDeg: 0 }, 90)).toBe('ours'); // 90° még a miénk
+    expect(cameraDirection({ headingDeg: 350 }, 90)).toBe('other');
+    expect(cameraDirection({ headingDeg: 270 }, 90)).toBe('other');
+    const cam = { headingDeg: 270, lat: 47.5, lon: 19.0 };
+    // ~1,2 km-re északra
+    const fix = { lat: 47.5 - 1200 / 111_195, lon: 19.0, heading: 90 };
+    expect(cameraCardMeta(cam, fix, 'kmh')).toBe('Az ellenirányt méri · 1,2 km távolságra');
+    expect(cameraCardMeta({ ...cam, headingDeg: null }, null, 'kmh')).toBe('Mindkét irányban mér');
+    expect(cameraCardMeta(cam, { ...fix, heading: null }, 'mph')).toBe('Egy irányban mér · 0,7 mi távolságra');
+    expect(cameraCardDetail({ road: 'M1', speedLimitKmh: 130 }, 'kmh')).toBe('M1 · 130 km/h');
+    expect(cameraCardDetail({ road: 'M1', speedLimitKmh: 130 }, 'mph')).toBe('M1 · 81 mph');
+    expect(cameraCardDetail({ road: '', speedLimitKmh: null }, 'kmh')).toBe('');
   });
 });
 

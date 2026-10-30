@@ -1,4 +1,4 @@
-import { ALT_OFFER, CAMERA_ALERT, TRAFFIC, DICTIONARIES, MEGSZOLITAS_MAX, REPORT_PROMPT, type ActiveReport, LANGUAGE_FLAGS, LANGUAGE_NAMES, LANGUAGES, MANUAL_PILL, NAV_CONFIG, NAV_COUNTRIES, NAV_FOLLOW, PLANNED_MATCH_M, PLANNED_OFF_FIXES, ROUTE_MATCH_M, type FixedCamera, type PlannedCheck, type TKey } from '@atlagsebesseg/app-logic';
+import { ALT_OFFER, CAMERA_ALERT, CAMERA_CARD, TRAFFIC, DICTIONARIES, MEGSZOLITAS_MAX, REPORT_PROMPT, type ActiveReport, LANGUAGE_FLAGS, LANGUAGE_NAMES, LANGUAGES, MANUAL_PILL, NAV_CONFIG, NAV_COUNTRIES, NAV_FOLLOW, PLANNED_MATCH_M, PLANNED_OFF_FIXES, ROUTE_MATCH_M, type FixedCamera, type PlannedCheck, type TKey } from '@atlagsebesseg/app-logic';
 import { Route, type LatLon } from '@atlagsebesseg/core';
 import { testCourse } from '@atlagsebesseg/core/test/helpers/trace';
 import { toSwift } from '@atlagsebesseg/design-tokens';
@@ -90,6 +90,10 @@ function appLogicConstants(): string {
     '/// kérdésre, az elhaladás után `showMs`-ig látható; ±`coneDeg` az „előttünk”, bejelentésenként egyszer.',
     'nonisolated enum REPORT_PROMPT {',
     ...Object.entries(REPORT_PROMPT).map(([k, v]) => `    static let ${k} = ${num(v)}`),
+    '}',
+    '/// AOS15: a kamera-kártya irány-sora – a haladási iránytól legfeljebb `sameDirDeg`-re eső mérési irány „a te irányod”.',
+    'nonisolated enum CAMERA_CARD {',
+    ...Object.entries(CAMERA_CARD).map(([k, v]) => `    static let ${k} = ${num(v)}`),
     '}',
     '/// AW18: élő forgalom (2 perces friss lekérés), „+N perc dugó” (≥ `delayShowS`, hang csak először),',
     '/// helyi dugó-érzékelés (`jamWindowMs` ablak a várt tempó `jamSlowFraction`-ja alatt; vége `jamClearM` a `jamNearFraction` fölött),',

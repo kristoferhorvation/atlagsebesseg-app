@@ -198,7 +198,11 @@ struct MapScreen: View {
 
             ForEvery(model.plan == nil ? cameraPoints : []) { cam in
                 MapViewAnnotation(coordinate: CLLocationCoordinate2D(latitude: cam.lat, longitude: cam.lon)) {
-                    CameraPin(camera: cam)
+                    // AOS15: koppintásra a kamera kártyája (a webes `CameraCard`), a kiválasztott nagyobb
+                    Button { model.selectCamera(cam.id) } label: {
+                        CameraPin(camera: cam, selected: cam.id == model.selectedCameraId)
+                    }
+                    .buttonStyle(.plain)
                 }
                 .allowOverlap(true)
             }
@@ -235,6 +239,8 @@ struct MapScreen: View {
             attributionButton: AttributionButtonOptions(position: .topTrailing, margins: CGPoint(x: 12, y: 4))
         ))
         .gestureHandlers(MapGestureHandlers(onBegin: { _ in follow = false }))
+        // a térkép üres részére koppintva a nyitott kártya bezárul (a webes `onReportTap(null)`)
+        .onMapTapGesture { _ in model.mapTapped() }
         // érintésre váltás az alternatív útvonalra (a vonalon is, nem csak a címkén)
         .onLayerTapGesture("route-alt") { queried, _ in
             if case .string(let id) = queried.feature.properties?["id"], let i = model.plan?.routes.firstIndex(where: { $0.id == id }) {
@@ -495,17 +501,24 @@ struct MapScreen: View {
     }
 }
 
-/// Kamera-jelölő: kerek üveg-korong a típus ikonjával (a webes `.camera-pin`).
+/// Kamera-jelölő (a webes `.camera-pin`, DESIGN.md A7): kicsi, visszafogott – 32 pt-es lekerekített négyzet, sötét üveg,
+/// halvány él, fehér vonalikon, 56 pt-es érintési cél; kiválasztva 1,2-szeres, erősebb éllel.
 private struct CameraPin: View {
     let camera: FixedCamera
+    let selected: Bool
 
     var body: some View {
         Icon(name: camera.type.icon, size: 18)
-            .foregroundStyle(camera.verified ? Tokens.Colors.text : Tokens.Colors.textMuted)
-            .frame(width: 34, height: 34)
-            .background(Tokens.Colors.surfaceStrong, in: Circle())
-            .overlay(Circle().strokeBorder(camera.verified ? Tokens.Colors.signRing : Tokens.Colors.strokeStrong, lineWidth: 2))
+            .foregroundStyle(Tokens.Colors.text)
+            .frame(width: 32, height: 32)
+            .background(Tokens.Colors.surfaceStrong, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: 10, style: .continuous).strokeBorder(selected ? Tokens.Colors.textMuted : Tokens.Colors.textFaint, lineWidth: 1.5))
+            .shadow(color: .black.opacity(0.45), radius: 5, y: 4)
+            .scaleEffect(selected ? 1.2 : 1)
+            .frame(width: Tokens.Size.touch, height: Tokens.Size.touch)
+            .contentShape(Rectangle())
             .accessibilityLabel(t(.cameraAria, ["label": camera.type.label]))
+            .animation(.easeOut(duration: Tokens.Motion.fast), value: selected)
     }
 }
 

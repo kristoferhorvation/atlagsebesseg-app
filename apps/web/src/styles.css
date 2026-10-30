@@ -1534,6 +1534,12 @@ a.list-row {
   border-radius: 12px;
 }
 
+.camera-card-meta {
+  font-size: var(--type-body-size);
+  font-weight: 600;
+  color: var(--color-text);
+}
+
 .camera-card-source {
   display: flex;
   align-items: center;

@@ -45,6 +45,45 @@ nonisolated struct FixedCamera: Identifiable, Hashable, Codable, Sendable {
     var verified: Bool
 }
 
+/// A kártya forrás-sora: honnan tudjuk, és mennyire biztos (a webes `cameraSourceText`).
+nonisolated func cameraSourceText(_ c: FixedCamera, lang: Lang? = nil) -> String {
+    if c.verified && c.type == .complex && c.country == "HU" { return t(.cameraSourceVeda, lang: lang) }
+    if c.verified { return t(.cameraSourceOfficial, ["date": c.sourceDate], lang: lang) }
+    return t(.cameraSourceOsm, ["date": c.sourceDate], lang: lang)
+}
+
+/// AOS15: mit mér a kamera hozzánk képest (a webes `CameraDir`): irány nélküli → mindkét irány; saját irány nélkül
+/// (álló autó) csak „egy irányban”.
+nonisolated enum CameraDir: String, Sendable {
+    case any, ours, other, one
+}
+
+nonisolated func cameraDirection(_ cameraHeading: Double?, _ heading: Double?) -> CameraDir {
+    guard let cameraHeading else { return .any }
+    guard let heading else { return .one }
+    return angleDiffDeg(cameraHeading, heading) <= CAMERA_CARD.sameDirDeg ? .ours : .other
+}
+
+/// A kártya részlet-sora: „M1 · 130 km/h” (út és limit, ami van).
+nonisolated func cameraCardDetail(road: String, speedLimitKmh: Double?, _ unit: SpeedUnit) -> String {
+    let limit = speedIn(speedLimitKmh, unit).flatMap { $0 != 0 ? "\($0) \(unitLabel(unit))" : nil }
+    return [road.isEmpty ? nil : road, limit].compactMap { $0 }.joined(separator: " · ")
+}
+
+/// A kártya irány- és távolság-sora: „A te irányodban mér · 1,2 km távolságra” (pozíció nélkül csak az irány).
+nonisolated func cameraCardMeta(headingDeg: Double?, at: LatLon, fix: GpsFix?, _ unit: SpeedUnit, lang: Lang? = nil) -> String {
+    let key: L10nKey = switch cameraDirection(headingDeg, fix?.heading) {
+    case .any: .cameraDirAny
+    case .ours: .cameraDirOurs
+    case .other: .cameraDirOther
+    case .one: .cameraDirOne
+    }
+    let dir = t(key, lang: lang)
+    guard let fix else { return dir }
+    let d = formatDistance(haversineM(fix, at), unit, lang: lang ?? L10n.lang)
+    return "\(dir) · \(t(.cameraDistance, ["d": "\(d.value) \(d.unit)"], lang: lang))"
+}
+
 /// A `cameras` tábla / `cameras_in_bbox` sora.
 nonisolated struct CameraRow: Codable, Sendable {
     var id: String

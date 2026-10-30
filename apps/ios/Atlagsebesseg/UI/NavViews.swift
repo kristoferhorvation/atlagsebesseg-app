@@ -366,8 +366,9 @@ struct RoutePickerCard: View {
                 HStack(alignment: .firstTextBaseline, spacing: Tokens.Space.s2) {
                     // AW18: a „Leggyorsabb” a legkisebb menetidejű (nem a Mapbox 0. indexe)
                     Text(routeTagText(i, model.fastestRoute))
-                        .font(.inter(14, 650))
-                        .foregroundStyle(selected ? Tokens.Colors.accent : Tokens.Colors.textMuted)
+                        // AOS15 (AW18-paritás): mindig accent, 16 / 620, mint a webes `.route-opt-tag`
+                        .font(.inter(16, 620))
+                        .foregroundStyle(Tokens.Colors.accent)
                         .fixedSize()
                     (Text(t(.navPickerSections, ["n": String(s.sections)])).foregroundColor(s.sections == 0 ? Tokens.Colors.textFaint : Tokens.Colors.textMuted)
                         + Text(" · ").foregroundColor(Tokens.Colors.textFaint)
@@ -418,6 +419,7 @@ struct NavTopCard: View {
     var report: ReportAlertModel?
     /// AW18: „Dugóba kerültél?” válasz (Igen / Nem); `nil`: nincs kérdés-sor.
     var onJamAnswer: ((Bool) -> Void)?
+    var jamSending = false
     /// AW18: koppintás a „nem sikerült” kártyára – azonnali újrapróba.
     var onRetry: (() -> Void)?
 
@@ -436,14 +438,17 @@ struct NavTopCard: View {
                 // AW18: a sikertelen újratervezés kártyája a következő próbáig hátralévő másodperccel; koppintásra azonnal
                 Button { onRetry?() } label: {
                     HStack(spacing: Tokens.Space.s3) {
-                        Icon(name: .restart, size: 34)
+                        // AOS15 (AW18-paritás, a webes `.nav-reroute`): újratervezés közben borostyán, title-méret, forgó ikon;
+                        // hibánál piros, 22 pt
+                        SpinningIcon(spinning: view.rerouting)
                         VStack(alignment: .leading, spacing: 2) {
                             Text(view.rerouting || !view.rerouteFailed ? t(.navRerouting) : t(.navRerouteFailed))
-                                .font(.inter(Tokens.Typography.body.size, 620))
+                                .font(.inter(failed ? 22 : Tokens.Typography.title.size, 620))
                                 .lineLimit(2)
+                                .minimumScaleFactor(0.8)
                             if failed, let s = view.rerouteRetryInS {
                                 Text(t(.navRerouteRetryIn, ["s": String(s)]))
-                                    .font(.num(Tokens.Typography.caption.size + 1, 560))
+                                    .font(.num(17, 560))
                                     .foregroundStyle(Tokens.Colors.textMuted)
                                     .lineLimit(2)
                             }
@@ -454,7 +459,7 @@ struct NavTopCard: View {
                 }
                 .buttonStyle(.plain)
                 .disabled(!failed)
-                .foregroundStyle(failed ? Tokens.Colors.near : Tokens.Colors.text)
+                .foregroundStyle(failed ? Tokens.Colors.over : Tokens.Colors.near)
             } else if arrived {
                 HStack(spacing: Tokens.Space.s4) {
                     ManeuverGlyph(icon: .arrive, size: 64)
@@ -481,7 +486,7 @@ struct NavTopCard: View {
                 .padding(.top, 2)
                 .accessibilityAddTraits(.updatesFrequently)
             } else if jamAsk, let onJamAnswer {
-                JamAskRow(onAnswer: onJamAnswer)
+                JamAskRow(onAnswer: onJamAnswer, sending: jamSending)
             } else if let rep {
                 ReportAlertRow(alert: rep, unit: unit)
             } else if let up = upcomingText(view, unit), !arrived {
@@ -570,7 +575,8 @@ struct NavBottomBar: View {
     private let speedColumn: CGFloat = 64
 
     var body: some View {
-        VStack(alignment: .leading, spacing: Tokens.Space.s2) {
+        // AOS15 (AW18-paritás): a webes rács 4 px-es sorköze és a kapszula 1 × 10 px-es belső margója
+        VStack(alignment: .leading, spacing: 4) {
             // AW18: a friss ETA ≥ 3 perccel az indulási terv után – „+N perc dugó” borostyán kapszula a sáv felső sorában, az
             // érkezési idő oszlopának elejéhez igazítva (390 pt-en a sebesség és a Befejezés mellé nem férne)
             if let d = view.delayMin {
@@ -579,8 +585,8 @@ struct NavBottomBar: View {
                     .foregroundStyle(Tokens.Colors.near)
                     .lineLimit(1)
                     .fixedSize()
-                    .padding(.horizontal, Tokens.Space.s3)
-                    .padding(.vertical, 4)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 1)
                     .background(Tokens.Colors.near.opacity(0.16), in: Capsule())
                     .padding(.leading, showSpeed ? speedColumn + Tokens.Space.s4 : 0)
             }
@@ -729,5 +735,26 @@ struct OfferCard: View {
             .frame(height: 48)
             .background(primary ? Tokens.Colors.text : Color.white.opacity(0.1), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
             .overlay(alignment: .bottom) { if primary { timer.padding(.horizontal, -8).offset(y: -1) } }
+    }
+}
+
+/// Az újratervezés ikonja – újratervezés közben forog (a webes `.spin`, 1,1 s / fordulat).
+private struct SpinningIcon: View {
+    let spinning: Bool
+    @State private var angle = 0.0
+
+    var body: some View {
+        Icon(name: .restart, size: 34)
+            .rotationEffect(.degrees(angle))
+            .onAppear { spin(spinning) }
+            .onChange(of: spinning) { _, on in spin(on) }
+    }
+
+    private func spin(_ on: Bool) {
+        if on {
+            withAnimation(.linear(duration: 1.1).repeatForever(autoreverses: false)) { angle = 360 }
+        } else {
+            withAnimation(.none) { angle = 0 }
+        }
     }
 }

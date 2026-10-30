@@ -21,6 +21,8 @@ struct AtlagsebessegApp: App {
             // AW15: a választott nyelv a rendszer-elemek (formázás, felolvasás) nyelve is
             .environment(\.locale, L10n.lang.locale)
             .tint(Tokens.Colors.accent)
+            // AOS15: a Live Activity koppintása a megfelelő nézetre nyit
+            .onOpenURL { model.openLink($0) }
         }
     }
 }

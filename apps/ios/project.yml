@@ -72,6 +72,11 @@ targets:
         CODE_SIGN_STYLE: Automatic
         GENERATE_INFOPLIST_FILE: NO
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+    # AOS15: a Live Activity térképképe az App Group tárolón át jut a widgethez
+    entitlements:
+      path: Atlagsebesseg/Atlagsebesseg.entitlements
+      properties:
+        com.apple.security.application-groups: [group.hu.atlagsebesseg.app]
     info:
       path: Atlagsebesseg/Info.plist
       properties:
@@ -89,6 +94,10 @@ targets:
         UIBackgroundModes: [location, audio]
         # AOS14: Live Activity mérés és navigáció közben
         NSSupportsLiveActivities: true
+        # AOS15: a Live Activity koppintása (atlagsebesseg://live/<cél>) a megfelelő nézetre nyit
+        CFBundleURLTypes:
+          - CFBundleURLName: hu.atlagsebesseg.app
+            CFBundleURLSchemes: [atlagsebesseg]
         # alapszöveg; a nyelvenkénti változat az InfoPlist.xcstrings-ből (a szótárból generálva)
         NSLocationWhenInUseUsageDescription: Your location is needed to detect sections and measure your average speed.
         ITSAppUsesNonExemptEncryption: false
@@ -109,6 +118,8 @@ targets:
       - path: Atlagsebesseg/LiveActivity/DriveActivity.swift
       - path: Atlagsebesseg/Generated/DesignTokens.swift
       - path: Atlagsebesseg/Generated/ManeuverIcons.swift
+      # AOS15: a webes vonalikonok (stopper, GPS, szakasz) a Dynamic Island szűk alakjához
+      - path: Atlagsebesseg/Generated/Icons.swift
       - path: Atlagsebesseg/Navigation/ManeuverIconKind.swift
       - path: Atlagsebesseg/UI/InterFont.swift
       - path: Atlagsebesseg/Resources/Fonts/InterVariable.ttf
@@ -123,6 +134,10 @@ targets:
         CODE_SIGN_STYLE: Automatic
         GENERATE_INFOPLIST_FILE: NO
         SKIP_INSTALL: YES
+    entitlements:
+      path: AtlagsebessegWidget/AtlagsebessegWidget.entitlements
+      properties:
+        com.apple.security.application-groups: [group.hu.atlagsebesseg.app]
     info:
       path: AtlagsebessegWidget/Info.plist
       properties:

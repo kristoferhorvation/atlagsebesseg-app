@@ -310,7 +310,7 @@ struct LiveActivityStateTests {
         #expect(m.title == "Kézi átlagmérés")
     }
 
-    @Test("navigáció mérés nélkül: manőver, távolság, utcanév, érkezés; se mérés, se navigáció: nincs Live Activity")
+    @Test("navigáció mérés nélkül: manőver, távolság, utcanév, érkezés; se mérés, se navigáció: „figyel”, GPS nélkül nincs Live Activity")
     func navigacio() throws {
         let route = try #require(try NavSim.mainRoutes().first)
         let dest = route.points.last!
@@ -331,6 +331,142 @@ struct LiveActivityStateTests {
         #expect(n.street == nav.next.text)
         #expect(n.etaLabel == "Érkezés")
         #expect(n.eta == formatClock(nav.etaMs, lang: .hu))
-        #expect(liveActivityState(SessionView(), nav: nil, unit: .kmh) == nil)
+        #expect(n.remaining == "\(formatTripDuration(nav.remainingS, lang: .hu)) · \(formatDistance(nav.remainingM, .kmh, lang: .hu).value) km")
+        #expect(n.delay == nil)
+        #expect(s.watch == nil)
+        #expect(liveActivityState(SessionView(), nav: nil, unit: .kmh)?.watch != nil)
+        #expect(liveActivityState(SessionView(), nav: nil, unit: .kmh, gps: false) == nil)
+        #expect(liveActivityState(SessionView(), nav: nav, unit: .kmh, gps: false) == nil)
+    }
+}
+
+@Suite("Live Activity (AOS15)")
+@MainActor
+struct LiveActivityAOS15Tests {
+    private let proj = LocalProjection(LatLon(lat: 47.4, lon: 19.0))
+    private func at(_ x: Double, _ y: Double) -> LatLon { proj.fromXY(XY(x: x, y: y)) }
+    /// Kelet felé haladó autó (heading 90) az origóban.
+    private func fix(heading: Double? = 90, speed: Double = 25) -> GpsFix {
+        let p = at(0, 0)
+        return GpsFix(lat: p.lat, lon: p.lon, timestamp: 0, speed: speed, accuracy: 5, heading: heading)
+    }
+    private func section(_ id: String, from: (Double, Double), to: (Double, Double)) -> Section {
+        Section(
+            id: id, country: "HU", road: "M1", direction: id, start: at(from.0, from.1), end: at(to.0, to.1), lengthM: 2000, speedLimitKmh: 130,
+            source: .osm, verified: false, geometry: [at(from.0, from.1), at(to.0, to.1)]
+        )
+    }
+
+    @Test("figyel: pillanatnyi sebesség, tábla nélkül (navigáció nélkül nincs tábla-adat), a következő szakasz 5 km-en belül")
+    func figyel() throws {
+        var v = SessionView()
+        v.lastFix = fix()
+        v.currentKmh = 87.4
+        let s = try #require(liveActivityState(v, nav: nil, unit: .kmh, nextSectionM: 3200, lang: .hu))
+        let w = try #require(s.watch)
+        #expect(s.measure == nil && s.nav == nil)
+        #expect(w.title == "Figyel")
+        #expect(w.speed == "87" && w.unit == "km/h" && w.limit == nil)
+        #expect(w.nextSection == "Szakasz 3,2 km múlva")
+        #expect(liveActivityState(SessionView(), nav: nil, unit: .kmh, lang: .hu)?.watch?.speed == "–")
+        #expect(liveActivityState(v, nav: nil, unit: .kmh, lang: .hu)?.watch?.nextSection == nil)
+    }
+
+    @Test("a következő szakasz: előttünk, azonos irányban, 5 km-en belül; mögöttünk, szemben, messzebb, irány nélkül nincs")
+    func kovetkezoSzakasz() {
+        let ahead = section("a", from: (3000, 100), to: (5000, 100))
+        let near = section("n", from: (1200, -50), to: (3200, -50))
+        let behind = section("b", from: (-1500, 0), to: (500, 0))
+        let opposite = section("o", from: (2000, 0), to: (0, 0))
+        let far = section("f", from: (6000, 0), to: (8000, 0))
+        let d = nextSectionAheadM(fix(), [ahead, near, behind, opposite, far])
+        #expect(d.map { abs($0 - 1201) < 5 } == true)
+        #expect(nextSectionAheadM(fix(), [behind, opposite, far]) == nil)
+        #expect(nextSectionAheadM(fix(heading: nil), [ahead]) == nil)
+        #expect(nextSectionAheadM(nil, [ahead]) == nil)
+    }
+
+    @Test("mérés: „Maradj X alatt” (jó és lassíts), „Lassíts · max X” (túl gyors); kézi mérésnél az eltelt idő")
+    func tanacs() throws {
+        var views: [SessionView] = []
+        for scenario in [SimScenario.jo, .lassit, .tul] {
+            let fixture = try SimFixture.load(scenario)
+            // seek: 1 – a teljes vezetés szinkronban lejátszva (mint az AOS14-es mérés-tesztben)
+            let source = SimLocationSource(fixture, speed: 1, seek: 1)
+            let session = TrackingSession(fixture.sections, now: { source.clockMs })
+            source.onLocation = { views.append(session.onFix(GpsFix(location: $0))) }
+            source.start()
+            source.stop()
+        }
+        var checked = 0
+        for status in [SpeedStatus.jo, .lassits, .tulGyors] {
+            guard let v = views.first(where: { $0.phase == .meres && $0.status == status }), let live = v.live, case let .ok(maxKmh) = live.required else { continue }
+            checked += 1
+            let a = try #require(liveActivityState(v, nav: nil, unit: .kmh, lang: .hu)?.measure?.advice)
+            let x = String(speedIn(maxKmh, .kmh)!)
+            #expect(a == (status == .tulGyors ? "Lassíts · max \(x)" : "Maradj \(x) alatt"))
+        }
+        #expect(checked >= 2)
+        // kézi mérés 252 s-ig, 16 m/s-mal kelet felé
+        var clock = 0.0
+        let manual = TrackingSession([], now: { clock })
+        _ = manual.startManual()
+        var k = SessionView()
+        for i in 0...252 {
+            clock = Double(i) * 1000
+            let p = at(Double(i) * 16, 0)
+            k = manual.onFix(GpsFix(lat: p.lat, lon: p.lon, timestamp: clock, speed: 16, accuracy: 5, heading: 90))
+        }
+        #expect(k.phase == .kezi)
+        let m = try #require(liveActivityState(k, nav: nil, unit: .kmh, lang: .hu)?.measure)
+        #expect(m.elapsed == "4:12" && m.avg == "58" && m.advice == nil && m.limit == nil)
+    }
+
+    @Test("koppintás: mérés → measure, navigáció → nav, figyel → map")
+    func link() throws {
+        var k = SessionView()
+        k.phase = .kezi
+        #expect(try #require(liveActivityState(k, nav: nil, unit: .kmh)).link.absoluteString == "atlagsebesseg://live/measure")
+        #expect(try #require(liveActivityState(SessionView(), nav: nil, unit: .kmh)).link.absoluteString == "atlagsebesseg://live/map")
+    }
+
+    @Test("térképkép: manővernél / állapotváltáskor azonnal, különben ≤ 30 s-enként és csak > 100 m mozgásnál; 1500 m-en túl elavult")
+    func terkepkepSzabaly() {
+        let p0 = at(0, 0), p50 = at(50, 0), p150 = at(150, 0), p1600 = at(1600, 0)
+        #expect(liveMapDue(nil, nowMs: 0, pos: p0, key: "k"))
+        let st = LiveMapStamp(atMs: 0, pos: p0, key: "k")
+        #expect(liveMapDue(st, nowMs: 1000, pos: p0, key: "m"))
+        #expect(!liveMapDue(st, nowMs: 29_000, pos: p150, key: "k"))
+        #expect(!liveMapDue(st, nowMs: 60_000, pos: p50, key: "k"))
+        #expect(liveMapDue(st, nowMs: 30_000, pos: p150, key: "k"))
+        #expect(liveMapShown(st, version: 3, pos: p150) == 3)
+        #expect(liveMapShown(st, version: 3, pos: p1600) == nil)
+        #expect(liveMapShown(nil, version: 3, pos: p0) == nil)
+        #expect(liveMapShown(st, version: nil, pos: p0) == nil)
+    }
+
+    @Test("térképkép-kérés: kódolt vonallánc, menetirány felfelé, @2x, logó nélkül; zoom a sebességből")
+    func terkepkepKeres() throws {
+        // a Google-féle példa (developers.google.com/maps/documentation/utilities/polylinealgorithm)
+        #expect(encodePolyline([LatLon(lat: 38.5, lon: -120.2), LatLon(lat: 40.7, lon: -120.95), LatLon(lat: 43.252, lon: -126.453)]) == "_p~iF~ps|U_ulLnnqC_mqNvxq`@")
+        let r = LiveMapRequest(
+            center: at(0, 0), bearing: -90, zoom: 13.5, route: [at(-300, 0), at(0, 0), at(2000, 0)], sections: [[at(500, 20), at(1500, 20)]],
+            active: nil, routeHex: "1F5BFF", sectionHex: "7A86FF", activeHex: "2EE59D"
+        )
+        let url = try #require(liveMapURL(r, token: "pk.test")).absoluteString
+        #expect(url.hasPrefix("https://api.mapbox.com/styles/v1/mapbox/dark-v11/static/path-4+7A86FF-0.7("))
+        #expect(url.contains(",path-6+1F5BFF-1("))
+        #expect(url.contains(String(format: "/%.5f,%.5f,13.50,270,0/120x120@2x?access_token=pk.test&logo=false&attribution=false", r.center.lon, r.center.lat)))
+        #expect(liveMapZoom(30) == 14 && liveMapZoom(130) == 13 && liveMapZoom(nil) == 14)
+        #expect(thinPoints([at(0, 0), at(5, 0), at(30, 0), at(31, 0)]).count == 3)
+    }
+
+    @Test("az útvonal látható része: 300 m mögöttünk, 2,5 km előttünk")
+    func utvonalAblak() throws {
+        let route = try #require(try NavSim.mainRoutes().first)
+        let w = routeWindow(route, alongM: 10_000)
+        #expect(w.count >= 2 && w.count < route.points.count)
+        let along = { (p: LatLon) in route.segStartM[route.points.firstIndex(of: p)!] }
+        #expect(along(w.first!) <= 9_700 + 1 && along(w.last!) >= 12_500 - 600 && along(w.last!) <= 12_500 + 1)
     }
 }

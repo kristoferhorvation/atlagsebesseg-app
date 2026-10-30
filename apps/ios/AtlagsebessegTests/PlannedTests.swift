@@ -215,4 +215,25 @@ struct PlannedTextTests {
         let two = try row(#"{"type":"MultiLineString","coordinates":[[[18.9,47.4],[18.91,47.41]],[[18.91,47.41],[18.9,47.4]]]}"#)
         #expect(two.lines.count == 2)
     }
+
+    @Test("a kamera-kártya: irány a haladáshoz képest, távolság, út és limit (AOS15)")
+    func kameraKartya() {
+        #expect(cameraDirection(nil, 90) == .any)
+        #expect(cameraDirection(80, nil) == .one)
+        #expect(cameraDirection(80, 90) == .ours)
+        #expect(cameraDirection(0, 90) == .ours) // 90° még a miénk
+        #expect(cameraDirection(350, 90) == .other)
+        #expect(cameraDirection(270, 90) == .other)
+        let cam = LatLon(lat: 47.5, lon: 19.0)
+        // ~1,2 km-re északra
+        let f = GpsFix(lat: 47.5 - 1200 / 111_195, lon: 19.0, timestamp: 0, speed: 20, accuracy: 5, heading: 90)
+        #expect(cameraCardMeta(headingDeg: 270, at: cam, fix: f, .kmh, lang: .hu) == "Az ellenirányt méri · 1,2 km távolságra")
+        #expect(cameraCardMeta(headingDeg: nil, at: cam, fix: nil, .kmh, lang: .hu) == "Mindkét irányban mér")
+        var still = f
+        still.heading = nil
+        #expect(cameraCardMeta(headingDeg: 270, at: cam, fix: still, .mph, lang: .hu) == "Egy irányban mér · 0,7 mi távolságra")
+        #expect(cameraCardDetail(road: "M1", speedLimitKmh: 130, .kmh) == "M1 · 130 km/h")
+        #expect(cameraCardDetail(road: "M1", speedLimitKmh: 130, .mph) == "M1 · 81 mph")
+        #expect(cameraCardDetail(road: "", speedLimitKmh: nil, .kmh) == "")
+    }
 }

@@ -141,7 +141,11 @@ biztonsági zóna fölött lebeg.
 - **Fix kamerák (A7):** kicsi, **visszafogott** ikon – 32 px-es lekerekített négyzet (nem kör),
   sötét üveg, halvány él, fehér vonalikon (kamera / jelzőlámpa / kamera + lámpa); 56 px-es
   érintési cél. Nincs tónusszín és fény – a bejelentések (44 px-es, színes kör) hangosabbak.
-  Koppintásra kártya: típus, út · határ, forrás (ellenőrzöttnél zöld pipa). Csak a 15 km-es
+  Koppintásra kártya (a bejelentés kártyájának helyén és stílusában, weben és iOS-en azonosan – AOS15): típus, út · határ,
+  **irány a haladásunkhoz képest** („A te irányodban mér” / „Az ellenirányt méri” / „Mindkét irányban mér”; álló autónál
+  „Egy irányban mér”, `cameraDirection`, ±90°) **· távolság** („2,1 km távolságra”), forrás (ellenőrzöttnél zöld pipa). A
+  kiválasztott jelölő 1,2-szeres, erősebb éllel; a térkép üres részére koppintva vagy X-re zárul, mérés közben 3 s után
+  magától is. Csak a 15 km-es
   körzet kamerái kerülnek a térképre. `zone` láthatóságnál (FR) szaggatott szélű, halvány kör
   (±1 km), pont nélkül; `hide`-nál (CH) semmi.
 - **Tervezett rendőrségi mérés (A7):** a vonal halvány sárga (`planned`, 42% átlátszóság, a
@@ -162,6 +166,24 @@ biztonsági zóna fölött lebeg.
 - **Mapbox-attribúció (A5):** logó a bal, kompakt „i” a jobb felső sarokban, alapméretben, a
   biztonsági zóna alatt 4 px-re; kinyitva az attribúció több sorba tördel, nem takarja a logót.
   Az állapot-pillek közvetlenül a logó sora alatt (az A4-es helyükön).
+
+- **Live Activity (iOS, AOS15) – a lezárt képernyő arca.** A GPS indításától a GPS végéig állandó (a felhasználó a lezárt
+  képernyőn elhúzhatja – a következő GPS-indításig nem jön vissza). Sötét háttér (`bg` 92%), Inter, nagy számok, levegős
+  sorköz; bal oldalt **92 pt-es négyzetes térképkép** (18 pt-es sarok, 1 pt `stroke`), közepén a pozíció-nyíl a tónus
+  színében, menetirány felfelé. A kép a Mapbox Static Images API-ból (`dark-v11`, 120 pt @2x, az útvonal `route`, a közeli
+  szakaszok `accent` 70%, a mért szakasz a tónus színében; logó és attribúció a képen nincs), frissítés manővernél /
+  állapotváltáskor azonnal, különben ≤ 30 s-enként és csak > 100 m mozgásnál; 500 m-nél régebbi helyű kép nem látszik.
+  Öt állapot:
+  | állapot | lezárt képernyő | Dynamic Island szűk (bal · jobb) |
+  |---|---|---|
+  | **figyel** (GPS, cél nélkül) | „● Figyel”, sebesség 54 pt + egység, tábla (ha ismert), „Szakasz 3,2 km múlva” (≤ 5 km, kapu-ikon) | GPS-ikon · sebesség |
+  | **navigáció** | manőver-rajz 38 pt + távolság 36 pt, utcanév, érkezés · „18 perc · 21,4 km”, borostyán „+N perc dugó” kapszula | manőver · távolság |
+  | **szakaszmérés** | cím + „Maradj X alatt” / „Lassíts · max X” (tónus; jó állapotban halvány), átlag 54 pt a tónus színében, tábla 54 pt, most · várható · hátra | státusz-ikon (pipa / lefelé nyíl) a tónus színében · átlag |
+  | **mérés + navigáció** | mint a mérés, alatta teljes szélességben a manőver egysoros sávja (`surfaceRaised`) | mint a mérés |
+  | **kézi mérés** | átlag `accent` (kézi) színben, limit nélkül, a tábla helyén stopper + eltelt idő | stopper · átlag |
+  Kibontott Dynamic Island: **két oszlop** (bal: cím + fő szám, jobb: tábla / érkezés + hátralévő / kézi idő), alatta a
+  részletek; térképkép nélkül. A keret (`keylineTint`) mérésnél a tónus, különben `accent`. Koppintásra az app a vezetési
+  nézetre nyílik (`atlagsebesseg://live/measure|nav|map`: a lapok bezárulnak, a térkép újra követ).
 
 ## Állapotok
 

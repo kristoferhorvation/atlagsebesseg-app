@@ -75,6 +75,7 @@ struct DriveView: View {
             .animation(.easeOut(duration: Tokens.Motion.base), value: model.plan?.status == .ready)
             .animation(.easeOut(duration: Tokens.Motion.base), value: model.manualPillCollapsed)
             .animation(.easeOut(duration: Tokens.Motion.base), value: model.shownReport?.id)
+            .animation(.easeOut(duration: Tokens.Motion.base), value: model.shownCamera?.id)
         }
         // külön, felülre igazított réteg: a magas kártya sem tolja fel (a Mapbox-logó és az attribúció látszik)
         .overlay(alignment: .top) {
@@ -96,7 +97,7 @@ struct DriveView: View {
                     if let nav = model.nav, !measuringLayout {
                         // sáv-módban is elrendezve (nulla magasságú keretben, rejtve), hogy a teljes kártya alja mérhető
                         // maradjon: ebből dől el, mikor fér ki újra
-                        NavTopCard(view: nav, unit: unit, report: stepStrip ? nil : alert, onJamAnswer: stepStrip ? nil : jamAnswer, onRetry: retry)
+                        NavTopCard(view: nav, unit: unit, report: stepStrip ? nil : alert, onJamAnswer: stepStrip ? nil : jamAnswer, jamSending: model.reportSending != nil, onRetry: retry)
                             .fixedSize(horizontal: false, vertical: true)
                             .onGeometryChange(for: CGFloat.self) { $0.frame(in: .global).maxY } action: { navCardBottom = $0 }
                             .opacity(stepStrip ? 0 : 1)
@@ -108,7 +109,7 @@ struct DriveView: View {
                     // AOS14: navigáció nélkül (vagy ha a felső kártya nem látszik) a közeledő bejelentés kártyája önállóan, ugyanott
                     // AW18: ha a felső kártya nem látszik (sáv-mód / mérés), a „Dugóba kerültél?” önálló borostyán kártyán, ugyanott
                     if standaloneJamAsk {
-                        JamAskCard(onAnswer: jamAnswer)
+                        JamAskCard(onAnswer: jamAnswer, sending: model.reportSending != nil)
                             .transition(.opacity.combined(with: .offset(y: -12)))
                     } else if let alert, !(model.nav != nil && !measuringLayout && !stepStrip) {
                         ReportAlertCard(alert: alert, unit: unit)
@@ -152,6 +153,8 @@ struct DriveView: View {
                 .presentationDetents([.large])
                 .presentationBackground(Tokens.Colors.surfaceStrong)
         }
+        // AOS15: a Live Activity koppintása a Beállításokat is bezárja (a vezetési nézet látszik)
+        .onChange(of: model.liveLinkSeq) { settingsOpen = false }
         .sheet(isPresented: $settingsOpen) {
             SettingsSheet(model: model)
                 .presentationDetents([.large])
@@ -165,7 +168,8 @@ struct DriveView: View {
 
     /// AW18: a dugó-kérdés önálló kártyán, ha a felső kártya nem látszik (sáv-mód / mérés); a közeli kamera elsőbbséget kap.
     private var standaloneJamAsk: Bool {
-        guard let nav = model.nav, nav.jamAsk, nav.phase != .arrived, nav.cameraNear == nil else { return false }
+        // AOS15 (AW18-paritás): a weben a közeli kamera nem rejti el az önálló kártyát
+        guard let nav = model.nav, nav.jamAsk, nav.phase != .arrived else { return false }
         return measuringLayout || stepStrip
     }
 
@@ -201,6 +205,12 @@ struct DriveView: View {
             )
             .id(shown.id)
             .transition(.opacity.combined(with: .offset(y: 12)))
+        }
+        // AOS15: a koppintott kamera kártyája ugyanott (a webes `CameraCard`; a bejelentésé elsőbbséget kap)
+        if model.shownReport == nil, let cam = model.shownCamera {
+            CameraCard(camera: cam, fix: view.lastFix, unit: unit, onClose: model.closeCameraCard)
+                .id(cam.id)
+                .transition(.opacity.combined(with: .offset(y: 12)))
         }
         if compactOffer == nil {
             HStack(alignment: .bottom, spacing: Tokens.Space.s3) {

@@ -1,6 +1,8 @@
-import type { LatLon } from '@atlagsebesseg/core';
+import { angleDiffDeg, haversineM, type GpsFix, type LatLon } from '@atlagsebesseg/core';
 import visibilityJson from '@atlagsebesseg/data/camera_visibility.json';
+import { formatDistance, speedIn, unitLabel } from './display';
 import { t, type TKey } from './i18n';
+import type { SpeedUnit } from './settings';
 
 /** Fix kamera (a `cameras` tábla sora appbeli alakban). */
 export type CameraType = 'speed' | 'red_light' | 'complex' | 'section_gate';
@@ -60,6 +62,32 @@ export function cameraSourceText(c: Pick<FixedCamera, 'verified' | 'type' | 'sou
   if (c.verified && c.type === 'complex' && c.country === 'HU') return t('camera.source.veda');
   if (c.verified) return t('camera.source.official', { date: c.sourceDate });
   return t('camera.source.osm', { date: c.sourceDate });
+}
+
+/** AOS15: a kamera-kártya irány-sora – a haladási iránytól legfeljebb `sameDirDeg`-re eső mérési irány „a te irányod”. */
+export const CAMERA_CARD = { sameDirDeg: 90 } as const;
+
+/** Mit mér a kamera hozzánk képest: irány nélküli → mindkét irány; saját irány nélkül (álló autó) csak „egy irányban”. */
+export type CameraDir = 'any' | 'ours' | 'other' | 'one';
+
+export function cameraDirection(c: Pick<FixedCamera, 'headingDeg'>, heading: number | null): CameraDir {
+  if (c.headingDeg === null) return 'any';
+  if (heading === null) return 'one';
+  return angleDiffDeg(c.headingDeg, heading) <= CAMERA_CARD.sameDirDeg ? 'ours' : 'other';
+}
+
+/** A kártya részlet-sora: „M1 · 130 km/h” (út és limit, ami van). */
+export function cameraCardDetail(c: Pick<FixedCamera, 'road' | 'speedLimitKmh'>, unit: SpeedUnit): string {
+  const limit = speedIn(c.speedLimitKmh, unit);
+  return [c.road, limit ? `${limit} ${unitLabel(unit)}` : null].filter(Boolean).join(' · ');
+}
+
+/** A kártya irány- és távolság-sora: „A te irányodban mér · 1,2 km távolságra” (pozíció nélkül csak az irány). */
+export function cameraCardMeta(c: Pick<FixedCamera, 'headingDeg' | 'lat' | 'lon'>, fix: Pick<GpsFix, 'lat' | 'lon' | 'heading'> | null, unit: SpeedUnit): string {
+  const dir = t(`camera.dir.${cameraDirection(c, fix?.heading ?? null)}` as TKey);
+  if (!fix) return dir;
+  const d = formatDistance(haversineM(fix, c), unit);
+  return `${dir} · ${t('camera.distance', { d: `${d.value} ${d.unit}` })}`;
 }
 
 // ---------------------------------------------------------------------------

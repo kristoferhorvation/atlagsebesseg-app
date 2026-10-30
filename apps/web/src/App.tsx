@@ -735,7 +735,7 @@ function Drive({ map }: { map: WebMapAdapter }) {
               onClose={() => setSelectedId(null)}
             />
           )}
-          {!selected && selectedCam && <CameraCard key={selectedCam.id} camera={selectedCam} onClose={() => setSelectedCamId(null)} />}
+          {!selected && selectedCam && <CameraCard key={selectedCam.id} camera={selectedCam} fix={view.lastFix} unit={settings.egyseg} onClose={() => setSelectedCamId(null)} />}
           {(!follow.following || navSign) && (
             <div className="recenter-row">
               {navSign && nav.view && (

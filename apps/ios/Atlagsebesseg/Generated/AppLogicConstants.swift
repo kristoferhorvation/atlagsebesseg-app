@@ -70,6 +70,10 @@ nonisolated enum REPORT_PROMPT {
     static let coneDeg = 45.0
     static let showMs = 10000.0
 }
+/// AOS15: a kamera-kártya irány-sora – a haladási iránytól legfeljebb `sameDirDeg`-re eső mérési irány „a te irányod”.
+nonisolated enum CAMERA_CARD {
+    static let sameDirDeg = 90.0
+}
 /// AW18: élő forgalom (2 perces friss lekérés), „+N perc dugó” (≥ `delayShowS`, hang csak először),
 /// helyi dugó-érzékelés (`jamWindowMs` ablak a várt tempó `jamSlowFraction`-ja alatt; vége `jamClearM` a `jamNearFraction` fölött),
 /// a „Dugóba kerültél?” kártya `jamPromptMs`-ig, közösségi dugó-adat `communityMaxAgeMs`-ig, újratervezés-backoff (s).

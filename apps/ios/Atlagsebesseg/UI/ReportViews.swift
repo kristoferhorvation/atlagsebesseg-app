@@ -193,6 +193,53 @@ struct ReportCard: View {
     }
 }
 
+/// AOS15: egy fix kamera kártyája koppintásra (a webes `CameraCard` 1:1): típus, út · limit, irány a haladásunkhoz képest és
+/// távolság, forrás (ellenőrzöttnél zöld pipa). Szavazás nincs – nem bejelentés. Ugyanott és ugyanúgy nyílik, mint a
+/// bejelentés kártyája.
+struct CameraCard: View {
+    let camera: FixedCamera
+    let fix: GpsFix?
+    let unit: SpeedUnit
+    let onClose: () -> Void
+
+    var body: some View {
+        let label = camera.type.label
+        let detail = cameraCardDetail(road: camera.road, speedLimitKmh: camera.speedLimitKmh, unit)
+        VStack(alignment: .leading, spacing: 14) {
+            HStack(spacing: 14) {
+                Icon(name: camera.type.icon, size: 26)
+                    .foregroundStyle(Tokens.Colors.textMuted)
+                    .frame(width: 52, height: 52)
+                    .background(Tokens.Colors.surfaceRaised, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(label).font(.inter(22, 640)).foregroundStyle(Tokens.Colors.text).lineLimit(1).minimumScaleFactor(0.8)
+                    if !detail.isEmpty {
+                        Text(detail).font(.inter(Tokens.Typography.body.size - 3, 500)).foregroundStyle(Tokens.Colors.textMuted).lineLimit(1)
+                    }
+                }
+                Spacer(minLength: 0)
+                Button(action: onClose) { Icon(name: .close, size: 22) }
+                    .buttonStyle(.plain)
+                    .foregroundStyle(Tokens.Colors.textMuted)
+                    .frame(width: Tokens.Size.touch, height: Tokens.Size.touch)
+                    .contentShape(Rectangle())
+                    .accessibilityLabel(t(.commonClose))
+            }
+            Text(cameraCardMeta(headingDeg: camera.headingDeg, at: LatLon(lat: camera.lat, lon: camera.lon), fix: fix, unit))
+                .font(.inter(Tokens.Typography.body.size - 3, 600))
+                .foregroundStyle(Tokens.Colors.text)
+            HStack(spacing: 8) {
+                if camera.verified { Icon(name: .check, size: 18).foregroundStyle(Tokens.Colors.ok) }
+                Text(cameraSourceText(camera)).font(.inter(Tokens.Typography.body.size - 3, 500)).foregroundStyle(Tokens.Colors.textMuted)
+            }
+        }
+        .padding(16)
+        .glass(radius: Tokens.Radius.card)
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel(t(.cameraAria, ["label": label]))
+    }
+}
+
 /// A közeledő bejelentés kártyájának adatai (AOS14).
 struct ReportAlertModel {
     let prompt: ReportPrompt
@@ -259,6 +306,8 @@ struct ReportAlertRow: View {
 /// „Dugó” bejelentés a pozícióra; Nem: erre a szakaszra nem kérdez újra; válasz nélkül 15 s után eltűnik (a session dönti el).
 struct JamAskRow: View {
     let onAnswer: (Bool) -> Void
+    /// Bejelentés küldése közben a gombok tiltva (mint a weben).
+    var sending = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: Tokens.Space.s3) {
@@ -293,15 +342,18 @@ struct JamAskRow: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(PressScaleStyle())
+        .disabled(sending)
+        .opacity(sending ? 0.5 : 1)
     }
 }
 
 /// AW18: a „Dugóba kerültél?” önálló borostyán kártyán (ha a felső kártya nem látszik).
 struct JamAskCard: View {
     let onAnswer: (Bool) -> Void
+    var sending = false
 
     var body: some View {
-        JamAskRow(onAnswer: onAnswer)
+        JamAskRow(onAnswer: onAnswer, sending: sending)
             .padding(Tokens.Space.s4)
             .frame(maxWidth: .infinity, alignment: .leading)
             .glass(radius: 28, fill: Tokens.Colors.near)

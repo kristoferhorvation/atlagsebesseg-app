@@ -159,6 +159,11 @@
   "camera.source.veda": "Pevný zoznam ORFK VÉDA (2015) · porovnané s OSM",
   "camera.source.official": "Oficiálny zdroj ({date})",
   "camera.source.osm": "OpenStreetMap · neoverené ({date})",
+  "camera.dir.any": "Meria oba smery",
+  "camera.dir.ours": "Meria tvoj smer",
+  "camera.dir.other": "Meria protismer",
+  "camera.dir.one": "Meria jeden smer",
+  "camera.distance": "{d} od teba",
   "warn.camera.DE": "V Nemecku vodič túto funkciu nesmie používať",
 
   "map.recenter": "Späť na moju polohu",
@@ -347,5 +352,7 @@
   "ios.geo.help.1": "Nastavenia › Súkromie a bezpečnosť › Polohové služby: zapnite ich.",
   "ios.geo.help.2": "V nastaveniach aplikácie (Otvoriť): Poloha › „Pri používaní aplikácie“.",
   "ios.geo.open": "Otvoriť",
+  "ios.live.watch": "Sleduje",
+  "ios.live.nextSection": "Úsek o {d}",
   "ios.live.remaining": "zostáva {x}"
 }

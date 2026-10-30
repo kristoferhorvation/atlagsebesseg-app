@@ -59,6 +59,9 @@ kamera-elhaladás, a végén tervezett mérés). A `navsim` (A11) a kiindulópon
 ```bash
 xcrun simctl launch booted hu.atlagsebesseg.app -sim navsim -navStage search -navQuery Győr   # keresőmező
 xcrun simctl launch booted hu.atlagsebesseg.app -sim navsim -navStage picker                 # útvonalkártya
+… -sim tervezett -simSeek 0.04 -simSpeed 0.05 -cameraOpen sim-cam-TEST-1-0                   # AOS15: kamera-kártya
+… -sim lassit -simSeek 0.05 -simSpeed 0.05 -livePreview YES                                  # AOS15: Live Activity „figyel” (mock)
+… -sim jo -simSeek 0.05 -simSpeed 1 -manual 0 -livePreview YES                               # AOS15: kézi mérés navigáció nélkül
 xcrun simctl launch booted hu.atlagsebesseg.app -sim navsim -navStage nav -simSeek 0.45      # navigáció, az ablak elejéről
 ```
 

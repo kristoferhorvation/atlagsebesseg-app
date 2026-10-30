@@ -19,12 +19,14 @@ struct DriveLiveActivity: Widget {
             LockScreenView(state: context.state)
                 .activityBackgroundTint(Tokens.Colors.bg.opacity(0.92))
                 .activitySystemActionForegroundColor(Tokens.Colors.text)
+                // AOS15: koppintásra az app a megfelelő nézetre nyílik (mérés / navigáció / térkép)
+                .widgetURL(context.state.link)
         } dynamicIsland: { context in
             let s = context.state
             return DynamicIsland {
+                // AOS15: két oszlop (bal: a fő szám, jobb: tábla / érkezés), alatta a részletek; térképkép nélkül
                 DynamicIslandExpandedRegion(.leading) { IslandLeading(state: s) }
                 DynamicIslandExpandedRegion(.trailing) { IslandTrailing(state: s) }
-                DynamicIslandExpandedRegion(.center) { IslandCenter(state: s) }
                 DynamicIslandExpandedRegion(.bottom) { IslandBottom(state: s) }
             } compactLeading: {
                 IslandCompactLeading(state: s)
@@ -34,6 +36,7 @@ struct DriveLiveActivity: Widget {
                 IslandMinimal(state: s)
             }
             .keylineTint(s.measure?.tone.color ?? Tokens.Colors.accent)
+            .widgetURL(s.link)
         }
     }
 }

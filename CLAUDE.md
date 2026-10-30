@@ -204,13 +204,13 @@ Gyökér: `npm test` és `npm run typecheck` minden csomagra; `npm run test:all`
     együtt a mérés dominál, a manőver egy kompakt sorban. `LiveActivityController`: indul mérés / navigáció kezdetén, ≤ 1 Hz és
     csak változáskor frissít, a végén `.immediate` zárul, induláskor a korábbi futásból maradtakat lezárja; a háttér nem állítja
     le. **Korlát:** az ActivityKit háttérből nem indít új Live Activity-t – háttérben induló szakaszmérésnél csak a következő
-    előtérbe kerüléskor jelenik meg; **AOS15:** a Live Activity a GPS indításától állandóan látszik, térképképpel (Kristof döntése). **Képernyőkép:** a fej nélküli szimulátoron a lezárt képernyő és a Dynamic Island nem
+    előtérbe kerüléskor jelenik meg – **megszűnt az AOS15-ben:** a Live Activity a GPS indításától állandó, térképképpel (lásd lent). **Képernyőkép:** a fej nélküli szimulátoron a lezárt képernyő és a Dynamic Island nem
     fotózható → `-livePreview YES` (a `-sim …` mellett): a widget saját nézetei az app élő állapotából (`Sim/LiveActivityPreview.swift`, mock).
   - **Köszöntés (web + iOS):** Beállítások › „Megszólítás” (opcionális, `megszolitas`, ≤ 24 karakter, `normalizeName`); az üres
     nézeten a kereső-gomb sora alatt, balra „Szia Kristof!” / „Szia!” (`greetingText`); navigáció indításakor (bekapcsolt hangos
     utasításoknál) „Szia Kristof, indulhatunk!” / „Szia, indulhatunk!” (`greetingVoice`, az indulási utasítás előtt); kézi
     mérésnél nincs. 6 nyelv, a hang az app nyelvén.
-  - **Paritási tartozás (iOS):** a fix kamera koppintásos kártyája (webes `CameraCard`) iOS-en még nincs (az AOS14 előtti hiány).
+  - ~~**Paritási tartozás (iOS):** a fix kamera koppintásos kártyája (webes `CameraCard`) iOS-en még nincs~~ – **lezárva az AOS15-ben**.
 - **AW17 (Kristof, 2026-10-30), weben és iOS-en kész:**
   - **Elrendezés navigáció közben:** az alsó sáv (`NavBottom` / `NavBottomBar`) mindig a képernyő alján, a mérőkártya és minden
     más kártya fölötte; szakaszmérés közben sebesség nélkül (`navBottomShowsSpeed`), a km/h piros, ha a bal alsó tábla
@@ -278,6 +278,41 @@ Gyökér: `npm test` és `npm run typecheck` minden csomagra; `npm run test:all`
     álló–induló araszolás, a friss lekérések `SIM_JAM` szerint +7 perccel, alternatíva nélkül; iOS: `navsim-traffic.json`),
     `?fasterAlt` / `-fasterAlt YES` (a 2. útvonal 1 perccel gyorsabb), `?rerouteFail` / `-rerouteFail YES` (az újratervezés
     HTTP 503). Az alap navsimben az M1-re visszatérő 50 km/h-s szakasz is dugónak számít (a terv ott ~110) – ez valós viselkedés.
+- **AOS15 (2026-10-30), iOS (+ web a kamera-kártyánál):** képek: `apps/ios/docs/aos15-*.png`.
+  - **CameraCard iOS-en** (a webes `CameraCard` 1:1, `UI/ReportViews.swift` `CameraCard`): kamera-jelölőre koppintva a bejelentés
+    kártyájának helyén és stílusában – típus, út · limit (`cameraCardDetail`, a választott egységben), irány a haladásunkhoz
+    képest + távolság (`cameraCardMeta`, `cameraDirection`: irány nélküli kamera → mindkét irány; álló autó → „egy irányban”;
+    ±`CAMERA_CARD.sameDirDeg` = 90° → „a te irányodban”, generált), forrás pipával (`cameraSourceText`). Az irány és a
+    távolság a **webre is** felkerült (közös TS + Swift logika, azonos nevű teszt). A kiválasztott jelölő 1,2×; a térkép üres
+    részére koppintva (`onMapTapGesture` → `mapTapped`, a jelölő saját koppintása 0,4 s-ig nem zár) vagy X-re zárul – ez a
+    bejelentés-kártyára is új iOS-en (a weben eddig is így volt); mérés közben 3 s után magától. A kamera-jelölő iOS-en is a
+    DESIGN.md szerinti 32 pt-es lekerekített négyzet (eddig kör, ellenőrzöttnél piros gyűrűvel – paritás-hiba volt).
+    Képernyőkép: `-cameraOpen <id>`.
+  - **Live Activity a GPS indításától** (`LiveActivityController`, `liveActivityState(…, gps:)`): `start()` / `startSim()` indítja
+    előtérben, a GPS végén (`exitSim`) zárul; ha a felhasználó elhúzza (vagy a rendszer 8 óra után lezárja,
+    `activityStateUpdates`), a következő GPS-indításig nem jön vissza. Öt állapot: figyel (`Watch`: sebesség, tábla – navigáció
+    nélkül nincs tábla-adat, ezért üres –, „Szakasz X múlva” ≤ 5 km, `nextSectionAheadM`), navigáció (+ hátralévő idő · km,
+    „+N perc dugó”), szakaszmérés (+ „Maradj X alatt” / „Lassíts · max X” / „Nem hozható be”), mérés + navigáció, kézi (+ eltelt
+    idő). Számok ≤ 1 Hz és csak változáskor; új térképkép azonnal.
+  - **Térképkép** (`LiveActivity/LiveMap.swift`): **Mapbox Static Images API** (Kristof döntése a kör elején: a háttérben futó
+    app GPU-t nem használhat, a Snapshotter zárolt képernyőnél nem renderelne), `dark-v11`, 120 pt @2x, menetirány felfelé,
+    zoom 14 → 13 (50 → 110 km/h), az útvonal 300 m mögöttünk – 2,5 km előttünk, a közeli szakaszok és a mért szakasz
+    (`path` átfedés, kódolt vonallánc, ritkítva). App Group: `group.hu.atlagsebesseg.app` (mindkét target entitlementje a
+    `project.yml`-ben), két váltakozó fájl (`LiveMapStore`). Frissítés (`liveMapDue`): manőver / állapotváltás (a `key`)
+    azonnal, különben ≥ 30 s és > 100 m mozgás; a kérés bélyege hibánál is rögzül (nincs ismétlés-vihar); 1500 m-nél
+    messzebbi középpontú kép nem látszik (`liveMapShown`; 180 km/h × 30 s – kisebb küszöbnél autópályán a kép az idő felében
+    eltűnne). A szakaszok geometriája a kép 2,5 km-es környékére vágva (az URL ≤ 8192 karakter). Logó és attribúció a képen nincs (nyitott kérdés). Token nélkül vagy App Group
+    nélkül nincs kép, a tartalom teljes szélességű.
+  - **Koppintás:** `widgetURL` `atlagsebesseg://live/measure|nav|map` (`CFBundleURLTypes`), `AppModel.openLink`: a lapok, a
+    keresés (mérés / navigáció közben) és a kártyák bezárulnak, a térkép újra követ.
+  - **AW18-paritás (iOS-javítások, az ellenőrzés után):** a „+N perc dugó” kapszula 1 × 10 pt belső margó, 4 pt sorköz (mint a
+    webes rács); a „Dugóba kerültél?” gombjai bejelentés küldése közben tiltva; az önálló dugó-kártyát a közeli kamera nem
+    rejti el; a menüből küldött Dugó / Beállt közösségi mintája csak sikeres küldés után (`reportedJam`); az újratervezés
+    kártyája közben borostyán, title-méret, forgó ikon, hibánál piros 22 pt, a visszaszámlálás 17 pt; a „Leggyorsabb” /
+    „Alternatíva” címke mindig accent, 16 / 620. Nyitva: a technikai napló hibaszövege (`network: <üzenet>` a weben, iOS-en
+    `timeout` is), és hogy a rejtett felső kártya mérése sáv-módban a dugó-kérdéssel együtt történjen-e (a weben igen).
+  - Szimulátor: `-manual 0` navigáció nélkül is (kézi mérés indul); az előnézet (`-livePreview YES`) az `AppModel.liveState`-et
+    rajzolja – benne a valódi (letöltött) térképképpel.
 - **Paritási tartozás (AW12 + AW13 → iOS) lezárva az AOS12-ben (2026-10-29):** a `NavigationTests.swift` újra a
   `navigation.test.ts` teljes párja (86 = 86 `it`, azonos névvel), a webes `navSim.test.ts` 6 esete a `SimTests.swift`-ben.
   A közös Budapest→Győr fixtúra **AOS13-ban teljesen újra felvéve** méteres hangegységgel (`voice_units=metric`, mindkét

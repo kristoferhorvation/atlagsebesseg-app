@@ -81,6 +81,8 @@ extension AppModel {
     /// Koppintás egy jelölőre: a kártya nyílik (mérés közben 3 s után magától zárul, mint a weben).
     func selectReport(_ id: String) {
         selectedReportId = id
+        selectedCameraId = nil
+        markerTapAt = Date()
         let measuring = view.phase == .meres || view.phase == .kezi
         guard measuring else { return }
         Task { [weak self] in
@@ -93,18 +95,49 @@ extension AppModel {
         selectedReportId = nil
     }
 
+    /// AOS15: a koppintott kamera kártyája (a webes `selectedCam`: csak a térképen látható kamerák közül).
+    var shownCamera: FixedCamera? {
+        selectedCameraId.flatMap { id in cameras.first { $0.id == id } }
+    }
+
+    /// Koppintás egy kamera-jelölőre: a kártya ugyanott nyílik, ahol a bejelentésé (mérés közben 3 s után magától zárul).
+    func selectCamera(_ id: String) {
+        selectedCameraId = id
+        selectedReportId = nil
+        markerTapAt = Date()
+        let measuring = view.phase == .meres || view.phase == .kezi
+        guard measuring else { return }
+        Task { [weak self] in
+            try? await Task.sleep(for: .seconds(REPORT_CARD_AUTOCLOSE_S))
+            if self?.selectedCameraId == id { self?.selectedCameraId = nil }
+        }
+    }
+
+    func closeCameraCard() {
+        selectedCameraId = nil
+    }
+
+    /// A térkép üres részére koppintás: a nyitott kártya (bejelentés vagy kamera) bezárul, mint a weben. A jelölő saját
+    /// koppintása (ugyanabban a pillanatban) nem számít.
+    func mapTapped() {
+        guard Date().timeIntervalSince(markerTapAt) > 0.4 else { return }
+        if selectedReportId != nil { selectedReportId = nil }
+        if selectedCameraId != nil { selectedCameraId = nil }
+    }
+
     /// Bejelentés a jelenlegi helyről (2. koppintás a típusra – nincs megerősítő lépés). A szimulátorban is a szerverre
     /// megy, mint a weben (AOS14 javítás); sikeres küldés után a kapu-tétel vált (`gateStartedAfter`).
     /// AW18: a „Dugó” / „Beállt” bejelentés közösségi dugó-mintát is ad (`jamSample`; a „Dugóba kerültél?” Igen-je a
     /// session-ből adja, ott `false`).
     func sendReport(_ choice: ReportChoice, jamSample: Bool = true) {
         guard let fix = lastFix, let row = reportFromFix(choice, fix) else { return }
-        if choice.isJamReport && jamSample { navSession?.reportedJam() }
         let label = choice.label
         reportSending = choice
         let done = { [weak self] (id: String?) in
             guard let self else { return }
             if let id { self.reportFeed?.addOwn(ownReport(row, id: id, now: self.nowMs())) }
+            // AOS15 (AW18-paritás): a dugó-minta csak sikeres küldés után, mint a weben
+            if choice.isJamReport && jamSample { self.navSession?.reportedJam() }
             self.gateStarted = gateStartedAfter(self.gateStarted, .sent(choice))
             if self.sim != nil { NSLog("LIVE-TEST report sent: %@ %@", choice.rawValue, id ?? "-") }
             self.syncReports()

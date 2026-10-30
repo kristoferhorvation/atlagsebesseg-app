@@ -100,6 +100,10 @@ final class AppModel {
     var reports: [ActiveReport] = []
     /// A jelölőre koppintva nyitott kártya.
     var selectedReportId: String?
+    /// AOS15: a kamera-jelölőre koppintva nyitott kártya (a webes `CameraCard`; a bejelentés-kártyával kizárják egymást).
+    var selectedCameraId: String?
+    /// Az utolsó jelölő-koppintás ideje: a jelölő érintése a térkép koppintás-felismerőjét is elérheti – az ne zárja be rögtön.
+    @ObservationIgnored var markerTapAt: Date = .distantPast
     /// A közeledő bejelentés kártyája (figyelmeztetés → „Még ott van?”, AOS14).
     var reportPromptState: ReportPrompt?
     /// AOS14 javítás: az „Átlagmérés eleje” elküldve – a menü egyetlen kapu-tétele most „Átlagmérés vége”.
@@ -117,8 +121,14 @@ final class AppModel {
     @ObservationIgnored var reportView: BBox?
     @ObservationIgnored let reportPrompt = ReportPromptWatch()
     @ObservationIgnored var simReports: [ActiveReport] = []
-    /// AOS14: Live Activity mérés és navigáció közben (lezárt képernyő, Dynamic Island).
+    /// AOS14: Live Activity mérés és navigáció közben (lezárt képernyő, Dynamic Island); AOS15: a GPS indításától állandó.
     @ObservationIgnored let liveActivity = LiveActivityController()
+    /// AOS15: a Live Activity térképképe (Static Images API → App Group).
+    @ObservationIgnored let liveMap = LiveMapRenderer()
+    /// AOS15: nő, ha új térképkép érkezett (a szimulátoros előnézet ebből tudja, hogy újra kell rajzolni).
+    private(set) var liveMapSeq = 0
+    /// AOS15: nő, ha a Live Activity koppintása megnyitotta az appot (a nézet bezárja a lapjait).
+    var liveLinkSeq = 0
 
     @ObservationIgnored var navSession: NavigationSession?
     @ObservationIgnored var routeData = EnforcementData.none
@@ -147,6 +157,10 @@ final class AppModel {
         setUpNavigation()
         setUpReports()
         LiveActivityController.endStale()
+        liveMap.onImage = { [weak self] in
+            self?.liveMapSeq += 1
+            self?.updateLiveActivity()
+        }
         let args = UserDefaults.standard
         navStage = args.string(forKey: "navStage")
         if let raw = args.string(forKey: "sim"), let scenario = SimScenario(rawValue: raw) {
@@ -158,6 +172,10 @@ final class AppModel {
             reportSheetOpen = args.bool(forKey: "reportOpen")
             // `-gateStarted YES`: az „Átlagmérés eleje” már elküldve – a menü kapu-tétele „Átlagmérés vége” (képernyőkép, küldés nélkül)
             gateStarted = args.bool(forKey: "gateStarted")
+            // `-cameraOpen <id>` (AOS15): a kamera kártyája nyitva (a képernyőképhez)
+            selectedCameraId = args.string(forKey: "cameraOpen")
+            // `-manual 0` navigáció nélkül (AOS15): kézi mérés indul (a Live Activity kézi állapotának képéhez)
+            if navStage == nil, args.object(forKey: "manual") != nil { startManual() }
         }
     }
 
@@ -186,6 +204,8 @@ final class AppModel {
         attach(s)
         s.start()
         beginTicking()
+        // AOS15: a Live Activity a GPS indításától (előtérben indul – a háttérből induló mérésnél sem marad el)
+        beginLiveActivity()
         Task { await signIn() }
     }
 
@@ -212,6 +232,7 @@ final class AppModel {
         started = true
         follow = true
         attach(s)
+        beginLiveActivity()
         if let navData = fixture.nav {
             // a navigációs szimulátor (mint a webes `/?navsim`): indulás előtt áll a kiindulópontnál, a lejátszás a navigáció indításakor kezdődik
             // `-alt worth|maybe|not|aftergate`: a szimulált gyorsabb út kategóriája (a webes `?navsim&alt=…`); alapból „megéri”
@@ -317,9 +338,72 @@ final class AppModel {
         updateLiveActivity()
     }
 
-    /// A Live Activity a kijelző és a navigáció állapotából (a vezérlő 1 Hz-re fogja, változatlanra nem küld).
+    /// AOS15: új GPS-használat – a Live Activity rögtön indul („figyel”), a korábbi felhasználói lezárás feledve.
+    private func beginLiveActivity() {
+        liveActivity.reset()
+        liveMap.reset()
+        updateLiveActivity()
+    }
+
+    /// A Live Activity a kijelző és a navigáció állapotából (a vezérlő 1 Hz-re fogja, változatlanra nem küld). AOS15: amíg a
+    /// GPS fut, mindig van tartalom; a térképkép a `liveMap`-ből (csak ha a középpontja közel van a mostani pozícióhoz).
     func updateLiveActivity() {
-        liveActivity.update(liveActivityState(view, nav: nav, unit: settings.egyseg))
+        refreshLiveMap()
+        liveActivity.update(liveState)
+    }
+
+    /// A Live Activity mostani tartalma (a szimulátoros előnézet is ezt rajzolja).
+    var liveState: DriveActivityAttributes.ContentState? {
+        _ = liveMapSeq
+        let fix = view.lastFix
+        let next = nav == nil ? nextSectionAheadM(fix, sections) : nil
+        let shown = liveMapShown(liveMap.stamp, version: liveMap.version, pos: fix.map { LatLon(lat: $0.lat, lon: $0.lon) })
+        return liveActivityState(view, nav: nav, unit: settings.egyseg, gps: started, nextSectionM: next, mapVersion: shown)
+    }
+
+    /// AOS15: új térképkép, ha esedékes – manővernél / állapotváltáskor azonnal, különben ≤ 30 s-enként és > 100 m mozgásnál.
+    private func refreshLiveMap() {
+        guard started, let fix = view.lastFix else { return }
+        var key = view.phase == .meres ? "meres:\(view.section?.id ?? "")" : view.phase == .kezi ? "kezi" : "figyel"
+        if let n = nav { key += "|nav:\(n.routeVersion):\(n.phase.rawValue):\(n.next.icon.rawValue):\(n.next.instruction)" }
+        liveMap.refresh(liveMapRequest(fix), key: key, nowMs: nowMs())
+    }
+
+    private func liveMapRequest(_ fix: GpsFix) -> LiveMapRequest {
+        let center = LatLon(lat: fix.lat, lon: fix.lon)
+        // csak a kép környéke (a hosszú szakasz-geometria különben túllépné az URL 8192 karakteres korlátját)
+        let geometry = { (s: Section) in
+            ((s.geometry?.isEmpty ?? true) ? [s.start, s.end] : s.geometry!).filter { haversineM(center, $0) <= LIVE_MAP.sectionsNearM }
+        }
+        let active = view.phase == .meres ? view.section : nil
+        let near = sections.filter { s in
+            s.id != active?.id && geometry(s).count >= 2
+        }
+        return LiveMapRequest(
+            center: center,
+            bearing: fix.heading ?? 0,
+            zoom: liveMapZoom(view.currentKmh),
+            route: nav.map { routeWindow($0.route, alongM: $0.alongM) } ?? [],
+            sections: near.prefix(6).map(geometry),
+            active: active.map(geometry),
+            routeHex: hexOf(Tokens.Colors.route),
+            sectionHex: hexOf(Tokens.Colors.accent),
+            activeHex: hexOf(toneOf(view).color)
+        )
+    }
+
+    /// AOS15: a Live Activity koppintása (`atlagsebesseg://live/<cél>`) – az app a vezetési nézetre nyílik: a lapok és a
+    /// kereső bezárulnak, a térkép újra követi a pozíciót (mérésnél a mérőkártya, navigációnál a manőver látszik).
+    func openLink(_ url: URL) {
+        guard url.scheme == "atlagsebesseg", url.host == "live" else { return }
+        reportSheetOpen = false
+        geoHelpOpen = false
+        if nav != nil || view.phase == .meres || view.phase == .kezi { searchOpen = false }
+        selectedReportId = nil
+        selectedCameraId = nil
+        follow = true
+        liveLinkSeq += 1
+        NSLog("LIVE-ACTIVITY: megnyitva: %@", url.absoluteString)
     }
 
     // MARK: tervezett mérések és jelzések

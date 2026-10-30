@@ -151,6 +151,7 @@ try {
   await p.waitFor(`document.querySelector('.camera-card')`, 5000, 'kamera-kártya');
   const card = await p.evaluate(`document.querySelector('.camera-card').innerText.replace(/\\s+/g, ' ')`);
   check('koppintásra kártya: típus és forrás', /kamera|ellenőrző pont|kapu/i.test(card) && /Hivatalos forrás|OpenStreetMap|VÉDA/.test(card), card);
+  check('a kártyán az irány és a távolság (AOS15)', /mér.* · .*távolságra/.test(card), card);
   p.close();
 
   // települészóna (A7c): a határon belül a sáv a településsel, a térképen halvány sárga kitöltés
