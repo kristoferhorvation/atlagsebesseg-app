@@ -3,6 +3,7 @@ import SwiftUI
 @main
 struct AtlagsebessegApp: App {
     @State private var model = AppModel()
+    @Environment(\.scenePhase) private var scenePhase
 
     var body: some Scene {
         WindowGroup {
@@ -23,6 +24,10 @@ struct AtlagsebessegApp: App {
             .tint(Tokens.Colors.accent)
             // AOS15: a Live Activity koppintása a megfelelő nézetre nyit
             .onOpenURL { model.openLink($0) }
+            // AOS15-javítás: a lejárt / hiányzó Live Activity előtérben újraindul
+            .onChange(of: scenePhase) { _, phase in
+                if phase == .active { model.appBecameActive() }
+            }
         }
     }
 }

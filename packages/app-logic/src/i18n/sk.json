@@ -354,5 +354,6 @@
   "ios.geo.open": "Otvoriť",
   "ios.live.watch": "Sleduje",
   "ios.live.nextSection": "Úsek o {d}",
+  "ios.live.attribution": "© Mapbox © OpenStreetMap",
   "ios.live.remaining": "zostáva {x}"
 }

@@ -96,8 +96,9 @@ struct DriveView: View {
                     }
                     if let nav = model.nav, !measuringLayout {
                         // sáv-módban is elrendezve (nulla magasságú keretben, rejtve), hogy a teljes kártya alja mérhető
-                        // maradjon: ebből dől el, mikor fér ki újra
-                        NavTopCard(view: nav, unit: unit, report: stepStrip ? nil : alert, onJamAnswer: stepStrip ? nil : jamAnswer, jamSending: model.reportSending != nil, onRetry: retry)
+                        // maradjon: ebből dől el, mikor fér ki újra. A rejtett kártyán is ott a bejelentés és a dugó-kérdés
+                        // (mint a weben), különben a mért magasság kisebb, a kártya visszajönne, és a sor nem férne ki.
+                        NavTopCard(view: nav, unit: unit, report: alert, onJamAnswer: jamAnswer, jamSending: model.reportSending != nil, onRetry: retry)
                             .fixedSize(horizontal: false, vertical: true)
                             .onGeometryChange(for: CGFloat.self) { $0.frame(in: .global).maxY } action: { navCardBottom = $0 }
                             .opacity(stepStrip ? 0 : 1)

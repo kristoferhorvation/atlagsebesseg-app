@@ -354,5 +354,6 @@
   "ios.geo.open": "Otwórz",
   "ios.live.watch": "Czuwa",
   "ios.live.nextSection": "Odcinek za {d}",
+  "ios.live.attribution": "© Mapbox © OpenStreetMap",
   "ios.live.remaining": "pozostało {x}"
 }

@@ -500,7 +500,8 @@ try {
   check('csak az első érintés kér magától', (await pill(pr)).calls === pr1.calls);
   check('az automatikus és az első-érintéses kérés elutasítása nem nyit lapot', !(await pr.evaluate(`!!${q('.sheet')}`)));
   await pr.evaluate(`${GPS_PILL}.click(); true`);
-  await sleep(200);
+  // AOS15-javítás: a lapra pollozva várunk (a fix 200 ms terhelt gépen kevés volt – a teljes futásban egyszer piros lett)
+  await pr.waitFor(`window.__geoFake.calls === ${pr1.calls + 1} && !!${q('.geo-help')}`, 5000, 'tiltott-lap (pill)').catch(() => undefined);
   // AW15: a pill kérésére jött elutasítás (PERMISSION_DENIED) a tiltott-lapot nyitja
   check('prompt: a GPS-pill koppintása kér, az elutasításra a tiltott-lap nyílik (AW15)', (await pill(pr)).calls === pr1.calls + 1 && (await pr.evaluate(`!!${q('.geo-help')}`)));
   pr.close();

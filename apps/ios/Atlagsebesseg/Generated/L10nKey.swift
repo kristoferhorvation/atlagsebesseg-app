@@ -333,5 +333,6 @@ enum L10nKey: String, CaseIterable, Sendable {
     case iosGeoOpen = "ios.geo.open"
     case iosLiveWatch = "ios.live.watch"
     case iosLiveNextSection = "ios.live.nextSection"
+    case iosLiveAttribution = "ios.live.attribution"
     case iosLiveRemaining = "ios.live.remaining"
 }

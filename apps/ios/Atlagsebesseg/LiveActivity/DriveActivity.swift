@@ -16,6 +16,8 @@ nonisolated struct DriveActivityAttributes: ActivityAttributes {
         var watch: Watch?
         /// AOS15: a térképkép változata (`LiveMapStore.url(version:)`); `nil`: nincs kép, a tartalom teljes szélességű.
         var mapVersion: Int?
+        /// AOS15-javítás: a térképkép attribúciója (a képen nincs logó / attribúció) – csak a lezárt képernyőn, kép mellett.
+        var attribution: String?
     }
 
     /// A tónus (a webes `data-tone`): a nagy szám színe.

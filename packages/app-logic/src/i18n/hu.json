@@ -354,5 +354,6 @@
   "ios.geo.open": "Megnyitás",
   "ios.live.watch": "Figyel",
   "ios.live.nextSection": "Szakasz {d} múlva",
+  "ios.live.attribution": "© Mapbox © OpenStreetMap",
   "ios.live.remaining": "{x} hátra"
 }

@@ -110,12 +110,31 @@ nonisolated func liveActivityState(
             nextSection: nextSectionM.map { t(.iosLiveNextSection, ["d": dist($0, unit, lang)], lang: lang) }
         )
     }
-    return .init(measure: measure, nav: navState, watch: watch, mapVersion: mapVersion)
+    return .init(measure: measure, nav: navState, watch: watch, mapVersion: mapVersion, attribution: mapVersion.map { _ in t(.iosLiveAttribution, lang: lang) })
+}
+
+/// A frissítés legkisebb időköze (s): „figyel” állapotban 2 s (0,5 Hz – ott csak a sebesség változik, az akku kedvéért),
+/// mérés vagy navigáció közben 1 s (1 Hz). AOS15-javítás.
+nonisolated func liveMinInterval(_ s: DriveActivityAttributes.ContentState) -> TimeInterval {
+    s.measure == nil && s.nav == nil ? 2 : 1
+}
+
+/// Ki zárta le a Live Activity-t (AOS15-javítás). `.dismissed` aktív állapotból: a felhasználó elhúzta → a GPS következő
+/// indításáig nem jön vissza; `.ended`: a rendszer zárta (8 órás korlát) → előtérben, futó GPS-szel magától újraindul.
+nonisolated enum LiveEnd: Equatable { case user, system }
+
+nonisolated func liveEndKind(_ s: ActivityState) -> LiveEnd? {
+    switch s {
+    case .dismissed: .user
+    case .ended: .system
+    default: nil
+    }
 }
 
 /// A Live Activity életciklusa (AOS15): indul a GPS indításakor (előtérben – a háttérből indított szakaszmérés problémája így
 /// nem áll fenn), frissül legfeljebb 1 Hz-cel és csak változáskor, lezárul, ha az app befejezi a GPS-használatot. Ha a
-/// felhasználó a lezárt képernyőn elhúzza, a GPS következő indításáig nem indul újra.
+/// felhasználó a lezárt képernyőn elhúzza, a GPS következő indításáig nem indul újra; ha a rendszer zárta le (8 óra) vagy
+/// hiányzik, az app előtérbe kerülésekor futó GPS-szel magától újraindul (`resume`).
 final class LiveActivityController {
     private var activity: Activity<DriveActivityAttributes>?
     private var last: DriveActivityAttributes.ContentState?
@@ -125,8 +144,6 @@ final class LiveActivityController {
     /// A felhasználó lezárta (elhúzta) – a GPS következő indításáig (`reset()`) nem indul újra.
     private(set) var userEnded = false
     private var watcher: Task<Void, Never>?
-    /// Legfeljebb ennyi időnként frissít (1 Hz).
-    static let minInterval: TimeInterval = 1
     /// A frissítések száma (a napló és a költségvetés-becslés kedvéért).
     private(set) var updates = 0
 
@@ -163,9 +180,9 @@ final class LiveActivityController {
             }
             return
         }
-        // a térképkép új változata azonnal megy (manőver), a számok legfeljebb 1 Hz-cel
+        // a térképkép új változata azonnal megy (manőver), a számok legfeljebb 1 Hz-cel („figyel”: 0,5 Hz)
         let mapChanged = state.mapVersion != last?.mapVersion
-        guard mapChanged || now.timeIntervalSince(lastAt) >= Self.minInterval else { return }
+        guard mapChanged || now.timeIntervalSince(lastAt) >= liveMinInterval(state) else { return }
         last = state
         lastAt = now
         updates += 1
@@ -184,20 +201,40 @@ final class LiveActivityController {
         Task.detached { await Self.find(id)?.end(nil, dismissalPolicy: .immediate) }
     }
 
-    /// A rendszer vagy a felhasználó lezárta (elhúzás a lezárt képernyőn, 8 órás korlát): nem indítjuk újra magunktól.
+    /// Az app előtérbe került: ha a Live Activity lejárt (a rendszer zárta, 8 óra) vagy hiányzik, és a GPS fut (`state`
+    /// nem `nil`), újraindul; a felhasználói elhúzás utáni tiltás marad. A kimaradt állapot-jelzést is itt pótoljuk.
+    func resume(_ state: DriveActivityAttributes.ContentState?) {
+        guard let state, !userEnded else { return }
+        if let id = activity?.id {
+            let a = Self.find(id)
+            if let a, liveEndKind(a.activityState) == nil { return }
+            closed(a.flatMap { liveEndKind($0.activityState) } ?? .system)
+            if userEnded { return }
+        }
+        warned = false
+        update(state)
+    }
+
+    /// A rendszer vagy a felhasználó lezárta: elhúzás (`.dismissed`) → tiltás a GPS következő indításáig; a rendszer lezárása
+    /// (`.ended`, 8 órás korlát) → előtérbe kerüléskor újraindul (`resume`).
     private func watch(_ id: String) {
         watcher?.cancel()
         watcher = Task { [weak self] in
             guard let a = Self.find(id) else { return }
-            for await s in a.activityStateUpdates where s == .dismissed || s == .ended {
+            for await s in a.activityStateUpdates {
+                guard let kind = liveEndKind(s) else { continue }
                 guard let self, self.activity?.id == id else { return }
-                self.activity = nil
-                self.last = nil
-                self.userEnded = true
-                NSLog("LIVE-ACTIVITY: dismissed by user or system")
+                self.closed(kind)
                 return
             }
         }
+    }
+
+    private func closed(_ kind: LiveEnd) {
+        activity = nil
+        last = nil
+        if kind == .user { userEnded = true }
+        NSLog("LIVE-ACTIVITY: %@", kind == .user ? "dismissed by user" : "ended by system")
     }
 
     /// Az ActivityKit-példány azonosító szerint (a háttér-feladat maga keresi ki, nem a főszálról viszi át).

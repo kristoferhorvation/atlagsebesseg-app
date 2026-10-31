@@ -352,6 +352,12 @@ final class AppModel {
         liveActivity.update(liveState)
     }
 
+    /// AOS15-javítás: előtérbe kerüléskor a lejárt (8 óra) vagy hiányzó Live Activity futó GPS-szel magától újraindul.
+    func appBecameActive() {
+        refreshLiveMap()
+        liveActivity.resume(liveState)
+    }
+
     /// A Live Activity mostani tartalma (a szimulátoros előnézet is ezt rajzolja).
     var liveState: DriveActivityAttributes.ContentState? {
         _ = liveMapSeq

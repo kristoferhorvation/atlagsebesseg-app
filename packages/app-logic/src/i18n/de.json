@@ -354,5 +354,6 @@
   "ios.geo.open": "Öffnen",
   "ios.live.watch": "Aktiv",
   "ios.live.nextSection": "Abschnitt in {d}",
+  "ios.live.attribution": "© Mapbox © OpenStreetMap",
   "ios.live.remaining": "noch {x}"
 }

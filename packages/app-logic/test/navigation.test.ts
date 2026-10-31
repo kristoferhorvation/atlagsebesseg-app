@@ -1973,6 +1973,7 @@ describe('AW18: élő forgalom navigáció közben', () => {
     const e2 = await http.routes({ lat: 47.5, lon: 19 }, { lat: 47.6, lon: 19.1 }, { heading: null, reason: 'reroute' }).catch((x: unknown) => x);
     expect(routeErrorKind(e2)).toBe('http_503');
     expect(routeErrorKind(new TypeError('Failed to fetch'))).toBe('network');
+    expect(routeErrorKind(new Error('boom'))).toBe('network: boom');
     expect([1, 2, 3, 4, 5, 9].map(rerouteRetryDelayMs)).toEqual([5000, 10_000, 20_000, 30_000, 30_000, 30_000]);
   });
 });

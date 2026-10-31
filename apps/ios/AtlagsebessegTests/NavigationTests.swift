@@ -2144,6 +2144,8 @@ struct AW18TrafficTests {
         let r2 = await http.routes(a, b, RouteRequestContext(heading: nil, reason: .reroute)).result
         if case .failure(let e) = r2 { #expect(routeErrorKind(e) == "http_503") } else { Issue.record("nem bukott") }
         #expect(routeErrorKind(URLError(.notConnectedToInternet)) == "network")
+        #expect(routeErrorKind(URLError(.timedOut)) == "network")
+        #expect(routeErrorKind(BoomError()) == "network: boom")
         #expect([1, 2, 3, 4, 5, 9].map(rerouteRetryDelayMs) == [5000, 10_000, 20_000, 30_000, 30_000, 30_000])
     }
 }
@@ -2304,4 +2306,9 @@ struct AW18CommunityTests {
         #expect(jamSample(.erzekelt, lat: 47.5, lon: 19, heading: 361.6, avgMps: 2.1, lengthM: 0.2) == JamSampleInsert(kind: .erzekelt, lat: 47.5, lon: 19, heading_deg: 2, avg_kmh: 8, length_m: 1))
         #expect(jamSample(.bejelentett, lat: 47.5, lon: 19, heading: nil, avgMps: 0, lengthM: 300).heading_deg == nil)
     }
+}
+
+/// AOS15-javítás: üzenetes hiba (a webes `new Error('boom')` párja).
+private struct BoomError: LocalizedError {
+    var errorDescription: String? { "boom" }
 }

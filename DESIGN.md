@@ -168,11 +168,14 @@ biztonsági zóna fölött lebeg.
   Az állapot-pillek közvetlenül a logó sora alatt (az A4-es helyükön).
 
 - **Live Activity (iOS, AOS15) – a lezárt képernyő arca.** A GPS indításától a GPS végéig állandó (a felhasználó a lezárt
-  képernyőn elhúzhatja – a következő GPS-indításig nem jön vissza). Sötét háttér (`bg` 92%), Inter, nagy számok, levegős
+  képernyőn elhúzhatja – a következő GPS-indításig nem jön vissza; a rendszer 8 órás lezárása után vagy ha hiányzik, az
+  app előtérbe kerülésekor futó GPS-szel magától újraindul). Sötét háttér (`bg` 92%), Inter, nagy számok, levegős
   sorköz; bal oldalt **92 pt-es négyzetes térképkép** (18 pt-es sarok, 1 pt `stroke`), közepén a pozíció-nyíl a tónus
   színében, menetirány felfelé. A kép a Mapbox Static Images API-ból (`dark-v11`, 120 pt @2x, az útvonal `route`, a közeli
-  szakaszok `accent` 70%, a mért szakasz a tónus színében; logó és attribúció a képen nincs), frissítés manővernél /
-  állapotváltáskor azonnal, különben ≤ 30 s-enként és csak > 100 m mozgásnál; 500 m-nél régebbi helyű kép nem látszik.
+  szakaszok `accent` 70%, a mért szakasz a tónus színében; a képen logó és attribúció nincs – `logo=false&attribution=false`
+  –, helyette a lezárt képernyős nézet alján 8 pt-es `textFaint` „© Mapbox © OpenStreetMap”, csak ha van kép; a Dynamic
+  Islandben nincs), frissítés manővernél / állapotváltáskor azonnal, különben ≤ 30 s-enként és csak > 100 m mozgásnál;
+  1500 m-nél messzebbi középpontú kép nem látszik. A számok legfeljebb 1 Hz-cel frissülnek, „figyel” állapotban 0,5 Hz-cel.
   Öt állapot:
   | állapot | lezárt képernyő | Dynamic Island szűk (bal · jobb) |
   |---|---|---|

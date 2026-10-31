@@ -30,8 +30,10 @@ nonisolated func rerouteRetryDelayMs(_ failures: Int) -> Double {
 /// A Directions-hiba oka a naplóhoz: HTTP-státusz (`http_503`), `timeout`, `network`, vagy a Directions kódja (`NoRoute`).
 nonisolated func routeErrorKind(_ e: Error) -> String {
     if let d = e as? DirectionsError { return d.code }
-    if let u = e as? URLError, u.code == .timedOut { return "timeout" }
-    return "network"
+    // a webes `TypeError` (a fetch hálózati hibája) párja a `URLError`; minden más hiba az üzenetével, mint a weben
+    if e is URLError { return "network" }
+    let msg = e.localizedDescription
+    return msg.isEmpty ? "network" : "network: \(msg)"
 }
 
 // MARK: helyi dugó-érzékelés

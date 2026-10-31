@@ -1,3 +1,4 @@
+import ActivityKit
 import AtlagsebessegCore
 import Foundation
 import Testing
@@ -459,6 +460,37 @@ struct LiveActivityAOS15Tests {
         #expect(url.contains(String(format: "/%.5f,%.5f,13.50,270,0/120x120@2x?access_token=pk.test&logo=false&attribution=false", r.center.lon, r.center.lat)))
         #expect(liveMapZoom(30) == 14 && liveMapZoom(130) == 13 && liveMapZoom(nil) == 14)
         #expect(thinPoints([at(0, 0), at(5, 0), at(30, 0), at(31, 0)]).count == 3)
+    }
+
+    @Test("figyel állapotban 0,5 Hz, mérés vagy navigáció közben 1 Hz")
+    func frissitesUtem() throws {
+        var v = SessionView()
+        v.lastFix = fix()
+        let watch = try #require(liveActivityState(v, nav: nil, unit: .kmh, lang: .hu))
+        #expect(liveMinInterval(watch) == 2)
+        var m = watch
+        m.watch = nil
+        m.measure = .init(title: "", avg: "", avgLabel: "", tone: .kezi, limit: nil, nowLabel: "", now: nil, nowOver: false, expectedLabel: "", expected: nil, remaining: nil)
+        #expect(liveMinInterval(m) == 1)
+    }
+
+    @Test("lezárás: az elhúzás a GPS következő indításáig tilt, a rendszer lezárása (8 óra) előtérben újraindul")
+    func lezarasOka() {
+        #expect(liveEndKind(.dismissed) == .user)
+        #expect(liveEndKind(.ended) == .system)
+        #expect(liveEndKind(.active) == nil && liveEndKind(.stale) == nil)
+        let c = LiveActivityController()
+        // nincs futó GPS: nincs mit újraindítani; a tiltás alapból nincs
+        c.resume(nil)
+        #expect(!c.userEnded)
+    }
+
+    @Test("térképkép attribúciója: csak kép mellett, „© Mapbox © OpenStreetMap”")
+    func attribucio() throws {
+        var v = SessionView()
+        v.lastFix = fix()
+        #expect(liveActivityState(v, nav: nil, unit: .kmh, mapVersion: 3, lang: .hu)?.attribution == "© Mapbox © OpenStreetMap")
+        #expect(liveActivityState(v, nav: nil, unit: .kmh, lang: .hu)?.attribution == nil)
     }
 
     @Test("az útvonal látható része: 300 m mögöttünk, 2,5 km előttünk")

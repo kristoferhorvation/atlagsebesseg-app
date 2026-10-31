@@ -33,6 +33,14 @@ struct LockScreenView: View {
             // a „most · várható · hátra” sor teljes szélességben (a térképkép mellett eltörne)
             if let m = state.measure { MeasureFigures(m: m) }
             if state.measure != nil, let n = state.nav { NavLine(nav: n) }
+            // a térképkép attribúciója (a képről a logó és a felirat kikerült) – halványan, a kártya alján
+            if let a = state.attribution, state.mapVersion != nil {
+                Text(a)
+                    .font(.inter(8, 500))
+                    .foregroundStyle(Tokens.Colors.textFaint)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.top, -6)
+            }
         }
         .padding(16)
         .foregroundStyle(Tokens.Colors.text)
