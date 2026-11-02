@@ -409,7 +409,21 @@
   "heat.legend.frequency": "rzadko → często",
   "heat.legend.speed": "wolno → szybko",
   "settings.share": "Udostępniaj anonimowe dane o jeździe",
-  "settings.shareHint": "Po włączeniu na końcu przejazdu wysyłane jest tylko podsumowanie dla każdej komórki (liczba przejazdów, średnia prędkość, godzina, dzień tygodnia): bez trasy, bez dokładnego czasu, bez identyfikatora. Pierwsze i ostatnie 300 m przejazdu nigdy nie jest wysyłane.",
+  "settings.shareHint": "Po włączeniu na końcu przejazdu wysyłane jest: komórka, liczba przejazdów, średnia prędkość, godzina, dzień tygodnia. Nie jest wysyłane: trasa, dokładny czas, identyfikator, okolice zapisanych miejsc, początek i koniec przejazdów.",
   "trips.map.legendLimit": "W odniesieniu do limitu: poniżej → powyżej",
-  "trips.map.legendAbs": "Prędkość: wolno → szybko"
+  "trips.map.legendAbs": "Prędkość: wolno → szybko",
+  "settings.shareDetails": "Szczegóły",
+  "heat.details.title": "Anonimowe udostępnianie danych",
+  "heat.details.up.title": "Co jest wysyłane",
+  "heat.details.up.body": "Dla każdej komórki (sześciokąt ok. 66 m): liczba przejazdów, średnia prędkość, godzina (0–23) i dzień tygodnia. Nic więcej.",
+  "heat.details.no.title": "Czego nie wysyłamy",
+  "heat.details.no.body": "Trasy, dokładnego czasu, żadnego identyfikatora (imię, urządzenie, konto), okolic zapisanych miejsc ani pierwszych i ostatnich 300 m każdego przejazdu.",
+  "heat.details.zones.title": "Strefy ochronne",
+  "heat.details.zones.body": "Wokół każdego zapisanego miejsca (Dom, Praca, inne) jest strefa, domyślnie 500 m. Komórki w strefach nigdy nie są wysyłane, a na Twojej własnej mapie cieplnej są szare. Strefy i zapisane miejsca są przechowywane tylko na tym urządzeniu.",
+  "heat.details.noPlaces": "Nie ma jeszcze zapisanych miejsc – możesz je dodać w ustawieniach.",
+  "heat.zone.label": "Strefa ochronna",
+  "heat.zone.hint": "Komórki w strefie nie są wysyłane i są szare na Twojej własnej mapie cieplnej.",
+  "heat.zone.200": "200 m",
+  "heat.zone.500": "500 m",
+  "heat.zone.1000": "1 km"
 }

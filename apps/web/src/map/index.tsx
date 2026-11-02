@@ -29,5 +29,6 @@ class NoMapAdapter implements WebMapAdapter {
   showRoutes(): void {}
   fitRoute(): void {}
   showHeat(): void {}
+  showPrivacyZones(): void {}
   setHandlers(): void {}
 }

@@ -409,7 +409,21 @@
   "heat.legend.frequency": "ritkán → gyakran",
   "heat.legend.speed": "lassú → gyors",
   "settings.share": "Névtelen vezetési adatok megosztása",
-  "settings.shareHint": "Bekapcsolva az út végén csak cellánkénti összesítés megy fel (áthaladások száma, átlagsebesség, óra-sáv, a hét napja): nincs útvonal, nincs pontos idő, nincs azonosító. Az utak első és utolsó 300 m-e sosem kerül fel.",
+  "settings.shareHint": "Bekapcsolva az út végén felmegy: cella, áthaladás-szám, átlagsebesség, óra-sáv, a hét napja. Nem megy fel: útvonal, pontos idő, azonosító, a mentett helyek környéke, az utak eleje és vége.",
   "trips.map.legendLimit": "A tábla-limithez képest: alatta → fölötte",
-  "trips.map.legendAbs": "Sebesség: lassú → gyors"
+  "trips.map.legendAbs": "Sebesség: lassú → gyors",
+  "settings.shareDetails": "Részletek",
+  "heat.details.title": "Névtelen adatmegosztás",
+  "heat.details.up.title": "Ami felmegy",
+  "heat.details.up.body": "Cellánként (kb. 66 m-es hatszög): az áthaladások száma, az átlagsebesség, az óra-sáv (0–23) és a hét napja. Semmi más.",
+  "heat.details.no.title": "Ami nem megy fel",
+  "heat.details.no.body": "Az útvonal, a pontos idő, bármilyen azonosító (név, eszköz, fiók), a mentett helyek környéke, és az utak első és utolsó 300 m-e.",
+  "heat.details.zones.title": "Védett zónák",
+  "heat.details.zones.body": "Minden mentett hely (Haza, Munka, egyéb) körül zóna van, alapból 500 m. A zónákban lévő cellák sosem mennek fel, a saját hőtérképen szürkén jelennek meg. A zónák és a mentett helyek csak ezen a készüléken tárolódnak.",
+  "heat.details.noPlaces": "Még nincs mentett hely – a Beállításokban adhatsz hozzá.",
+  "heat.zone.label": "Adatvédelmi zóna",
+  "heat.zone.hint": "A zónában a cellák nem kerülnek fel, és szürkék a saját hőtérképen.",
+  "heat.zone.200": "200 m",
+  "heat.zone.500": "500 m",
+  "heat.zone.1000": "1 km"
 }

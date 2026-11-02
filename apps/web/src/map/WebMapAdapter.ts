@@ -27,6 +27,7 @@ export interface WebMapState extends MapState {
   destination: LatLon | null;
   /** Az útvonal(ak) látványa a térképen (útvonalválasztó): a kamera ide áll, a követés kikapcsol. */
   fit: MapFit | null;
+  privacyZones: readonly MapZone[] | null;
   /** AW20: a hőtérkép-réteg (a mód színskálájával); `null`: nincs réteg. */
   heat: MapHeat | null;
 }
@@ -34,6 +35,8 @@ export interface WebMapState extends MapState {
 /** A hőtérkép-réteg tartalma: súlyozott pontok és a mód (a színskála). */
 export interface MapHeat {
   points: readonly HeatPoint[];
+  /** Adatvédelmi zónában lévő cellák: szürkén, nem színezve (saját mód). */
+  grey: readonly HeatPoint[];
   view: HeatView;
   /** A cellák felbontása (10 közelről, 8 kicsinyítve) – a böngészős ellenőrzéshez. */
   res: number;
@@ -123,5 +126,7 @@ export interface WebMapAdapter extends MapController {
   showRoutes(routes: readonly MapRoute[], destination: LatLon | null): void;
   fitRoute(fit: MapFit | null): void;
   showHeat(heat: MapHeat | null): void;
+  /** AW20-javítás: az adatvédelmi zónák halvány körei (csak amíg a Beállítások nyitva van); `null`: nincs. */
+  showPrivacyZones(zones: readonly MapZone[] | null): void;
   setHandlers(handlers: Partial<MapHandlers>): void;
 }

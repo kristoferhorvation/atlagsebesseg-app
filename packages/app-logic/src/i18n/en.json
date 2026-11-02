@@ -409,7 +409,21 @@
   "heat.legend.frequency": "rarely → often",
   "heat.legend.speed": "slow → fast",
   "settings.share": "Share anonymous driving data",
-  "settings.shareHint": "When on, only a per-cell summary is sent at the end of a trip (number of passes, average speed, hour of day, day of week): no route, no exact time, no identifier. The first and last 300 m of a trip are never sent.",
+  "settings.shareHint": "When on, at the end of a trip this is sent: cell, number of passes, average speed, hour of day, day of week. Not sent: route, exact time, identifier, the area around saved places, the start and end of trips.",
   "trips.map.legendLimit": "Relative to the posted limit: below → above",
-  "trips.map.legendAbs": "Speed: slow → fast"
+  "trips.map.legendAbs": "Speed: slow → fast",
+  "settings.shareDetails": "Details",
+  "heat.details.title": "Anonymous data sharing",
+  "heat.details.up.title": "What is sent",
+  "heat.details.up.body": "Per cell (a hexagon of about 66 m): the number of passes, the average speed, the hour of day (0–23) and the day of week. Nothing else.",
+  "heat.details.no.title": "What is not sent",
+  "heat.details.no.body": "The route, the exact time, any identifier (name, device, account), the area around saved places, and the first and last 300 m of every trip.",
+  "heat.details.zones.title": "Privacy zones",
+  "heat.details.zones.body": "Every saved place (Home, Work, others) has a zone around it, 500 m by default. Cells inside a zone are never sent and show in grey on your own heatmap. Zones and saved places are stored on this device only.",
+  "heat.details.noPlaces": "No saved places yet – you can add some in Settings.",
+  "heat.zone.label": "Privacy zone",
+  "heat.zone.hint": "Cells inside the zone are not sent and show in grey on your own heatmap.",
+  "heat.zone.200": "200 m",
+  "heat.zone.500": "500 m",
+  "heat.zone.1000": "1 km"
 }

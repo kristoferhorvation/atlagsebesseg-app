@@ -159,6 +159,13 @@ final class AppModel {
     @ObservationIgnored var heatSeedList: [HeatCell]?
     /// Egyszerre egy feltöltés fut (különben a várólista kétszer menne fel).
     @ObservationIgnored var heatFlushing = false
+    /// AW20-javítás: az indexben most érvényes zónák (a mentett helyekből és a `zona_m`-ből; változáskor új felosztás).
+    @ObservationIgnored var heatZonesApplied: [HeatZone] = []
+    /// A zóna-körök látszanak a térképen, amíg a Beállítások (vagy a Részletek lap) nyitva van (a `DriveView` állítja).
+    var zonesVisible = false
+    /// A zónára fókuszálás (sugárváltáskor a kamera a zónára áll a lap alatt hagyott hellyel) – a `MapScreen` figyeli.
+    var zoneFocus: HeatZone?
+    var zoneFocusSeq = 0
 
     @ObservationIgnored var navSession: NavigationSession?
     @ObservationIgnored var routeData = EnforcementData.none

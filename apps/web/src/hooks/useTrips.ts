@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { measurementName, TRIP, TripRecorder, uploadRows, type CruiseView, type NavView, type SessionView } from '@atlagsebesseg/app-logic';
+import { measurementName, TRIP, TripRecorder, HEAT, uploadRows, type CruiseView, type HeatZone, type NavView, type SessionView } from '@atlagsebesseg/app-logic';
 import type { GpsFix } from '@atlagsebesseg/core';
 import { addSamples, absorbTrip, deleteSamples, saveTrip } from '../trips/tripStore';
 import { heatGeo } from '../heat/heatGeo';
@@ -14,9 +14,11 @@ import { supabase } from '../backend';
 /** Szimulátorban (`?sim`, `?navsim`, `?cruise`) a közösségi feltöltés nincs – a teszt-út ne kerüljön az éles táblába. */
 const IS_SIM = ['sim', 'navsim', 'cruise'].some((k) => new URLSearchParams(location.search).has(k));
 
-export function useTrips(now: () => number, nav: NavView | null, view: SessionView, share: boolean) {
+export function useTrips(now: () => number, nav: NavView | null, view: SessionView, share: boolean, zones: readonly HeatZone[]) {
   const shareRef = useRef(share);
   shareRef.current = share;
+  const zonesRef = useRef(zones);
+  zonesRef.current = zones;
   const rec = useMemo(() => new TripRecorder(), []);
   const [cruise, setCruise] = useState<CruiseView | null>(null);
   const [version, setVersion] = useState(0);
@@ -29,7 +31,7 @@ export function useTrips(now: () => number, nav: NavView | null, view: SessionVi
     if (!absorbed || !shareRef.current || IS_SIM) return;
     const geo = await heatGeo();
     if (!geo) return;
-    enqueueHeatRows(uploadRows(absorbed.passes, geo, -new Date(trip.startedAt).getTimezoneOffset()));
+    enqueueHeatRows(uploadRows(absorbed.passes, geo, -new Date(trip.startedAt).getTimezoneOffset(), HEAT.shareEndsM, zonesRef.current));
     void flushHeatOutbox(supabase);
   }, []);
 

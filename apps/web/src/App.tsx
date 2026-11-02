@@ -26,6 +26,8 @@ import {
   greetingText,
   cruiseStatusText,
   HEAT_MODES,
+  heatZones,
+  type HeatZone,
   HEAT_VIEWS,
   type HeatMode,
   type HeatView,
@@ -80,6 +82,7 @@ import { useTileItems } from './hooks/useTileItems';
 import { useTrips } from './hooks/useTrips';
 import { HEAT_SEED, useHeat, type HeatViewport } from './hooks/useHeat';
 import { HeatSwitch } from './ui/HeatSwitch';
+import { HeatDetailsSheet } from './ui/HeatDetailsSheet';
 import { useWakeLock } from './hooks/useWakeLock';
 import { createWebMapAdapter, type MapReport, type MapRoute, type WebMapAdapter } from './map';
 import { simCameras, simPlannedChecks, simReports } from './sim/scenarios';
@@ -119,7 +122,8 @@ const NAV_SIM_OPTS = (() => {
 /** AW19: `?cruise` – krúzing mód: a navsim-vezetés cél nélkül, rögtön indul (az utak naplójához). */
 const NAV_SIM_CRUISE = NAV_SIM && new URLSearchParams(location.search).has('cruise');
 /** AW19: `?sheet=trips` – az utak naplója nyitva; `&tripOpen=first` – a legújabb út részlete (képernyőképekhez). */
-const START_SHEET = new URLSearchParams(location.search).get('sheet') === 'trips' ? ('trips' as const) : null;
+const START_SHEET_Q = new URLSearchParams(location.search).get('sheet');
+const START_SHEET = START_SHEET_Q === 'trips' || START_SHEET_Q === 'settings' || START_SHEET_Q === 'heatDetails' ? START_SHEET_Q : null;
 const TRIP_OPEN = new URLSearchParams(location.search).get('tripOpen');
 /** `?sim&panel=0`: a szimulátor vezérlője és jelzése nélkül (marketing-képernyőképekhez). */
 const SIM_PANEL = new URLSearchParams(location.search).get('panel') !== '0' && !NAV_SIM;
@@ -219,7 +223,9 @@ function Drive({ map }: { map: WebMapAdapter }) {
     places,
   );
   navSessionRef.current = nav.session;
-  const trips = useTrips(now, nav.view, view, settings.adatmegosztas);
+  // AW20-javítás: adatvédelmi zónák a mentett helyek körül (csak helyben; a hőtérkép szürkíti, a feltöltés kihagyja)
+  const zones = useMemo(() => heatZones(places.saved, settings.zona_m), [places.saved, settings.zona_m]);
+  const trips = useTrips(now, nav.view, view, settings.adatmegosztas, zones);
   tripsRef.current = trips;
   const navSearch = useCallback((q: string) => (NAV_SIM ? simSearch(q) : searchPlaces(q, view.lastFix)), [view.lastFix]);
   const requestsToday = useSyncExternalStore(requestCounter.subscribe, () => requestCounter.count);
@@ -551,7 +557,7 @@ function Drive({ map }: { map: WebMapAdapter }) {
   }, [map, navFollowOn]);
 
   // lapok, visszajelzés
-  const [sheet, setSheet] = useState<'report' | 'settings' | 'geo' | 'trips' | null>(START_SHEET);
+  const [sheet, setSheet] = useState<'report' | 'settings' | 'geo' | 'trips' | 'heatDetails' | null>(START_SHEET);
   const [toast, setToast] = useState<Toast | null>(null);
   const showToast = useCallback((t: Omit<Toast, 'id'>) => setToast({ ...t, id: Date.now() }), []);
   useEffect(() => {
@@ -709,10 +715,45 @@ function Drive({ map }: { map: WebMapAdapter }) {
 
   // AW20: hőtérkép – csak az üres nézeten és krúzingban (navigáció, útvonalválasztó és mérés közben nincs)
   const [heatViewport, setHeatViewport] = useState<HeatViewport | null>(null);
-  useEffect(() => map.setHandlers({ onView: (bbox, zoom) => setHeatViewport({ bbox, zoom }) }), [map]);
   const heatVisible = settings.hoterkep !== 'ki' && nav.view === null && nav.plan === null && !driving && view.phase !== 'kezi_eredmeny';
-  const heat = useHeat({ mode: settings.hoterkep, view: settings.hoterkep_nezet, share: settings.adatmegosztas, version: trips.version, viewport: heatViewport, visible: heatVisible });
-  useEffect(() => map.showHeat(heat ? { points: heat.points, view: heat.view, res: heat.res } : null), [map, heat]);
+  // a látható területet csak látható hőtérképnél tesszük állapotba (navigáció közben a kamera-mozgás ne rajzoltassa újra az appot)
+  const lastViewport = useRef<HeatViewport | null>(null);
+  const heatVisibleRef = useRef(heatVisible);
+  heatVisibleRef.current = heatVisible;
+  useEffect(
+    () =>
+      map.setHandlers({
+        onView: (bbox, zoom) => {
+          lastViewport.current = { bbox, zoom };
+          if (heatVisibleRef.current) setHeatViewport(lastViewport.current);
+        },
+      }),
+    [map],
+  );
+  useEffect(() => {
+    if (heatVisible && lastViewport.current) setHeatViewport(lastViewport.current);
+  }, [heatVisible]);
+  const heat = useHeat({ mode: settings.hoterkep, view: settings.hoterkep_nezet, share: settings.adatmegosztas, version: trips.version, viewport: heatViewport, visible: heatVisible, zones });
+  useEffect(() => map.showHeat(heat ? { points: heat.points, grey: heat.grey, view: heat.view, res: heat.res } : null), [map, heat]);
+  // a zónák halvány körei, amíg a Beállítások (vagy a Részletek lap) nyitva van
+  const zonesShown = sheet === 'settings' || sheet === 'heatDetails';
+  useEffect(() => map.showPrivacyZones(zonesShown ? zones.map((z) => ({ id: z.id, center: { lat: z.lat, lon: z.lon }, radiusM: z.radiusM })) : null), [map, zones, zonesShown]);
+  /** A zóna megmutatása: a kamera a körre áll (a lap alatt hagyott hellyel). */
+  const [zonePeek, setZonePeek] = useState(false);
+  useEffect(() => {
+    if (!zonePeek) return;
+    const id = setTimeout(() => setZonePeek(false), 6000);
+    return () => clearTimeout(id);
+  }, [zonePeek]);
+  const showZone = useCallback(
+    (z: HeatZone) => {
+      setZonePeek(true);
+      const dLat = z.radiusM / 111_195;
+      const dLon = dLat / Math.max(0.2, Math.cos((z.lat * Math.PI) / 180));
+      map.fitRoute({ points: [{ lat: z.lat + dLat, lon: z.lon + dLon }, { lat: z.lat - dLat, lon: z.lon - dLon }], padTop: 80, padBottom: Math.round(window.innerHeight * 0.55) });
+    },
+    [map],
+  );
   // szimulátor / képernyőkép: `?heat=ki|sajat|kozossegi`, `?heatView=gyakorisag|atlagsebesseg`
   useEffect(() => {
     if (!SIM_MODE) return;
@@ -908,6 +949,11 @@ function Drive({ map }: { map: WebMapAdapter }) {
           onPickPlace={(kind) => nav.openSearch(kind)}
           onClearPlace={(kind) => places.setSaved(kind, null)}
           onRemoveOther={places.removeOther}
+          zones={zones}
+          onOpenHeatDetails={() => setSheet('heatDetails')}
+          onShowZone={showZone}
+          peek={zonePeek}
+          onPeekEnd={() => setZonePeek(false)}
           onOpenTrips={() => setSheet('trips')}
           onClose={() => setSheet(null)}
           info={{
@@ -926,6 +972,7 @@ function Drive({ map }: { map: WebMapAdapter }) {
           }}
         />
       )}
+      {sheet === 'heatDetails' && <HeatDetailsSheet saved={places.saved} zones={zones} settings={settings} update={update} onShowZone={showZone} peek={zonePeek} onPeekEnd={() => setZonePeek(false)} onClose={() => setSheet('settings')} />}
       {sheet === 'trips' && (
         <TripLogSheet
           unit={settings.egyseg}

@@ -477,4 +477,147 @@ struct HeatSeedTests {
         #expect(fine.reduce(0) { $0 + $1.count } == 3 * 21004)
         #expect(coarse.reduce(0) { $0 + $1.count } == 3 * 21004)
     }
+
+    @Test("a mesterséges pontok determinisztikusak")
+    func determinisztikus() {
+        #expect(heatSeedPoints().map { $0.lat } == heatSeedPoints().map { $0.lat })
+        #expect(heatSeedPoints().count > 1000)
+    }
+
+    @Test("a mesterséges cellák Budapest és Győr között húzódnak, az M1 gyorsabb a városnál")
+    func m1Gyorsabb() {
+        let cells = heatSeedCells { lat, lon in "\(Int((lat * 1000).rounded())):\(Int((lon * 1000).rounded()))" }
+        #expect(cells.count > 1500)
+        func parts(_ c: HeatCell) -> (Int, Int) { let p = c.h3.split(separator: ":"); return (Int(p[0])!, Int(p[1])!) }
+        let m1 = cells.filter { parts($0).1 < 18500 }
+        let city = cells.filter { parts($0).1 >= 19030 && parts($0).0 < 47510 && parts($0).0 > 47470 }
+        func avg(_ l: [HeatCell]) -> Double { l.reduce(0) { $0 + $1.avgKmh } / Double(l.count) }
+        #expect(avg(m1) > avg(city) + 40)
+        #expect((cells.map { $0.count }.max() ?? 0) > 3)
+    }
+
+    @Test("a közösségi sorok a res-8 összevonásnál kevesebb, de súlyosabb cellát adnak")
+    func kozossegiOsszevonas() {
+        let cells = heatSeedCells { lat, lon in "c\(Int(floor((lat - 46) / 0.001)))_\(Int(floor((lon - 17) / 0.001)))" }
+        let fine = heatSeedGlobal(cells, geo: GridGeo(), res: 10)
+        let coarse = heatSeedGlobal(cells, geo: GridGeo(), res: 8)
+        #expect(coarse.count < fine.count)
+        #expect(coarse.reduce(0) { $0 + $1.count } == fine.reduce(0) { $0 + $1.count })
+    }
+}
+
+@Suite("adatvédelmi zónák")
+struct HeatZoneTests {
+    private static let home = Place(id: "home", name: "Haza", address: "", lat: 47.01, lon: 19.01)
+    private static let saved = SavedPlaces(
+        home: home,
+        work: Place(id: "work", name: "Munka", address: "", lat: 47.2, lon: 19.3),
+        others: [Place(id: "o1", name: "Anyós", address: "", lat: 47.4, lon: 19.5)]
+    )
+    private let zone = HeatZone(id: "home", lat: 47.01, lon: 19.01, radiusM: 200)
+    private func pass(_ h3: String, _ t: Double = T0) -> HeatPass { HeatPass(h3: h3, avgKmh: 50, t: t, fromStartM: 5000, toEndM: 5000) }
+
+    @Test("a mentett helyek körül zóna van, alapból 500 m, helyenként állítható")
+    func alap() {
+        let z = heatZones(Self.saved, ["work": 1000])
+        #expect(z.map(\.id) == ["home", "work", "o1"])
+        #expect(z.map(\.radiusM) == [500, 1000, 500])
+        #expect(heatZones(SavedPlaces(home: nil, work: nil, others: []), [:]).isEmpty)
+    }
+
+    @Test("érvénytelen zónasugár helyett az alapértelmezés (csak 200 m / 500 m / 1 km választható)")
+    func ervenytelen() {
+        #expect(parseZoneRadii(["home": 200, "work": 777, "o1": "500", "x": 1000]) == ["home": 200, "x": 1000])
+        #expect(parseZoneRadii(nil).isEmpty)
+        #expect(parseZoneRadii([200]).isEmpty)
+        #expect(Settings.parse(#"{"zona_m":{"home":1000,"work":5}}"#).zonaM == ["home": 1000])
+        #expect(Settings.parse(nil).zonaM.isEmpty)
+        #expect(heatZones(Self.saved, ["home": 777])[0].radiusM == 500)
+    }
+
+    @Test("a zónában lévő cellák sosem kerülnek a feltöltésbe, a zónán kívüliek igen")
+    func feltoltes() {
+        let passes = [pass("c10_10"), pass("c10_11"), pass("c60_60")]
+        #expect(uploadRows(passes, geo: geo, tzOffsetMin: 60, endsM: HEAT.shareEndsM, zones: [zone]).map(\.h3) == ["c60_60"])
+        #expect(uploadRows(passes, geo: geo, tzOffsetMin: 60, endsM: HEAT.shareEndsM, zones: []).map(\.h3) == ["c10_10", "c10_11", "c60_60"])
+    }
+
+    @Test("a zóna sugara a cella élével (ráhagyás) számít: a határon lévő cella is védett")
+    func rahagyas() {
+        var z = zone
+        z.radiusM = 200
+        #expect(!inZone(geo.center("c10_14"), [z]))
+        z.radiusM = 250
+        #expect(inZone(geo.center("c10_14"), [z]))
+        z.radiusM = 200
+        #expect(!inZone(geo.center("c10_14"), [z], marginM: 0))
+    }
+
+    @Test("a zónában lévő cellák szürkén jelennek meg (nem színezve), a többi színezve")
+    func szurke() {
+        let idx = HeatIndex(geo: geo)
+        idx.setAll([cell("c10_10", 1), cell("c10_11", 1), cell("c30_30", 1)])
+        idx.setZones([zone])
+        let r = idx.points(HeatViewport(zoom: 15, bbox: BBox(south: 46.99, west: 18.99, north: 47.05, east: 19.05)), .gyakorisag)
+        #expect(r.res == 10)
+        #expect(r.points.count == 1)
+        #expect(r.grey.count == 2)
+    }
+
+    @Test("kicsinyítve (res 8) is külön csoportban: a zóna cellái szürkék maradnak")
+    func szurkeKicsinyitve() {
+        let idx = HeatIndex(geo: geo)
+        idx.setAll([cell("c10_10", 1), cell("c11_11", 1), cell("c60_60", 1), cell("c61_61", 1)])
+        idx.setZones([zone])
+        let r = idx.points(HeatViewport(zoom: 9, bbox: BBox(south: 46.9, west: 18.9, north: 47.2, east: 19.2)), .gyakorisag)
+        #expect(r.res == 8)
+        #expect(r.grey.count == 1)
+        #expect(r.points.count == 1)
+    }
+
+    @Test("a zónák módosítása után a szürke / színezett felosztás újraszámolódik")
+    func ujraszamol() {
+        let idx = HeatIndex(geo: geo)
+        idx.setAll([cell("c10_10", 1)])
+        let vp = HeatViewport(zoom: 15, bbox: BBox(south: 46.99, west: 18.99, north: 47.05, east: 19.05))
+        #expect(idx.points(vp, .gyakorisag).points.count == 1)
+        idx.setZones([zone])
+        #expect(idx.points(vp, .gyakorisag).grey.count == 1)
+        idx.setZones([])
+        #expect(idx.points(vp, .gyakorisag).grey.isEmpty)
+    }
+
+    @Test("a feltöltött sor nem tartalmaz mentett helyet vagy zónát")
+    func nincsZona() throws {
+        let rows = uploadRows([pass("c60_60")], geo: geo, tzOffsetMin: 60, endsM: HEAT.shareEndsM, zones: [zone])
+        let json = String(decoding: try JSONEncoder().encode(rows), as: UTF8.self)
+        let obj = try #require(JSONSerialization.jsonObject(with: Data(json.utf8)) as? [[String: Any]])
+        #expect(Set(obj[0].keys) == ["avg_speed", "count", "dow", "h3", "h3_r8", "hour", "lat", "lon"])
+        #expect(json.range(of: #"home|Haza|radius|zone|47\.01,19\.01"#, options: .regularExpression) == nil)
+    }
+}
+
+// AW20-javítás, 4. pont: a zónák és a mentett helyek csak helyben élnek – a hálózati rétegben (Backend) semmi nem hivatkozik rájuk,
+// és a feltöltött sor pontosan a 8 aggregált oszlop.
+@Suite("zónák és mentett helyek csak helyben")
+struct ZoneLocalOnlyTests {
+    private static let root = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent().appendingPathComponent("Atlagsebesseg")
+
+    @Test("a Backend nem hivatkozik zónára, mentett helyre vagy beállításra; a heat_cells feltöltés csak a sorokat küldi")
+    func backend() throws {
+        let src = try String(contentsOf: Self.root.appendingPathComponent("Backend/Backend.swift"), encoding: .utf8)
+        for word in ["HeatZone", "heatZones", "zonaM", "zona_m", "SavedPlaces", "SAVED_KEY", "savedPlaces", "settings"] {
+            #expect(!src.contains(word), "a Backend hivatkozik erre: \(word)")
+        }
+        #expect(src.contains(#"insert(rows)"#))
+    }
+
+    @Test("a zónák a helyi tárolóban élnek: a mentett helyek és a zona_m csak a helyi tárolókba (UserDefaults) íródnak")
+    func helyiTarolo() throws {
+        let s = Settings.parse(#"{"zona_m":{"home":1000}}"#)
+        #expect(s.serialized().contains(#""zona_m":{"home":1000}"#))
+        let up = HeatUploadRow(h3: "8a1e03785377fff", h3R8: "881e037853fffff", lat: 47, lon: 19, count: 1, avgSpeed: 50, hour: 9, dow: 1)
+        let keys = try #require(JSONSerialization.jsonObject(with: JSONEncoder().encode(up)) as? [String: Any]).keys
+        #expect(Set(keys) == ["avg_speed", "count", "dow", "h3", "h3_r8", "hour", "lat", "lon"])
+    }
 }

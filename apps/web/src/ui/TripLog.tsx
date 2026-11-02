@@ -344,7 +344,21 @@ function TripMap({ trip, lightPreset }: { trip: Trip; lightPreset: LightPreset }
     });
     return () => {
       cancelled = true;
-      map?.remove();
+      const m = map;
+      if (!m) return;
+      // betöltés közbeni eltávolítás a Mapbox belső kéréseit „elvágja” (errorCb kivétel): megvárjuk a betöltést
+      if (m.loaded()) m.remove();
+      else {
+        let removed = false;
+        const drop = () => {
+          if (!removed) {
+            removed = true;
+            m.remove();
+          }
+        };
+        m.once('idle', drop);
+        setTimeout(drop, 5000);
+      }
     };
   }, [trip.id, lightPreset]);
   return (

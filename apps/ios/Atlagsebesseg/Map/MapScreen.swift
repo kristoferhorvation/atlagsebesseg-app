@@ -23,6 +23,9 @@ struct MapScreen: View {
     /// AW20: a hőtérkép pontjai (súllyal); navigáció / mérés közben üres.
     @State private var heatFC = FeatureCollection(features: [])
     @State private var heatBuiltAt = 0.0
+    /// AW20-javítás: a zónában lévő cellák (saját módban szürkén, nem színezve) és a zóna-körök (amíg a Beállítások nyitva).
+    @State private var heatGreyFC = FeatureCollection(features: [])
+    @State private var privacyZonesFC = FeatureCollection(features: [])
     @State private var altLabels: [AltLabel] = []
     /// AW17: a címkék képernyő-pontban számolt helye (a buborék közepe), útvonal-azonosító szerint.
     @State private var altLabelAt: [String: CLLocationCoordinate2D] = [:]
@@ -65,6 +68,28 @@ struct MapScreen: View {
                 .heatmapRadius(Exp(.interpolate) { Exp(.linear); Exp(.zoom); 6; 12; 11; 20; 14; 36; 17; 84 })
                 .heatmapOpacity(0.85)
                 .heatmapColor(Self.heatColorRamp(model.settings.hoterkepNezet))
+            // AW20-javítás: a zónában lévő cellák szürkén (nem színezve) – a hőtérkép fölött, a zóna-körök alatt
+            GeoJSONSource(id: "heat-grey").data(.featureCollection(heatGreyFC))
+            CircleLayer(id: "heat-grey-layer", source: "heat-grey")
+                .slot(.middle)
+                .circleRadius(Exp(.interpolate) { Exp(.linear); Exp(.zoom); 6; 2; 11; 5; 14; 12; 17; 30 })
+                .circleColor(UIColor(Tokens.Colors.heatGrey))
+                .circleBlur(0.6)
+                .circleOpacity(1)
+                .circleEmissiveStrength(1)
+            // a mentett helyek adatvédelmi zónái: halvány kör, amíg a Beállítások nyitva van
+            GeoJSONSource(id: "privacy-zones").data(.featureCollection(privacyZonesFC))
+            FillLayer(id: "privacy-zones-fill", source: "privacy-zones")
+                .slot(.middle)
+                .fillColor(UIColor(Tokens.Colors.accent))
+                .fillOpacity(0.10)
+                .fillEmissiveStrength(1)
+            LineLayer(id: "privacy-zones-line", source: "privacy-zones")
+                .slot(.middle)
+                .lineColor(UIColor(Tokens.Colors.accent))
+                .lineWidth(1.5)
+                .lineOpacity(0.45)
+                .lineEmissiveStrength(1)
             // útvonalak (A8/A11): legalul, hogy a szakaszok és a mérés fölöttük látszódjanak; az alternatíva alul
             GeoJSONSource(id: "routes").data(.featureCollection(routesFC))
             // AW11 (A8d): a kiválasztott 7 pt erős kék + 2 × 2 pt fehér kontúr, az alternatíva 5 pt + 2 × 1,5 pt kontúr –
@@ -282,11 +307,15 @@ struct MapScreen: View {
         .onAppear {
             rebuild()
             rebuildRoutes()
+            rebuildZones()
+            applyDebugCamera()
             // a nézet a már futó mérés közben is megjelenhet (szimulátor-ugrás, visszatérés): azonnal a pozícióra áll
             if follow, let fix = view.lastFix { recenter(fix, animated: false) }
         }
         .onChange(of: model.dataVersion) { rebuild() }
         .onChange(of: heatKey) { rebuildHeat() }
+        .onChange(of: model.zonesVisible) { rebuildZones() }
+        .onChange(of: model.zoneFocusSeq) { focusZone() }
         .onChange(of: routeKey) { rebuildRoutes() }
         .onChange(of: model.fitVersion) { fitRoutes() }
         .onChange(of: view.lastFix) { _, fix in
@@ -377,16 +406,53 @@ struct MapScreen: View {
     }
 
     /// AW20: mikor kell a hőtérkép pontjait újraszámolni: más mód / nézet, látható-e, új út vagy közösségi adat.
-    private var heatKey: String { "\(model.settings.hoterkep.rawValue):\(model.settings.hoterkepNezet.rawValue):\(model.heatVisible):\(model.heatVersion)" }
+    private var heatKey: String { "\(model.settings.hoterkep.rawValue):\(model.settings.hoterkepNezet.rawValue):\(model.heatVisible):\(model.heatVersion):\(model.settings.zonaM.sorted { $0.key < $1.key })" }
 
     private func rebuildHeat() {
         heatBuiltAt = Date().timeIntervalSince1970
-        let pts = model.heatPoints()
-        heatFC = FeatureCollection(features: pts.map { p in
+        let layers = model.heatLayers()
+        heatFC = FeatureCollection(features: layers.points.map { p in
             var f = Feature(geometry: Point(CLLocationCoordinate2D(latitude: p.lat, longitude: p.lon)))
             f.properties = ["weight": .number(p.weight)]
             return f
         })
+        heatGreyFC = FeatureCollection(features: layers.grey.map { p in Feature(geometry: Point(CLLocationCoordinate2D(latitude: p.lat, longitude: p.lon))) })
+        rebuildZones()
+    }
+
+    /// A zóna-körök (a mentett helyek körül, a beállított sugárral): csak a Beállítások / Részletek nyitva tartása alatt.
+    private func rebuildZones() {
+        guard model.zonesVisible else {
+            if !privacyZonesFC.features.isEmpty { privacyZonesFC = FeatureCollection(features: []) }
+            return
+        }
+        privacyZonesFC = FeatureCollection(features: model.heatZoneList.map { z in
+            Feature(geometry: Polygon(center: CLLocationCoordinate2D(latitude: z.lat, longitude: z.lon), radius: z.radiusM, vertices: 64))
+        })
+    }
+
+    /// Sugárváltáskor: a kamera a zónára áll (követés nélkül), a lap alatt hagyott hellyel, hogy a teljes kör látsszon.
+    private func focusZone() {
+        guard let z = model.zoneFocus else { return }
+        let w = UIScreen.main.bounds.width
+        let mpp = 2 * z.radiusM / (0.6 * w)
+        let zoom = max(8, min(17, log2(78_271.5 * cos(z.lat * .pi / 180) / mpp)))
+        let h = UIScreen.main.bounds.height
+        withViewportAnimation(.easeOut(duration: Tokens.Motion.slow)) {
+            viewport = Viewport.camera(center: CLLocationCoordinate2D(latitude: z.lat, longitude: z.lon), zoom: zoom, bearing: 0, pitch: 0).padding(.bottom, h * 0.5)
+        }
+        rebuildZones()
+    }
+
+    /// Csak a képernyőképekhez (`-mapZoom <z>`, opcionálisan `-mapLat` / `-mapLon`): a kamera erre a zoomra áll, követés nélkül;
+    /// alapból a hőtérkép-seed körei fölé (Budapest belváros).
+    private func applyDebugCamera() {
+        let d = UserDefaults.standard
+        guard d.object(forKey: "mapZoom") != nil else { return }
+        let lat = d.object(forKey: "mapLat") != nil ? d.double(forKey: "mapLat") : 47.497
+        let lon = d.object(forKey: "mapLon") != nil ? d.double(forKey: "mapLon") : 19.05
+        model.follow = false
+        viewport = .camera(center: CLLocationCoordinate2D(latitude: lat, longitude: lon), zoom: d.double(forKey: "mapZoom"), bearing: 0, pitch: 0)
     }
 
     /// A hőtérkép színskálája a sűrűségből (tokenekből): átlátszó → alacsony → közép → magas; gyakoriságnál indigó → lila →

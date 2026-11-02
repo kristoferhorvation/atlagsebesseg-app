@@ -17,6 +17,48 @@ nonisolated enum HeatView: String, Codable, Sendable, CaseIterable {
     case gyakorisag, atlagsebesseg
 }
 
+/// A választható zónasugarak (m): 200 m / 500 m / 1 km.
+nonisolated let ZONE_RADII: [Int] = [200, 500, 1000]
+
+/// Adatvédelmi zóna egy mentett hely körül (csak helyben él, szerverre nem megy).
+nonisolated struct HeatZone: Equatable, Sendable {
+    /// `home`, `work` vagy a további mentett hely azonosítója.
+    var id: String
+    var lat: Double
+    var lon: Double
+    var radiusM: Double
+}
+
+/// A tárolt zónasugarak (`hely-azonosító → m`) érvényesítése: csak a választható sugár marad.
+nonisolated func parseZoneRadii(_ raw: Any?) -> [String: Int] {
+    guard let o = raw as? [String: Any] else { return [:] }
+    var out: [String: Int] = [:]
+    for (k, v) in o {
+        guard let n = v as? NSNumber, CFGetTypeID(n) != CFBooleanGetTypeID() else { continue }
+        let d = n.doubleValue
+        if d == d.rounded(), ZONE_RADII.contains(Int(d)) { out[k] = Int(d) }
+    }
+    return out
+}
+
+/// Minden mentett hely (Haza, Munka, további) körül egy zóna; a sugár helyenként állítható, alapból 500 m.
+nonisolated func heatZones(_ saved: SavedPlaces, _ radii: [String: Int]) -> [HeatZone] {
+    func at(_ id: String, _ p: Place) -> HeatZone {
+        let r = radii[id].flatMap { ZONE_RADII.contains($0) ? $0 : nil } ?? Int(HEAT.zoneDefaultM)
+        return HeatZone(id: id, lat: p.lat, lon: p.lon, radiusM: Double(r))
+    }
+    var out: [HeatZone] = []
+    if let h = saved.home { out.append(at("home", h)) }
+    if let w = saved.work { out.append(at("work", w)) }
+    out.append(contentsOf: saved.others.map { at($0.id, $0) })
+    return out
+}
+
+/// A pont (cella középpontja) bármelyik zónában van-e (a sugárhoz `marginM` ráhagyással).
+nonisolated func inZone(_ p: LatLon, _ zones: [HeatZone], marginM: Double = HEAT.zoneMarginM) -> Bool {
+    zones.contains { haversineM(p, LatLon(lat: $0.lat, lon: $0.lon)) <= $0.radiusM + marginM }
+}
+
 /// Egy áthaladás egy cellán az út mintáiból.
 nonisolated struct HeatPass: Equatable, Sendable {
     var h3: String
@@ -157,13 +199,20 @@ nonisolated func endCells(_ passes: [HeatPass], endsM: Double = HEAT.shareEndsM)
 }
 
 /// A feltöltendő sorok: a védett cellák nélkül, (cella, óra, hét napja) szerint összevonva – nincs útvonal, nincs pontos
-/// idő (csak az óra-sáv és a nap), nincs azonosító. `tzOffsetMin`: a készülék UTC-eltolása percben (kelet pozitív).
-nonisolated func uploadRows(_ passes: [HeatPass], geo: HeatGeo, tzOffsetMin: Double, endsM: Double = HEAT.shareEndsM) -> [HeatUploadRow] {
+/// idő (csak az óra-sáv és a nap), nincs azonosító. Az adatvédelmi zónák cellái (mentett helyek körül) szintén kimaradnak. `tzOffsetMin`: a készülék UTC-eltolása percben (kelet pozitív).
+nonisolated func uploadRows(_ passes: [HeatPass], geo: HeatGeo, tzOffsetMin: Double, endsM: Double = HEAT.shareEndsM, zones: [HeatZone] = []) -> [HeatUploadRow] {
     let blocked = endCells(passes, endsM: endsM)
+    var zoneCache: [String: Bool] = [:]
+    func zoned(_ h3: String) -> Bool {
+        if let z = zoneCache[h3] { return z }
+        let z = !zones.isEmpty && inZone(geo.center(h3), zones)
+        zoneCache[h3] = z
+        return z
+    }
     struct G { var h3: String; var hour: Int; var dow: Int; var n: Int; var sum: Double }
     var groups: [String: G] = [:]
     var order: [String] = []
-    for p in passes where !blocked.contains(p.h3) {
+    for p in passes where !blocked.contains(p.h3) && !zoned(p.h3) {
         let ms = p.t + tzOffsetMin * 60_000
         let days = (ms / 86_400_000).rounded(.down)
         let hour = Int(((ms - days * 86_400_000) / 3_600_000).rounded(.down))
@@ -261,23 +310,36 @@ nonisolated final class HeatIndex {
     private let geo: HeatGeo
     private var cells: [String: HeatCell] = [:]
     private var centers: [String: LatLon] = [:]
-    private var coarse: [(cell: HeatCell, lat: Double, lon: Double)]?
+    private var zones: [HeatZone] = []
+    private var part: (fine: [HeatCell], zoned: [HeatCell])?
+    private var coarse: (normal: [(cell: HeatCell, lat: Double, lon: Double)], zoned: [(cell: HeatCell, lat: Double, lon: Double)])?
 
     init(geo: HeatGeo) { self.geo = geo }
 
     var size: Int { cells.count }
 
+    private func reset() {
+        part = nil
+        coarse = nil
+    }
+
     /// A teljes tartalom cseréje.
     func setAll(_ list: some Sequence<HeatCell>) {
         cells.removeAll()
-        coarse = nil
+        reset()
         for c in list { cells[c.h3] = c }
     }
 
     /// Módosult cellák beolvasztása (egy út vége után).
     func upsert(_ list: some Sequence<HeatCell>) {
         for c in list { cells[c.h3] = c }
-        coarse = nil
+        reset()
+    }
+
+    /// Az adatvédelmi zónák: a bennük lévő cellák nem színeződnek, szürkén jelennek meg.
+    func setZones(_ z: [HeatZone]) {
+        zones = z
+        reset()
     }
 
     func all() -> [String: HeatCell] { cells }
@@ -289,30 +351,55 @@ nonisolated final class HeatIndex {
         return c
     }
 
-    private func coarseList() -> [(cell: HeatCell, lat: Double, lon: Double)] {
-        if let c = coarse { return c }
-        let list = coarsenCells(cells.values, geo: geo).map { cell -> (cell: HeatCell, lat: Double, lon: Double) in
-            let p = geo.center(cell.h3)
-            return (cell, p.lat, p.lon)
+    /// A cellák két csoportra: normál, illetve zónában lévő (a zónán kívül eső cellák színeződnek).
+    private func partition() -> (fine: [HeatCell], zoned: [HeatCell]) {
+        if let p = part { return p }
+        var fine: [HeatCell] = []
+        var zoned: [HeatCell] = []
+        for c in cells.values {
+            if !zones.isEmpty, inZone(center(c.h3), zones) { zoned.append(c) } else { fine.append(c) }
         }
-        coarse = list
-        return list
+        part = (fine, zoned)
+        return (fine, zoned)
+    }
+
+    private func coarseLists() -> (normal: [(cell: HeatCell, lat: Double, lon: Double)], zoned: [(cell: HeatCell, lat: Double, lon: Double)]) {
+        if let c = coarse { return c }
+        let p = partition()
+        func build(_ list: [HeatCell]) -> [(cell: HeatCell, lat: Double, lon: Double)] {
+            coarsenCells(list, geo: geo).map { cell in
+                let c = geo.center(cell.h3)
+                return (cell, c.lat, c.lon)
+            }
+        }
+        let l = (normal: build(p.fine), zoned: build(p.zoned))
+        coarse = l
+        return l
     }
 
     /// A látható pontok: közelről res-10, kicsinyítve (vagy ha túl sok lenne) res-8; csak a látható téglalap (kis ráhagyással).
-    func points(_ vp: HeatViewport, _ view: HeatView) -> (res: Int, points: [HeatPoint]) {
+    /// A `grey` a zónákban lévő cellák (nem színezve, szürkén rajzolandók).
+    func points(_ vp: HeatViewport, _ view: HeatView) -> (res: Int, points: [HeatPoint], grey: [HeatPoint]) {
         let box = padded(vp.bbox, HEAT.viewPad)
         if heatResForZoom(vp.zoom) == Int(HEAT.res) {
-            var fine: [HeatPoint] = []
-            for c in cells.values {
-                let p = center(c.h3)
-                if inside(p.lat, p.lon, box) { fine.append(HeatPoint(lat: p.lat, lon: p.lon, weight: heatWeight(c, view))) }
+            let part = partition()
+            func pick(_ list: [HeatCell]) -> [HeatPoint] {
+                var out: [HeatPoint] = []
+                for c in list {
+                    let p = center(c.h3)
+                    if inside(p.lat, p.lon, box) { out.append(HeatPoint(lat: p.lat, lon: p.lon, weight: heatWeight(c, view))) }
+                }
+                return out
             }
-            if Double(fine.count) <= HEAT.maxFeatures { return (Int(HEAT.res), fine) }
+            let fine = pick(part.fine)
+            let grey = pick(part.zoned)
+            if Double(fine.count + grey.count) <= HEAT.maxFeatures { return (Int(HEAT.res), fine, grey) }
         }
-        var pts: [HeatPoint] = []
-        for e in coarseList() where inside(e.lat, e.lon, box) { pts.append(HeatPoint(lat: e.lat, lon: e.lon, weight: heatWeight(e.cell, view))) }
-        return (Int(HEAT.coarseRes), pts)
+        let lists = coarseLists()
+        func pickC(_ l: [(cell: HeatCell, lat: Double, lon: Double)]) -> [HeatPoint] {
+            l.filter { inside($0.lat, $0.lon, box) }.map { HeatPoint(lat: $0.lat, lon: $0.lon, weight: heatWeight($0.cell, view)) }
+        }
+        return (Int(HEAT.coarseRes), pickC(lists.normal), pickC(lists.zoned))
     }
 }
 

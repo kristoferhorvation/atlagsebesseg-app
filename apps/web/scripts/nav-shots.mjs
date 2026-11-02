@@ -365,11 +365,13 @@ try {
     const t2 = await o.evaluate(TIMER);
     check(`ajánlat „${alt}”: fogyó csík a kiemelt gomb alatt, szám nélkül`, !!t1 && t1.inPrimary && t1.n === 1 && t1.below && t1.h <= 4 && t1.txt === '', JSON.stringify(t1));
     check(`ajánlat „${alt}”: a csík fogy`, !!t1 && !!t2 && t2.scale < t1.scale && t1.scale <= 1, `${t1?.scale.toFixed(2)} → ${t2?.scale.toFixed(2)}`);
+    // a csík értéke a kép ELŐTT (teljes módban a kép alatt már megtörténhet az automatikus váltás)
+    const preShot = await o.evaluate(`(${TIMER})?.scale ?? null`);
     if (!CHECK_ONLY) await o.shot(`${DATE}-nav-ajanlat-${name}.png`);
     if (alt === 'worth') {
       // AW17: 500 m-en belül a „Megéri” magától elfogad (a 45 s kivárása nélkül), külön 500 m-es bemondás nélkül
       // (a szimulátor a fő vonalon halad tovább, ezért a váltás után újratervez – a váltás pillanatát pollozzuk)
-      let lastScale = null;
+      let lastScale = preShot;
       let switched = null;
       for (let i = 0; i < 400 && !switched; i++) {
         const st = await o.evaluate(`({ route: window.__navRouteId, scale: (${TIMER})?.scale ?? null })`);
@@ -982,7 +984,7 @@ try {
     await cn.waitFor(`!${q('.trip-row')}`, 5000, 'üres napló');
     const afterAll = await cn.evaluate(TRIPS_DB);
     check('AW19: „Összes törlése” megerősítéssel – a napló és a minták üresek', confirmTxt === 'Törlöd az összes utat?' && afterAll.trips.length === 0 && afterAll.samples.length === 0, JSON.stringify({ confirmTxt, trips: afterAll.trips.length }));
-    check('nincs kezeletlen JS-kivétel (AW19 napló)', cr.logs.length === 0 && cf.logs.length === 0 && cn.logs.length === 0, [...cr.logs, ...cf.logs, ...cn.logs].join(' | '));
+    check('nincs kezeletlen JS-kivétel (AW19 napló)', cr.logs.length === 0 && cf.logs.length === 0 && cn.logs.length === 0, `cr: ${cr.logs.join(' ; ')} | cf: ${cf.logs.join(' ; ')} | cn: ${cn.logs.join(' ; ')}`);
     await cn.close();
   }
 
@@ -1064,7 +1066,7 @@ try {
     await hg.waitFor(q('[data-testid="heat-mode"]'), 10_000, 'hőtérkép-sor');
     const st = await hg.evaluate(`(() => { const m = ${q('[data-testid="heat-mode"]')}; const row = m.closest('.list-row'); const shareRow = [...document.querySelectorAll('.list-row')].find((r) => r.querySelector('.label')?.innerText === 'Névtelen vezetési adatok megosztása'); const sw = shareRow?.querySelector('[role="switch"]'); return { modes: [...m.querySelectorAll('button')].map((b) => b.innerText.trim() + (b.getAttribute('aria-pressed') === 'true' ? '*' : '')), hint: row.querySelector('.hint').innerText, share: sw?.getAttribute('aria-checked'), shareHint: shareRow?.querySelector('.hint').innerText ?? '' }; })()`);
     check('AW20: Beállítások – „Hőtérkép” Ki | Saját* | Közösségi, rövid magyarázattal', st.modes.join('|') === 'Ki|Saját*|Közösségi' && /névtelen/.test(st.hint), JSON.stringify(st));
-    check('AW20: „Névtelen vezetési adatok megosztása” alapból KI, a magyarázat szerint cellánkénti összesítés, nincs útvonal / pontos idő / azonosító, a 300 m kimarad', st.share === 'false' && /cellánkénti/.test(st.shareHint) && /nincs útvonal/.test(st.shareHint) && /300 m/.test(st.shareHint), st.shareHint);
+    check('AW20: „Névtelen vezetési adatok megosztása” alapból KI, a leírás: mi megy fel (cella, áthaladás-szám, átlagsebesség, óra-sáv, hét napja) és mi nem (útvonal, pontos idő, azonosító, mentett helyek környéke, utak eleje / vége)', st.share === 'false' && /áthaladás-szám/.test(st.shareHint) && /Nem megy fel: útvonal, pontos idő, azonosító, a mentett helyek környéke, az utak eleje és vége/.test(st.shareHint), st.shareHint);
     await hg.evaluate(`(() => { const r = ${q('[data-testid="heat-mode"]')}.closest('.list-row'); r.scrollIntoView({ block: 'center' }); return true; })()`);
     if (!CHECK_ONLY) {
       await sleep(900);
@@ -1123,6 +1125,83 @@ try {
     }
     check('nincs kezeletlen JS-kivétel (AW20 hőtérkép)', [hs, hc, ho, hn, hg, hk, hp, hdt].every((x) => x.logs.length === 0), [hs, hc, ho, hn, hg, hk, hp, hdt].flatMap((x) => x.logs).join(' | '));
     await hdt.close();
+  }
+
+
+  // ------------------------------------------------------------------
+  // AW20-javítás: adatvédelmi zónák (mentett helyek körül), szürke cellák, Részletek lap
+  // ------------------------------------------------------------------
+  {
+    const SAVED = JSON.stringify({ home: { id: 'home', name: 'Haza', address: '', lat: 47.4975, lon: 19.0545 }, work: { id: 'work', name: 'Munka', address: '', lat: 47.5136, lon: 19.0407 }, others: [] });
+    const HEAT_STATE = `(() => { const d = document.querySelector('.mapboxgl-map')?.dataset.heat ?? ''; const [view, n, res, grey] = d.split(':'); return { view: view ?? '', n: Number(n ?? 0), res: Number(res ?? 0), grey: Number(grey ?? 0), zones: Number(document.querySelector('.mapboxgl-map')?.dataset.zones ?? 0) }; })()`;
+    const heatIs = (cond) => `(() => { const h = ${HEAT_STATE}; return ${cond}; })()`;
+    const withPlaces = async (p, path) => {
+      await p.goto(path);
+      await p.evaluate(`localStorage.setItem('nav:saved:v1', ${JSON.stringify(SAVED)}); true`);
+      await p.send('Page.navigate', { url: `${BASE}${path}` });
+    };
+
+    const z = await mk(SHOT);
+    await withPlaces(z, '/?navsim&heatSeed&heat=sajat&panel=0');
+    await z.waitFor(MAP_READY, 60_000, 'térkép');
+    await z.waitFor(heatIs(`h.n > 0`), 60_000, 'hőtérkép');
+    await z.evaluate(`window.__mapJump(47.497, 19.05, 12.9)`);
+    await z.waitFor(heatIs(`h.res === 10 && h.grey > 0`), 20_000, 'szürke cellák');
+    const g1 = await z.evaluate(HEAT_STATE);
+    check('AW20j: a mentett hely körüli zóna cellái szürkén jelennek meg (nem színezve), a többi cella színezett', g1.grey > 0 && g1.n > 0 && g1.zones === 0, JSON.stringify(g1));
+    if (!CHECK_ONLY) {
+      await sleep(3500);
+      await z.shot(`${DATE}-aw20j-szurke-cellak.png`);
+    }
+    // Beállítások: a zóna halvány körei látszanak; a mentett helyek alatt a 200 m / 500 m / 1 km választó (alap 500 m)
+    await click(z, '.round-btn[aria-label="Beállítások"]');
+    await z.waitFor(q('.zone-picker'), 10_000, 'zóna-választó');
+    await z.waitFor(heatIs(`h.zones === 2`), 10_000, 'zóna-körök');
+    const zp = await z.evaluate(`(() => ({ pickers: [...document.querySelectorAll('.zone-picker')].map((e) => e.dataset.zone + ':' + [...e.querySelectorAll('button')].map((b) => b.innerText.trim() + (b.getAttribute('aria-pressed') === 'true' ? '*' : '')).join('|')), h: ${HEAT_STATE} }))()`);
+    check('AW20j: Beállítások – a zónák halvány körei a térképen (2 mentett hely), helyenként 200 m | 500 m* | 1 km választó (alap 500 m)', zp.h.zones === 2 && zp.pickers.join(' ; ') === 'home:200 m|500 m*|1 km ; work:200 m|500 m*|1 km', JSON.stringify(zp));
+    await z.evaluate(`document.querySelector('.zone-picker[data-zone="home"]').scrollIntoView({ block: 'center' }); true`);
+    await z.evaluate(`[...document.querySelectorAll('.zone-picker[data-zone="home"] button')].find((b) => b.innerText.trim() === '1 km').click(); true`);
+    await sleep(1800);
+    const big = await z.evaluate(`(() => ({ grey: ${HEAT_STATE}.grey, stored: JSON.parse(localStorage.getItem('settings:v1')).zona_m }))()`);
+    if (!CHECK_ONLY) await z.shot(`${DATE}-aw20j-zona-a-terkepen.png`);
+    await z.evaluate(`[...document.querySelectorAll('.zone-picker[data-zone="home"] button')].find((b) => b.innerText.trim() === '200 m').click(); true`);
+    await sleep(1800);
+    const small = await z.evaluate(`(() => ({ grey: ${HEAT_STATE}.grey, stored: JSON.parse(localStorage.getItem('settings:v1')).zona_m }))()`);
+    check('AW20j: a zóna sugara állítható és tárolódik (200 m / 1 km); nagyobb zónában több szürke cella', big.stored.home === 1000 && small.stored.home === 200 && big.grey > small.grey, JSON.stringify({ big, small }));
+    // Részletek lap
+    await z.evaluate(`document.querySelector('[data-testid="heat-details-row"]').scrollIntoView({ block: 'center' }); true`);
+    await click(z, '[data-testid="heat-details-row"]');
+    await z.waitFor(q('[data-testid="heat-details"]'), 10_000, 'Részletek lap');
+    const dt = await z.evaluate(`(() => ({ title: ${text('.sheet-head .title')}, groups: [...document.querySelectorAll('.heat-details .group-label')].map((e) => e.textContent.trim()), body: document.querySelector('[data-testid="heat-details"]').textContent, pickers: document.querySelectorAll('.heat-details .zone-picker').length, zones: ${HEAT_STATE}.zones }))()`);
+    check('AW20j: „Részletek” lap – mi megy fel / mi nem / védett zónák, a zónák beállítása helyenként, a körök látszanak', dt.title === 'Névtelen adatmegosztás' && dt.groups.join('|') === 'Ami felmegy|Ami nem megy fel|Védett zónák' && /óra-sáv/.test(dt.body) && /mentett helyek környéke/.test(dt.body) && /300 m/.test(dt.body) && dt.pickers === 2 && dt.zones === 2, JSON.stringify(dt).slice(0, 500));
+    if (!CHECK_ONLY) {
+      await sleep(1500);
+      await z.shot(`${DATE}-aw20j-reszletek-lap.png`);
+    }
+    await z.evaluate(`document.querySelector('.sheet .icon-btn').click(); true`);
+    await z.waitFor(q('[data-testid="heat-mode"]'), 10_000, 'vissza a Beállításokba');
+    await z.evaluate(`document.querySelector('.sheet .icon-btn').click(); true`);
+    await z.waitFor(heatIs(`h.zones === 0`), 10_000, 'zóna-körök eltűnnek');
+    check('AW20j: a zóna-körök csak a Beállítások / Részletek nyitva tartása alatt látszanak', true);
+    // a zónák és a mentett helyek csak helyben: a localStorage-ban vannak, a hálózati hívásba nem kerülnek (a kérés-logika: heatUpload.test.ts)
+    const loc = await z.evaluate(`(() => ({ saved: !!localStorage.getItem('nav:saved:v1'), zona: !!JSON.parse(localStorage.getItem('settings:v1')).zona_m, outbox: localStorage.getItem('heat:outbox:v1') }))()`);
+    check('AW20j: a zónák (settings) és a mentett helyek a készülék tárolójában vannak; a feltöltési sor üres', loc.saved && loc.zona && loc.outbox === null, JSON.stringify(loc));
+    // res-8 összevonás: kicsinyítve a zóna cellái szürkék maradnak
+    await z.evaluate(`window.__mapJump(47.5, 19.04, 9.5)`);
+    await z.waitFor(heatIs(`h.res === 8 && h.n > 0`), 20_000, 'res 8');
+    const far = await z.evaluate(HEAT_STATE);
+    check('AW20j: kicsinyítve (res 8) is külön csoport: a zónák összevont cellái szürkék', far.res === 8 && far.grey > 0, JSON.stringify(far));
+    check('nincs kezeletlen JS-kivétel (AW20j zónák)', z.logs.length === 0, z.logs.join(' | '));
+    await z.close();
+
+    // közösségi módban nincs szürke (mások aggregátuma)
+    const zc = await mk(SHOT);
+    await withPlaces(zc, '/?navsim&heatSeed&heat=kozossegi&panel=0');
+    await zc.waitFor(MAP_READY, 60_000, 'térkép');
+    await zc.waitFor(heatIs(`h.n > 0`), 60_000, 'közösségi réteg');
+    const gc = await zc.evaluate(HEAT_STATE);
+    check('AW20j: közösségi módban nincs szürke cella', gc.grey === 0 && gc.n > 0, JSON.stringify(gc));
+    await zc.close();
   }
 
   // ------------------------------------------------------------------

@@ -10,6 +10,8 @@ struct SettingsSheet: View {
     @Environment(\.dismiss) private var dismiss
     /// AW19: az utak naplója nyitva (`-settingsOpen trips`: rögtön, a képernyőképhez).
     @State private var tripsOpen = UserDefaults.standard.string(forKey: "settingsOpen") == "trips"
+    /// AW20-javítás: az adatmegosztás „Részletek” lapja (`-settingsOpen heatDetails`: rögtön, a képernyőképhez).
+    @State private var heatDetailsOpen = UserDefaults.standard.string(forKey: "settingsOpen") == "heatDetails"
 
     var body: some View {
         NavigationStack {
@@ -50,6 +52,14 @@ struct SettingsSheet: View {
                         Text(t(.settingsHeatHint)).font(.footnote).foregroundStyle(Tokens.Colors.textMuted)
                         Toggle(t(.settingsShare), isOn: $model.settings.adatmegosztas)
                         Text(t(.settingsShareHint)).font(.footnote).foregroundStyle(Tokens.Colors.textMuted)
+                        Button { heatDetailsOpen = true } label: {
+                            HStack {
+                                Text(t(.settingsShareDetails)).foregroundStyle(Tokens.Colors.text)
+                                Spacer(minLength: Tokens.Space.s2)
+                                Image(systemName: "chevron.right").font(.footnote.weight(.semibold)).foregroundStyle(Tokens.Colors.textFaint)
+                            }
+                            .contentShape(Rectangle())
+                        }
                         Toggle(t(.settingsPlanned), isOn: $model.settings.tervezettMeresek)
                         Text(t(.settingsPlannedHint)).font(.footnote).foregroundStyle(Tokens.Colors.textMuted)
                     }
@@ -121,11 +131,14 @@ struct SettingsSheet: View {
                         slotRow(t(.navPlaceHome), model.saved.home, .home)
                         slotRow(t(.navPlaceWork), model.saved.work, .work)
                         ForEach(model.saved.others) { p in
-                            HStack {
-                                placeText(p.name, p.address)
-                                Spacer(minLength: Tokens.Space.s2)
-                                Button(t(.navPlaceRemove), role: .destructive) { model.removeSavedOther(p.id) }
-                                    .buttonStyle(.borderless)
+                            VStack(alignment: .leading, spacing: Tokens.Space.s2) {
+                                HStack {
+                                    placeText(p.name, p.address)
+                                    Spacer(minLength: Tokens.Space.s2)
+                                    Button(t(.navPlaceRemove), role: .destructive) { model.removeSavedOther(p.id) }
+                                        .buttonStyle(.borderless)
+                                }
+                                ZoneRadiusRow(model: model, id: p.id)
                             }
                         }
                         // „Új hely mentése”: a kereső kiválasztó módban nyílik, a választott hely a listába kerül
@@ -158,6 +171,7 @@ struct SettingsSheet: View {
                 }
                 .scrollContentBackground(.hidden)
                 .navigationDestination(isPresented: $tripsOpen) { TripLogView(model: model) }
+                .navigationDestination(isPresented: $heatDetailsOpen) { HeatDetailsView(model: model) }
                 .onAppear {
                     // `-settingsOpen language|voice`: a nyelvválasztóhoz / a hangos utasításokhoz görget (a képernyőképhez)
                     switch UserDefaults.standard.string(forKey: "settingsOpen") {
@@ -191,15 +205,19 @@ struct SettingsSheet: View {
 
     /// Haza / Munka: a mentett hely neve (vagy „nincs beállítva”), Beállítás és Törlés.
     private func slotRow(_ label: String, _ place: Place?, _ slot: PlaceSlot) -> some View {
-        HStack {
-            placeText(label, place?.name ?? t(.navPlaceUnset))
-            Spacer(minLength: Tokens.Space.s2)
-            Button(t(.navPlaceSet)) { pick(slot) }
-                .buttonStyle(.borderless)
-            if place != nil {
-                Button(t(.navPlaceRemove), role: .destructive) { model.clearSaved(slot) }
+        VStack(alignment: .leading, spacing: Tokens.Space.s2) {
+            HStack {
+                placeText(label, place?.name ?? t(.navPlaceUnset))
+                Spacer(minLength: Tokens.Space.s2)
+                Button(t(.navPlaceSet)) { pick(slot) }
                     .buttonStyle(.borderless)
+                if place != nil {
+                    Button(t(.navPlaceRemove), role: .destructive) { model.clearSaved(slot) }
+                        .buttonStyle(.borderless)
+                }
             }
+            // AW20-javítás: a beállított helyhez adatvédelmi zóna (alapból 500 m); a beállítatlan sor nem kap szegmenst
+            if place != nil { ZoneRadiusRow(model: model, id: slot == .home ? "home" : "work") }
         }
     }
 

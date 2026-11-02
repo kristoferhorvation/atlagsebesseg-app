@@ -47,3 +47,60 @@ struct HeatSwitch: View {
         .accessibilityAddTraits(selected ? .isSelected : [])
     }
 }
+
+/// AW20-javítás: egy mentett hely adatvédelmi zónájának sugara (200 m / 500 m / 1 km) – a Beállításokban a hely sora alatt és
+/// a Részletek lapon. Váltáskor a kamera a zónára áll (félmagas lap alatt), hogy a kör látsszon. A webes zóna-szegmens párja.
+struct ZoneRadiusRow: View {
+    @Bindable var model: AppModel
+    let id: String
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: Tokens.Space.s1) {
+            Text(t(.heatZoneLabel)).font(.footnote).foregroundStyle(Tokens.Colors.textMuted)
+            Picker(t(.heatZoneLabel), selection: Binding(get: { model.zoneRadius(id) }, set: { model.setZoneRadius(id, $0) })) {
+                Text(t(.heatZone200)).tag(200)
+                Text(t(.heatZone500)).tag(500)
+                Text(t(.heatZone1000)).tag(1000)
+            }
+            .pickerStyle(.segmented)
+            .labelsHidden()
+        }
+    }
+}
+
+/// AW20-javítás: az adatmegosztás „Részletek” lapja – mi megy fel, mi nem, a védett zónák és a zónák beállítása helyenként
+/// (a webes `HeatDetails` párja).
+struct HeatDetailsView: View {
+    @Bindable var model: AppModel
+
+    var body: some View {
+        Form {
+            SwiftUI.Section(t(.heatDetailsUpTitle)) { Text(t(.heatDetailsUpBody)) }
+            SwiftUI.Section(t(.heatDetailsNoTitle)) { Text(t(.heatDetailsNoBody)) }
+            SwiftUI.Section(t(.heatDetailsZonesTitle)) {
+                Text(t(.heatDetailsZonesBody))
+                let places = placeList
+                if places.isEmpty {
+                    Text(t(.heatDetailsNoPlaces)).font(.footnote).foregroundStyle(Tokens.Colors.textMuted)
+                }
+                ForEach(places, id: \.id) { p in
+                    VStack(alignment: .leading, spacing: Tokens.Space.s1) {
+                        Text(p.name).lineLimit(1)
+                        ZoneRadiusRow(model: model, id: p.id)
+                    }
+                }
+            }
+        }
+        .navigationTitle(t(.heatDetailsTitle))
+        .navigationBarTitleDisplayMode(.inline)
+    }
+
+    /// A zónával rendelkező helyek (a zóna-azonosító: `home`, `work`, a további helyeknél a hely azonosítója).
+    private var placeList: [(id: String, name: String)] {
+        var out: [(String, String)] = []
+        if let h = model.saved.home { out.append(("home", h.name)) }
+        if let w = model.saved.work { out.append(("work", w.name)) }
+        out.append(contentsOf: model.saved.others.map { ($0.id, $0.name) })
+        return out
+    }
+}

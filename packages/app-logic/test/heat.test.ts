@@ -22,6 +22,10 @@ import {
   type HeatGeo,
   type HeatPass,
   type TripSample,
+  heatZones,
+  inZone,
+  parseZoneRadii,
+  type HeatZone,
   heatSeedCells,
   heatSeedGlobal,
   heatSeedPoints,
@@ -400,5 +404,80 @@ describe('mesterséges adat (heatSeed)', () => {
     const coarse = heatSeedGlobal(cells, geo2, 8);
     expect(coarse.length).toBeLessThan(fine.length);
     expect(coarse.reduce((s, r) => s + r.count, 0)).toBe(fine.reduce((s, r) => s + r.count, 0));
+  });
+});
+
+describe('adatvédelmi zónák', () => {
+  const home = { id: 'home', name: 'Haza', address: '', lat: 47.01, lon: 19.01 };
+  const saved = { home, work: { ...home, id: 'work', name: 'Munka', lat: 47.2, lon: 19.3 }, others: [{ ...home, id: 'o1', name: 'Anyós', lat: 47.4, lon: 19.5 }] };
+  const zone: HeatZone = { id: 'home', lat: 47.01, lon: 19.01, radiusM: 200 };
+  const pass = (h3: string, t = T0): HeatPass => ({ h3, avgKmh: 50, t, fromStartM: 5000, toEndM: 5000 });
+  const cell = (h3: string, count = 1): HeatCell => ({ h3, count, avgKmh: 50, lastT: 0 });
+
+  it('a mentett helyek körül zóna van, alapból 500 m, helyenként állítható', () => {
+    const z = heatZones(saved, { work: 1000 });
+    expect(z.map((x) => [x.id, x.radiusM])).toEqual([['home', 500], ['work', 1000], ['o1', 500]]);
+    expect(heatZones({ home: null, work: null, others: [] }, {})).toEqual([]);
+  });
+
+  it('érvénytelen zónasugár helyett az alapértelmezés (csak 200 m / 500 m / 1 km választható)', () => {
+    expect(parseZoneRadii({ home: 200, work: 777, o1: '500', x: 1000 })).toEqual({ home: 200, x: 1000 });
+    expect(parseZoneRadii(null)).toEqual({});
+    expect(parseZoneRadii([200])).toEqual({});
+    expect(parseSettings(JSON.stringify({ zona_m: { home: 1000, work: 5 } })).zona_m).toEqual({ home: 1000 });
+    expect(parseSettings(null).zona_m).toEqual({});
+    expect(heatZones(saved, { home: 777 })[0]!.radiusM).toBe(500);
+  });
+
+  it('a zónában lévő cellák sosem kerülnek a feltöltésbe, a zónán kívüliek igen', () => {
+    const passes = [pass('c10_10'), pass('c10_11'), pass('c60_60')];
+    const rows = uploadRows(passes, geo, 60, HEAT.shareEndsM, [zone]);
+    expect(rows.map((r) => r.h3)).toEqual(['c60_60']);
+    expect(uploadRows(passes, geo, 60, HEAT.shareEndsM, []).map((r) => r.h3)).toEqual(['c10_10', 'c10_11', 'c60_60']);
+  });
+
+  it('a zóna sugara a cella élével (ráhagyás) számít: a határon lévő cella is védett', () => {
+    // a c10_14 középpontja ~303 m-re van keletre a háztól: a 200 m-es zónán kívül, a 250 m-esnél ráhagyással belül
+    expect(inZone(geo.center('c10_14'), [{ ...zone, radiusM: 200 }])).toBe(false);
+    expect(inZone(geo.center('c10_14'), [{ ...zone, radiusM: 250 }])).toBe(true);
+    expect(inZone(geo.center('c10_14'), [{ ...zone, radiusM: 200 }], 0)).toBe(false);
+  });
+
+  it('a zónában lévő cellák szürkén jelennek meg (nem színezve), a többi színezve', () => {
+    const idx = new HeatIndex(geoP);
+    idx.setAll([cell('c10_10'), cell('c10_11'), cell('c30_30')]);
+    idx.setZones([zone]);
+    const r = idx.points({ zoom: 15, bbox: { south: 46.99, north: 47.05, west: 18.99, east: 19.05 } }, 'gyakorisag');
+    expect(r.res).toBe(10);
+    expect(r.points).toHaveLength(1);
+    expect(r.grey).toHaveLength(2);
+  });
+
+  it('kicsinyítve (res 8) is külön csoportban: a zóna cellái szürkék maradnak', () => {
+    const idx = new HeatIndex(geoP);
+    idx.setAll([cell('c10_10'), cell('c11_11'), cell('c60_60'), cell('c61_61')]);
+    idx.setZones([zone]);
+    const r = idx.points({ zoom: 9, bbox: { south: 46.9, north: 47.2, west: 18.9, east: 19.2 } }, 'gyakorisag');
+    expect(r.res).toBe(8);
+    expect(r.grey).toHaveLength(1);
+    expect(r.points).toHaveLength(1);
+  });
+
+  it('a zónák módosítása után a szürke / színezett felosztás újraszámolódik', () => {
+    const idx = new HeatIndex(geoP);
+    idx.setAll([cell('c10_10')]);
+    const vp = { zoom: 15, bbox: { south: 46.99, north: 47.05, west: 18.99, east: 19.05 } };
+    expect(idx.points(vp, 'gyakorisag').points).toHaveLength(1);
+    idx.setZones([zone]);
+    expect(idx.points(vp, 'gyakorisag').grey).toHaveLength(1);
+    idx.setZones([]);
+    expect(idx.points(vp, 'gyakorisag').grey).toHaveLength(0);
+  });
+
+  it('a feltöltött sor nem tartalmaz mentett helyet vagy zónát', () => {
+    const rows = uploadRows([pass('c60_60')], geo, 60, HEAT.shareEndsM, [zone]);
+    const json = JSON.stringify(rows);
+    expect(Object.keys(rows[0]!).sort()).toEqual(['avg_speed', 'count', 'dow', 'h3', 'h3_r8', 'hour', 'lat', 'lon']);
+    expect(json).not.toMatch(/home|Haza|radius|zone|47\.01,19\.01/);
   });
 });

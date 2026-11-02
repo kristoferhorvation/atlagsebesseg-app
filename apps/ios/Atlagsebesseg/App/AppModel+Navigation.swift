@@ -32,6 +32,13 @@ extension AppModel {
     func setUpNavigation() {
         recents = parseRecents(placesStore.getItem(RECENTS_KEY))
         saved = parseSaved(placesStore.getItem(SAVED_KEY))
+        #if DEBUG
+        // `-simPlaces YES` (csak szimulátorban, DEBUG): teszt-helyek a zóna-képernyőképekhez (nem tárolódnak, a mentett helyeket nem írják felül)
+        if UserDefaults.standard.bool(forKey: "simPlaces") {
+            saved.home = Place(id: "sim-home", name: "Haza", address: "", lat: 47.5056, lon: 19.0476)
+            saved.work = Place(id: "sim-work", name: "Munka", address: "", lat: 47.4975, lon: 19.0545)
+        }
+        #endif
         requestCounter = RequestCounter(store: placesStore)
         requestsToday = requestCounter.count
         requestCounter.onChange = { [weak self] in self?.requestsToday = self?.requestCounter.count ?? 0 }
@@ -111,6 +118,7 @@ extension AppModel {
     private func updateSaved(_ edit: (inout SavedPlaces) -> Void) {
         edit(&saved)
         placesStore.setItem(SAVED_KEY, serializeSaved(saved))
+        heatVersion += 1 // AW20-javítás: a zónák a mentett helyekből jönnek – a szürke / színezett felosztás újraszámolódik
     }
 
     // MARK: tervezés (útvonalválasztó)

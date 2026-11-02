@@ -52,6 +52,7 @@ describe('beállítások', () => {
       hoterkep: 'sajat',
       hoterkep_nezet: 'gyakorisag',
       adatmegosztas: false,
+      zona_m: {},
     });
   });
   it('a térkép alapból színes; a visszafogott megmarad, ismeretlen érték színes; a sorrend Világos, Színes, Visszafogott', () => {

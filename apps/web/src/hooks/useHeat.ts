@@ -14,6 +14,7 @@ import {
   type HeatCell,
   type HeatGlobalRow,
   type HeatMode,
+  type HeatZone,
   type HeatPoint,
   type HeatView,
 } from '@atlagsebesseg/app-logic';
@@ -27,6 +28,8 @@ export const HEAT_SEED = new URLSearchParams(location.search).has('heatSeed');
 
 export interface HeatLayer {
   points: readonly HeatPoint[];
+  /** A zónákban lévő cellák (csak saját módban): szürkén, nem színezve. */
+  grey: readonly HeatPoint[];
   view: HeatView;
   res: number;
 }
@@ -41,8 +44,8 @@ export interface HeatViewport {
  * zoom-függő felbontással; közösségi mód: a `heat_global` / `heat_global_r8` a látható területre (10 perces gyorsítótár).
  * A megosztás kikapcsolásakor a feltöltési sor törlődik.
  */
-export function useHeat(opts: { mode: HeatMode; view: HeatView; share: boolean; version: number; viewport: HeatViewport | null; visible: boolean }): HeatLayer | null {
-  const { mode, view, share, version, viewport, visible } = opts;
+export function useHeat(opts: { mode: HeatMode; view: HeatView; share: boolean; version: number; viewport: HeatViewport | null; visible: boolean; zones: readonly HeatZone[] }): HeatLayer | null {
+  const { mode, view, share, version, viewport, visible, zones } = opts;
   const [geo, setGeo] = useState<WebHeatGeo | null>(null);
   const [own, setOwn] = useState<readonly HeatCell[]>([]);
   const [globalRows, setGlobalRows] = useState<{ res: number; rows: readonly HeatGlobalRow[] } | null>(null);
@@ -74,9 +77,10 @@ export function useHeat(opts: { mode: HeatMode; view: HeatView; share: boolean; 
   const index = useMemo(() => {
     if (!geo) return null;
     const i = new HeatIndex(geo);
+    i.setZones(zones);
     i.setAll(seed ?? own);
     return i;
-  }, [geo, own, seed]);
+  }, [geo, own, seed, zones]);
 
   // közösségi mód: lekérés a látható területre, 10 perc gyorsítótár
   const cache = useMemo(() => new HeatGlobalCache(() => Date.now()), []);
@@ -118,10 +122,10 @@ export function useHeat(opts: { mode: HeatMode; view: HeatView; share: boolean; 
     if (mode === 'sajat') {
       if (!index) return null;
       const r = index.points(viewport, view);
-      return { points: r.points, view, res: r.res };
+      return { points: r.points, grey: r.grey, view, res: r.res };
     }
     if (!globalRows) return null;
-    return { points: globalPoints(globalRows.rows, view), view, res: globalRows.res };
+    return { points: globalPoints(globalRows.rows, view), grey: [], view, res: globalRows.res };
   }, [visible, mode, view, viewport, index, globalRows]);
 }
 

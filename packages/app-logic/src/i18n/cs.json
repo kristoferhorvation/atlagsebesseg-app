@@ -409,7 +409,21 @@
   "heat.legend.frequency": "zřídka → často",
   "heat.legend.speed": "pomalu → rychle",
   "settings.share": "Sdílet anonymní data o jízdě",
-  "settings.shareHint": "Po zapnutí se na konci jízdy odešle jen souhrn po buňkách (počet průjezdů, průměrná rychlost, hodina, den v týdnu): žádná trasa, žádný přesný čas, žádný identifikátor. Prvních a posledních 300 m jízdy se nikdy neodešle.",
+  "settings.shareHint": "Po zapnutí se na konci jízdy odešle: buňka, počet průjezdů, průměrná rychlost, hodina, den v týdnu. Neodešle se: trasa, přesný čas, identifikátor, okolí uložených míst, začátek a konec jízd.",
   "trips.map.legendLimit": "Vůči limitu: pod ním → nad ním",
-  "trips.map.legendAbs": "Rychlost: pomalu → rychle"
+  "trips.map.legendAbs": "Rychlost: pomalu → rychle",
+  "settings.shareDetails": "Podrobnosti",
+  "heat.details.title": "Anonymní sdílení dat",
+  "heat.details.up.title": "Co se odešle",
+  "heat.details.up.body": "Po buňkách (šestiúhelník asi 66 m): počet průjezdů, průměrná rychlost, hodina (0–23) a den v týdnu. Nic jiného.",
+  "heat.details.no.title": "Co se neodešle",
+  "heat.details.no.body": "Trasa, přesný čas, jakýkoli identifikátor (jméno, zařízení, účet), okolí uložených míst a prvních a posledních 300 m každé jízdy.",
+  "heat.details.zones.title": "Chráněné zóny",
+  "heat.details.zones.body": "Kolem každého uloženého místa (Domov, Práce, další) je zóna, ve výchozím stavu 500 m. Buňky v zónách se nikdy neodešlou a na tvé vlastní teplotní mapě jsou šedé. Zóny a uložená místa jsou uložena jen v tomto zařízení.",
+  "heat.details.noPlaces": "Zatím nejsou uložena žádná místa – můžeš je přidat v nastavení.",
+  "heat.zone.label": "Chráněná zóna",
+  "heat.zone.hint": "Buňky v zóně se neodešlou a na tvé vlastní teplotní mapě jsou šedé.",
+  "heat.zone.200": "200 m",
+  "heat.zone.500": "500 m",
+  "heat.zone.1000": "1 km"
 }

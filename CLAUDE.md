@@ -395,8 +395,21 @@ Gyökér: `npm test` és `npm run typecheck` minden csomagra; `npm run test:all`
   - **Szimulátor:** `?heatSeed` / `-heatSeed YES` (determinisztikus, 12 „utas”, M1 + budapesti körök; közösségi módban is ebből, hálózat
     nélkül), `?heat=ki|sajat|kozossegi`, `?heatView=…` / `-heat`, `-heatView`, `-settingsOpen heat`; webes teszt-kampó `window.__mapJump`
     (csak teszt / heatSeed módban). nav-shots: 177/177.
-  - **Nincs megépítve (nincs jóváhagyás):** a beillesztett „adatvédelmi zónák” (Strava-minta: mentett helyek körüli 200 m / 500 m / 1 km zóna,
-    szürkítés, „Részletek” lap) – lásd a nyitott kérdést; a 300 m-es út-vég védelem megvan.
+  - **AW20-javítás – adatvédelmi zónák (Strava-minta), weben és iOS-en:** minden mentett hely (Haza, Munka, további) körül zóna, alapból
+    500 m, helyenként 200 m / 500 m / 1 km (`ZONE_RADII`, `heatZones(saved, zona_m)`, `inZone`: a cella középpontja a sugár + 70 m-en belül;
+    res 8-on a normál és a zónás cellák külön összevonva). A beállítás `zona_m` (`hely-azonosító → m`, `home` / `work` / további hely
+    azonosítója) a Beállításokkal együtt, csak helyben tárolódik. **A zónában lévő cellák sosem mennek fel** (`uploadRows(…, zones)`:
+    a cella MINDEN áthaladása kimarad; a 300 m-es út-vég védelem mellette marad), és a saját hőtérképen **szürkén, nem színezve** látszanak
+    (`HeatIndex.points().grey`, token `heatGrey`; közösségi módban nincs szürke). A zónák halvány körei (accent ~10% kitöltés, ~45%
+    vonal) csak amíg a Beállítások vagy a Részletek lap nyitva van; sugarat váltva a kamera a zónára áll. A mentett helyek és a zónák
+    SEMMILYEN hálózati hívásba nem kerülnek (`heatUpload.test.ts` / AppTests-őr: a kérés kulcsai pontosan a `heat_cells` 8 oszlopa).
+  - **Kommunikáció (6 nyelv):** a „Névtelen vezetési adatok megosztása” alatti leírás (`settings.shareHint`): mi megy fel (cella,
+    áthaladás-szám, átlagsebesség, óra-sáv, hét napja), mi nem (útvonal, pontos idő, azonosító, mentett helyek környéke, utak eleje /
+    vége); „Részletek” sor (`settings.shareDetails`) → lap (`heat.details.*`: Ami felmegy / Ami nem megy fel / Védett zónák) a zónák
+    helyenkénti beállításával. Szimulátor: web `?sheet=settings|heatDetails`, `window.__mapJump`; iOS `-simPlaces YES`, `-mapZoom`,
+    `-mapLat`, `-mapLon`, `-settingsOpen heatDetails`, `-settingsDetent medium`.
+  - **iOS-javítás:** a `TripStore` user_version 2 migrációja minden indításnál újra lefutott (`duplicate column name: limit_kmh`), mert az
+    `ALTER` hibája miatt a verzió nem állt át – most csak hiányzó oszlopnál fut, és a verziót külön lépésben állítja.
 - **Paritási tartozás (AW12 + AW13 → iOS) lezárva az AOS12-ben (2026-10-29):** a `NavigationTests.swift` újra a
   `navigation.test.ts` teljes párja (86 = 86 `it`, azonos névvel), a webes `navSim.test.ts` 6 esete a `SimTests.swift`-ben.
   A közös Budapest→Győr fixtúra **AOS13-ban teljesen újra felvéve** méteres hangegységgel (`voice_units=metric`, mindkét

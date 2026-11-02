@@ -45,6 +45,8 @@ export const color = {
   heatSpeedLow: '#2EE59D',
   heatSpeedMid: '#FFB224',
   heatSpeedHigh: '#FF4D61',
+  /** AW20-javítás: az adatvédelmi zónában lévő cellák a saját hőtérképen – szürke, nem színezve. */
+  heatGrey: 'rgba(140,147,163,0.55)',
   tripSlow: '#2EE59D',
   tripMid: '#FFB224',
   tripFast: '#FF4D61',

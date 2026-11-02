@@ -2804,3 +2804,39 @@ button.nav-reroute {
   border-radius: 3px;
   background: linear-gradient(90deg, var(--color-trip-slow), var(--color-trip-mid), var(--color-trip-fast));
 }
+
+/* AW20-javítás: adatvédelmi zóna a mentett helyek sorában és a Részletek lapon */
+.zone-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.zone-picker .segmented button {
+  height: 30px;
+  padding: 0 12px;
+  font-size: 14px;
+}
+
+.heat-details .sheet-note {
+  padding: 0 4px 8px;
+  white-space: normal;
+}
+
+/* AW20-javítás: zónasugár váltásakor a lap rövid időre lejjebb húzódik, hogy a zóna köre látsszon a térképen */
+.sheet[data-peek='true'] {
+  max-height: 38%;
+  transition: max-height var(--motion-base) var(--motion-ease);
+}
+
+.zone-picker .segmented button {
+  white-space: nowrap;
+}
+
+.sheet-backdrop[data-peek='true'] {
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  background: transparent;
+  pointer-events: none;
+}

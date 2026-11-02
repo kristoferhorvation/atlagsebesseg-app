@@ -54,13 +54,25 @@ final class TripStore {
         let version = sqlite3_step(st) == SQLITE_ROW ? sqlite3_column_int(st, 0) : 0
         sqlite3_finalize(st)
         if version < 2 {
+            // az oszlopot csak akkor vesszük fel, ha még nincs (különben a „duplicate column” hiba miatt a verzió sosem lépne 2-re)
+            if !hasColumn("samples", "limit_kmh") { exec("ALTER TABLE samples ADD COLUMN limit_kmh REAL") }
             exec("""
-            ALTER TABLE samples ADD COLUMN limit_kmh REAL;
             CREATE TABLE IF NOT EXISTS heat (h3 TEXT PRIMARY KEY, count INTEGER NOT NULL, avg_kmh REAL NOT NULL, last_t REAL NOT NULL);
             CREATE TABLE IF NOT EXISTS heat_trips (trip_id TEXT PRIMARY KEY);
-            PRAGMA user_version = 2;
             """)
+            exec("PRAGMA user_version = 2")
         }
+    }
+
+    private func hasColumn(_ table: String, _ column: String) -> Bool {
+        guard let db else { return false }
+        var st: OpaquePointer?
+        sqlite3_prepare_v2(db, "PRAGMA table_info(\(table))", -1, &st, nil)
+        defer { sqlite3_finalize(st) }
+        while sqlite3_step(st) == SQLITE_ROW {
+            if let c = sqlite3_column_text(st, 1), String(cString: c) == column { return true }
+        }
+        return false
     }
 
     deinit { sqlite3_close(db) }

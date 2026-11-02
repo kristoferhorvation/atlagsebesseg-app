@@ -2215,6 +2215,334 @@
         }
       }
     },
+    "heat.details.no.body" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trasa, přesný čas, jakýkoli identifikátor (jméno, zařízení, účet), okolí uložených míst a prvních a posledních 300 m každé jízdy."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die Route, die genaue Zeit, jede Kennung (Name, Gerät, Konto), die Umgebung gespeicherter Orte sowie die ersten und letzten 300 m jeder Fahrt."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The route, the exact time, any identifier (name, device, account), the area around saved places, and the first and last 300 m of every trip."
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Az útvonal, a pontos idő, bármilyen azonosító (név, eszköz, fiók), a mentett helyek környéke, és az utak első és utolsó 300 m-e."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trasy, dokładnego czasu, żadnego identyfikatora (imię, urządzenie, konto), okolic zapisanych miejsc ani pierwszych i ostatnich 300 m każdego przejazdu."
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trasa, presný čas, akýkoľvek identifikátor (meno, zariadenie, účet), okolie uložených miest a prvých a posledných 300 m každej jazdy."
+          }
+        }
+      }
+    },
+    "heat.details.no.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Co se neodešle"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Was nicht gesendet wird"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "What is not sent"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ami nem megy fel"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Czego nie wysyłamy"
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Čo sa neodošle"
+          }
+        }
+      }
+    },
+    "heat.details.noPlaces" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zatím nejsou uložena žádná místa – můžeš je přidat v nastavení."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Noch keine gespeicherten Orte – du kannst in den Einstellungen welche hinzufügen."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No saved places yet – you can add some in Settings."
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Még nincs mentett hely – a Beállításokban adhatsz hozzá."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nie ma jeszcze zapisanych miejsc – możesz je dodać w ustawieniach."
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zatiaľ nie sú uložené miesta – môžeš ich pridať v nastaveniach."
+          }
+        }
+      }
+    },
+    "heat.details.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Anonymní sdílení dat"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Anonymes Teilen von Daten"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Anonymous data sharing"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Névtelen adatmegosztás"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Anonimowe udostępnianie danych"
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Anonymné zdieľanie údajov"
+          }
+        }
+      }
+    },
+    "heat.details.up.body" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Po buňkách (šestiúhelník asi 66 m): počet průjezdů, průměrná rychlost, hodina (0–23) a den v týdnu. Nic jiného."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Je Zelle (ein Sechseck von etwa 66 m): die Anzahl der Durchfahrten, die Durchschnittsgeschwindigkeit, die Stunde (0–23) und der Wochentag. Sonst nichts."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Per cell (a hexagon of about 66 m): the number of passes, the average speed, the hour of day (0–23) and the day of week. Nothing else."
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cellánként (kb. 66 m-es hatszög): az áthaladások száma, az átlagsebesség, az óra-sáv (0–23) és a hét napja. Semmi más."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dla każdej komórki (sześciokąt ok. 66 m): liczba przejazdów, średnia prędkość, godzina (0–23) i dzień tygodnia. Nic więcej."
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Po bunkách (šesťuholník asi 66 m): počet prejazdov, priemerná rýchlosť, hodina (0–23) a deň v týždni. Nič iné."
+          }
+        }
+      }
+    },
+    "heat.details.up.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Co se odešle"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Was gesendet wird"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "What is sent"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ami felmegy"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Co jest wysyłane"
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Čo sa odošle"
+          }
+        }
+      }
+    },
+    "heat.details.zones.body" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kolem každého uloženého místa (Domov, Práce, další) je zóna, ve výchozím stavu 500 m. Buňky v zónách se nikdy neodešlou a na tvé vlastní teplotní mapě jsou šedé. Zóny a uložená místa jsou uložena jen v tomto zařízení."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Um jeden gespeicherten Ort (Zuhause, Arbeit, weitere) liegt eine Zone, standardmäßig 500 m. Zellen in einer Zone werden nie gesendet und erscheinen auf deiner eigenen Heatmap grau. Zonen und gespeicherte Orte liegen nur auf diesem Gerät."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Every saved place (Home, Work, others) has a zone around it, 500 m by default. Cells inside a zone are never sent and show in grey on your own heatmap. Zones and saved places are stored on this device only."
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Minden mentett hely (Haza, Munka, egyéb) körül zóna van, alapból 500 m. A zónákban lévő cellák sosem mennek fel, a saját hőtérképen szürkén jelennek meg. A zónák és a mentett helyek csak ezen a készüléken tárolódnak."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wokół każdego zapisanego miejsca (Dom, Praca, inne) jest strefa, domyślnie 500 m. Komórki w strefach nigdy nie są wysyłane, a na Twojej własnej mapie cieplnej są szare. Strefy i zapisane miejsca są przechowywane tylko na tym urządzeniu."
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Okolo každého uloženého miesta (Domov, Práca, ďalšie) je zóna, predvolene 500 m. Bunky v zónach sa nikdy neodošlú a na tvojej vlastnej teplotnej mape sú sivé. Zóny a uložené miesta sú uložené len v tomto zariadení."
+          }
+        }
+      }
+    },
+    "heat.details.zones.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Chráněné zóny"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Schutzzonen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Privacy zones"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Védett zónák"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Strefy ochronne"
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Chránené zóny"
+          }
+        }
+      }
+    },
     "heat.legend.frequency" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2416,6 +2744,211 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Priemerná rýchlosť"
+          }
+        }
+      }
+    },
+    "heat.zone.1000" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 km"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 km"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 km"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 km"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 km"
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 km"
+          }
+        }
+      }
+    },
+    "heat.zone.200" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "200 m"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "200 m"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "200 m"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "200 m"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "200 m"
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "200 m"
+          }
+        }
+      }
+    },
+    "heat.zone.500" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "500 m"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "500 m"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "500 m"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "500 m"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "500 m"
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "500 m"
+          }
+        }
+      }
+    },
+    "heat.zone.hint" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Buňky v zóně se neodešlou a na tvé vlastní teplotní mapě jsou šedé."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zellen in der Zone werden nicht gesendet und erscheinen auf deiner eigenen Heatmap grau."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cells inside the zone are not sent and show in grey on your own heatmap."
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A zónában a cellák nem kerülnek fel, és szürkék a saját hőtérképen."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Komórki w strefie nie są wysyłane i są szare na Twojej własnej mapie cieplnej."
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bunky v zóne sa neodošlú a na tvojej vlastnej teplotnej mape sú sivé."
+          }
+        }
+      }
+    },
+    "heat.zone.label" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Chráněná zóna"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Schutzzone"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Privacy zone"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Adatvédelmi zóna"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Strefa ochronna"
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Chránená zóna"
           }
         }
       }
@@ -12219,43 +12752,84 @@
         }
       }
     },
+    "settings.shareDetails" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Podrobnosti"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Details"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Details"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Részletek"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Szczegóły"
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Podrobnosti"
+          }
+        }
+      }
+    },
     "settings.shareHint" : {
       "extractionState" : "manual",
       "localizations" : {
         "cs" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Po zapnutí se na konci jízdy odešle jen souhrn po buňkách (počet průjezdů, průměrná rychlost, hodina, den v týdnu): žádná trasa, žádný přesný čas, žádný identifikátor. Prvních a posledních 300 m jízdy se nikdy neodešle."
+            "value" : "Po zapnutí se na konci jízdy odešle: buňka, počet průjezdů, průměrná rychlost, hodina, den v týdnu. Neodešle se: trasa, přesný čas, identifikátor, okolí uložených míst, začátek a konec jízd."
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Eingeschaltet wird am Ende einer Fahrt nur eine Zusammenfassung je Zelle gesendet (Anzahl der Durchfahrten, Durchschnittsgeschwindigkeit, Stunde, Wochentag): keine Route, keine genaue Zeit, keine Kennung. Die ersten und letzten 300 m einer Fahrt werden nie gesendet."
+            "value" : "Eingeschaltet wird am Ende einer Fahrt gesendet: Zelle, Anzahl der Durchfahrten, Durchschnittsgeschwindigkeit, Stunde, Wochentag. Nicht gesendet: Route, genaue Zeit, Kennung, die Umgebung gespeicherter Orte, Anfang und Ende der Fahrten."
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "When on, only a per-cell summary is sent at the end of a trip (number of passes, average speed, hour of day, day of week): no route, no exact time, no identifier. The first and last 300 m of a trip are never sent."
+            "value" : "When on, at the end of a trip this is sent: cell, number of passes, average speed, hour of day, day of week. Not sent: route, exact time, identifier, the area around saved places, the start and end of trips."
           }
         },
         "hu" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Bekapcsolva az út végén csak cellánkénti összesítés megy fel (áthaladások száma, átlagsebesség, óra-sáv, a hét napja): nincs útvonal, nincs pontos idő, nincs azonosító. Az utak első és utolsó 300 m-e sosem kerül fel."
+            "value" : "Bekapcsolva az út végén felmegy: cella, áthaladás-szám, átlagsebesség, óra-sáv, a hét napja. Nem megy fel: útvonal, pontos idő, azonosító, a mentett helyek környéke, az utak eleje és vége."
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Po włączeniu na końcu przejazdu wysyłane jest tylko podsumowanie dla każdej komórki (liczba przejazdów, średnia prędkość, godzina, dzień tygodnia): bez trasy, bez dokładnego czasu, bez identyfikatora. Pierwsze i ostatnie 300 m przejazdu nigdy nie jest wysyłane."
+            "value" : "Po włączeniu na końcu przejazdu wysyłane jest: komórka, liczba przejazdów, średnia prędkość, godzina, dzień tygodnia. Nie jest wysyłane: trasa, dokładny czas, identyfikator, okolice zapisanych miejsc, początek i koniec przejazdów."
           }
         },
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Po zapnutí sa na konci jazdy odošle len súhrn po bunkách (počet prejazdov, priemerná rýchlosť, hodina, deň v týždni): žiadna trasa, žiadny presný čas, žiadny identifikátor. Prvých a posledných 300 m jazdy sa nikdy neodošle."
+            "value" : "Po zapnutí sa na konci jazdy odošle: bunka, počet prejazdov, priemerná rýchlosť, hodina, deň v týždni. Neodošle sa: trasa, presný čas, identifikátor, okolie uložených miest, začiatok a koniec jázd."
           }
         }
       }

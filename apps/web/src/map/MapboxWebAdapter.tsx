@@ -52,6 +52,7 @@ export class MapboxWebAdapter implements WebMapAdapter {
     destination: null,
     fit: null,
     heat: null,
+    privacyZones: null,
   });
   private readonly handlers: MapHandlers = { onGesture: () => {}, onReportTap: () => {}, onCameraTap: () => {}, onRouteTap: () => {}, onView: () => {} };
   readonly MapView: (props: { className?: string }) => React.JSX.Element;
@@ -99,6 +100,9 @@ export class MapboxWebAdapter implements WebMapAdapter {
   }
   showHeat(heat: MapHeat | null): void {
     this.store.set({ heat });
+  }
+  showPrivacyZones(zones: readonly MapZone[] | null): void {
+    this.store.set({ privacyZones: zones });
   }
   showCameras(cameras: readonly MapCamera[], zones: readonly MapZone[], selectedId: string | null): void {
     this.store.set({ cameras, cameraZones: zones, selectedCameraId: selectedId });
@@ -365,6 +369,23 @@ class MapController {
         'heatmap-opacity': 0.88,
       },
     });
+    // AW20-javítás: az adatvédelmi zónában lévő cellák szürkén (nem színezve) + a zónák halvány körei a Beállítások alatt
+    m.addSource('heat-grey', { type: 'geojson', data: heatGeoJson(null) });
+    m.addLayer({
+      id: 'heat-grey',
+      type: 'circle',
+      source: 'heat-grey',
+      slot: 'middle',
+      paint: {
+        'circle-color': color.heatGrey,
+        'circle-radius': ['interpolate', ['exponential', 1.6], ['zoom'], 6, 2, 10, 4, 12, 8, 14, 14, 16, 26, 18, 48],
+        'circle-blur': 0.6,
+        'circle-emissive-strength': 1,
+      },
+    });
+    m.addSource('privacy-zones', { type: 'geojson', data: zonesGeoJson([]) });
+    m.addLayer({ id: 'privacy-zones-fill', type: 'fill', source: 'privacy-zones', slot: 'middle', paint: { 'fill-color': color.accent, 'fill-opacity': 0.1, 'fill-emissive-strength': 1 } });
+    m.addLayer({ id: 'privacy-zones-line', type: 'line', source: 'privacy-zones', slot: 'middle', paint: { 'line-color': color.accent, 'line-opacity': 0.45, 'line-width': 1.5, 'line-emissive-strength': 1 } });
     // kamera-zóna (`zone` láthatóság): kör, pont nélkül
     m.addSource('camera-zones', { type: 'geojson', data: zonesGeoJson([]) });
     m.addLayer({
@@ -641,7 +662,12 @@ class MapController {
       if (s.heat?.view !== p?.heat?.view && s.heat) m.setPaintProperty('heat', 'heatmap-color', heatColor(s.heat.view));
       m.setLayoutProperty('heat', 'visibility', s.heat ? 'visible' : 'none');
       // a böngészős ellenőrzés ebből olvassa a réteget (mint a `data-theme`-et): mód és pontszám
-      this.map.getContainer().dataset.heat = s.heat ? `${s.heat.view}:${s.heat.points.length}:${s.heat.res}` : '';
+      (m.getSource('heat-grey') as GeoJSONSource | undefined)?.setData(heatGeoJson(s.heat ? { ...s.heat, points: s.heat.grey } : null));
+      this.map.getContainer().dataset.heat = s.heat ? `${s.heat.view}:${s.heat.points.length}:${s.heat.res}:${s.heat.grey.length}` : '';
+    }
+    if (s.privacyZones !== p?.privacyZones) {
+      (m.getSource('privacy-zones') as GeoJSONSource | undefined)?.setData(zonesGeoJson(s.privacyZones ?? []));
+      this.map.getContainer().dataset.zones = String(s.privacyZones?.length ?? 0);
     }
     if (s.cameraZones !== p?.cameraZones) (m.getSource('camera-zones') as GeoJSONSource | undefined)?.setData(zonesGeoJson(s.cameraZones));
     if (s.highlightId !== p?.highlightId) {

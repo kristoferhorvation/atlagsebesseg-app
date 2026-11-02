@@ -64,6 +64,8 @@ enum Tokens {
         static let heatSpeedMid = Color(.sRGB, red: 1, green: 0.698039, blue: 0.141176, opacity: 1)
         /// `#FF4D61`
         static let heatSpeedHigh = Color(.sRGB, red: 1, green: 0.301961, blue: 0.380392, opacity: 1)
+        /// `rgba(140,147,163,0.55)`
+        static let heatGrey = Color(.sRGB, red: 0.54902, green: 0.576471, blue: 0.639216, opacity: 0.55)
         /// `#2EE59D`
         static let tripSlow = Color(.sRGB, red: 0.180392, green: 0.898039, blue: 0.615686, opacity: 1)
         /// `#FFB224`

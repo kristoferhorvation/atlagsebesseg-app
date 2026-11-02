@@ -12,6 +12,8 @@ struct DriveView: View {
     @Bindable var model: AppModel
     /// `-settingsOpen language` (AW15): a Beállítások nyitva, a nyelvválasztónál (a képernyőképhez).
     @State private var settingsOpen = UserDefaults.standard.string(forKey: "settingsOpen") != nil
+    /// AW20-javítás: a Beállítások lap magassága – zónasugár váltásakor félmagas, hogy a zóna-kör a térképen látsszon (`-settingsDetent medium`: rögtön).
+    @State private var settingsDetent: PresentationDetent = UserDefaults.standard.string(forKey: "settingsDetent") == "medium" ? .medium : .large
     /// A teljes felső lépés-kártya alja (globális, pont) – sáv-módban is mérve, a rejtett kártyán.
     @State private var navCardBottom: CGFloat?
     /// Az alsó kártya-csoport teteje a navigációs sáv NÉLKÜL (a sáv megjelenése így nem kapcsolja vissza a kártyát).
@@ -159,9 +161,17 @@ struct DriveView: View {
         .onChange(of: model.liveLinkSeq) { settingsOpen = false }
         .sheet(isPresented: $settingsOpen) {
             SettingsSheet(model: model)
-                .presentationDetents([.large])
+                .presentationDetents([.large, .medium], selection: $settingsDetent)
+                .presentationBackgroundInteraction(.enabled(upThrough: .medium))
                 .presentationBackground(Tokens.Colors.surfaceStrong)
         }
+        // AW20-javítás: a zóna-körök látszanak, amíg a Beállítások (és a Részletek lap) nyitva van; sugárváltáskor félmagas lap
+        .onChange(of: settingsOpen) { _, open in
+            model.zonesVisible = open
+            if !open { settingsDetent = .large }
+        }
+        .onChange(of: model.zoneFocusSeq) { settingsDetent = .medium }
+        .onAppear { model.zonesVisible = settingsOpen }
     }
 
     /// AW18: a „Dugóba kerültél?” válasza és az újratervezés azonnali újrapróbája.

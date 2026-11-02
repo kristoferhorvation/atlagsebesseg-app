@@ -46,16 +46,49 @@ extension AppModel {
         if settings.hoterkep == .kozossegi { fetchHeatGlobal() }
     }
 
-    /// A mostani rajzolandó pontok a módnak megfelelően.
-    func heatPoints() -> [HeatPoint] {
-        guard heatVisible, let vp = heatViewport else { return [] }
+    /// Az adatvédelmi zónák: minden mentett hely körül, helyenként a `zona_m` szerinti sugárral (alapból 500 m).
+    var heatZoneList: [HeatZone] { heatZones(saved, settings.zonaM) }
+
+    /// A zónák az indexbe (csak változáskor számolódik újra a felosztás).
+    private func syncHeatZones() {
+        let z = heatZoneList
+        if z != heatZonesApplied {
+            heatZonesApplied = z
+            heatIndex.setZones(z)
+        }
+    }
+
+    /// A mostani rajzolandó pontok a módnak megfelelően; a `grey` a zónában lévő cellák (csak saját módban, szürkén, nem színezve).
+    func heatLayers() -> (points: [HeatPoint], grey: [HeatPoint]) {
+        guard heatVisible, let vp = heatViewport else { return ([], []) }
         switch settings.hoterkep {
-        case .ki: return []
-        case .sajat: return heatIndex.points(vp, settings.hoterkepNezet).points
+        case .ki: return ([], [])
+        case .sajat:
+            syncHeatZones()
+            let r = heatIndex.points(vp, settings.hoterkepNezet)
+            return (r.points, r.grey)
         case .kozossegi:
             let box = vp.bbox
-            return globalPoints(heatGlobalRows.filter { $0.lat >= box.south && $0.lat <= box.north && $0.lon >= box.west && $0.lon <= box.east }, settings.hoterkepNezet)
+            return (globalPoints(heatGlobalRows.filter { $0.lat >= box.south && $0.lat <= box.north && $0.lon >= box.west && $0.lon <= box.east }, settings.hoterkepNezet), [])
         }
+    }
+
+    /// Sugárváltáskor / zóna-választáskor: a kamera a zónára áll (a lap alatt hagyott hellyel), hogy a kör látsszon.
+    func focusZone(_ id: String) {
+        guard let z = heatZoneList.first(where: { $0.id == id }) else { return }
+        zoneFocus = z
+        zoneFocusSeq += 1
+        follow = false
+    }
+
+    /// Egy hely zónasugara (m).
+    func zoneRadius(_ id: String) -> Int { heatZoneList.first { $0.id == id }.map { Int($0.radiusM) } ?? Int(HEAT.zoneDefaultM) }
+
+    func setZoneRadius(_ id: String, _ m: Int) {
+        guard ZONE_RADII.contains(m) else { return }
+        settings.zonaM[id] = m
+        heatVersion += 1
+        focusZone(id)
     }
 
     func fetchHeatGlobal() {
@@ -99,7 +132,7 @@ extension AppModel {
         heatIndex.upsert(r.changed)
         heatVersion += 1
         guard settings.adatmegosztas, sim == nil else { return }
-        let rows = uploadRows(r.passes, geo: H3Geo(), tzOffsetMin: Double(TimeZone.current.secondsFromGMT()) / 60)
+        let rows = uploadRows(r.passes, geo: H3Geo(), tzOffsetMin: Double(TimeZone.current.secondsFromGMT()) / 60, zones: heatZoneList)
         guard !rows.isEmpty else { return }
         let queue = appendHeatOutbox(parseHeatOutbox(UserDefaults.standard.string(forKey: Self.heatOutboxKey)), rows)
         UserDefaults.standard.set(serializeHeatOutbox(queue), forKey: Self.heatOutboxKey)

@@ -1,8 +1,9 @@
-import { HEAT_MODES, LANGUAGE_NAMES, MEGSZOLITAS_MAX, languageMenu, normalizeName, t, voiceInstructionsHint, type HeatMode, type MapLook, type SavedPlaces, type Settings, type SpeedUnit } from '@atlagsebesseg/app-logic';
+import { HEAT_MODES, LANGUAGE_NAMES, MEGSZOLITAS_MAX, languageMenu, normalizeName, t, voiceInstructionsHint, type HeatMode, type HeatZone, type MapLook, type SavedPlaces, type Settings, type SpeedUnit } from '@atlagsebesseg/app-logic';
 import { DEFAULT_TOLERANCE } from '@atlagsebesseg/core';
 import { useLanguage, useVoiceStatus } from '../i18n';
 import { Icon } from './Icon';
 import { Sheet } from './Sheet';
+import { ZonePicker } from './ZonePicker';
 
 export interface SystemInfo {
   gps: string;
@@ -27,6 +28,11 @@ export function SettingsSheet({
   onClearPlace,
   onRemoveOther,
   onOpenTrips,
+  zones,
+  onOpenHeatDetails,
+  onShowZone,
+  peek,
+  onPeekEnd,
   onClose,
 }: {
   settings: Settings;
@@ -39,8 +45,16 @@ export function SettingsSheet({
   onRemoveOther: (id: string) => void;
   /** AW19: az utak naplója (a lap helyén nyílik). */
   onOpenTrips: () => void;
+  /** AW20-javítás: az adatvédelmi zónák (mentett helyenként), a Részletek lap és a zóna megmutatása a térképen. */
+  zones: readonly HeatZone[];
+  onOpenHeatDetails: () => void;
+  onShowZone: (z: HeatZone) => void;
+  /** A zóna-kör látványához a lap rövid időre lejjebb húzódik (`peek`), görgetésre / idő után vissza. */
+  peek: boolean;
+  onPeekEnd: () => void;
   onClose: () => void;
 }) {
+  const zoneOf = (id: string) => zones.find((z) => z.id === id);
   const { lang, preference, setPreference } = useLanguage();
   const voice = useVoiceStatus(lang);
   const units: { id: SpeedUnit; label: string }[] = [
@@ -54,7 +68,7 @@ export function SettingsSheet({
   ];
   const heatLabels: Record<HeatMode, string> = { ki: t('settings.heat.off'), sajat: t('settings.heat.own'), kozossegi: t('settings.heat.community') };
   return (
-    <Sheet title={t('settings.title')} onClose={onClose}>
+    <Sheet title={t('settings.title')} onClose={onClose} peek={peek} onPeekEnd={onPeekEnd}>
       <div className="group-label">{t('settings.group.display')}</div>
       <div className="list">
         <div className="list-row">
@@ -116,6 +130,10 @@ export function SettingsSheet({
           </div>
           <Switch label={t('settings.share')} checked={settings.adatmegosztas} onChange={(v) => update({ adatmegosztas: v })} />
         </div>
+        <button className="list-row nav-row" data-testid="heat-details-row" onClick={onOpenHeatDetails}>
+          <div className="label">{t('settings.shareDetails')}</div>
+          <Icon name="chevronRight" size={20} />
+        </button>
         <div className="list-row">
           <div className="label">{t('settings.language')}</div>
           <select
@@ -178,6 +196,7 @@ export function SettingsSheet({
             <div style={{ minWidth: 0 }}>
               <div className="label">{t(kind === 'home' ? 'nav.place.home' : 'nav.place.work')}</div>
               <div className="hint">{saved[kind]?.name ?? t('nav.place.unset')}</div>
+              {zoneOf(kind) && <ZonePicker zone={zoneOf(kind)!} name={t(kind === 'home' ? 'nav.place.home' : 'nav.place.work')} settings={settings} update={update} onShow={onShowZone} />}
             </div>
             <div className="mini-btns">
               <button className="mini-btn" onClick={() => onPickPlace(kind)}>
@@ -196,6 +215,7 @@ export function SettingsSheet({
             <div style={{ minWidth: 0 }}>
               <div className="label">{p.name}</div>
               {p.address && <div className="hint">{p.address}</div>}
+              {zoneOf(p.id) && <ZonePicker zone={zoneOf(p.id)!} name={p.name} settings={settings} update={update} onShow={onShowZone} />}
             </div>
             <div className="mini-btns">
               <button className="mini-btn" onClick={() => onRemoveOther(p.id)}>

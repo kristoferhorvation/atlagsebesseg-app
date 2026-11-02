@@ -409,7 +409,21 @@
   "heat.legend.frequency": "selten → oft",
   "heat.legend.speed": "langsam → schnell",
   "settings.share": "Anonyme Fahrdaten teilen",
-  "settings.shareHint": "Eingeschaltet wird am Ende einer Fahrt nur eine Zusammenfassung je Zelle gesendet (Anzahl der Durchfahrten, Durchschnittsgeschwindigkeit, Stunde, Wochentag): keine Route, keine genaue Zeit, keine Kennung. Die ersten und letzten 300 m einer Fahrt werden nie gesendet.",
+  "settings.shareHint": "Eingeschaltet wird am Ende einer Fahrt gesendet: Zelle, Anzahl der Durchfahrten, Durchschnittsgeschwindigkeit, Stunde, Wochentag. Nicht gesendet: Route, genaue Zeit, Kennung, die Umgebung gespeicherter Orte, Anfang und Ende der Fahrten.",
   "trips.map.legendLimit": "Im Verhältnis zum Tempolimit: darunter → darüber",
-  "trips.map.legendAbs": "Geschwindigkeit: langsam → schnell"
+  "trips.map.legendAbs": "Geschwindigkeit: langsam → schnell",
+  "settings.shareDetails": "Details",
+  "heat.details.title": "Anonymes Teilen von Daten",
+  "heat.details.up.title": "Was gesendet wird",
+  "heat.details.up.body": "Je Zelle (ein Sechseck von etwa 66 m): die Anzahl der Durchfahrten, die Durchschnittsgeschwindigkeit, die Stunde (0–23) und der Wochentag. Sonst nichts.",
+  "heat.details.no.title": "Was nicht gesendet wird",
+  "heat.details.no.body": "Die Route, die genaue Zeit, jede Kennung (Name, Gerät, Konto), die Umgebung gespeicherter Orte sowie die ersten und letzten 300 m jeder Fahrt.",
+  "heat.details.zones.title": "Schutzzonen",
+  "heat.details.zones.body": "Um jeden gespeicherten Ort (Zuhause, Arbeit, weitere) liegt eine Zone, standardmäßig 500 m. Zellen in einer Zone werden nie gesendet und erscheinen auf deiner eigenen Heatmap grau. Zonen und gespeicherte Orte liegen nur auf diesem Gerät.",
+  "heat.details.noPlaces": "Noch keine gespeicherten Orte – du kannst in den Einstellungen welche hinzufügen.",
+  "heat.zone.label": "Schutzzone",
+  "heat.zone.hint": "Zellen in der Zone werden nicht gesendet und erscheinen auf deiner eigenen Heatmap grau.",
+  "heat.zone.200": "200 m",
+  "heat.zone.500": "500 m",
+  "heat.zone.1000": "1 km"
 }

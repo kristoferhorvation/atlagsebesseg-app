@@ -1,4 +1,5 @@
 import { haversineM } from '@atlagsebesseg/core';
+import type { SavedPlaces } from './navigation/places';
 import type { BBox } from './sectionCache';
 import { TRIP, type TripSample } from './trips';
 
@@ -37,9 +38,45 @@ export const HEAT = {
   queryLimit: 5000,
   /** A feltöltésre váró sorok maximuma (offline gyűjtés). */
   outboxMax: 2000,
+  /** Adatvédelmi zóna: alapsugár (m) és a választható sugarak. */
+  zoneDefaultM: 500,
+  /** A cella középpontja ennyivel (m) a zónasugáron túl is még „a zónában” van (a res-10 cella éle ~66 m; res 8: ~460 m). */
+  zoneMarginM: 70,
+  zoneMarginCoarseM: 470,
   /** A szerveroldali nézet csak ennyi beküldésnél több cellát ad ki (a magányos áthaladás nem látszik). */
   serverMinRows: 3,
 } as const;
+
+/** A választható zónasugarak (m): 200 m / 500 m / 1 km. */
+export const ZONE_RADII: readonly number[] = [200, 500, 1000];
+
+/** Adatvédelmi zóna egy mentett hely körül (csak helyben él, szerverre nem megy). */
+export interface HeatZone {
+  /** `home`, `work` vagy a további mentett hely azonosítója. */
+  id: string;
+  lat: number;
+  lon: number;
+  radiusM: number;
+}
+
+/** A tárolt zónasugarak (`hely-azonosító → m`) érvényesítése: csak a választható sugár marad. */
+export function parseZoneRadii(raw: unknown): Record<string, number> {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return {};
+  const out: Record<string, number> = {};
+  for (const [k, v] of Object.entries(raw as Record<string, unknown>)) if (typeof v === 'number' && ZONE_RADII.includes(v)) out[k] = v;
+  return out;
+}
+
+/** Minden mentett hely (Haza, Munka, további) körül egy zóna; a sugár helyenként állítható, alapból 500 m. */
+export function heatZones(saved: SavedPlaces, radii: Readonly<Record<string, number>>): HeatZone[] {
+  const at = (id: string, p: { lat: number; lon: number }): HeatZone => ({ id, lat: p.lat, lon: p.lon, radiusM: ZONE_RADII.includes(radii[id] ?? 0) ? radii[id]! : HEAT.zoneDefaultM });
+  return [...(saved.home ? [at('home', saved.home)] : []), ...(saved.work ? [at('work', saved.work)] : []), ...saved.others.map((p) => at(p.id, p))];
+}
+
+/** A pont (cella középpontja) bármelyik zónában van-e (a sugárhoz `marginM` ráhagyással). */
+export function inZone(p: { lat: number; lon: number }, zones: readonly HeatZone[], marginM: number = HEAT.zoneMarginM): boolean {
+  return zones.some((z) => haversineM(p, z) <= z.radiusM + marginM);
+}
 
 /** Hőtérkép-mód a Beállításokban: ki / saját / közösségi. */
 export type HeatMode = 'ki' | 'sajat' | 'kozossegi';
@@ -171,13 +208,22 @@ export function endCells(passes: readonly HeatPass[], endsM: number = HEAT.share
 
 /**
  * A feltöltendő sorok: a védett cellák nélkül, (cella, óra, hét napja) szerint összevonva – nincs útvonal, nincs pontos
- * idő (csak az óra-sáv és a nap), nincs azonosító. `tzOffsetMin`: a készülék UTC-eltolása percben (kelet pozitív).
+ * idő (csak az óra-sáv és a nap), nincs azonosító. Az adatvédelmi zónák cellái (mentett helyek körül) szintén kimaradnak. `tzOffsetMin`: a készülék UTC-eltolása percben (kelet pozitív).
  */
-export function uploadRows(passes: readonly HeatPass[], geo: HeatGeo, tzOffsetMin: number, endsM: number = HEAT.shareEndsM): HeatUploadRow[] {
+export function uploadRows(passes: readonly HeatPass[], geo: HeatGeo, tzOffsetMin: number, endsM: number = HEAT.shareEndsM, zones: readonly HeatZone[] = []): HeatUploadRow[] {
   const blocked = endCells(passes, endsM);
+  const zoneCache = new Map<string, boolean>();
+  const zoned = (h3: string) => {
+    let z = zoneCache.get(h3);
+    if (z === undefined) {
+      z = zones.length > 0 && inZone(geo.center(h3), zones);
+      zoneCache.set(h3, z);
+    }
+    return z;
+  };
   const groups = new Map<string, { h3: string; hour: number; dow: number; n: number; sum: number }>();
   for (const p of passes) {
-    if (blocked.has(p.h3)) continue;
+    if (blocked.has(p.h3) || zoned(p.h3)) continue;
     const local = new Date(p.t + tzOffsetMin * 60_000);
     const hour = local.getUTCHours();
     const dow = local.getUTCDay();
@@ -261,7 +307,10 @@ const inside = (p: { lat: number; lon: number }, b: BBox) => p.lat >= b.south &&
 export class HeatIndex {
   private readonly cells = new Map<string, HeatCell>();
   private readonly centers = new Map<string, { lat: number; lon: number }>();
+  private zones: readonly HeatZone[] = [];
+  private part: { fine: HeatCell[]; zoned: HeatCell[] } | null = null;
   private coarse: { cell: HeatCell; lat: number; lon: number }[] | null = null;
+  private coarseZoned: { cell: HeatCell; lat: number; lon: number }[] | null = null;
 
   constructor(private readonly geo: HeatGeo) {}
 
@@ -269,17 +318,29 @@ export class HeatIndex {
     return this.cells.size;
   }
 
+  private reset(): void {
+    this.part = null;
+    this.coarse = null;
+    this.coarseZoned = null;
+  }
+
   /** A teljes tartalom cseréje. */
   setAll(cells: Iterable<HeatCell>): void {
     this.cells.clear();
-    this.coarse = null;
+    this.reset();
     for (const c of cells) this.cells.set(c.h3, c);
   }
 
   /** Módosult cellák beolvasztása (egy út vége után). */
   upsert(cells: Iterable<HeatCell>): void {
     for (const c of cells) this.cells.set(c.h3, c);
-    this.coarse = null;
+    this.reset();
+  }
+
+  /** Az adatvédelmi zónák: a bennük lévő cellák nem színeződnek, szürkén jelennek meg. */
+  setZones(zones: readonly HeatZone[]): void {
+    this.zones = zones;
+    this.reset();
   }
 
   all(): Map<string, HeatCell> {
@@ -295,25 +356,54 @@ export class HeatIndex {
     return c;
   }
 
-  private coarseList() {
-    this.coarse ??= coarsenCells(this.cells.values(), this.geo).map((cell) => ({ cell, ...this.geo.center(cell.h3) }));
-    return this.coarse;
+  /** A cellák két csoportra: normál, illetve zónában lévő (a zónán kívül eső cellák színeződnek). */
+  private partition() {
+    if (!this.part) {
+      const fine: HeatCell[] = [];
+      const zoned: HeatCell[] = [];
+      for (const c of this.cells.values()) (this.zones.length > 0 && inZone(this.center(c.h3), this.zones) ? zoned : fine).push(c);
+      this.part = { fine, zoned };
+    }
+    return this.part;
   }
 
-  /** A látható pontok: közelről res-10, kicsinyítve (vagy ha túl sok lenne) res-8; csak a látható téglalap (kis ráhagyással). */
-  points(vp: HeatViewport, view: HeatView): { res: number; points: HeatPoint[] } {
+  private coarseLists() {
+    if (!this.coarse || !this.coarseZoned) {
+      const p = this.partition();
+      const build = (cells: HeatCell[]) => coarsenCells(cells, this.geo).map((cell) => ({ cell, ...this.geo.center(cell.h3) }));
+      this.coarse = build(p.fine);
+      this.coarseZoned = build(p.zoned);
+    }
+    return { normal: this.coarse, zoned: this.coarseZoned };
+  }
+
+  /**
+   * A látható pontok: közelről res-10, kicsinyítve (vagy ha túl sok lenne) res-8; csak a látható téglalap (kis ráhagyással).
+   * A `grey` a zónákban lévő cellák (nem színezve, szürkén rajzolandók).
+   */
+  points(vp: HeatViewport, view: HeatView): { res: number; points: HeatPoint[]; grey: HeatPoint[] } {
     const box = padded(vp.bbox, HEAT.viewPad);
     if (heatResForZoom(vp.zoom) === HEAT.res) {
-      const fine: HeatPoint[] = [];
-      for (const c of this.cells.values()) {
-        const p = this.center(c.h3);
-        if (inside(p, box)) fine.push({ lat: p.lat, lon: p.lon, weight: heatWeight(c, view) });
-      }
-      if (fine.length <= HEAT.maxFeatures) return { res: HEAT.res, points: fine };
+      const part = this.partition();
+      const pick = (cells: HeatCell[]) => {
+        const out: HeatPoint[] = [];
+        for (const c of cells) {
+          const p = this.center(c.h3);
+          if (inside(p, box)) out.push({ lat: p.lat, lon: p.lon, weight: heatWeight(c, view) });
+        }
+        return out;
+      };
+      const fine = pick(part.fine);
+      const grey = pick(part.zoned);
+      if (fine.length + grey.length <= HEAT.maxFeatures) return { res: HEAT.res, points: fine, grey };
     }
-    const pts: HeatPoint[] = [];
-    for (const { cell, lat, lon } of this.coarseList()) if (inside({ lat, lon }, box)) pts.push({ lat, lon, weight: heatWeight(cell, view) });
-    return { res: HEAT.coarseRes, points: pts };
+    const lists = this.coarseLists();
+    const pick = (l: { cell: HeatCell; lat: number; lon: number }[]) => {
+      const out: HeatPoint[] = [];
+      for (const { cell, lat, lon } of l) if (inside({ lat, lon }, box)) out.push({ lat, lon, weight: heatWeight(cell, view) });
+      return out;
+    };
+    return { res: HEAT.coarseRes, points: pick(lists.normal), grey: pick(lists.zoned) };
   }
 }
 
