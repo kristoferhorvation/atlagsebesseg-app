@@ -1,7 +1,7 @@
 import { angleDiffDeg, Route, type GpsFix, type LatLon } from '@atlagsebesseg/core';
 import { t } from '../i18n';
 import { ROUTE_MATCH_M } from './config';
-import { DirectionsError } from './directions';
+import { DirectionsError, segmentAt } from './directions';
 import type { NavRoute } from './types';
 
 /**
@@ -12,7 +12,9 @@ import type { NavRoute } from './types';
  * - Dugó-állapot: a `jamWindowMs` ablak mért átlaga a várt tempó `jamSlowFraction`-ja alatt; vége, ha legalább
  *   `jamClearM`-en át a várt tempó `jamNearFraction`-ja fölött halad (a lámpák közti rövidebb gyorsulás nem szakítja meg).
  * - A „Dugóba kerültél?” kártya `jamPromptMs` után válasz nélkül eltűnik.
- * - A dugós ETA a következő manőverig legfeljebb `jamAheadMaxM`-en a mért átlaggal (legalább `jamMinKmh`), onnan tervezett.
+ * - A dugós ETA a mért átlagot (legalább `jamMinKmh`) csak az előttünk lévő, a Directions congestion-annotációjában
+ *   heavy / severe összefüggő szakaszra használja, legfeljebb `jamAheadMaxM`-ig; congestion-adat nélkül legfeljebb
+ *   `jamNoDataMaxM`-ig, a tempó lineárisan megy át a tervezettbe. A dugó-állapot végén azonnal a tervezett idők.
  * - Dugó közben `jamUploadMs`-enként új közösségi minta; a közösségi adat `communityMaxAgeMs`-ig él, a bejelentett minta
  *   hossza `reportedLengthM`.
  * - Újratervezés-hiba után a következő próba `rerouteBackoffS` szerint (a végén maradó érték ismétlődik); a lekérés
@@ -26,7 +28,8 @@ export const TRAFFIC = {
   jamNearFraction: 0.8,
   jamClearM: 500,
   jamPromptMs: 15_000,
-  jamAheadMaxM: 3000,
+  jamAheadMaxM: 2000,
+  jamNoDataMaxM: 1000,
   jamMinKmh: 5,
   jamUploadMs: 120_000,
   communityMaxAgeMs: 15 * 60_000,
@@ -244,3 +247,49 @@ export function jamQueryBBox(route: NavRoute, alongM: number, aheadM = 30_000, p
 
 /** Az alsó sáv borostyán felirata: „+N perc dugó”. */
 export const trafficDelayLabel = (min: number): string => t('nav.delay', { n: min });
+
+// ---------------------------------------------------------------------------
+// AW19-javítás 2: a dugós ETA horizontja
+// ---------------------------------------------------------------------------
+
+/** A mért dugó-átlag érvényességi szakasza az útvonalon (m); `linear`: nincs congestion-adat, a tempó átmegy a tervezettbe. */
+export interface JamRun {
+  startM: number;
+  endM: number;
+  linear: boolean;
+}
+
+/**
+ * Az előttünk lévő dugós szakasz: a Directions congestion-annotációjában az első heavy / severe összefüggő szakasz, a
+ * pozíciónktól legfeljebb `jamAheadMaxM`-ig. Congestion-adat nélkül (minden szakasz `unknown`) a következő `jamNoDataMaxM`.
+ * `null`: az annotáció szerint nincs dugó előttünk.
+ */
+export function jamAheadRun(route: NavRoute, alongM: number): JamRun | null {
+  const n = route.segCongestion.length;
+  const end = (i: number) => (i + 1 < route.segStartM.length ? route.segStartM[i + 1]! : route.distanceM);
+  if (!route.segCongestion.some((c) => c !== 'unknown')) {
+    const endM = Math.min(route.distanceM, alongM + TRAFFIC.jamNoDataMaxM);
+    return endM > alongM ? { startM: alongM, endM, linear: true } : null;
+  }
+  const heavy = (i: number) => route.segCongestion[i] === 'heavy' || route.segCongestion[i] === 'severe';
+  const limit = Math.min(route.distanceM, alongM + TRAFFIC.jamAheadMaxM);
+  let i = segmentAt(route, alongM);
+  while (i < n && !heavy(i) && end(i) < limit) i++;
+  if (i >= n || !heavy(i)) return null;
+  const startM = Math.max(alongM, route.segStartM[i]!);
+  let j = i;
+  while (j + 1 < n && heavy(j + 1)) j++;
+  const endM = Math.min(end(j), limit);
+  return endM > startM ? { startM, endM, linear: false } : null;
+}
+
+/**
+ * A mért tempó (`avgMps`) miatti többletidő (s) a `run` szakaszon, a tervezett idő (`plannedS`) fölött: dugós szakaszon végig a
+ * mért átlag; `linear` esetben a tempó a mértről lineárisan a tervezettre vált (a tempó-reciprok átlaga).
+ */
+export function jamExtraS(run: JamRun, avgMps: number, plannedS: number): number {
+  const d = run.endM - run.startM;
+  const v = Math.max(avgMps, TRAFFIC.jamMinKmh / 3.6);
+  const slow = d / v;
+  return Math.max(0, run.linear ? (slow - plannedS) / 2 : slow - plannedS);
+}

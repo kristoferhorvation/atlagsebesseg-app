@@ -99,14 +99,54 @@ struct TripRecorderStartStopTests {
         #expect(rec.view(T0 + 60_000) == nil)
     }
 
-    @Test("fix nélküli hosszú csend (5 perc) is zárja az utat")
+    @Test("fix nélküli csend (háttér, GPS-kiesés) nem zárja az utat")
     func csend() {
         let rec = TripRecorder(newId: ids())
         for f in northDrive([(50, 60)]) { rec.onFix(f) }
-        rec.tick(T0 + 59_000 + 299_000)
+        rec.tick(T0 + 59_000 + 3_600_000)
         #expect(rec.drainEnded().isEmpty)
-        rec.tick(T0 + 59_000 + 300_000)
-        #expect(saved(rec.drainEnded()).count == 1)
+        #expect(rec.view(T0 + 3_700_000) != nil)
+    }
+
+    @Test("rés után 500 m-en belül ugyanaz az út, a kieső idő állásidő")
+    func resKozel() throws {
+        let rec = TripRecorder(newId: ids())
+        for f in northDrive([(50, 60)]) { rec.onFix(f) }
+        // 6 perc csend, aztán közel a régi helytől folytatódik
+        for f in northDrive([(50, 60)], t0: T0 + 59_000 + 360_000, lat: 47.5 + 800 / M_PER_DEG) { rec.onFix(f) }
+        #expect(rec.drainEnded().isEmpty)
+        rec.stop()
+        let ended = saved(rec.drainEnded())
+        let trip = try #require(ended.first)
+        #expect(ended.count == 1)
+        #expect(trip.idleS >= 360)
+        #expect(trip.movingS < 125)
+        #expect(trip.path.count == 2)
+    }
+
+    @Test("rés után 500 m-nél messzebb új út indul")
+    func resTavol() throws {
+        let rec = TripRecorder(newId: ids())
+        for f in northDrive([(50, 60)]) { rec.onFix(f) }
+        for f in northDrive([(50, 60)], t0: T0 + 59_000 + 360_000, lat: 47.5 + 5000 / M_PER_DEG) { rec.onFix(f) }
+        let first = saved(rec.drainEnded())
+        #expect(first.count == 1)
+        #expect(first[0].endedAt == T0 + 59_000)
+        rec.stop()
+        let second = saved(rec.drainEnded())
+        #expect(second.count == 1)
+        #expect(second[0].id != first[0].id)
+    }
+
+    @Test("a pillanatkép nem zárja az utat, és rövid útról nincs")
+    func pillanatkep() throws {
+        let rec = TripRecorder(newId: ids())
+        #expect(rec.snapshot() == nil)
+        for f in northDrive([(50, 90)]) { rec.onFix(f) }
+        let snap = try #require(rec.snapshot())
+        #expect(snap.distanceM > 900)
+        #expect(rec.view(T0 + 90_000) != nil)
+        #expect(rec.drainEnded().isEmpty)
     }
 
     @Test("200 m alatti út eldobódik")
@@ -199,6 +239,80 @@ struct TurnDetectorTests {
     }
 }
 
+@Suite("kanyarok (navigáció) és irányváltások (GPS)")
+struct TripManeuverTurnTests {
+    /// Jobbra kanyar a GPS-ben: észak, majd 2 s alatt kelet felé fordul.
+    private func withRightTurn() -> [GpsFix] {
+        var f = northDrive([(50, 60)])
+        var lat = f.last!.lat
+        var lon = f.last!.lon
+        var t = f.last!.timestamp
+        for h in [30.0, 60, 90, 90, 90, 90, 90, 90] {
+            t += 1000
+            lat += (50 / 3.6 / M_PER_DEG) * cos(h * .pi / 180)
+            lon += (50 / 3.6 / M_PER_DEG) * sin(h * .pi / 180)
+            f.append(GpsFix(lat: lat, lon: lon, timestamp: t, speed: 50 / 3.6, accuracy: 5, heading: h))
+        }
+        for (i, g) in northDrive([(50, 1)], t0: t + 1000, lat: lat).enumerated() {
+            var g = g
+            g.lon = lon + Double(i + 1) * 0.0001
+            g.heading = 90
+            f.append(g)
+        }
+        return f
+    }
+
+    @Test("krúzingban a kanyar 0, az irányváltás számol")
+    func kruzingKanyar() throws {
+        let trip = try #require(saved(record(withRightTurn()).ended).first)
+        #expect(trip.turns == TripTurns(left: 0, right: 0, uTurn: 0))
+        #expect(trip.dirChanges.right == 1)
+    }
+
+    @Test("a navigáció teljesített manőverei adják a kanyarokat")
+    func manoverKanyar() throws {
+        let rec = TripRecorder(newId: ids())
+        func man(_ icon: String, _ instruction: String, _ d: Double) -> (icon: String, instruction: String, distanceM: Double) { (icon, instruction, d) }
+        for (i, f) in northDrive([(50, 120)]).enumerated() {
+            rec.onFix(f)
+            if i == 40 { rec.noteNextManeuver(man("right", "Fordulj jobbra", 300)) }
+            if i == 50 { rec.noteNextManeuver(man("right", "Fordulj jobbra", 40)) }
+            if i == 52 { rec.noteNextManeuver(man("roundabout_left", "Körforgalom", 500)) }
+            if i == 70 { rec.noteNextManeuver(man("roundabout_left", "Körforgalom", 30)) }
+            if i == 72 { rec.noteNextManeuver(man("uturn", "Fordulj vissza", 900)) }
+            // újratervezés: a manőver messziről cserélődik → nem teljesítették
+            if i == 90 { rec.noteNextManeuver(man("left", "Fordulj balra", 200)) }
+            if i == 100 { rec.noteNextManeuver(man("arrive", "Megérkeztél", 100)) }
+        }
+        rec.stop()
+        let trip = try #require(saved(rec.drainEnded()).first)
+        #expect(trip.turns == TripTurns(left: 1, right: 1, uTurn: 0))
+    }
+
+    @Test("maneuverTurnKind: balra / jobbra / megfordulás, az enyhe és az egyenes nem kanyar")
+    func fajta() {
+        #expect(["left", "sharp_left", "roundabout_left"].map { maneuverTurnKind($0) == \TripTurns.left } == [true, true, true])
+        #expect(["right", "sharp_right", "roundabout_right"].map { maneuverTurnKind($0) == \TripTurns.right } == [true, true, true])
+        #expect(maneuverTurnKind("uturn") == \TripTurns.uTurn)
+        #expect(["slight_left", "slight_right", "straight", "merge", "fork_left", "arrive", "depart"].allSatisfy { maneuverTurnKind($0) == nil })
+    }
+
+    @Test("normalizeTrip: a régi rekord GPS-es kanyarja irányváltás lesz, a kanyar 0")
+    func regiRekord() throws {
+        var trip = try #require(saved(record(northDrive([(72, 100)])).ended).first)
+        trip.turns = TripTurns(left: 1, right: 2, uTurn: 0)
+        let data = try JSONEncoder().encode(trip)
+        var json = try #require(try JSONSerialization.jsonObject(with: data) as? [String: Any])
+        json.removeValue(forKey: "dirChanges")
+        let old = try JSONDecoder().decode(Trip.self, from: JSONSerialization.data(withJSONObject: json))
+        #expect(old.dirChanges == TripTurns(left: 1, right: 2, uTurn: 0))
+        #expect(old.turns == TripTurns(left: 0, right: 0, uTurn: 0))
+        let cur = try JSONDecoder().decode(Trip.self, from: data)
+        #expect(cur == trip)
+        #expect(turnsTotal(TripTurns(left: 1, right: 2, uTurn: 3)) == 6)
+    }
+}
+
 @Suite("TripRecorder (navigáció és mérés)")
 struct TripRecorderNavTests {
     @Test("a cél, az újratervezések, a dugóidő és a szakaszmérések a futó útba kerülnek")
@@ -261,7 +375,7 @@ struct TripTotalsTests {
     private func mk(_ id: String, _ startedAt: Double, _ km: Double, _ movingS: Double, _ tooFast: [Bool] = []) -> Trip {
         Trip(
             id: id, startedAt: startedAt, endedAt: startedAt + movingS * 1000, distanceM: km * 1000, movingS: movingS, idleS: 0, maxKmh: 100,
-            turns: TripTurns(left: 1, right: 2, uTurn: 0), reroutes: 0,
+            turns: TripTurns(left: 1, right: 2, uTurn: 0), dirChanges: TripTurns(left: 4, right: 5, uTurn: 1), reroutes: 0,
             measurements: tooFast.enumerated().map { TripMeasurement(sectionId: "S\($0.offset)", name: "M1", avgKmh: 100, limitKmh: 110, tooFast: $0.element, at: startedAt) },
             jamS: 60, destination: nil, path: [], samples: 0
         )
@@ -292,7 +406,7 @@ struct TripTotalsTests {
         ]
         var week = tripTotals(trips, .het, now)
         week.avgKmh = week.avgKmh.map { jsRound($0 * 1e6) / 1e6 }
-        #expect(week == TripTotals(trips: 1, distanceM: 30_000, movingS: 1800, avgKmh: 60, turns: TripTurns(left: 1, right: 2, uTurn: 0), checksOk: 1, checksTooFast: 1, jamS: 60))
+        #expect(week == TripTotals(trips: 1, distanceM: 30_000, movingS: 1800, avgKmh: 60, turns: TripTurns(left: 1, right: 2, uTurn: 0), dirChanges: TripTurns(left: 4, right: 5, uTurn: 1), checksOk: 1, checksTooFast: 1, jamS: 60))
         let month = tripTotals(trips, .honap, now)
         #expect(month.trips == 2)
         #expect(abs(month.avgKmh! - 90) < 1e-9)
@@ -322,6 +436,7 @@ struct TripTextTests {
         #expect(p.distance == "2,0 km")
         #expect(p.duration == "2 perc")
         #expect(p.avg == "72 km/h")
+        #expect(p.turns == "0 kanyar · 0 irányváltás")
         trip.destination = "Győr"
         #expect(tripRowParts(trip, .kmh, lang: .hu).title == "Győr")
     }
@@ -348,7 +463,7 @@ struct TripStoreTests {
     func tarolo() {
         let s = store()
         let trip = Trip(
-            id: "t1", startedAt: 1000, endedAt: 2000, distanceM: 500, movingS: 60, idleS: 0, maxKmh: 50, turns: TripTurns(), reroutes: 0,
+            id: "t1", startedAt: 1000, endedAt: 2000, distanceM: 500, movingS: 60, idleS: 0, maxKmh: 50, turns: TripTurns(), dirChanges: TripTurns(), reroutes: 0,
             measurements: [], jamS: 0, destination: "Győr", path: [[[47.5, 19.05], [47.51, 19.05]]], samples: 2
         )
         s.addSamples([

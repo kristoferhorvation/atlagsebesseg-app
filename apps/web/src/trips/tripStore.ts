@@ -1,4 +1,4 @@
-import { TRIP, type Trip, type TripSample } from '@atlagsebesseg/app-logic';
+import { normalizeTrip, TRIP, type Trip, type TripSample } from '@atlagsebesseg/app-logic';
 
 /**
  * AW19: az utak naplójának helyi tárolója – IndexedDB (`atlagsebesseg-trips`, 1. verzió; az iOS-pár a SQLite-os
@@ -73,7 +73,7 @@ export async function saveTrip(trip: Trip): Promise<void> {
 export async function listTrips(): Promise<Trip[]> {
   const db = await open();
   const all = await result(db.transaction('trips').objectStore('trips').getAll() as IDBRequest<Trip[]>);
-  return all.sort((a, b) => b.startedAt - a.startedAt);
+  return all.map(normalizeTrip).sort((a, b) => b.startedAt - a.startedAt);
 }
 
 /** Egy út mintái (időrendben) – a böngészős ellenőrzéshez és a következő kör hőtérképéhez. */

@@ -4,12 +4,15 @@ import { setLanguage } from '../src/i18n';
 import {
   cruiseStatusText,
   headingDelta,
+  maneuverTurnKind,
+  normalizeTrip,
   periodStart,
   simplifyPath,
   tripAvgKmh,
   TripRecorder,
   tripRowParts,
   tripTotals,
+  turnsTotal,
   TurnDetector,
   type Trip,
   type TripEnd,
@@ -101,13 +104,51 @@ describe('TripRecorder (indulás és zárás)', () => {
     expect(rec.view(T0 + 60_000)).toBeNull();
   });
 
-  it('fix nélküli hosszú csend (5 perc) is zárja az utat', () => {
+  it('fix nélküli csend (háttér, GPS-kiesés) nem zárja az utat', () => {
     const rec = new TripRecorder({ newId: ids() });
     for (const f of northDrive([[50, 60]])) rec.onFix(f);
-    rec.tick(T0 + 59_000 + 299_000);
+    rec.tick(T0 + 59_000 + 3_600_000);
     expect(rec.drainEnded()).toEqual([]);
-    rec.tick(T0 + 59_000 + 300_000);
-    expect(saved(rec.drainEnded())).toHaveLength(1);
+    expect(rec.view(T0 + 3_700_000)).not.toBeNull();
+  });
+
+  it('rés után 500 m-en belül ugyanaz az út, a kieső idő állásidő', () => {
+    const rec = new TripRecorder({ newId: ids() });
+    for (const f of northDrive([[50, 60]])) rec.onFix(f);
+    // 6 perc csend, aztán közel (kb. 100 m-re) a régi helytől folytatódik
+    const resume = northDrive([[50, 60]], { t0: T0 + 59_000 + 360_000, lat: 47.5 + 800 / M_PER_DEG });
+    for (const f of resume) rec.onFix(f);
+    expect(rec.drainEnded()).toEqual([]);
+    rec.stop();
+    const [trip] = saved(rec.drainEnded());
+    expect(saved(rec.drainEnded())).toEqual([]);
+    expect(trip!.idleS).toBeGreaterThanOrEqual(360);
+    expect(trip!.movingS).toBeLessThan(125);
+    expect(trip!.path.length).toBe(2);
+  });
+
+  it('rés után 500 m-nél messzebb új út indul', () => {
+    const rec = new TripRecorder({ newId: ids() });
+    for (const f of northDrive([[50, 60]])) rec.onFix(f);
+    const far = northDrive([[50, 60]], { t0: T0 + 59_000 + 360_000, lat: 47.5 + 5000 / M_PER_DEG });
+    for (const f of far) rec.onFix(f);
+    const first = saved(rec.drainEnded());
+    expect(first).toHaveLength(1);
+    expect(first[0]!.endedAt).toBe(T0 + 59_000);
+    rec.stop();
+    const second = saved(rec.drainEnded());
+    expect(second).toHaveLength(1);
+    expect(second[0]!.id).not.toBe(first[0]!.id);
+  });
+
+  it('a pillanatkép nem zárja az utat, és rövid útról nincs', () => {
+    const rec = new TripRecorder({ newId: ids() });
+    expect(rec.snapshot()).toBeNull();
+    for (const f of northDrive([[50, 90]])) rec.onFix(f);
+    const snap = rec.snapshot();
+    expect(snap!.distanceM).toBeGreaterThan(900);
+    expect(rec.view(T0 + 90_000)).not.toBeNull();
+    expect(rec.drainEnded()).toEqual([]);
   });
 
   it('200 m alatti út eldobódik', () => {
@@ -221,6 +262,66 @@ describe('TripRecorder (navigáció és mérés)', () => {
   });
 });
 
+describe('kanyarok (navigáció) és irányváltások (GPS)', () => {
+  /** Jobbra kanyar a GPS-ben: észak, majd 2 s alatt kelet felé fordul. */
+  const withRightTurn = (): GpsFix[] => {
+    const f = northDrive([[50, 60]]);
+    let { lat, lon } = f.at(-1)!;
+    let t = f.at(-1)!.timestamp;
+    const heads = [30, 60, 90, 90, 90, 90, 90, 90];
+    for (const h of heads) {
+      t += 1000;
+      lat += (50 / 3.6 / M_PER_DEG) * Math.cos((h * Math.PI) / 180);
+      lon += (50 / 3.6 / M_PER_DEG) * Math.sin((h * Math.PI) / 180);
+      f.push({ lat, lon, timestamp: t, speed: 50 / 3.6, accuracy: 5, heading: h });
+    }
+    return f.concat(northDrive([[50, 1]], { t0: t + 1000, lat }).map((g, i) => ({ ...g, lon: lon + (i + 1) * 0.0001, heading: 90 })));
+  };
+
+  it('krúzingban a kanyar 0, az irányváltás számol', () => {
+    const { ended } = record(withRightTurn());
+    const [trip] = saved(ended);
+    expect(trip!.turns).toEqual({ left: 0, right: 0, uTurn: 0 });
+    expect(trip!.dirChanges.right).toBe(1);
+  });
+
+  it('a navigáció teljesített manőverei adják a kanyarokat', () => {
+    const rec = new TripRecorder({ newId: ids() });
+    const fixes = northDrive([[50, 120]]);
+    const man = (icon: string, instruction: string, distanceM: number) => ({ icon, instruction, distanceM });
+    fixes.forEach((f, i) => {
+      rec.onFix(f);
+      if (i === 40) rec.noteNextManeuver(man('right', 'Fordulj jobbra', 300));
+      if (i === 50) rec.noteNextManeuver(man('right', 'Fordulj jobbra', 40));
+      if (i === 52) rec.noteNextManeuver(man('roundabout_left', 'Körforgalom', 500));
+      if (i === 70) rec.noteNextManeuver(man('roundabout_left', 'Körforgalom', 30));
+      if (i === 72) rec.noteNextManeuver(man('uturn', 'Fordulj vissza', 900));
+      // újratervezés: a manőver messziről cserélődik → nem teljesítették
+      if (i === 90) rec.noteNextManeuver(man('left', 'Fordulj balra', 200));
+      if (i === 100) rec.noteNextManeuver(man('arrive', 'Megérkeztél', 100));
+    });
+    rec.stop();
+    const [trip] = saved(rec.drainEnded());
+    expect(trip!.turns).toEqual({ left: 1, right: 1, uTurn: 0 });
+  });
+
+  it('maneuverTurnKind: balra / jobbra / megfordulás, az enyhe és az egyenes nem kanyar', () => {
+    expect(['left', 'sharp_left', 'roundabout_left'].map(maneuverTurnKind)).toEqual(['left', 'left', 'left']);
+    expect(['right', 'sharp_right', 'roundabout_right'].map(maneuverTurnKind)).toEqual(['right', 'right', 'right']);
+    expect(maneuverTurnKind('uturn')).toBe('uTurn');
+    expect(['slight_left', 'slight_right', 'straight', 'merge', 'fork_left', 'arrive', 'depart'].map(maneuverTurnKind)).toEqual([null, null, null, null, null, null, null]);
+  });
+
+  it('normalizeTrip: a régi rekord GPS-es kanyarja irányváltás lesz, a kanyar 0', () => {
+    const old = { turns: { left: 1, right: 2, uTurn: 0 } } as unknown as Trip;
+    expect(normalizeTrip(old).dirChanges).toEqual({ left: 1, right: 2, uTurn: 0 });
+    expect(normalizeTrip(old).turns).toEqual({ left: 0, right: 0, uTurn: 0 });
+    const cur = { turns: { left: 1, right: 0, uTurn: 0 }, dirChanges: { left: 3, right: 0, uTurn: 0 } } as unknown as Trip;
+    expect(normalizeTrip(cur)).toBe(cur);
+    expect(turnsTotal({ left: 1, right: 2, uTurn: 3 })).toBe(6);
+  });
+});
+
 describe('simplifyPath (Douglas–Peucker)', () => {
   it('egyenes vonal két pontra egyszerűsödik, a 10 m-nél nagyobb kitérés megmarad', () => {
     const line = Array.from({ length: 50 }, (_, i) => ({ lat: 47.5 + (i * 20) / M_PER_DEG, lon: 19.05 }));
@@ -249,6 +350,7 @@ describe('tripTotals (statisztika)', () => {
     idleS: 0,
     maxKmh: 100,
     turns: { left: 1, right: 2, uTurn: 0 },
+    dirChanges: { left: 4, right: 5, uTurn: 1 },
     reroutes: 0,
     measurements: tooFast.map((f, i) => ({ sectionId: `S${i}`, name: 'M1', avgKmh: 100, limitKmh: 110, tooFast: f, at: startedAt })),
     jamS: 60,
@@ -274,7 +376,7 @@ describe('tripTotals (statisztika)', () => {
       mk('c', new Date(2026, 8, 20, 8).getTime(), 10, 600),
     ];
     const week = tripTotals(trips, 'het', now);
-    expect({ ...week, avgKmh: Math.round(week.avgKmh! * 1e6) / 1e6 }).toEqual({ trips: 1, distanceM: 30_000, movingS: 1800, avgKmh: 60, turns: { left: 1, right: 2, uTurn: 0 }, checksOk: 1, checksTooFast: 1, jamS: 60 });
+    expect({ ...week, avgKmh: Math.round(week.avgKmh! * 1e6) / 1e6 }).toEqual({ trips: 1, distanceM: 30_000, movingS: 1800, avgKmh: 60, turns: { left: 1, right: 2, uTurn: 0 }, dirChanges: { left: 4, right: 5, uTurn: 1 }, checksOk: 1, checksTooFast: 1, jamS: 60 });
     const month = tripTotals(trips, 'honap', now);
     expect(month.trips).toBe(2);
     expect(month.avgKmh).toBeCloseTo(90, 9);
@@ -300,7 +402,7 @@ describe('feliratok (napló)', () => {
   it('tripRowParts: cél vagy „Krúzing” · táv · menetidő · átlag', () => {
     setLanguage('hu');
     const trip = saved(record(northDrive([[72, 100]])).ended)[0]!;
-    expect(tripRowParts(trip, 'kmh')).toEqual({ title: 'Krúzing', distance: '2,0 km', duration: '2 perc', avg: '72 km/h' });
+    expect(tripRowParts(trip, 'kmh')).toEqual({ title: 'Krúzing', distance: '2,0 km', duration: '2 perc', avg: '72 km/h', turns: '0 kanyar · 0 irányváltás' });
     expect(tripRowParts({ ...trip, destination: 'Győr' }, 'kmh').title).toBe('Győr');
   });
 });

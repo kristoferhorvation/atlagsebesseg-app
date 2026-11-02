@@ -663,16 +663,19 @@ final class NavigationSession {
         return remainingSeconds(route, cum, alongM)
     }
 
-    /// A hátralévő idő (s). AW18: dugóban a helyi becslés is – a következő manőverig (legfeljebb `jamAheadMaxM`) a 2 perces
-    /// mért átlaggal, onnan a tervezett idővel; a Mapbox-alapú és a helyi közül a nagyobb.
+    /// A hátralévő idő (s). Dugóban a helyi becslés is: a mért 2 perces átlag csak az előttünk lévő, congestion-annotáció szerinti
+    /// heavy / severe szakaszra számít (legfeljebb `jamAheadMaxM`; adat nélkül `jamNoDataMaxM`, a tempó lineárisan átmegy a
+    /// tervezettbe), a többi a tervezett idő. A dugó-állapot végén azonnal a tervezett idők.
     private func remainingS() -> Double {
         let base = trafficRemainingS(along)
         guard jamDetector.active, let avg = jamDetector.avgMps else { return base }
-        let step = route.steps.isEmpty ? nil : route.steps[stepIndex()]
-        let toManeuver = step.map { max(0, $0.startM + $0.distanceM - along) } ?? 0
-        let d = min(toManeuver, TRAFFIC.jamAheadMaxM, route.distanceM - along)
-        let local = d / max(avg, TRAFFIC.jamMinKmh / 3.6) + trafficRemainingS(along + d)
-        return max(base, local)
+        // a friss forgalmi útvonal annotációja az aktuális; a koordináták az ő kezdőpontjától mérve
+        var ref = route
+        var off = 0.0
+        if let f = fresh, f.version == routeVersion, along >= f.fromAlongM - 50 { ref = f.route; off = f.fromAlongM }
+        guard let run = jamAheadRun(ref, max(0, along - off)) else { return base }
+        let planned = trafficRemainingS(run.startM + off) - trafficRemainingS(run.endM + off)
+        return base + jamExtraS(run, avgMps: avg, plannedS: planned)
     }
 
     /// A várt tempó (m/s) a helyen: a Directions nyers ideje ±250 m-en.

@@ -255,9 +255,12 @@ Gyökér: `npm test` és `npm run typecheck` minden csomagra; `npm run test:all`
     GPS-zaj nem haladás) a várt tempó (a Directions nyers ideje ±250 m-en) fele alatt → dugó; vége ≥ 500 m megszakítás
     nélkül a várt tempó 80%-a fölött (a lámpák közti rövid gyorsulás nem szakítja meg). Dugóba lépéskor „Dugóba kerültél?
     Igen / Nem” a manőverkártya alatt (`jamAsk`, 15 s), hang egyszer; Igen → „Dugó” bejelentés (a meglévő folyamat) +
-    `bejelentett` minta, Nem → a szakaszra (a következő manőver helye a kulcs) nem kérdez újra. Dugóban az ETA a következő
-    manőverig (legfeljebb `jamAheadMaxM` = 3 km) a mért átlaggal (legalább 5 km/h), onnan a tervvel; a Mapbox és a helyi
-    becslés közül a nagyobb.
+    `bejelentett` minta, Nem → a szakaszra (a következő manőver helye a kulcs) nem kérdez újra. Dugóban az ETA a mért átlaggal (legalább 5 km/h) csak az útvonal előttünk lévő, a Directions
+    congestion-annotációjában heavy/severe jelölt ÖSSZEFÜGGŐ szakaszára számít, legfeljebb `jamAheadMaxM` = 2 km-ig
+    (**AW19 javítás 2** – eddig a következő manőverig, 3 km-ig; `jamAheadRun`, `jamExtraS`); congestion-adat nélkül (minden szakasz
+    `unknown`) legfeljebb `jamNoDataMaxM` = 1 km, a tempó lineárisan megy át a tervezettbe (a lassulás fele). A dugó-állapot végén
+    azonnal a tervezett idők. Az annotációt a friss forgalmi útvonalból vesszük, ha van. Példa: 7,5 km egyenes, az első 1,5 km dugós →
+    az ETA legfeljebb ~1,5 km-nyi lassulással nő, nem duplázódik. A Mapbox és a helyi becslés közül a nagyobb.
   - **Bejelentés:** új típusok `dugo` (lassan halad) és `beallt` (áll), a menü utolsó sorában a kapu-tétel mellett
     (`isRowTile`; egy 4 oszlopos rács, 1 + 1 + 2), 6 nyelven (angolul „Traffic” / „Standstill”, hogy egy sorba férjen;
     AW18-javítás: németül „Messstrecke Start / Ende”, „Sperrung”, „Strecke fehlerhaft” – így minden nyelven minden csempe 76 px); a
@@ -321,14 +324,27 @@ Gyökér: `npm test` és `npm run typecheck` minden csomagra; `npm run test:all`
 - **AW19 (2026-11-02), weben és iOS-en: krúzing mód, utak naplója, statisztika.** Logika: `packages/app-logic/src/trips.ts` ↔
   `Logic/Trips.swift` (`TripRecorder`, `TurnDetector`, `simplifyPath`, `tripTotals`, feliratok), tesztek `trips.test.ts` ↔
   `TripTests.swift` azonos nevekkel; a küszöbök a `TRIP`-ben (iOS-re generálva).
-  - **Út:** cél nélkül is – ≥ 10 km/h legalább 30 s → indul (a kezdete e mozgás eleje); 5 perc állás (< 5 km/h; a záró állás
-    nem része, a vége az utolsó mozgó minta), 5 perc fix nélküli csend vagy a GPS leállása (web: háttér / `pagehide`; iOS:
-    `stopSource`, a szimuláció vége) zárja; 200 m alatt eldobjuk (a mintáival). Navigáció és szakaszmérés **ugyanabba** az
+  - **Út:** cél nélkül is – ≥ 10 km/h legalább 30 s → indul (a kezdete e mozgás eleje); 5 perc állás fixekkel (< 5 km/h; a záró
+    állás nem része, a vége az utolsó mozgó minta) vagy a felhasználó megállítása (`stop()`: iOS `stopSource`, a szimuláció vége)
+    zárja; 200 m alatt eldobjuk (a mintáival). **Javítás 2 (2026-11-02):** a háttérbe kerülés, a GPS-kiesés, az engedély-vesztés
+    és az appváltás NEM zárja az utat és NEM állítja le a navigációt (a webes `visibilitychange` / `pagehide` már nem hívja a
+    `stop()`-ot; csak a szakaszmérés szakad meg, mint eddig). Fix nélküli rés (> `stopIdleS` = 5 perc) után az első új fix dönt:
+    az utolsó helytől > `resumeNewTripM` = 500 m → a régi út lezárul (vége az utolsó mozgó minta), új indul; különben UGYANAZ az
+    út folytatódik (`resume`: a kieső idő állásidő, a rés nem táv, új útvonal-darab, a kanyar-felismerés újraindul). A csend
+    magában (tick) sosem zár. **Pillanatkép** (`snapshot()`, `checkpointS` = 60 s-enként és háttérbe kerüléskor → a napló
+    `put`/`INSERT OR REPLACE`): a futó út nyitva marad, de ha az app a háttérben leáll, az eddigi út nem vész el (újraindítás után
+    nem folytatódik, új út indul). Navigáció és szakaszmérés **ugyanabba** az
     útba: a cél neve (az utolsó), újratervezések (a `rerouting` felfutó éle), dugóidő (a `jam` állapot), szakaszmérések (a
     `befejezve` eredmény, `overLimit` = túl gyors). Távolság csak mozgó, ≤ 50 m pontosságú mintából; > 250 km/h-s ugrás nem táv,
-    az útvonal új darabot kezd (a navsim ablakai). Kanyar: ≥ 60° irányváltás 5 s alatt indítja, vége ha 3 s-ig < 15°; a nettó
-    irányváltás dönt (≥ 150° megfordulás, < 45° semmi – S-kanyar). A navigáció manővereit **nem** számoljuk külön (az irány
-    mindkét módban ugyanaz – a „navigáció manővereiből” rész nem készült). Útvonal: Douglas–Peucker 10 m, [lat, lon] 6 tizedes.
+    az útvonal új darabot kezd (a navsim ablakai). **Két számláló (javítás 2):** „Kanyarok” (`turns`, B/J/U) kizárólag a navigáció manővereiből –
+    `noteNextManeuver(icon, instruction, distanceM)` minden nézet-frissítéskor; ha a következő manőver kicserélődik és az előző
+    `maneuverPassM` = 80 m-en belül volt, teljesítettnek számít (`maneuverTurnKind`: left / sharp_left / roundabout_left → B,
+    right / sharp_right / roundabout_right → J, uturn → U; enyhe, egyenes, fork, merge, arrive nem kanyar; távoli csere = újratervezés
+    nem számít); krúzingban 0. „Irányváltások” (`dirChanges`, B/J/U) GPS-alapú, mindig számol (`TurnDetector`: ≥ 60° irányváltás
+    5 s alatt indítja, vége ha 3 s-ig < 15°; a nettó irányváltás dönt: ≥ 150° megfordulás, < 45° semmi – S-kanyar). A régi (AW19
+    első változat) rekord `turns`-e GPS-es volt: olvasáskor `normalizeTrip` (web) / a `Trip` dekódere (iOS) → `dirChanges`, a kanyar 0.
+    Napló lista (3. sor: „N kanyar · M irányváltás”, `trips.rowTurns`), részlet és statisztika-kártya mindkettőt mutatja, a kanyar
+    az elsődleges (előbb áll). Útvonal: Douglas–Peucker 10 m, [lat, lon] 6 tizedes.
   - **Tárolás (csak helyben, szerverre semmi; az AW18 dugó-minták változatlanok):**
     - web: IndexedDB `atlagsebesseg-trips` v1 (`apps/web/src/trips/tripStore.ts`) – `trips` (kulcs `id`, index `startedAt`; a
       közös `Trip` alakja) és `samples` (automatikus kulcs, index `tripId`; `TripSample`: `tripId, t, lat, lon, speedKmh, heading,
@@ -346,9 +362,9 @@ Gyökér: `npm test` és `npm run typecheck` minden csomagra; `npm run test:all`
     (ez a hét hétfőtől / hónap / összes – `periodStart`, a készülék időzónájában), lista, részlet kis térképpel (Visszafogott),
     törlés (web: hosszú nyomás / balra húzás; iOS: swipe / helyi menü), „Összes törlése” megerősítéssel.
   - **Szimulátor:** `?cruise` / `-cruise YES` (a navsim-vezetés cél nélkül, rögtön indul); a lejátszás vége a GPS leállása (az út
-    a naplóba kerül). A navsim teljes vezetése: `SIM_TRIP` (17 677 m, 792 s, B 1 · J 3 · U 0, 3 darab, 793 minta) – `navSim.test.ts`
+    a naplóba kerül). A navsim teljes vezetése: `SIM_TRIP` (17 677 m, 792 s, kanyar 0 – a felvevő csak fixeket kap –, irányváltás B 1 · J 3 · U 0, 3 darab, 793 minta) – `navSim.test.ts`
     ↔ `SimTests.swift`, és a nav-shots a böngészőben az IndexedDB-ből méri. Képernyőkép: `?sheet=trips[&tripOpen=first]` /
-    `-settingsOpen trips [-tripOpen first]`.
+    `-settingsOpen trips [-tripOpen first [-tripScroll YES]]` (a `-tripScroll` a számok sorát legalulra görgeti, hogy a két számláló látsszon; képek: `apps/ios/docs/aw19-javitas2-*.png`; navsim-vezetés `-simSpeed 40`-nel végigjátszva, majd újraindítva).
 - **Paritási tartozás (AW12 + AW13 → iOS) lezárva az AOS12-ben (2026-10-29):** a `NavigationTests.swift` újra a
   `navigation.test.ts` teljes párja (86 = 86 `it`, azonos névvel), a webes `navSim.test.ts` 6 esete a `SimTests.swift`-ben.
   A közös Budapest→Győr fixtúra **AOS13-ban teljesen újra felvéve** méteres hangegységgel (`voice_units=metric`, mindkét

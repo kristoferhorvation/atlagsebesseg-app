@@ -849,7 +849,7 @@ try {
   {
     // az előző lapok már bezárultak (egy Chrome, egy lap); az IndexedDB-t az első lap kiüríti, mielőtt útja lenne
     // a navsim teljes vezetése ezt az utat adja (a webes `SIM_TRIP` – navSim.ts; a navSim.test.ts és a Swift SimTests is ezt méri)
-    const SIM_TRIP = { distanceM: 17_677, movingS: 792, idleS: 0, maxKmh: 128, turns: { left: 1, right: 3, uTurn: 0 }, pieces: 3, samples: 793 };
+    const SIM_TRIP = { distanceM: 17_677, movingS: 792, idleS: 0, maxKmh: 128, turns: { left: 0, right: 0, uTurn: 0 }, dirChanges: { left: 1, right: 3, uTurn: 0 }, pieces: 3, samples: 793 };
     const TRIPS_DB = `(async () => {
       if (!(await indexedDB.databases()).some((d) => d.name === 'atlagsebesseg-trips')) return { trips: [], samples: [] };
       const db = await new Promise((res, rej) => { const o = indexedDB.open('atlagsebesseg-trips'); o.onsuccess = () => res(o.result); o.onerror = () => rej(o.error); });
@@ -893,8 +893,8 @@ try {
     // tárhely-becslés (tájékoztató): az IndexedDB mérete a 793 mintával + a rekorddal
     const idbBytes = await cf.evaluate(`navigator.storage.estimate().then((e) => e.usageDetails?.indexedDB ?? e.usage ?? 0)`);
     console.log(`  info: IndexedDB ${Math.round(idbBytes / 1024)} KB / ${db.samples.length} minta → ~${((idbBytes / Math.max(1, db.samples.length)) * 3600 / 1048576).toFixed(2)} MB / vezetési óra`);
-    const got = tr && { distanceM: tr.distanceM, movingS: tr.movingS, idleS: tr.idleS, maxKmh: tr.maxKmh, turns: tr.turns, pieces: tr.path.length, samples: tr.samples };
-    check('AW19: a navsim-vezetés (krúzing) egy út a naplóban – km, menetidő, kanyarok (B/J/U), útvonal-darabok, mintaszám = SIM_TRIP', db.trips.length === 1 && JSON.stringify(got) === JSON.stringify(SIM_TRIP), JSON.stringify(got));
+    const got = tr && { distanceM: tr.distanceM, movingS: tr.movingS, idleS: tr.idleS, maxKmh: tr.maxKmh, turns: tr.turns, dirChanges: tr.dirChanges, pieces: tr.path.length, samples: tr.samples };
+    check('AW19: a navsim-vezetés (krúzing) egy út a naplóban – km, menetidő, kanyar 0 (krúzing) és irányváltások (B/J/U), útvonal-darabok, mintaszám = SIM_TRIP', db.trips.length === 1 && JSON.stringify(got) === JSON.stringify(SIM_TRIP), JSON.stringify(got));
     check('AW19: krúzing-út: cél nélkül („Krúzing”), a szimulált M1-szakasz mérése a rekordban (1, rendben)', tr?.destination === null && tr?.measurements.length === 1 && tr.measurements[0].sectionId === 'SIM-M1-NAV' && tr.measurements[0].tooFast === false, JSON.stringify(tr?.measurements));
     const s0 = db.samples.filter((s) => s.tripId === tr?.id);
     check('AW19: 1 Hz-es minták a helyi tárolóban (pozíció, sebesség, irány, pontosság, időbélyeg) H3-cellával (res 10)', s0.length === SIM_TRIP.samples && s0.every((s) => /^8a[0-9a-f]{13}$/.test(s.h3 ?? '')) && ['lat', 'lon', 't', 'speedKmh', 'heading', 'accuracy'].every((k) => k in s0[0]), `${s0.length} minta, ${JSON.stringify(s0[0])}`);
@@ -908,8 +908,8 @@ try {
     await click(cf, '.trips-entry .nav-row');
     await cf.waitFor(`${q('.trip-row')} && ${q('.trip-stats')}`, 10_000, 'napló-lap');
     const lst = await cf.evaluate(`(() => ({ title: ${text('.sheet-head .title')}, rows: [...document.querySelectorAll('.trip-row')].map((r) => r.innerText.replace(/\\s+/g, ' ').trim()), stats: [...document.querySelectorAll('.trip-stat')].map((s) => s.innerText.replace(/\\s+/g, ' ').trim()), period: [...document.querySelectorAll('.trip-stats .segmented button')].map((b) => b.innerText.trim() + (b.getAttribute('aria-pressed') === 'true' ? '*' : '')), all: !!${q('.trip-delete-all .mini-btn')}, overflow: document.documentElement.scrollWidth > innerWidth }))()`);
-    check('AW19: Napló – a sor: dátum · „Krúzing” · km · idő · átlag', lst.title === 'Utak naplója' && lst.rows.length === 1 && /Krúzing 17,7 km · 13 perc · 80 km\/h$/.test(lst.rows[0]) && /^\S+ \d+\. \d\d:\d\d /.test(lst.rows[0]), JSON.stringify(lst.rows));
-    check('AW19: statisztika – időszakváltó (ez a hét / hónap / összes), táv, menetidő, utak, átlag, kanyarok B/J/U, szakaszmérések, dugóidő', lst.period.join('|') === 'Ez a hét*|Ez a hónap|Összes' && lst.stats.join(' | ') === 'Összes táv 17,7 km | Menetidő 13 perc | Utak 1 | Átlag 80 km/h | Kanyarok B 1 · J 3 · U 0 | Szakaszmérések 1 rendben · 0 túl gyors | Dugóban 0 perc' && lst.all && !lst.overflow, JSON.stringify(lst));
+    check('AW19: Napló – a sor: dátum · „Krúzing” · km · idő · átlag, alatta a kanyarok és az irányváltások száma (krúzingban 0 kanyar)', lst.title === 'Utak naplója' && lst.rows.length === 1 && /Krúzing 17,7 km · 13 perc · 80 km\/h 0 kanyar · 4 irányváltás$/.test(lst.rows[0]) && /^\S+ \d+\. \d\d:\d\d /.test(lst.rows[0]), JSON.stringify(lst.rows));
+    check('AW19: statisztika – időszakváltó (ez a hét / hónap / összes), táv, menetidő, utak, átlag, kanyarok B/J/U, szakaszmérések, dugóidő', lst.period.join('|') === 'Ez a hét*|Ez a hónap|Összes' && lst.stats.join(' | ') === 'Összes táv 17,7 km | Menetidő 13 perc | Utak 1 | Átlag 80 km/h | Kanyarok B 0 · J 0 · U 0 | Irányváltások B 1 · J 3 · U 0 | Szakaszmérések 1 rendben · 0 túl gyors | Dugóban 0 perc' && lst.all && !lst.overflow, JSON.stringify(lst));
     if (!CHECK_ONLY) {
       await sleep(600);
       await cf.shot(`${DATE}-aw19-naplo-lista.png`);
@@ -918,19 +918,9 @@ try {
     await click(cf, '.trip-row-main');
     await cf.waitFor(`${q('.trip-map')} && window.__tripMapReady`, 30_000, 'út-térkép');
     const det = await cf.evaluate(`(() => ({ title: ${text('.sheet-head .title')}, rows: [...document.querySelectorAll('.trip-detail .list-row')].map((r) => r.innerText.replace(/\\s+/g, ' ').trim()), mapH: Math.round(${q('.trip-map')}.getBoundingClientRect().height), canvas: !!${q('.trip-map canvas')} }))()`);
-    check('AW19: út részlete – kis térkép az útvonallal, a számok (táv, menet- / állásidő, átlag, max, kanyarok, újratervezés, dugó) és a szakaszmérés', det.title === 'Krúzing' && det.canvas && det.mapH === 220 && det.rows.includes('Táv 17,7 km') && det.rows.includes('Max sebesség 128 km/h') && det.rows.includes('Kanyarok B 1 · J 3 · U 0') && det.rows.some((r) => /^M1 · Budapest → Győr \d\d:\d\d · határ 110 km\/h \d+ km\/h rendben$/.test(r)), JSON.stringify(det));
-    if (!CHECK_ONLY) {
-      await sleep(3500);
-      await cf.shot(`${DATE}-aw19-ut-reszlet.png`);
-    }
+    check('AW19: út részlete – kis térkép az útvonallal, a számok (táv, menet- / állásidő, átlag, max, kanyarok, újratervezés, dugó) és a szakaszmérés', det.title === 'Krúzing' && det.canvas && det.mapH === 220 && det.rows.includes('Táv 17,7 km') && det.rows.includes('Max sebesség 128 km/h') && det.rows.includes('Kanyarok B 0 · J 0 · U 0') && det.rows.includes('Irányváltások B 1 · J 3 · U 0') && det.rows.some((r) => /^M1 · Budapest → Győr \d\d:\d\d · határ 110 km\/h \d+ km\/h rendben$/.test(r)), JSON.stringify(det));
     await click(cf, '.trip-back');
     await cf.waitFor(q('.trip-row'), 5000, 'vissza a listára');
-    if (!CHECK_ONLY) {
-      await click(cf, '.trip-stats .segmented button:last-child');
-      await sleep(400);
-      await cf.evaluate(`${q('.sheet')}.scrollTop = 0; true`);
-      await cf.shot(`${DATE}-aw19-statisztika.png`);
-    }
     // törlés hosszú nyomásra: a sor végén „Törlés”, koppintásra az út a mintáival együtt eltűnik
     await cf.evaluate(`(() => { const b = ${q('.trip-row-main')}; const r = b.getBoundingClientRect(); b.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, clientX: r.left + 40, clientY: r.top + 20, pointerType: 'touch' })); return true; })()`);
     // a felengedés csak az élesedés után: terhelt gépen az 500 ms-os időzítő késhet, és a korai felengedés törölné
@@ -955,11 +945,32 @@ try {
       await sleep(500);
     }
     const tn = db2.trips[0] ?? null;
-    check('AW19: navigációval ugyanaz az út – a cél („Győr”), az újratervezés (letérés) és a szakaszmérés ugyanabban a rekordban', db2.trips.length === 1 && tn.destination === 'Győr' && tn.reroutes >= 1 && tn.measurements.length === 1 && tn.distanceM === SIM_TRIP.distanceM && JSON.stringify(tn.turns) === JSON.stringify(SIM_TRIP.turns), JSON.stringify({ dest: tn?.destination, reroutes: tn?.reroutes, m: tn?.measurements.length, d: tn?.distanceM, turns: tn?.turns }));
+    check('AW19: navigációval ugyanaz az út – a cél („Győr”), az újratervezés (letérés) és a szakaszmérés ugyanabban a rekordban', db2.trips.length === 1 && tn.destination === 'Győr' && tn.reroutes >= 1 && tn.measurements.length === 1 && tn.distanceM === SIM_TRIP.distanceM && JSON.stringify(tn.dirChanges) === JSON.stringify(SIM_TRIP.dirChanges) && tn.turns.left + tn.turns.right + tn.turns.uTurn >= 1, JSON.stringify({ dest: tn?.destination, reroutes: tn?.reroutes, m: tn?.measurements.length, d: tn?.distanceM, turns: tn?.turns, dir: tn?.dirChanges }));
     // a szerverre semmi: a navigációs szimulátor nem küld, a napló csak az IndexedDB-ben (a dugó-minták változatlanok)
     await cn.goto('/?navsim&panel=0&sheet=trips');
     await cn.waitFor(q('.trip-row'), 30_000, 'napló (?sheet=trips)');
-    check('AW19: a napló sora navigációs útnál a cél nevét mutatja', /Győr 17,7 km/.test(await cn.evaluate(text('.trip-row'))), await cn.evaluate(text('.trip-row')));
+    const navRow = await cn.evaluate(text('.trip-row'));
+    check('AW19: a napló sora navigációs útnál a cél nevét mutatja, a kanyarok a navigáció manőveiből (>= 1), az irányváltás GPS-ből (4)', /Győr 17,7 km/.test(navRow) && /[1-9]\d* kanyar · 4 irányváltás$/.test(navRow), navRow);
+    // a képek a navigációs útról: itt a kanyar és az irányváltás is van (a krúzing-útnál a kanyar 0)
+    await click(cn, '.trip-row-main');
+    await cn.waitFor(`${q('.trip-map')} && window.__tripMapReady`, 30_000, 'út-térkép (navigáció)');
+    const navDet = await cn.evaluate(`[...document.querySelectorAll('.trip-detail .list-row')].map((r) => r.innerText.replace(/\\s+/g, ' ').trim())`);
+    check('AW19: út részlete navigációs útnál – Kanyarok és Irányváltások két külön sor', navDet.some((r) => /^Kanyarok B \d+ · J \d+ · U \d+$/.test(r) && !/^Kanyarok B 0 · J 0 · U 0$/.test(r)) && navDet.includes('Irányváltások B 1 · J 3 · U 0'), JSON.stringify(navDet));
+    if (!CHECK_ONLY) {
+      await sleep(3500);
+      // a két számláló (Kanyarok, Irányváltások) a lap alsó felén van: a kép arra görgetve készül
+      await cn.evaluate(`(() => { const rows = [...document.querySelectorAll('.trip-detail .list-row')]; const r = rows.find((x) => x.innerText.startsWith('Kanyarok')); const s = ${q('.sheet')}; s.scrollTop = s.scrollTop + r.getBoundingClientRect().top - 260; return true; })()`);
+      await sleep(400);
+      await cn.shot(`${DATE}-aw19-ut-reszlet.png`);
+    }
+    await click(cn, '.trip-back');
+    await cn.waitFor(q('.trip-row'), 5000, 'vissza a listára (navigáció)');
+    if (!CHECK_ONLY) {
+      await click(cn, '.trip-stats .segmented button:last-child');
+      await sleep(400);
+      await cn.evaluate(`${q('.sheet')}.scrollTop = 0; true`);
+      await cn.shot(`${DATE}-aw19-statisztika.png`);
+    }
     await click(cn, '.trip-delete-all .mini-btn');
     await cn.waitFor(`${q('.trip-delete-all .list-row')}`, 3000, 'megerősítés');
     const confirmTxt = await cn.evaluate(text('.trip-delete-all .label'));

@@ -140,6 +140,7 @@ final class AppModel {
     @ObservationIgnored let tripStore = TripStore()
     @ObservationIgnored var tripNavPrev = (rerouting: false, jam: false)
     @ObservationIgnored var tripLastResult: String?
+    @ObservationIgnored var tripCheckpointAt = 0.0
 
     @ObservationIgnored var navSession: NavigationSession?
     @ObservationIgnored var routeData = EnforcementData.none
@@ -355,6 +356,10 @@ final class AppModel {
         view = session.tick()
         navSession?.tick()
         tickTrips()
+        if nowMs() - tripCheckpointAt >= TRIP.checkpointS * 1000 {
+            tripCheckpointAt = nowMs()
+            checkpointTrip()
+        }
         syncTripMeasure()
         checkCommunityJams()
         syncNavMeasure()

@@ -17,7 +17,14 @@ extension AppModel {
         pumpTrips()
     }
 
-    /// A GPS leállt (az app leállította, a szimuláció véget ért): a futó út lezárul.
+    /// A futó út pillanatképe a naplóba (az út nyitva marad) – ha az app a háttérben leáll, az út nem vész el.
+    func checkpointTrip() {
+        guard let snap = tripRecorder.snapshot() else { return }
+        tripStore.saveTrip(snap)
+        reloadTrips()
+    }
+
+    /// A felhasználó megállította a GPS-t (az app leállította, a szimuláció véget ért): a futó út lezárul. Háttérbe kerüléstől NEM.
     func stopTrips() {
         tripRecorder.stop()
         pumpTrips()
@@ -31,6 +38,8 @@ extension AppModel {
         let jam = nav?.jam ?? false
         if jam != tripNavPrev.jam { tripRecorder.noteJam(jam, nowMs()) }
         tripNavPrev = (rerouting, jam)
+        // a teljesített manőverek adják a kanyarokat (krúzingban nincs navigáció → 0)
+        tripRecorder.noteNextManeuver(nav.map { (icon: $0.next.icon.rawValue, instruction: $0.next.instruction, distanceM: $0.next.distanceM) })
     }
 
     /// A befejezett szakaszmérés (egyszer eredményenként).

@@ -70,7 +70,7 @@ struct SimTests {
     }
 
     /// AW19: a webes `navSim.test.ts` párja – a navsim teljes vezetése egy út a naplóban (a számok a webes `SIM_TRIP`-pel azonosak).
-    @Test("Budapest → Győr: a teljes navsim-vezetés egy út a naplóban (17,7 km, 3 darab, B 1 · J 3)")
+    @Test("Budapest → Győr: a teljes navsim-vezetés egy út a naplóban (17,7 km, 3 darab, irányváltás B 1 · J 3, kanyar 0)")
     func navsimNaplo() throws {
         let fixture = try SimFixture.load(.navsim)
         let rec = TripRecorder(newId: { _ in "sim" })
@@ -86,7 +86,9 @@ struct SimTests {
         #expect(trip.movingS == 792)
         #expect(trip.idleS == 0)
         #expect(trip.maxKmh == 128)
-        #expect(trip.turns == TripTurns(left: 1, right: 3, uTurn: 0))
+        // krúzing (a felvevő csak fixeket kap): a kanyar 0, az irányváltás a GPS-ből
+        #expect(trip.turns == TripTurns(left: 0, right: 0, uTurn: 0))
+        #expect(trip.dirChanges == TripTurns(left: 1, right: 3, uTurn: 0))
         #expect(trip.path.count == 3)
         #expect(trip.samples == 793)
     }

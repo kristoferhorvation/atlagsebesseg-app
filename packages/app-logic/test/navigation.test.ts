@@ -2078,22 +2078,62 @@ describe('AW18: helyi dugó-érzékelés', () => {
     expect(rep[0]).toMatchObject({ kind: 'bejelentett', heading_deg: 90, length_m: TRAFFIC.reportedLengthM });
   });
 
-  it('dugóban az ETA a mért átlaggal a következő manőverig, onnan a tervezett idővel; a nagyobb késés számít', async () => {
+  it('dugóban az ETA a mért átlaggal csak a congestion szerinti heavy szakaszra, onnan a tervezett idővel; a nagyobb késés számít', async () => {
     const route = lineRoute(); // 10 km, 360 s, 1 km-es lépések
+    route.segCongestion = route.segCongestion.map((_, i) => (i < 15 ? ('heavy' as const) : ('low' as const))); // az első 1,5 km dugós
     const h = harness(route, { voice: false });
     // csak a helyi becslés (a 2 perces Mapbox-lekérés most nem ad választ)
     h.respond(new Error('hálózat'));
     await drive(h, route, { fromS: 0, toS: 125, alongM: 0, mps: 2 });
     const v = h.session.view();
     expect(v.jam).toBe(true);
-    // 250 m-nél: a következő manőverig (1000 m) 750 m / 2 m/s = 375 s, onnan a terv: 9 km → 324 s
-    expect(v.remainingS).toBeCloseTo(375 + 324, -1);
-    // késés: 125 s + 699 s − 360 s ≈ 464 s → 8 perc
-    expect(v.delayMin).toBe(8);
+    // 250 m-nél: a dugós szakasz még 1250 m / 2 m/s = 625 s (terv: 45 s), onnan a terv: 8,5 km → 306 s
+    expect(v.remainingS).toBeCloseTo(625 + 306, -1);
+    // késés: 125 s + ~931 s − 360 s ≈ 696 s → 12 perc
+    expect(v.delayMin).toBe(12);
     // dugó közben 2 percenként új közösségi minta
     expect(h.session.drainJamSamples().map((x) => x.kind)).toEqual(['erzekelt']);
     await drive(h, route, { fromS: 126, toS: 246, alongM: 252, mps: 2 });
     expect(h.session.drainJamSamples().map((x) => x.kind)).toEqual(['erzekelt']);
+  });
+
+  it('7,5 km egyenes, az első 1,5 km dugós: az ETA legfeljebb a dugós szakasz lassulásával nő, nem duplázódik', async () => {
+    const route = lineRoute({ lengthM: 7500, durationS: 300 });
+    route.segCongestion = route.segCongestion.map((_, i) => (i < 15 ? ('severe' as const) : ('low' as const)));
+    const h = harness(route, { voice: false });
+    h.respond(new Error('hálózat'));
+    await drive(h, route, { fromS: 0, toS: 125, alongM: 0, mps: 2 });
+    const v = h.session.view();
+    expect(v.jam).toBe(true);
+    // 250 m-nél: 1250 m dugó 2 m/s-mal (625 s) + a hátralévő 6 km terv szerint (240 s)
+    expect(v.remainingS).toBeCloseTo(625 + 240, -1);
+    // a terv 290 s volt: a növekmény a dugós szakasz ideje, nem a 7,25 km-é (3625 s)
+    expect(v.remainingS!).toBeLessThan(290 + 1500 / 2);
+  });
+
+  it('congestion-adat nélkül a mért átlag legfeljebb 1 km-ig számít, a tempó lineárisan átmegy a tervezettbe', async () => {
+    const route = lineRoute({ lengthM: 7500, durationS: 300 });
+    route.segCongestion = route.segCongestion.map(() => 'unknown' as const);
+    const h = harness(route, { voice: false });
+    h.respond(new Error('hálózat'));
+    await drive(h, route, { fromS: 0, toS: 125, alongM: 0, mps: 2 });
+    const v = h.session.view();
+    expect(v.jam).toBe(true);
+    // 1 km: lassú 500 s, terv 40 s → +(500−40)/2 = 230 s a 290 s fölé
+    expect(v.remainingS).toBeCloseTo(290 + 230, -1);
+  });
+
+  it('a dugó-állapot végén azonnal a tervezett idők', async () => {
+    const route = lineRoute({ lengthM: 7500, durationS: 300 });
+    route.segCongestion = route.segCongestion.map((_, i) => (i < 15 ? ('heavy' as const) : ('low' as const)));
+    const h = harness(route, { voice: false });
+    h.respond(new Error('hálózat'));
+    const along = await drive(h, route, { fromS: 0, toS: 125, alongM: 0, mps: 2 });
+    expect(h.session.view().jam).toBe(true);
+    await drive(h, route, { fromS: 126, toS: 150, alongM: along + 26, mps: 26 });
+    const v = h.session.view();
+    expect(v.jam).toBe(false);
+    expect(v.remainingS).toBeCloseTo((300 * (7500 - 250 - 26 * 25)) / 7500, -1);
   });
 });
 

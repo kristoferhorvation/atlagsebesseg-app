@@ -91,6 +91,7 @@ export function TripLogSheet({
           <Stat label={t('trips.stat.count')} value={String(totals.trips)} />
           <Stat label={t('trips.stat.avg')} value={tripSpeedText(totals.avgKmh, unit)} />
           <Stat label={t('trips.stat.turns')} value={turnsText(totals.turns)} />
+          <Stat label={t('trips.stat.dirChanges')} value={turnsText(totals.dirChanges)} />
           <Stat label={t('trips.stat.checks')} value={checksText(totals.checksOk, totals.checksTooFast)} />
           <Stat label={t('trips.stat.jam')} value={tripDurationText(totals.jamS)} />
         </div>
@@ -209,6 +210,9 @@ function TripRow({ trip, unit, armed, onArm, onOpen, onDelete }: { trip: Trip; u
         <div className="trip-row-nums">
           {p.distance} · {p.duration} · {p.avg}
         </div>
+        <div className="trip-row-nums" data-testid="trip-row-turns">
+          {p.turns}
+        </div>
       </button>
       {armed ? (
         <button className="mini-btn danger" onClick={onDelete}>
@@ -231,6 +235,7 @@ function TripDetail({ trip, unit, lightPreset, onBack }: { trip: Trip; unit: Spe
     ['trips.d.avg', tripSpeedText(tripAvgKmh(trip), unit)],
     ['trips.d.max', tripSpeedText(trip.maxKmh, unit)],
     ['trips.d.turns', turnsText(trip.turns)],
+    ['trips.d.dirChanges', turnsText(trip.dirChanges)],
     ['trips.d.reroutes', String(trip.reroutes)],
     ['trips.d.jam', tripDurationText(trip.jamS)],
   ];

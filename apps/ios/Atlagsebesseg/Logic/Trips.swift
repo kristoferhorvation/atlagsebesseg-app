@@ -47,7 +47,10 @@ nonisolated struct Trip: Codable, Hashable, Identifiable, Sendable {
     /// Állásidő (s): az út közbeni állás (a záró állás nem része).
     var idleS: Double
     var maxKmh: Double
+    /// Kanyarok: kizárólag a navigáció manőverei (balra / jobbra / megfordulás); krúzingban 0.
     var turns: TripTurns
+    /// Irányváltások: GPS-alapú (≥ `turnDeg` / `turnWindowS`), mindig számol.
+    var dirChanges: TripTurns
     var reroutes: Int
     var measurements: [TripMeasurement]
     /// Dugóban töltött idő (s; az AW18 helyi dugó-állapotából).
@@ -58,7 +61,52 @@ nonisolated struct Trip: Codable, Hashable, Identifiable, Sendable {
     var path: [[[Double]]]
     /// A mintaszám (a tárolt GPS-minták).
     var samples: Int
+
+    init(id: String, startedAt: Double, endedAt: Double, distanceM: Double, movingS: Double, idleS: Double, maxKmh: Double, turns: TripTurns, dirChanges: TripTurns, reroutes: Int, measurements: [TripMeasurement], jamS: Double, destination: String?, path: [[[Double]]], samples: Int) {
+        self.id = id; self.startedAt = startedAt; self.endedAt = endedAt; self.distanceM = distanceM; self.movingS = movingS; self.idleS = idleS
+        self.maxKmh = maxKmh; self.turns = turns; self.dirChanges = dirChanges; self.reroutes = reroutes; self.measurements = measurements
+        self.jamS = jamS; self.destination = destination; self.path = path; self.samples = samples
+    }
+
+    /// Régi rekord (AW19 első változat): a `turns` GPS-alapú volt → `dirChanges`; a kanyar 0 (a webes `normalizeTrip`).
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id = try c.decode(String.self, forKey: .id)
+        startedAt = try c.decode(Double.self, forKey: .startedAt)
+        endedAt = try c.decode(Double.self, forKey: .endedAt)
+        distanceM = try c.decode(Double.self, forKey: .distanceM)
+        movingS = try c.decode(Double.self, forKey: .movingS)
+        idleS = try c.decode(Double.self, forKey: .idleS)
+        maxKmh = try c.decode(Double.self, forKey: .maxKmh)
+        let t = try c.decode(TripTurns.self, forKey: .turns)
+        if let d = try c.decodeIfPresent(TripTurns.self, forKey: .dirChanges) {
+            turns = t
+            dirChanges = d
+        } else {
+            turns = TripTurns()
+            dirChanges = t
+        }
+        reroutes = try c.decode(Int.self, forKey: .reroutes)
+        measurements = try c.decode([TripMeasurement].self, forKey: .measurements)
+        jamS = try c.decode(Double.self, forKey: .jamS)
+        destination = try c.decodeIfPresent(String.self, forKey: .destination)
+        path = try c.decode([[[Double]]].self, forKey: .path)
+        samples = try c.decode(Int.self, forKey: .samples)
+    }
 }
+
+/// A navigáció manőverének kanyar-fajtája az ikonból: balra / jobbra (éles is, körforgalom-kijárat iránya), megfordulás; egyéb `nil`.
+nonisolated func maneuverTurnKind(_ icon: String) -> WritableKeyPath<TripTurns, Int>? {
+    switch icon {
+    case "left", "sharp_left", "roundabout_left": \TripTurns.left
+    case "right", "sharp_right", "roundabout_right": \TripTurns.right
+    case "uturn": \TripTurns.uTurn
+    default: nil
+    }
+}
+
+/// Az összes kanyar (B + J + U).
+nonisolated func turnsTotal(_ turns: TripTurns) -> Int { turns.left + turns.right + turns.uTurn }
 
 /// A futó út az üres nézet állapotsorához.
 nonisolated struct CruiseView: Equatable, Sendable {
@@ -198,7 +246,10 @@ nonisolated final class TripRecorder {
         var idlePendingS = 0.0
         var idleBuf: [TripSample] = []
         var maxKmh = 0.0
+        /// GPS-alapú irányváltások (mindig).
         let turns = TurnDetector()
+        /// Navigációs kanyarok (a manőverekből).
+        var maneuverTurns = TripTurns()
         var reroutes = 0
         var measurements: [TripMeasurement] = []
         var jamOnAt: Double?
@@ -225,6 +276,7 @@ nonisolated final class TripRecorder {
     private var outbox: [TripSample] = []
     private var ended: [TripEnd] = []
     private var destination: String?
+    private var nextManeuver: (icon: String, instruction: String, distanceM: Double)?
 
     init(newId: ((Double) -> String)? = nil) {
         self.newId = newId ?? { startedAt in
@@ -240,8 +292,16 @@ nonisolated final class TripRecorder {
         if fix.timestamp - lastAcceptedT < TRIP.sampleMinMs { return }
         let kmh = speedKmhOf(fix)
         lastAcceptedT = fix.timestamp
+        let before = lastFix
         lastFix = fix
-        if let r = run, fix.timestamp - r.lastT > TRIP.stopIdleS * 1000 { finish() }
+        if let r = run, fix.timestamp - r.lastT > TRIP.stopIdleS * 1000 {
+            // fix nélküli rés (háttér, GPS-kiesés, engedély-vesztés): új út csak ha az első új fix > `resumeNewTripM`-re van
+            if let from = r.prev.map({ LatLon(lat: $0.lat, lon: $0.lon) }) ?? before.map({ LatLon(lat: $0.lat, lon: $0.lon) }), haversineM(from, fix) <= TRIP.resumeNewTripM {
+                resume(r, fix)
+            } else {
+                finish()
+            }
+        }
         if let r = run {
             add(r, fix, kmh)
             return
@@ -254,15 +314,23 @@ nonisolated final class TripRecorder {
         }
     }
 
-    /// Óra-lépés fix nélkül is: a hosszú csend (nincs fix `stopIdleS`-ig) zárja az utat.
-    func tick(_ now: Double) {
-        if let r = run, now - r.lastMovingT >= TRIP.stopIdleS * 1000 { finish() }
-    }
+    /// Óra-lépés fix nélkül is (az út nem zárul csendtől – csak a felhasználó megállítása vagy egy távoli újrakezdés zárja).
+    func tick(_ now: Double) {}
 
-    /// A GPS leállt (az app leállította / a szimuláció véget ért): a futó út lezárul.
+    /// A felhasználó megállította a GPS-t: a futó út lezárul.
     func stop() {
         pending = []
         if run != nil { finish() }
+    }
+
+    /// A navigáció következő manővere (minden nézet-frissítéskor): ha a manőver kicserélődött, és az előző `maneuverPassM`-en
+    /// belül volt, teljesítettnek számít → kanyar (`maneuverTurnKind`). Újratervezés / útvonalváltás távolról nem számít.
+    func noteNextManeuver(_ m: (icon: String, instruction: String, distanceM: Double)?) {
+        let prev = nextManeuver
+        nextManeuver = m
+        guard let m, let r = run, let prev, !(m.instruction == prev.instruction && m.icon == prev.icon) else { return }
+        if prev.distanceM > TRIP.maneuverPassM { return }
+        if let kind = maneuverTurnKind(prev.icon) { r.maneuverTurns[keyPath: kind] += 1 }
     }
 
     /// Újratervezés a navigációban (a futó útba).
@@ -303,6 +371,26 @@ nonisolated final class TripRecorder {
     func drainEnded() -> [TripEnd] {
         defer { ended = [] }
         return ended
+    }
+
+    /// Rés után ugyanaz az út: a kieső idő állásidő, a rés nem táv, a vonal új darabot kezd, a kanyar-felismerés újraindul.
+    private func resume(_ r: Running, _ fix: GpsFix) {
+        let gapS = max(0, fix.timestamp - r.lastT) / 1000
+        r.idleS += r.idlePendingS + gapS
+        r.idlePendingS = 0
+        r.idleBuf = []
+        r.lastT = fix.timestamp
+        r.lastMovingT = fix.timestamp
+        r.prev = nil
+        r.turns.reset()
+        if !(r.segments.last?.isEmpty ?? true) { r.segments.append([]) }
+    }
+
+    /// A futó út pillanatképe (a naplóba mentéshez); `nil`, ha nincs vagy még rövid.
+    func snapshot() -> Trip? {
+        guard let r = run, r.distanceM >= TRIP.minTripM else { return nil }
+        let jam = r.jamOnAt.map { r.jamS + max(0, r.lastMovingT - $0) / 1000 } ?? r.jamS
+        return record(r, endedAt: r.lastMovingT, jamS: jam)
     }
 
     private func speedKmhOf(_ fix: GpsFix) -> Double? {
@@ -378,12 +466,16 @@ nonisolated final class TripRecorder {
             ended.append(.discarded(r.id))
             return
         }
+        ended.append(.saved(record(r, endedAt: endedAt, jamS: r.jamS)))
+    }
+
+    private func record(_ r: Running, endedAt: Double, jamS: Double) -> Trip {
         let path = r.segments.filter { $0.count >= 2 }.map { simplifyPath($0).map { [round6($0.lat), round6($0.lon)] } }
-        ended.append(.saved(Trip(
+        return Trip(
             id: r.id, startedAt: r.startedAt, endedAt: endedAt, distanceM: jsRound(r.distanceM), movingS: jsRound(r.movingS),
-            idleS: jsRound(r.idleS), maxKmh: jsRound(r.maxKmh * 10) / 10, turns: r.turns.turns, reroutes: r.reroutes,
-            measurements: r.measurements, jamS: jsRound(r.jamS), destination: r.destination, path: path, samples: r.samples
-        )))
+            idleS: jsRound(r.idleS), maxKmh: jsRound(r.maxKmh * 10) / 10, turns: r.maneuverTurns, dirChanges: r.turns.turns, reroutes: r.reroutes,
+            measurements: r.measurements, jamS: jsRound(jamS), destination: r.destination, path: path, samples: r.samples
+        )
     }
 }
 
@@ -418,6 +510,7 @@ nonisolated struct TripTotals: Equatable, Sendable {
     var movingS: Double
     var avgKmh: Double?
     var turns: TripTurns
+    var dirChanges: TripTurns
     var checksOk: Int
     var checksTooFast: Int
     var jamS: Double
@@ -433,6 +526,7 @@ nonisolated func tripTotals(_ trips: [Trip], _ period: TripPeriod, _ now: Double
     return TripTotals(
         trips: sel.count, distanceM: distanceM, movingS: movingS, avgKmh: tripAvgKmh(distanceM: distanceM, movingS: movingS),
         turns: TripTurns(left: sel.reduce(0) { $0 + $1.turns.left }, right: sel.reduce(0) { $0 + $1.turns.right }, uTurn: sel.reduce(0) { $0 + $1.turns.uTurn }),
+        dirChanges: TripTurns(left: sel.reduce(0) { $0 + $1.dirChanges.left }, right: sel.reduce(0) { $0 + $1.dirChanges.right }, uTurn: sel.reduce(0) { $0 + $1.dirChanges.uTurn }),
         checksOk: checks.filter { !$0.tooFast }.count, checksTooFast: checks.filter(\.tooFast).count, jamS: sel.reduce(0) { $0 + $1.jamS }
     )
 }
@@ -460,12 +554,13 @@ nonisolated func tripSpeedText(_ kmh: Double?, _ unit: SpeedUnit) -> String {
     speedIn(kmh, unit).map { "\($0) \(unitLabel(unit))" } ?? "–"
 }
 
-/// A napló sora (a dátum a platformé): cím · táv · menetidő · átlag.
-nonisolated func tripRowParts(_ trip: Trip, _ unit: SpeedUnit, lang: Lang? = nil) -> (title: String, distance: String, duration: String, avg: String) {
-    (tripTitle(trip, lang: lang), distText(trip.distanceM, unit, lang: lang), formatTripDuration(trip.movingS, lang: lang), tripSpeedText(tripAvgKmh(trip), unit))
+/// A napló sora (a dátum a platformé): cím · táv · menetidő · átlag, alatta a kanyarok és az irányváltások száma.
+nonisolated func tripRowParts(_ trip: Trip, _ unit: SpeedUnit, lang: Lang? = nil) -> (title: String, distance: String, duration: String, avg: String, turns: String) {
+    (tripTitle(trip, lang: lang), distText(trip.distanceM, unit, lang: lang), formatTripDuration(trip.movingS, lang: lang), tripSpeedText(tripAvgKmh(trip), unit),
+     t(.tripsRowTurns, ["n": "\(turnsTotal(trip.turns))", "d": "\(turnsTotal(trip.dirChanges))"], lang: lang))
 }
 
-/// A kanyarok egy sorban: „B 12 · J 9 · U 1”.
+/// A kanyarok / irányváltások egy sorban: „B 12 · J 9 · U 1”.
 nonisolated func turnsText(_ turns: TripTurns, lang: Lang? = nil) -> String {
     t(.tripsTurnsValue, ["l": "\(turns.left)", "r": "\(turns.right)", "u": "\(turns.uTurn)"], lang: lang)
 }

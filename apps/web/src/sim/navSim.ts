@@ -430,7 +430,7 @@ export function simRouteFetcher(
  * AW19: a navsim teljes vezetése (a három ablak, cél nélkül is) ezt az utat adja a naplóban – a `navSim.test.ts`, a Swift
  * `SimTests` és a nav-shots is ehhez mér. Az ablakok közti ugrás nem táv (új útvonal-darab); a kanyarok az irányból.
  */
-export const SIM_TRIP = { distanceM: 17_677, movingS: 792, idleS: 0, maxKmh: 128, turns: { left: 1, right: 3, uTurn: 0 }, pieces: 3, samples: 793 } as const;
+export const SIM_TRIP = { distanceM: 17_677, movingS: 792, idleS: 0, maxKmh: 128, turns: { left: 0, right: 0, uTurn: 0 }, dirChanges: { left: 1, right: 3, uTurn: 0 }, pieces: 3, samples: 793 } as const;
 
 /** A szimulált fix a navigáció indulása előtt: állva a kiindulópontnál. */
 export const simIdleFix = (t = Date.now()): GpsFix => ({ lat: SIM_FROM.lat, lon: SIM_FROM.lon, timestamp: t, speed: 0, accuracy: 5, heading: null });

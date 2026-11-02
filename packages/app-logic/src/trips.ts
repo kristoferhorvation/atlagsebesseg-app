@@ -46,6 +46,13 @@ export const TRIP = {
   sampleMinMs: 900,
   /** Ennél rövidebb út (m) nem kerül a naplóba. */
   minTripM: 200,
+  /** AW19-javítás 2: fix nélküli rés (ms) után új út csak akkor indul, ha az első új fix ennél messzebb (m) van az utolsó helytől… */
+  resumeNewTripM: 500,
+  /** …különben ugyanaz az út folytatódik, a kieső idő állásidő. */
+  /** A futó út pillanatképe a naplóba ennyi időnként (s) – ha az app a háttérben leáll, az út nem vész el. */
+  checkpointS: 60,
+  /** A navigáció manőverét ennyi méteren belülről „teljesítettnek” vesszük, ha a következő manőver kicserélődik. */
+  maneuverPassM: 80,
 } as const;
 
 /** Egy GPS-minta a helyi tárolóban (1 Hz). A `h3` a tároló tölti ki (web: h3-js, iOS: SwiftyH3); `null`, ha nem sikerült. */
@@ -89,7 +96,10 @@ export interface Trip {
   /** Állásidő (s): az út közbeni állás (a záró állás nem része). */
   idleS: number;
   maxKmh: number;
+  /** Kanyarok: kizárólag a navigáció manőverei (balra / jobbra / megfordulás); krúzingban 0. */
   turns: TripTurns;
+  /** Irányváltások: GPS-alapú (≥ `turnDeg` / `turnWindowS`), mindig számol. */
+  dirChanges: TripTurns;
   reroutes: number;
   measurements: TripMeasurement[];
   /** Dugóban töltött idő (s; az AW18 helyi dugó-állapotából). */
@@ -111,6 +121,30 @@ export interface CruiseView {
 }
 
 export type TripEnd = { kind: 'saved'; trip: Trip } | { kind: 'discarded'; id: string };
+
+/** A navigáció manőverének kanyar-fajtája az ikonból: balra / jobbra (éles is, körforgalom-kijárat iránya), megfordulás; egyéb `null`. */
+export function maneuverTurnKind(icon: string): keyof TripTurns | null {
+  switch (icon) {
+    case 'left':
+    case 'sharp_left':
+    case 'roundabout_left':
+      return 'left';
+    case 'right':
+    case 'sharp_right':
+    case 'roundabout_right':
+      return 'right';
+    case 'uturn':
+      return 'uTurn';
+    default:
+      return null;
+  }
+}
+
+/** Régi rekord (AW19 első változat): a `turns` GPS-alapú volt → `dirChanges`; a kanyar 0. */
+export function normalizeTrip(raw: Trip): Trip {
+  if (raw.dirChanges) return raw;
+  return { ...raw, dirChanges: { ...raw.turns }, turns: { left: 0, right: 0, uTurn: 0 } };
+}
 
 /** Előjeles irányváltás `from` → `to` (°, −180…180; pozitív = jobbra). */
 export function headingDelta(to: number, from: number): number {
@@ -240,7 +274,10 @@ interface Running {
   idlePendingS: number;
   idleBuf: TripSample[];
   maxKmh: number;
+  /** GPS-alapú irányváltások (mindig). */
   turns: TurnDetector;
+  /** Navigációs kanyarok (a manőverekből). */
+  maneuverTurns: TripTurns;
   reroutes: number;
   measurements: TripMeasurement[];
   jamOnAt: number | null;
@@ -273,6 +310,7 @@ export class TripRecorder {
   private outbox: TripSample[] = [];
   private ended: TripEnd[] = [];
   private destination: string | null = null;
+  private nextManeuver: { icon: string; instruction: string; distanceM: number } | null = null;
 
   constructor(opts: TripRecorderOptions = {}) {
     this.newId = opts.newId ?? defaultId;
@@ -284,9 +322,15 @@ export class TripRecorder {
     const fix = Number.isInteger(input.timestamp) ? input : { ...input, timestamp: Math.round(input.timestamp) };
     if (fix.timestamp - this.lastAcceptedT < TRIP.sampleMinMs) return;
     const kmh = this.speedKmhOf(fix);
+    const before = this.lastFix;
     this.lastAcceptedT = fix.timestamp;
     this.lastFix = fix;
-    if (this.run && fix.timestamp - this.run.lastT > TRIP.stopIdleS * 1000) this.finish();
+    if (this.run && fix.timestamp - this.run.lastT > TRIP.stopIdleS * 1000) {
+      // fix nélküli rés (háttér, GPS-kiesés, engedély-vesztés): új út csak ha az első új fix > `resumeNewTripM`-re van
+      const from = this.run.prev ?? before;
+      if (!from || haversineM(from, fix) > TRIP.resumeNewTripM) this.finish();
+      else this.resume(this.run, fix);
+    }
     if (this.run) {
       this.add(this.run, fix, kmh);
       return;
@@ -297,15 +341,26 @@ export class TripRecorder {
     } else this.pending = [];
   }
 
-  /** Óra-lépés fix nélkül is: a hosszú csend (nincs fix `stopIdleS`-ig) zárja az utat. */
-  tick(now: number): void {
-    if (this.run && now - this.run.lastMovingT >= TRIP.stopIdleS * 1000) this.finish();
-  }
+  /** Óra-lépés fix nélkül is (az út nem zárul csendtől – csak a felhasználó megállítása vagy egy távoli újrakezdés zárja). */
+  tick(_now: number): void {}
 
-  /** A GPS leállt (az app leállította / háttérbe ment): a futó út lezárul. */
+  /** A felhasználó megállította a GPS-t: a futó út lezárul. */
   stop(): void {
     this.pending = [];
     if (this.run) this.finish();
+  }
+
+  /**
+   * A navigáció következő manővere (minden nézet-frissítéskor): ha a manőver kicserélődött, és az előző `maneuverPassM`-en
+   * belül volt, teljesítettnek számít → kanyar (`maneuverTurnKind`). Újratervezés / útvonalváltás távolról nem számít.
+   */
+  noteNextManeuver(m: { icon: string; instruction: string; distanceM: number } | null): void {
+    const prev = this.nextManeuver;
+    this.nextManeuver = m;
+    if (!m || !this.run || !prev || (m.instruction === prev.instruction && m.icon === prev.icon)) return;
+    if (prev.distanceM > TRIP.maneuverPassM) return;
+    const kind = maneuverTurnKind(prev.icon);
+    if (kind) this.run.maneuverTurns[kind]++;
   }
 
   /** Újratervezés a navigációban (a futó útba). */
@@ -355,6 +410,26 @@ export class TripRecorder {
     return out;
   }
 
+  /** Rés után ugyanaz az út: a kieső idő állásidő, a rés nem táv, a vonal új darabot kezd, a kanyar-felismerés újraindul. */
+  private resume(r: Running, fix: GpsFix): void {
+    const gapS = Math.max(0, fix.timestamp - r.lastT) / 1000;
+    r.idleS += r.idlePendingS + gapS;
+    r.idlePendingS = 0;
+    r.idleBuf = [];
+    r.lastT = fix.timestamp;
+    r.lastMovingT = fix.timestamp;
+    r.prev = null;
+    r.turns.reset();
+    if (r.segments.at(-1)!.length > 0) r.segments.push([]);
+  }
+
+  /** A futó út pillanatképe (a naplóba mentéshez); `null`, ha nincs vagy még rövid. */
+  snapshot(): Trip | null {
+    const r = this.run;
+    if (!r || r.distanceM < TRIP.minTripM) return null;
+    return this.record(r, r.lastMovingT, r.jamOnAt === null ? r.jamS : r.jamS + Math.max(0, r.lastMovingT - r.jamOnAt) / 1000, false);
+  }
+
   private speedKmhOf(fix: GpsFix): number | null {
     if (fix.speed !== null && fix.speed >= 0) return fix.speed * 3.6;
     const p = this.lastFix;
@@ -377,6 +452,7 @@ export class TripRecorder {
       idleBuf: [],
       maxKmh: 0,
       turns: new TurnDetector(),
+      maneuverTurns: { left: 0, right: 0, uTurn: 0 },
       reroutes: 0,
       measurements: [],
       jamOnAt: null,
@@ -453,28 +529,29 @@ export class TripRecorder {
       this.ended.push({ kind: 'discarded', id: r.id });
       return;
     }
-    const path = r.segments
-      .filter((s) => s.length >= 2)
-      .map((s) => simplifyPath(s).map((p): [number, number] => [round6(p.lat), round6(p.lon)]));
-    this.ended.push({
-      kind: 'saved',
-      trip: {
-        id: r.id,
-        startedAt: r.startedAt,
-        endedAt,
-        distanceM: Math.round(r.distanceM),
-        movingS: Math.round(r.movingS),
-        idleS: Math.round(r.idleS),
-        maxKmh: Math.round(r.maxKmh * 10) / 10,
-        turns: { ...r.turns.turns },
-        reroutes: r.reroutes,
-        measurements: r.measurements,
-        jamS: Math.round(r.jamS),
-        destination: r.destination,
-        path,
-        samples: r.samples,
-      },
-    });
+    this.ended.push({ kind: 'saved', trip: this.record(r, endedAt, r.jamS, true) });
+  }
+
+  private record(r: Running, endedAt: number, jamS: number, final: boolean): Trip {
+    const segments = final ? r.segments : r.segments.map((s) => [...s]);
+    const path = segments.filter((s) => s.length >= 2).map((s) => simplifyPath(s).map((p): [number, number] => [round6(p.lat), round6(p.lon)]));
+    return {
+      id: r.id,
+      startedAt: r.startedAt,
+      endedAt,
+      distanceM: Math.round(r.distanceM),
+      movingS: Math.round(r.movingS),
+      idleS: Math.round(r.idleS),
+      maxKmh: Math.round(r.maxKmh * 10) / 10,
+      turns: { ...r.maneuverTurns },
+      dirChanges: { ...r.turns.turns },
+      reroutes: r.reroutes,
+      measurements: [...r.measurements],
+      jamS: Math.round(jamS),
+      destination: r.destination,
+      path,
+      samples: r.samples,
+    };
   }
 }
 
@@ -503,6 +580,7 @@ export interface TripTotals {
   movingS: number;
   avgKmh: number | null;
   turns: TripTurns;
+  dirChanges: TripTurns;
   checksOk: number;
   checksTooFast: number;
   jamS: number;
@@ -522,6 +600,7 @@ export function tripTotals(trips: readonly Trip[], period: TripPeriod, now: numb
     movingS,
     avgKmh: tripAvgKmh({ distanceM, movingS }),
     turns: { left: sum((x) => x.turns.left), right: sum((x) => x.turns.right), uTurn: sum((x) => x.turns.uTurn) },
+    dirChanges: { left: sum((x) => x.dirChanges.left), right: sum((x) => x.dirChanges.right), uTurn: sum((x) => x.dirChanges.uTurn) },
     checksOk: checks.filter((m) => !m.tooFast).length,
     checksTooFast: checks.filter((m) => m.tooFast).length,
     jamS: sum((x) => x.jamS),
@@ -554,9 +633,10 @@ export function tripSpeedText(kmh: number | null, unit: SpeedUnit): string {
   return v === null ? '–' : `${Math.round(v)} ${unitLabel(unit)}`;
 }
 
-/** A napló sora (a dátum a platformé): cím · táv · menetidő · átlag. */
-export function tripRowParts(trip: Trip, unit: SpeedUnit): { title: string; distance: string; duration: string; avg: string } {
+/** A napló sora (a dátum a platformé): cím · táv · menetidő · átlag, alatta a kanyarok és az irányváltások száma. */
+export function tripRowParts(trip: Trip, unit: SpeedUnit): { title: string; distance: string; duration: string; avg: string; turns: string } {
   return {
+    turns: t('trips.rowTurns', { n: turnsTotal(trip.turns), d: turnsTotal(trip.dirChanges) }),
     title: tripTitle(trip),
     distance: distText(trip.distanceM, unit),
     duration: formatTripDuration(trip.movingS),
@@ -564,8 +644,11 @@ export function tripRowParts(trip: Trip, unit: SpeedUnit): { title: string; dist
   };
 }
 
-/** A kanyarok egy sorban: „B 12 · J 9 · U 1”. */
+/** A kanyarok / irányváltások egy sorban: „B 12 · J 9 · U 1”. */
 export const turnsText = (turns: TripTurns): string => t('trips.turnsValue', { l: turns.left, r: turns.right, u: turns.uTurn });
+
+/** Az összes kanyar (B + J + U). */
+export const turnsTotal = (turns: TripTurns): number => turns.left + turns.right + turns.uTurn;
 
 /** Szakaszmérések: „3 rendben · 1 túl gyors”. */
 export const checksText = (ok: number, tooFast: number): string => t('trips.checksValue', { ok, fast: tooFast });

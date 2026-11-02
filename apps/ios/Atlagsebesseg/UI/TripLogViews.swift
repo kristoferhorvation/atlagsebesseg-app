@@ -57,6 +57,7 @@ struct TripLogView: View {
                         stat(t(.tripsStatCount), String(totals.trips))
                         stat(t(.tripsStatAvg), tripSpeedText(totals.avgKmh, unit))
                         stat(t(.tripsStatTurns), turnsText(totals.turns))
+                        stat(t(.tripsStatDirChanges), turnsText(totals.dirChanges))
                         stat(t(.tripsStatChecks), checksText(totals.checksOk, totals.checksTooFast))
                         stat(t(.tripsStatJam), tripDurationText(totals.jamS))
                     }
@@ -127,6 +128,7 @@ struct TripRowView: View {
                 Text(tripDateText(trip.startedAt)).font(.inter(14, 520)).foregroundStyle(Tokens.Colors.textMuted)
                 Text(p.title).font(.inter(17, 600)).foregroundStyle(Tokens.Colors.text).lineLimit(1)
                 Text("\(p.distance) · \(p.duration) · \(p.avg)").font(.num(15, 560)).foregroundStyle(Tokens.Colors.textMuted)
+                Text(p.turns).font(.num(15, 560)).foregroundStyle(Tokens.Colors.textMuted)
             }
             Spacer(minLength: Tokens.Space.s2)
             Image(systemName: "chevron.right").font(.footnote).foregroundStyle(Tokens.Colors.textFaint)
@@ -151,9 +153,11 @@ struct TripDetailView: View {
             (t(.tripsDAvg), tripSpeedText(tripAvgKmh(trip), unit)),
             (t(.tripsDMax), tripSpeedText(trip.maxKmh, unit)),
             (t(.tripsDTurns), turnsText(trip.turns)),
+            (t(.tripsDDirChanges), turnsText(trip.dirChanges)),
             (t(.tripsDReroutes), String(trip.reroutes)),
             (t(.tripsDJam), tripDurationText(trip.jamS)),
         ]
+        ScrollViewReader { proxy in
         List {
             SwiftUI.Section {
                 TripMapView(trip: trip, preset: model.tripMapPreset)
@@ -161,7 +165,7 @@ struct TripDetailView: View {
                     .listRowInsets(EdgeInsets())
             }
             SwiftUI.Section {
-                ForEach(rows, id: \.0) { r in LabeledContent(r.0, value: r.1) }
+                ForEach(rows, id: \.0) { r in LabeledContent(r.0, value: r.1).id(r.0) }
             }
             SwiftUI.Section(t(.tripsDChecks)) {
                 if trip.measurements.isEmpty {
@@ -185,6 +189,12 @@ struct TripDetailView: View {
             }
         }
         .scrollContentBackground(.hidden)
+        // `-tripScroll YES` (képernyőkép): a számok sora legalul látszik (a két számláló a lap alsó felén van)
+        .onAppear {
+            guard UserDefaults.standard.bool(forKey: "tripScroll") else { return }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { proxy.scrollTo(t(.tripsDJam), anchor: .bottom) }
+        }
+        }
         .navigationTitle(tripTitle(trip))
         .navigationBarTitleDisplayMode(.inline)
     }

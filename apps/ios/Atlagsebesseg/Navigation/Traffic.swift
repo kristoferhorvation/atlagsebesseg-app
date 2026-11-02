@@ -221,3 +221,43 @@ nonisolated func jamQueryBBox(_ route: NavRoute, _ alongM: Double, aheadM: Doubl
 
 /// Az alsó sáv borostyán felirata: „+N perc dugó”.
 nonisolated func trafficDelayLabel(_ min: Int, lang: Lang? = nil) -> String { t(.navDelay, ["n": String(min)], lang: lang) }
+
+// MARK: AW19-javítás 2: a dugós ETA horizontja
+
+/// A mért dugó-átlag érvényességi szakasza az útvonalon (m); `linear`: nincs congestion-adat, a tempó átmegy a tervezettbe.
+nonisolated struct JamRun: Equatable, Sendable {
+    var startM: Double
+    var endM: Double
+    var linear: Bool
+}
+
+/// Az előttünk lévő dugós szakasz: a Directions congestion-annotációjában az első heavy / severe összefüggő szakasz, a
+/// pozíciónktól legfeljebb `jamAheadMaxM`-ig. Congestion-adat nélkül (minden szakasz `unknown`) a következő `jamNoDataMaxM`.
+/// `nil`: az annotáció szerint nincs dugó előttünk.
+nonisolated func jamAheadRun(_ route: NavRoute, _ alongM: Double) -> JamRun? {
+    let n = route.segCongestion.count
+    func end(_ i: Int) -> Double { i + 1 < route.segStartM.count ? route.segStartM[i + 1] : route.distanceM }
+    if !route.segCongestion.contains(where: { $0 != .unknown }) {
+        let endM = min(route.distanceM, alongM + TRAFFIC.jamNoDataMaxM)
+        return endM > alongM ? JamRun(startM: alongM, endM: endM, linear: true) : nil
+    }
+    func heavy(_ i: Int) -> Bool { route.segCongestion[i] == .heavy || route.segCongestion[i] == .severe }
+    let limit = min(route.distanceM, alongM + TRAFFIC.jamAheadMaxM)
+    var i = segmentAt(route, alongM)
+    while i < n, !heavy(i), end(i) < limit { i += 1 }
+    guard i < n, heavy(i) else { return nil }
+    let startM = max(alongM, route.segStartM[i])
+    var j = i
+    while j + 1 < n, heavy(j + 1) { j += 1 }
+    let endM = min(end(j), limit)
+    return endM > startM ? JamRun(startM: startM, endM: endM, linear: false) : nil
+}
+
+/// A mért tempó (`avgMps`) miatti többletidő (s) a `run` szakaszon, a tervezett idő (`plannedS`) fölött: dugós szakaszon végig a
+/// mért átlag; `linear` esetben a tempó a mértről lineárisan a tervezettre vált (a tempó-reciprok átlaga).
+nonisolated func jamExtraS(_ run: JamRun, avgMps: Double, plannedS: Double) -> Double {
+    let d = run.endM - run.startM
+    let v = max(avgMps, TRAFFIC.jamMinKmh / 3.6)
+    let slow = d / v
+    return max(0, run.linear ? (slow - plannedS) / 2 : slow - plannedS)
+}

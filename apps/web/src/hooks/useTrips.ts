@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { measurementName, TripRecorder, type CruiseView, type NavView, type SessionView } from '@atlagsebesseg/app-logic';
+import { measurementName, TRIP, TripRecorder, type CruiseView, type NavView, type SessionView } from '@atlagsebesseg/app-logic';
 import type { GpsFix } from '@atlagsebesseg/core';
 import { addSamples, deleteSamples, saveTrip } from '../trips/tripStore';
 
@@ -39,11 +39,21 @@ export function useTrips(now: () => number, nav: NavView | null, view: SessionVi
     },
     [rec, pump],
   );
+  /** A futó út pillanatképe a naplóba (az út nyitva marad) – ha az app a háttérben leáll, az út nem vész el. */
+  const checkpoint = useCallback(() => {
+    const snap = rec.snapshot();
+    if (snap) queue.current = queue.current.then(() => saveTrip(snap)).then(() => setVersion((v) => v + 1)).catch((e: unknown) => console.warn('[trips] checkpoint failed', e));
+  }, [rec]);
+  const lastCheckpoint = useRef(0);
   const tick = useCallback(() => {
     rec.tick(now());
     pump();
-  }, [rec, now, pump]);
-  /** A GPS leállt (háttér, a szimuláció vége): a futó út lezárul. */
+    if (now() - lastCheckpoint.current >= TRIP.checkpointS * 1000) {
+      lastCheckpoint.current = now();
+      checkpoint();
+    }
+  }, [rec, now, pump, checkpoint]);
+  /** A felhasználó megállította a GPS-t (a szimuláció vége): a futó út lezárul. Háttérbe kerüléstől NEM. */
   const stop = useCallback(() => {
     rec.stop();
     pump();
@@ -58,6 +68,12 @@ export function useTrips(now: () => number, nav: NavView | null, view: SessionVi
   }, [rec, rerouting]);
   const jam = nav?.jam ?? false;
   useEffect(() => rec.noteJam(jam, now()), [rec, jam, now]);
+
+  // a navigáció következő manővere: a teljesített manőverek adják a kanyarokat (krúzingban nincs → 0)
+  const next = nav?.next ?? null;
+  useEffect(() => {
+    rec.noteNextManeuver(next ? { icon: next.icon, instruction: next.instruction, distanceM: next.distanceM } : null);
+  }, [rec, next?.icon, next?.instruction, next?.distanceM]);
 
   // a befejezett szakaszmérés (egyszer eredményenként)
   const result = view.phase === 'befejezve' ? view.result : null;
@@ -77,5 +93,5 @@ export function useTrips(now: () => number, nav: NavView | null, view: SessionVi
     });
   }, [rec, result, view.section]);
 
-  return { cruise, version, onFix, tick, stop };
+  return { cruise, version, onFix, tick, stop, checkpoint };
 }

@@ -8,7 +8,7 @@ import { ALT_OFFER, CAMERA_ALERT, NAV_CONFIG, type NavConfig } from './config';
 import { limitAt } from './directions';
 import { adjustedDurations, cumulative, firstNewManeuver, NO_ENFORCEMENT_DATA, remainingSeconds, routeEnforcement, routeOverlap, type EnforcementData } from './enforcement';
 import { maneuverIcon, type ManeuverIcon } from './maneuver';
-import { applyCommunityJams, JamDetector, jamSample, rerouteRetryDelayMs, routeErrorKind, TRAFFIC, type CommunityJam, type JamSampleInsert } from './traffic';
+import { applyCommunityJams, JamDetector, jamAheadRun, jamExtraS, jamSample, rerouteRetryDelayMs, routeErrorKind, TRAFFIC, type CommunityJam, type JamSampleInsert } from './traffic';
 import { routeTarget, type EnforcementItem, type NavDestination, type NavRoute, type NavStep } from './types';
 
 export type VoiceKind = 'instruction' | 'section' | 'tooFast' | 'reroute' | 'faster' | 'traffic';
@@ -698,18 +698,25 @@ export class NavigationSession {
   }
 
   /**
-   * A hátralévő idő (s). AW18: dugóban a helyi becslés is – a következő manőverig (legfeljebb `jamAheadMaxM`) a 2 perces mért
-   * átlaggal, onnan a tervezett idővel; a Mapbox-alapú és a helyi közül a nagyobb.
+   * A hátralévő idő (s). Dugóban a helyi becslés is: a mért 2 perces átlag csak az előttünk lévő, congestion-annotáció szerinti
+   * heavy / severe szakaszra számít (legfeljebb `jamAheadMaxM`; adat nélkül `jamNoDataMaxM`, a tempó lineárisan átmegy a
+   * tervezettbe), a többi a tervezett idő. A dugó-állapot végén azonnal a tervezett idők.
    */
   private remainingS(): number {
     const base = this.trafficRemainingS(this.along);
     const avg = this.jamDetector.avgMps;
     if (!this.jamDetector.active || avg === null) return base;
-    const step = this.route.steps[this.stepIndex()];
-    const toManeuver = step ? Math.max(0, step.startM + step.distanceM - this.along) : 0;
-    const d = Math.min(toManeuver, TRAFFIC.jamAheadMaxM, this.route.distanceM - this.along);
-    const local = d / Math.max(avg, TRAFFIC.jamMinKmh / 3.6) + this.trafficRemainingS(this.along + d);
-    return Math.max(base, local);
+    // a friss forgalmi útvonal annotációja az aktuális; a koordináták az ő kezdőpontjától mérve
+    const f = this.fresh;
+    const useFresh = f !== null && f.version === this.routeVersion && this.along >= f.fromAlongM - 50;
+    const ref = useFresh ? f.route : this.route;
+    const off = useFresh ? f.fromAlongM : 0;
+    const run = jamAheadRun(ref, Math.max(0, this.along - off));
+    if (!run) return base;
+    const a = run.startM + off;
+    const b = run.endM + off;
+    const planned = this.trafficRemainingS(a) - this.trafficRemainingS(b);
+    return base + jamExtraS(run, avg, planned);
   }
 
   /** A várt tempó (m/s) a helyen: a Directions nyers ideje ±250 m-en. */

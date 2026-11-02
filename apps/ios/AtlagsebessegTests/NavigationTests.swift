@@ -2247,23 +2247,66 @@ struct AW18JamTests {
         #expect(rep.first?.length_m == Int(TRAFFIC.reportedLengthM))
     }
 
-    @Test("dugóban az ETA a mért átlaggal a következő manőverig, onnan a tervezett idővel; a nagyobb késés számít")
+    @Test("dugóban az ETA a mért átlaggal csak a congestion szerinti heavy szakaszra, onnan a tervezett idővel; a nagyobb késés számít")
     func dugoEta() async {
-        let route = lineRoute() // 10 km, 360 s, 1 km-es lépések
+        var route = lineRoute() // 10 km, 360 s, 1 km-es lépések
+        route.segCongestion = route.segCongestion.indices.map { $0 < 15 ? .heavy : .low } // az első 1,5 km dugós
         let h = Harness(route, voice: false)
         // csak a helyi becslés (a 2 perces Mapbox-lekérés most nem ad választ)
         h.fail(URLError(.notConnectedToInternet))
         await drive(h, route, fromS: 0, toS: 125, alongM: 0, mps: 2)
         let v = h.session.view()
         #expect(v.jam)
-        // 250 m-nél: a következő manőverig (1000 m) 750 m / 2 m/s = 375 s, onnan a terv: 9 km → 324 s
-        #expect(close(v.remainingS, 375 + 324, -1))
-        // késés: 125 s + 699 s − 360 s ≈ 464 s → 8 perc
-        #expect(v.delayMin == 8)
+        // 250 m-nél: a dugós szakasz még 1250 m / 2 m/s = 625 s (terv: 45 s), onnan a terv: 8,5 km → 306 s
+        #expect(close(v.remainingS, 625 + 306, -1))
+        // késés: 125 s + ~931 s − 360 s ≈ 696 s → 12 perc
+        #expect(v.delayMin == 12)
         // dugó közben 2 percenként új közösségi minta
         #expect(h.session.drainJamSamples().map(\.kind) == [.erzekelt])
         await drive(h, route, fromS: 126, toS: 246, alongM: 252, mps: 2)
         #expect(h.session.drainJamSamples().map(\.kind) == [.erzekelt])
+    }
+
+    @Test("7,5 km egyenes, az első 1,5 km dugós: az ETA legfeljebb a dugós szakasz lassulásával nő, nem duplázódik")
+    func dugoEtaHorizont() async {
+        var route = lineRoute(lengthM: 7500, durationS: 300)
+        route.segCongestion = route.segCongestion.indices.map { $0 < 15 ? .severe : .low }
+        let h = Harness(route, voice: false)
+        h.fail(URLError(.notConnectedToInternet))
+        await drive(h, route, fromS: 0, toS: 125, alongM: 0, mps: 2)
+        let v = h.session.view()
+        #expect(v.jam)
+        // 250 m-nél: 1250 m dugó 2 m/s-mal (625 s) + a hátralévő 6 km terv szerint (240 s)
+        #expect(close(v.remainingS, 625 + 240, -1))
+        // a terv 290 s volt: a növekmény a dugós szakasz ideje, nem a 7,25 km-é (3625 s)
+        #expect((v.remainingS ?? 0) < 290 + 1500 / 2)
+    }
+
+    @Test("congestion-adat nélkül a mért átlag legfeljebb 1 km-ig számít, a tempó lineárisan átmegy a tervezettbe")
+    func dugoEtaAdatNelkul() async {
+        var route = lineRoute(lengthM: 7500, durationS: 300)
+        route.segCongestion = route.segCongestion.map { _ in .unknown }
+        let h = Harness(route, voice: false)
+        h.fail(URLError(.notConnectedToInternet))
+        await drive(h, route, fromS: 0, toS: 125, alongM: 0, mps: 2)
+        let v = h.session.view()
+        #expect(v.jam)
+        // 1 km: lassú 500 s, terv 40 s → +(500−40)/2 = 230 s a 290 s fölé
+        #expect(close(v.remainingS, 290 + 230, -1))
+    }
+
+    @Test("a dugó-állapot végén azonnal a tervezett idők")
+    func dugoVegeTervezett() async {
+        var route = lineRoute(lengthM: 7500, durationS: 300)
+        route.segCongestion = route.segCongestion.indices.map { $0 < 15 ? .heavy : .low }
+        let h = Harness(route, voice: false)
+        h.fail(URLError(.notConnectedToInternet))
+        let along = await drive(h, route, fromS: 0, toS: 125, alongM: 0, mps: 2)
+        #expect(h.session.view().jam)
+        _ = await drive(h, route, fromS: 126, toS: 150, alongM: along + 26, mps: 26)
+        let v = h.session.view()
+        #expect(!v.jam)
+        #expect(close(v.remainingS, (300 * (7500 - 250 - 26 * 25)) / 7500, -1))
     }
 }
 

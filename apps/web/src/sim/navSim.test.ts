@@ -94,7 +94,7 @@ describe('navigációs szimulátor: gyorsabb út kategóriánként (AW12)', () =
 
 // AW19: a navsim-vezetés az utak naplójában (a Swift-pár: SimTests.swift, azonos névvel; a nav-shots a böngészőben is ezt méri)
 describe('AW19: utak naplója a szimulátorból', () => {
-  it('Budapest → Győr: a teljes navsim-vezetés egy út a naplóban (17,7 km, 3 darab, B 1 · J 3)', () => {
+  it('Budapest → Győr: a teljes navsim-vezetés egy út a naplóban (17,7 km, 3 darab, irányváltás B 1 · J 3, kanyar 0)', () => {
     const d = buildNavSim(0);
     const rec = new TripRecorder({ newId: () => 'sim' });
     for (const s of d.samples) if (!s.dropped) rec.onFix(s.fix);
@@ -103,7 +103,7 @@ describe('AW19: utak naplója a szimulátorból', () => {
     const trip = end?.kind === 'saved' ? end.trip : null;
     expect(trip).not.toBeNull();
     // az ablakok közti ugrás nem táv: a három ablak hossza (~4,7 + 10,2 + 2,6 km) és három útvonal-darab
-    expect({ distanceM: trip!.distanceM, movingS: trip!.movingS, idleS: trip!.idleS, maxKmh: trip!.maxKmh, turns: trip!.turns, pieces: trip!.path.length, samples: trip!.samples }).toEqual(
+    expect({ distanceM: trip!.distanceM, movingS: trip!.movingS, idleS: trip!.idleS, maxKmh: trip!.maxKmh, turns: trip!.turns, dirChanges: trip!.dirChanges, pieces: trip!.path.length, samples: trip!.samples }).toEqual(
       SIM_TRIP,
     );
   });

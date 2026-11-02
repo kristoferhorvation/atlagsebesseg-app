@@ -236,16 +236,17 @@ function Drive({ map }: { map: WebMapAdapter }) {
   }, [session.tick]);
 
   // Háttérbe kerülés: a mérés tisztán megszakad (nincs GPS a háttérben → nem becsülünk tovább).
+  // AW19 javítás 2: az út és a navigáció NEM zárul – az út pillanatképe a naplóba kerül (ha az app a háttérben leáll, ne vesszen el),
+  // visszatéréskor friss pozícióval folytatódik, a kieső idő állásidő.
   useEffect(() => {
-    // AW19: háttérben nincs GPS – a futó út is lezárul (a következő mozgás újat kezd)
     const onHide = () => {
       if (document.visibilityState !== 'hidden') return;
       session.interrupt();
-      tripsRef.current?.stop();
+      tripsRef.current?.checkpoint();
     };
     const onPageHide = () => {
       session.interrupt();
-      tripsRef.current?.stop();
+      tripsRef.current?.checkpoint();
     };
     document.addEventListener('visibilitychange', onHide);
     window.addEventListener('pagehide', onPageHide);

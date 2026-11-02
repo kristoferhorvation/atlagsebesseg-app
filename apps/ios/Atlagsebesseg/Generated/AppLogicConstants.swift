@@ -85,7 +85,8 @@ nonisolated enum TRAFFIC {
     static let jamNearFraction = 0.8
     static let jamClearM = 500.0
     static let jamPromptMs = 15000.0
-    static let jamAheadMaxM = 3000.0
+    static let jamAheadMaxM = 2000.0
+    static let jamNoDataMaxM = 1000.0
     static let jamMinKmh = 5.0
     static let jamUploadMs = 120000.0
     static let communityMaxAgeMs = 900000.0
@@ -116,6 +117,9 @@ nonisolated enum TRIP {
     static let h3Res = 10.0
     static let sampleMinMs = 900.0
     static let minTripM = 200.0
+    static let resumeNewTripM = 500.0
+    static let checkpointS = 60.0
+    static let maneuverPassM = 80.0
 }
 /// A megszólítás (AOS14) legfeljebb ennyi karakter.
 nonisolated let MEGSZOLITAS_MAX = 24

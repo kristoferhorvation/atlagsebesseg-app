@@ -27,6 +27,8 @@ struct AtlagsebessegApp: App {
             // AOS15-javítás: a lejárt / hiányzó Live Activity előtérben újraindul
             .onChange(of: scenePhase) { _, phase in
                 if phase == .active { model.appBecameActive() }
+                // AW19 javítás 2: háttérbe kerüléskor az út NEM zárul – pillanatkép a naplóba (ha az app leáll, ne vesszen el)
+                if phase == .background { model.checkpointTrip() }
             }
         }
     }
