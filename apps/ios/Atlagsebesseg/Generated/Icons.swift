@@ -19,6 +19,8 @@ enum IconName: String, CaseIterable, Sendable {
     case kapu_kezdo
     case kapu_zaro
     case check
+    case chevronRight
+    case chevronLeft
     case approx
     case arrowUp
     case arrowDown
@@ -248,6 +250,14 @@ extension IconName {
             p.move(to: CGPoint(x: 5, y: 12.5))
             p.addLine(to: CGPoint(x: 9.5, y: 17))
             p.addLine(to: CGPoint(x: 19, y: 7.5))
+        case .chevronRight:
+            p.move(to: CGPoint(x: 9, y: 5.5))
+            p.addLine(to: CGPoint(x: 15.5, y: 12))
+            p.addLine(to: CGPoint(x: 9, y: 18.5))
+        case .chevronLeft:
+            p.move(to: CGPoint(x: 15, y: 5.5))
+            p.addLine(to: CGPoint(x: 8.5, y: 12))
+            p.addLine(to: CGPoint(x: 15, y: 18.5))
         case .approx:
             p.move(to: CGPoint(x: 5, y: 9.5))
             p.addCurve(to: CGPoint(x: 12, y: 9.5), control1: CGPoint(x: 7.3, y: 7.5), control2: CGPoint(x: 9.7, y: 7.5))

@@ -8,6 +8,8 @@ import SwiftUI
 struct SettingsSheet: View {
     @Bindable var model: AppModel
     @Environment(\.dismiss) private var dismiss
+    /// AW19: az utak naplója nyitva (`-settingsOpen trips`: rögtön, a képernyőképhez).
+    @State private var tripsOpen = UserDefaults.standard.string(forKey: "settingsOpen") == "trips"
 
     var body: some View {
         NavigationStack {
@@ -89,6 +91,17 @@ struct SettingsSheet: View {
                         Text(voiceInstructionsHint(voiceAvailability)).font(.footnote).foregroundStyle(Tokens.Colors.textMuted)
                     }
                     .id(Self.voiceAnchor)
+                    // AW19: az utak naplója – egy sor a Mentett helyek fölött
+                    SwiftUI.Section {
+                        Button { tripsOpen = true } label: {
+                            HStack {
+                                Text(t(.tripsTitle)).foregroundStyle(Tokens.Colors.text)
+                                Spacer(minLength: Tokens.Space.s2)
+                                Image(systemName: "chevron.right").font(.footnote.weight(.semibold)).foregroundStyle(Tokens.Colors.textFaint)
+                            }
+                            .contentShape(Rectangle())
+                        }
+                    }
                     SwiftUI.Section(t(.settingsGroupPlaces)) {
                         slotRow(t(.navPlaceHome), model.saved.home, .home)
                         slotRow(t(.navPlaceWork), model.saved.work, .work)
@@ -129,6 +142,7 @@ struct SettingsSheet: View {
                     }
                 }
                 .scrollContentBackground(.hidden)
+                .navigationDestination(isPresented: $tripsOpen) { TripLogView(model: model) }
                 .onAppear {
                     // `-settingsOpen language|voice`: a nyelvválasztóhoz / a hangos utasításokhoz görget (a képernyőképhez)
                     switch UserDefaults.standard.string(forKey: "settingsOpen") {

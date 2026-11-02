@@ -233,6 +233,7 @@ extension AppModel {
         s.dispose()
         navSession = nil
         nav = nil
+        syncTripNav()
         lastJamFetchAt = nil
         updateManualPill()
         routeData = .none
@@ -286,6 +287,7 @@ extension AppModel {
         guard let s = navSession else { return }
         let camBefore = nav?.cameraNear?.item.id
         nav = s.view()
+        syncTripNav()
         uploadJamSamples(s)
         updateManualPill()
         // AW12: a közeli kamera borostyán sávja mellé egyetlen rezgés (a „ki” jelzés-módban nincs)

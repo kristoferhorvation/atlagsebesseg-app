@@ -887,6 +887,26 @@ select:focus-visible {
   z-index: 2;
 }
 
+/* AW19: a krúzing-út halvány állapotsora a köszöntés alatt („Krúzing · 12,4 km · 23 perc”) */
+.cruise-status {
+  position: absolute;
+  top: calc(env(safe-area-inset-top) + 40px + var(--size-round-button) + 8px + 52px);
+  left: max(12px, env(safe-area-inset-left));
+  max-width: calc(100% - 24px);
+  padding: 5px 12px;
+  border-radius: var(--radius-pill);
+  font-size: 15px;
+  font-weight: 560;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text-muted);
+  opacity: 0.85;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  pointer-events: none;
+  z-index: 2;
+}
+
 .pill {
   pointer-events: auto;
   height: 36px;
@@ -2566,4 +2586,158 @@ button.nav-reroute {
   .hero {
     font-size: 176px;
   }
+}
+
+/* ---------- AW19: utak naplója ---------- */
+
+/* a Beállításokban egy sor a Mentett helyek fölött */
+.trips-entry {
+  margin-top: 18px;
+}
+
+.list-row.nav-row {
+  width: 100%;
+  text-align: left;
+  color: inherit;
+}
+
+.list-row.nav-row svg {
+  color: var(--color-text-faint);
+}
+
+/* összesítő kártya: időszakváltó + számok */
+.trip-stats {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 16px;
+  border-radius: var(--radius-tile);
+  background: var(--color-surface-raised);
+  border: 1px solid var(--color-stroke);
+}
+
+.trip-stats .segmented {
+  display: flex;
+}
+
+.trip-stats .segmented button {
+  flex: 1;
+  padding: 0 8px;
+}
+
+.trip-stat-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px 16px;
+}
+
+.trip-stat-label {
+  font-size: 13px;
+  font-weight: 560;
+  color: var(--color-text-muted);
+}
+
+.trip-stat-value {
+  font-size: 17px;
+  font-weight: 620;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.trip-stat[data-big='true'] .trip-stat-value {
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.trip-list {
+  margin-top: 14px;
+}
+
+.trip-row {
+  padding: 0 12px 0 0;
+  touch-action: pan-y;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.trip-row-main {
+  flex: 1;
+  min-width: 0;
+  text-align: left;
+  color: inherit;
+  padding: 12px 0 12px 16px;
+  -webkit-touch-callout: none;
+}
+
+.trip-row-main .hint {
+  margin-top: 0;
+}
+
+.trip-row-main .label {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.trip-row-nums {
+  font-size: 15px;
+  color: var(--color-text-muted);
+  font-variant-numeric: tabular-nums;
+  margin-top: 2px;
+}
+
+.trip-row > svg {
+  flex: none;
+  color: var(--color-text-faint);
+}
+
+.mini-btn.danger {
+  color: var(--color-over);
+}
+
+.mini-btn.wide {
+  width: 100%;
+}
+
+.trip-delete-all {
+  margin-top: 14px;
+}
+
+.trip-delete-all .list-row {
+  border-radius: var(--radius-tile);
+  background: var(--color-surface-raised);
+  border: 1px solid var(--color-stroke);
+}
+
+.trip-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.trip-back {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 14px 0 8px;
+}
+
+.trip-map {
+  height: 220px;
+  border-radius: var(--radius-tile);
+  overflow: hidden;
+  background: var(--color-surface-raised);
+  border: 1px solid var(--color-stroke);
+}
+
+.trip-detail .value[data-tone='tul'] {
+  color: var(--color-over);
+}
+
+.trip-detail .value[data-tone='jo'] {
+  color: var(--color-ok);
 }

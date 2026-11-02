@@ -36,6 +36,8 @@ struct StatusPills: View {
     var onSearch: (() -> Void)?
     /// AOS14: a köszöntő felirat az üres nézeten, a kereső-gomb sora alatt (nem a térkép közepén).
     var greeting: String?
+    /// AW19: a futó út halvány állapotsora a köszöntés alatt („Krúzing · 12,4 km · 23 perc”).
+    var cruise: String?
 
     private var gps: (color: Color, text: String) {
         let acc = accuracy.map { Int(jsRound($0)) }
@@ -64,6 +66,19 @@ struct StatusPills: View {
                     .padding(.vertical, Tokens.Space.s2)
                     .glass(radius: 22)
                     .allowsHitTesting(false)
+                    .transition(.opacity)
+            }
+            if let cruise {
+                Text(cruise)
+                    .font(.num(15, 560))
+                    .foregroundStyle(Tokens.Colors.textMuted)
+                    .lineLimit(1)
+                    .padding(.horizontal, Tokens.Space.s3)
+                    .padding(.vertical, Tokens.Space.s1)
+                    .glass(radius: 16)
+                    .opacity(0.85)
+                    .allowsHitTesting(false)
+                    .accessibilityIdentifier("cruise-status")
                     .transition(.opacity)
             }
         }

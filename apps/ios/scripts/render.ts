@@ -1,4 +1,4 @@
-import { ALT_OFFER, CAMERA_ALERT, CAMERA_CARD, TRAFFIC, DICTIONARIES, MEGSZOLITAS_MAX, REPORT_PROMPT, type ActiveReport, LANGUAGE_FLAGS, LANGUAGE_NAMES, LANGUAGES, MANUAL_PILL, NAV_CONFIG, NAV_COUNTRIES, NAV_FOLLOW, PLANNED_MATCH_M, PLANNED_OFF_FIXES, ROUTE_MATCH_M, type FixedCamera, type PlannedCheck, type TKey } from '@atlagsebesseg/app-logic';
+import { ALT_OFFER, CAMERA_ALERT, CAMERA_CARD, TRAFFIC, TRIP, DICTIONARIES, MEGSZOLITAS_MAX, REPORT_PROMPT, type ActiveReport, LANGUAGE_FLAGS, LANGUAGE_NAMES, LANGUAGES, MANUAL_PILL, NAV_CONFIG, NAV_COUNTRIES, NAV_FOLLOW, PLANNED_MATCH_M, PLANNED_OFF_FIXES, ROUTE_MATCH_M, type FixedCamera, type PlannedCheck, type TKey } from '@atlagsebesseg/app-logic';
 import { Route, type LatLon } from '@atlagsebesseg/core';
 import { testCourse } from '@atlagsebesseg/core/test/helpers/trace';
 import { toSwift } from '@atlagsebesseg/design-tokens';
@@ -100,6 +100,12 @@ function appLogicConstants(): string {
     '/// a „Dugóba kerültél?” kártya `jamPromptMs`-ig, közösségi dugó-adat `communityMaxAgeMs`-ig, újratervezés-backoff (s).',
     'nonisolated enum TRAFFIC {',
     ...Object.entries(TRAFFIC).map(([k, v]) => (Array.isArray(v) ? `    static let ${k}: [Double] = [${v.map(num).join(', ')}]` : `    static let ${k} = ${num(v as number)}`)),
+    '}',
+    '/// AW19: krúzing mód / utak naplója – indulás (`startKmh` × `startHoldS`), állás (`idleKmh`, zárás `stopIdleS` után),',
+    '/// pontosság és ugrás-szűrés, kanyar-felismerés (`turnDeg` / `turnWindowS`, vége `turnSettleS` / `turnSettleDeg`),',
+    '/// Douglas–Peucker (`simplifyM`), H3-felbontás, 1 Hz-es mintavétel, a legrövidebb mentett út.',
+    'nonisolated enum TRIP {',
+    ...Object.entries(TRIP).map(([k, v]) => `    static let ${k} = ${num(v)}`),
     '}',
     '/// A megszólítás (AOS14) legfeljebb ennyi karakter.',
     `nonisolated let MEGSZOLITAS_MAX = ${MEGSZOLITAS_MAX}`,

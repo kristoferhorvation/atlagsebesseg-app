@@ -179,7 +179,7 @@ biztonsági zóna fölött lebeg.
   Öt állapot:
   | állapot | lezárt képernyő | Dynamic Island szűk (bal · jobb) |
   |---|---|---|
-  | **figyel** (GPS, cél nélkül) | „● Figyel”, sebesség 54 pt + egység, tábla (ha ismert), „Szakasz 3,2 km múlva” (≤ 5 km, kapu-ikon) | GPS-ikon · sebesség |
+  | **figyel** (GPS, cél nélkül) | „● Figyel”, sebesség 54 pt + egység, tábla (ha ismert), „Szakasz 3,2 km múlva” (≤ 5 km, kapu-ikon); AW19: alatta a futó út 13 pt `textMuted` („Krúzing · 12,4 km · 23 perc”) | GPS-ikon · sebesség |
   | **navigáció** | manőver-rajz 38 pt + távolság 36 pt, utcanév, érkezés · „18 perc · 21,4 km”, borostyán „+N perc dugó” kapszula | manőver · távolság |
   | **szakaszmérés** | cím + „Maradj X alatt” / „Lassíts · max X” (tónus; jó állapotban halvány), átlag 54 pt a tónus színében, tábla 54 pt, most · várható · hátra | státusz-ikon (pipa / lefelé nyíl) a tónus színében · átlag |
   | **mérés + navigáció** | mint a mérés, alatta teljes szélességben a manőver egysoros sávja (`surfaceRaised`) | mint a mérés |
@@ -187,6 +187,19 @@ biztonsági zóna fölött lebeg.
   Kibontott Dynamic Island: **két oszlop** (bal: cím + fő szám, jobb: tábla / érkezés + hátralévő / kézi idő), alatta a
   részletek; térképkép nélkül. A keret (`keylineTint`) mérésnél a tónus, különben `accent`. Koppintásra az app a vezetési
   nézetre nyílik (`atlagsebesseg://live/measure|nav|map`: a lapok bezárulnak, a térkép újra követ).
+- **Krúzing-sor (AW19).** Az üres nézet köszöntése alatt, balra zárva, halványan: kis üveg-kapszula (15 px / pt, 560-as súly,
+  táblázatos számok, `textMuted`, 85% átlátszóság) – „Krúzing · 12,4 km · 23 perc”, amíg az út tart (10 m-enként / percenként
+  frissül). Gomb nincs; navigáció és mérés közben nem látszik (ott a saját kártyáik szólnak).
+- **Utak naplója (AW19).** Beállítások › a Mentett helyek fölött egy sor „Utak naplója” jobbra nyíllal (weben `chevronRight`,
+  iOS-en navigációs sor). A lap: felül az **összesítő kártya** (`surfaceRaised`, `radius.tile`): időszakváltó (ez a hét /
+  hónap / összes, `segmented`, teljes szélességben), alatta 2 oszlopos rács – táv és menetidő nagyban (26 / 700), utak, átlag,
+  kanyarok „B · J · U”, szakaszmérések „N rendben · M túl gyors”, dugóidő (17 / 620). Alatta a lista, dátum szerint csökkenő:
+  soronként a dátum (halvány), a cél vagy „Krúzing” (17 / 580), „km · idő · átlag” (táblázatos, halvány). **Részlet:** 220 px /
+  pt magas, nem mozgatható kis térkép (Visszafogott = `monochrome`, a mostani napszak fényével) az útvonallal (`route` 4 px +
+  fehér 7 px kontúr), alatta a számok listája és a szakaszmérések (átlag a `ok` / `over` színben, „rendben” / „túl gyors”).
+  **Törlés:** weben hosszú nyomás (0,5 s) vagy balra húzás (60 px) után a sor végén piros „Törlés”; iOS-en balra húzás
+  (swipe action) vagy hosszú nyomás (helyi menü). Alul „Összes törlése” (piros), megerősítéssel. A lap alján: „Az utak csak
+  ezen a készüléken tárolódnak”.
 
 ## Állapotok
 

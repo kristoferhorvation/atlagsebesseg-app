@@ -20,6 +20,8 @@
 // AW18: „Leggyorsabb” a legkisebb időn (?fasterAlt), a címke a kerekített percekből („−1 perc”); dugó mód (?traffic): „+N perc
 // dugó” az alsó sávban + hang, „Dugóba kerültél?” kártya, Igen → „Dugó” bejelentés a térképen + közösségi minta; újratervezés-
 // hiba (?rerouteFail): visszaszámlálás, koppintásra azonnali próba; Bejelentés menü: Dugó / Beállt a kapu-tétel sorában.
+// AW19: krúzing (?cruise): cél nélkül is út a naplóban, „Krúzing · …” sor a köszöntés alatt; a rekord számai (km,
+// kanyarok, szakaszmérés, minták H3-cellával) az IndexedDB-ből; Napló lap (statisztika, lista, részlet térképpel, törlés).
 //
 //   npm run dev -w @atlagsebesseg/web            # másik terminálban (a Mapbox-token az apps/web/.env-ben)
 //   npm run nav-shots -w @atlagsebesseg/web
@@ -48,6 +50,7 @@ const click = (p, sel) => p.evaluate(`${q(sel)}.click(); true`);
 const SENTENCE = /^(Forduljon|Tartson|Hajtson|Válassza|Menjen|Térjen|Megérkezett)/;
 
 const chrome = await launchChrome();
+const tripChrome = await launchChrome();
 const mk = () => openPage({ port: chrome.port, base: BASE, outDir: OUT });
 try {
   // ------------------------------------------------------------------
@@ -829,6 +832,134 @@ try {
   mn.close();
 
   // ------------------------------------------------------------------
+  // AW19: krúzing mód, utak naplója, statisztika (IndexedDB, csak helyben)
+  // ------------------------------------------------------------------
+  {
+    // saját Chrome: az előző lapok a közös IndexedDB-t nyitva tartanák, és a maguk útját is ide mentenék
+    const mk = () => openPage({ port: tripChrome.port, base: BASE, outDir: OUT });
+    // a navsim teljes vezetése ezt az utat adja (a webes `SIM_TRIP` – navSim.ts; a navSim.test.ts és a Swift SimTests is ezt méri)
+    const SIM_TRIP = { distanceM: 17_677, movingS: 792, idleS: 0, maxKmh: 128, turns: { left: 1, right: 3, uTurn: 0 }, pieces: 3, samples: 793 };
+    const TRIPS_DB = `(async () => {
+      if (!(await indexedDB.databases()).some((d) => d.name === 'atlagsebesseg-trips')) return { trips: [], samples: [] };
+      const db = await new Promise((res, rej) => { const o = indexedDB.open('atlagsebesseg-trips'); o.onsuccess = () => res(o.result); o.onerror = () => rej(o.error); });
+      const all = (store) => new Promise((res) => { const r = db.transaction(store).objectStore(store).getAll(); r.onsuccess = () => res(r.result); });
+      const out = { trips: await all('trips'), samples: await all('samples') };
+      db.close();
+      return out;
+    })()`;
+    // tranzakcióval, nem deleteDatabase-szel: az utóbbi egy nyitott kapcsolat mellett „blocked” marad, és minden későbbi open mögé áll
+    const CLEAR_TRIPS = `new Promise((res, rej) => { const o = indexedDB.open('atlagsebesseg-trips'); o.onerror = () => rej(o.error); o.onsuccess = () => { const db = o.result; const tx = db.transaction(['trips', 'samples'], 'readwrite'); tx.objectStore('trips').clear(); tx.objectStore('samples').clear(); tx.oncomplete = () => { db.close(); res(true); }; tx.onerror = () => rej(tx.error); }; })`;
+
+    // 1) krúzing: cél nélkül, a navsim-vezetés rögtön indul; 30 s mozgás után az állapotsor a köszöntés alatt
+    const cr = await mk();
+    await cr.goto('/?cruise&speed=3&panel=0');
+    await cr.waitFor(MAP_READY, 60_000, 'térkép');
+    await cr.waitFor(q('.cruise-status'), 60_000, 'krúzing-sor');
+    const crs = await cr.evaluate(`(() => { const e = ${q('.cruise-status')}; const g = ${q('.greeting')}; const r = e.getBoundingClientRect(); const gr = g.getBoundingClientRect(); return { txt: e.innerText.trim(), below: r.top >= gr.bottom, left: Math.abs(r.left - gr.left) < 1, op: getComputedStyle(e).opacity, fs: getComputedStyle(e).fontSize, inView: r.right <= innerWidth }; })()`);
+    check('AW19: krúzing – cél nélkül, mozgás után „Krúzing · X km · N perc” halvány sor a köszöntés alatt, balra zárva', /^Krúzing · [\d,]+ (km|m) · \d+ perc$/.test(crs.txt) && crs.below && crs.left && Number(crs.op) < 1 && crs.fs === '15px' && crs.inView, JSON.stringify(crs));
+    if (!CHECK_ONLY) {
+      await sleep(2500);
+      await cr.shot(`${DATE}-aw19-krusing-sor.png`);
+    }
+    await cr.close();
+
+    // a teljes vezetés gyorsan: a lejátszás vége (a „GPS” leáll) zárja az utat; előtte az előző lap (bezáráskor mentett) útja törlődik
+    const cf = await mk();
+    await cf.goto('/');
+    await cf.waitFor(q('.mapboxgl-canvas'), 60_000, 'térkép');
+    await cf.evaluate(CLEAR_TRIPS);
+    await cf.goto('/?cruise&speed=60&panel=0');
+    await cf.waitFor(MAP_READY, 60_000, 'térkép');
+    const deadline = Date.now() + 120_000;
+    let db = { trips: [], samples: [] };
+    while (Date.now() < deadline) {
+      db = await cf.evaluate(TRIPS_DB);
+      if (db.trips.length > 0) break;
+      await sleep(500);
+    }
+    const tr = db.trips[0] ?? null;
+    // tárhely-becslés (tájékoztató): az IndexedDB mérete a 793 mintával + a rekorddal
+    const idbBytes = await cf.evaluate(`navigator.storage.estimate().then((e) => e.usageDetails?.indexedDB ?? e.usage ?? 0)`);
+    console.log(`  info: IndexedDB ${Math.round(idbBytes / 1024)} KB / ${db.samples.length} minta → ~${((idbBytes / Math.max(1, db.samples.length)) * 3600 / 1048576).toFixed(2)} MB / vezetési óra`);
+    const got = tr && { distanceM: tr.distanceM, movingS: tr.movingS, idleS: tr.idleS, maxKmh: tr.maxKmh, turns: tr.turns, pieces: tr.path.length, samples: tr.samples };
+    check('AW19: a navsim-vezetés (krúzing) egy út a naplóban – km, menetidő, kanyarok (B/J/U), útvonal-darabok, mintaszám = SIM_TRIP', db.trips.length === 1 && JSON.stringify(got) === JSON.stringify(SIM_TRIP), JSON.stringify(got));
+    check('AW19: krúzing-út: cél nélkül („Krúzing”), a szimulált M1-szakasz mérése a rekordban (1, rendben)', tr?.destination === null && tr?.measurements.length === 1 && tr.measurements[0].sectionId === 'SIM-M1-NAV' && tr.measurements[0].tooFast === false, JSON.stringify(tr?.measurements));
+    const s0 = db.samples.filter((s) => s.tripId === tr?.id);
+    check('AW19: 1 Hz-es minták a helyi tárolóban (pozíció, sebesség, irány, pontosság, időbélyeg) H3-cellával (res 10)', s0.length === SIM_TRIP.samples && s0.every((s) => /^8a[0-9a-f]{13}$/.test(s.h3 ?? '')) && ['lat', 'lon', 't', 'speedKmh', 'heading', 'accuracy'].every((k) => k in s0[0]), `${s0.length} minta, ${JSON.stringify(s0[0])}`);
+    check('AW19: az útvonal egyszerűsítve (Douglas–Peucker 10 m): a minták töredéke', tr && tr.path.flat().length < s0.length / 5, `${tr?.path.flat().length} pont / ${s0.length} minta`);
+
+    // Beállítások › „Utak naplója” – a Mentett helyek fölött; a lap: összesítő kártya + lista
+    await click(cf, 'button[aria-label="Beállítások"]');
+    await cf.waitFor(q('.trips-entry .nav-row'), 5000, 'napló-sor');
+    const entry = await cf.evaluate(`(() => { const e = ${q('.trips-entry')}; const labels = [...document.querySelectorAll('.sheet .group-label')]; const places = labels.find((l) => l.innerText.trim().toLowerCase() === 'mentett helyek'); return { txt: e.innerText.trim(), above: !!places && e.getBoundingClientRect().bottom <= places.getBoundingClientRect().top, chevron: !!e.querySelector('svg') }; })()`);
+    check('AW19: Beállítások – „Utak naplója” sor a Mentett helyek fölött, nyíllal', entry.txt === 'Utak naplója' && entry.above && entry.chevron, JSON.stringify(entry));
+    await click(cf, '.trips-entry .nav-row');
+    await cf.waitFor(`${q('.trip-row')} && ${q('.trip-stats')}`, 10_000, 'napló-lap');
+    const lst = await cf.evaluate(`(() => ({ title: ${text('.sheet-head .title')}, rows: [...document.querySelectorAll('.trip-row')].map((r) => r.innerText.replace(/\\s+/g, ' ').trim()), stats: [...document.querySelectorAll('.trip-stat')].map((s) => s.innerText.replace(/\\s+/g, ' ').trim()), period: [...document.querySelectorAll('.trip-stats .segmented button')].map((b) => b.innerText.trim() + (b.getAttribute('aria-pressed') === 'true' ? '*' : '')), all: !!${q('.trip-delete-all .mini-btn')}, overflow: document.documentElement.scrollWidth > innerWidth }))()`);
+    check('AW19: Napló – a sor: dátum · „Krúzing” · km · idő · átlag', lst.title === 'Utak naplója' && lst.rows.length === 1 && /Krúzing 17,7 km · 13 perc · 80 km\/h$/.test(lst.rows[0]) && /^\S+ \d+\. \d\d:\d\d /.test(lst.rows[0]), JSON.stringify(lst.rows));
+    check('AW19: statisztika – időszakváltó (ez a hét / hónap / összes), táv, menetidő, utak, átlag, kanyarok B/J/U, szakaszmérések, dugóidő', lst.period.join('|') === 'Ez a hét*|Ez a hónap|Összes' && lst.stats.join(' | ') === 'Összes táv 17,7 km | Menetidő 13 perc | Utak 1 | Átlag 80 km/h | Kanyarok B 1 · J 3 · U 0 | Szakaszmérések 1 rendben · 0 túl gyors | Dugóban 0 perc' && lst.all && !lst.overflow, JSON.stringify(lst));
+    if (!CHECK_ONLY) {
+      await sleep(600);
+      await cf.shot(`${DATE}-aw19-naplo-lista.png`);
+    }
+    // részlet: kis térkép az útvonallal (Visszafogott), a számok, a szakaszmérések
+    await click(cf, '.trip-row-main');
+    await cf.waitFor(`${q('.trip-map')} && window.__tripMapReady`, 30_000, 'út-térkép');
+    const det = await cf.evaluate(`(() => ({ title: ${text('.sheet-head .title')}, rows: [...document.querySelectorAll('.trip-detail .list-row')].map((r) => r.innerText.replace(/\\s+/g, ' ').trim()), mapH: Math.round(${q('.trip-map')}.getBoundingClientRect().height), canvas: !!${q('.trip-map canvas')} }))()`);
+    check('AW19: út részlete – kis térkép az útvonallal, a számok (táv, menet- / állásidő, átlag, max, kanyarok, újratervezés, dugó) és a szakaszmérés', det.title === 'Krúzing' && det.canvas && det.mapH === 220 && det.rows.includes('Táv 17,7 km') && det.rows.includes('Max sebesség 128 km/h') && det.rows.includes('Kanyarok B 1 · J 3 · U 0') && det.rows.some((r) => /^M1 · Budapest → Győr \d\d:\d\d · határ 110 km\/h \d+ km\/h rendben$/.test(r)), JSON.stringify(det));
+    if (!CHECK_ONLY) {
+      await sleep(3500);
+      await cf.shot(`${DATE}-aw19-ut-reszlet.png`);
+    }
+    await click(cf, '.trip-back');
+    await cf.waitFor(q('.trip-row'), 5000, 'vissza a listára');
+    if (!CHECK_ONLY) {
+      await click(cf, '.trip-stats .segmented button:last-child');
+      await sleep(400);
+      await cf.evaluate(`${q('.sheet')}.scrollTop = 0; true`);
+      await cf.shot(`${DATE}-aw19-statisztika.png`);
+    }
+    // törlés hosszú nyomásra: a sor végén „Törlés”, koppintásra az út a mintáival együtt eltűnik
+    await cf.evaluate(`(() => { const b = ${q('.trip-row-main')}; const r = b.getBoundingClientRect(); b.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, clientX: r.left + 40, clientY: r.top + 20, pointerType: 'touch' })); return true; })()`);
+    // a felengedés csak az élesedés után: terhelt gépen az 500 ms-os időzítő késhet, és a korai felengedés törölné
+    await cf.waitFor(`${q('.trip-row')}?.dataset.armed === 'true'`, 5000, 'törlés-gomb');
+    await cf.evaluate(`(() => { const b = ${q('.trip-row-main')}; b.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, pointerType: 'touch' })); b.click(); return true; })()`);
+    const armedStill = await cf.evaluate(`!${q('.trip-map')}`);
+    await click(cf, '.trip-row .mini-btn.danger');
+    await cf.waitFor(`!${q('.trip-row')}`, 5000, 'törölt sor');
+    const afterDel = await cf.evaluate(TRIPS_DB);
+    check('AW19: törlés hosszú nyomásra – a „Törlés” gomb, az út és a mintái eltűnnek (a részlet nem nyílik meg)', armedStill && afterDel.trips.length === 0 && afterDel.samples.length === 0 && (await cf.evaluate(text('.sheet-note'))).startsWith('Még nincs rögzített út'), JSON.stringify({ trips: afterDel.trips.length, samples: afterDel.samples.length }));
+    await cf.close();
+
+    // 2) navigációval: a teljes Budapest → Győr út a céllal, az újratervezéssel és a méréssel; „Összes törlése” megerősítéssel
+    const cn = await mk();
+    await cn.goto('/?navsim&stage=nav&speed=60&alt=maybe&panel=0');
+    await cn.waitFor(MAP_READY, 60_000, 'térkép');
+    const deadline2 = Date.now() + 120_000;
+    let db2 = { trips: [], samples: [] };
+    while (Date.now() < deadline2) {
+      db2 = await cn.evaluate(TRIPS_DB);
+      if (db2.trips.length > 0) break;
+      await sleep(500);
+    }
+    const tn = db2.trips[0] ?? null;
+    check('AW19: navigációval ugyanaz az út – a cél („Győr”), az újratervezés (letérés) és a szakaszmérés ugyanabban a rekordban', db2.trips.length === 1 && tn.destination === 'Győr' && tn.reroutes >= 1 && tn.measurements.length === 1 && tn.distanceM === SIM_TRIP.distanceM && JSON.stringify(tn.turns) === JSON.stringify(SIM_TRIP.turns), JSON.stringify({ dest: tn?.destination, reroutes: tn?.reroutes, m: tn?.measurements.length, d: tn?.distanceM, turns: tn?.turns }));
+    // a szerverre semmi: a navigációs szimulátor nem küld, a napló csak az IndexedDB-ben (a dugó-minták változatlanok)
+    await cn.goto('/?navsim&panel=0&sheet=trips');
+    await cn.waitFor(q('.trip-row'), 30_000, 'napló (?sheet=trips)');
+    check('AW19: a napló sora navigációs útnál a cél nevét mutatja', /Győr 17,7 km/.test(await cn.evaluate(text('.trip-row'))), await cn.evaluate(text('.trip-row')));
+    await click(cn, '.trip-delete-all .mini-btn');
+    await cn.waitFor(`${q('.trip-delete-all .list-row')}`, 3000, 'megerősítés');
+    const confirmTxt = await cn.evaluate(text('.trip-delete-all .label'));
+    await click(cn, '.trip-delete-all .mini-btn.danger');
+    await cn.waitFor(`!${q('.trip-row')}`, 5000, 'üres napló');
+    const afterAll = await cn.evaluate(TRIPS_DB);
+    check('AW19: „Összes törlése” megerősítéssel – a napló és a minták üresek', confirmTxt === 'Törlöd az összes utat?' && afterAll.trips.length === 0 && afterAll.samples.length === 0, JSON.stringify({ confirmTxt, trips: afterAll.trips.length }));
+    check('nincs kezeletlen JS-kivétel (AW19 napló)', cr.logs.length === 0 && cf.logs.length === 0 && cn.logs.length === 0, [...cr.logs, ...cf.logs, ...cn.logs].join(' | '));
+    cn.close();
+  }
+
+  // ------------------------------------------------------------------
   // 3. marketing-képernyőképek (1×-es lejátszás, szimulátor-panel nélkül)
   // ------------------------------------------------------------------
   if (!CHECK_ONLY) {
@@ -903,6 +1034,7 @@ try {
   check(`kivétel: ${e?.message ?? e}`, false);
 } finally {
   await closeChrome(chrome).catch(() => undefined);
+  await closeChrome(tripChrome).catch(() => undefined);
 }
 
 const failed = results.filter((r) => !r.ok).length;

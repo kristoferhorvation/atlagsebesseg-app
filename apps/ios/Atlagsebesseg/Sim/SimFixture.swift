@@ -159,6 +159,8 @@ final class SimLocationSource: LocationSource {
     var onStatus: ((GeoStatus) -> Void)?
     /// Lejátszási állapot (a vezérlőpanelnek).
     var onProgress: ((Double) -> Void)?
+    /// AW19: a lejátszás végére ért (a „GPS” leáll – a futó út lezárul).
+    var onEnd: (() -> Void)?
 
     let fixture: SimFixture
     private(set) var speed: Double
@@ -239,6 +241,7 @@ final class SimLocationSource: LocationSource {
     private func step() {
         guard index < fixture.samples.count else {
             pause()
+            onEnd?()
             return
         }
         emit()

@@ -1,6 +1,7 @@
 import { LANGUAGE_NAMES, MEGSZOLITAS_MAX, languageMenu, normalizeName, t, voiceInstructionsHint, type MapLook, type SavedPlaces, type Settings, type SpeedUnit } from '@atlagsebesseg/app-logic';
 import { DEFAULT_TOLERANCE } from '@atlagsebesseg/core';
 import { useLanguage, useVoiceStatus } from '../i18n';
+import { Icon } from './Icon';
 import { Sheet } from './Sheet';
 
 export interface SystemInfo {
@@ -25,6 +26,7 @@ export function SettingsSheet({
   onPickPlace,
   onClearPlace,
   onRemoveOther,
+  onOpenTrips,
   onClose,
 }: {
   settings: Settings;
@@ -35,6 +37,8 @@ export function SettingsSheet({
   onPickPlace: (kind: 'home' | 'work' | 'other') => void;
   onClearPlace: (kind: 'home' | 'work') => void;
   onRemoveOther: (id: string) => void;
+  /** AW19: az utak naplója (a lap helyén nyílik). */
+  onOpenTrips: () => void;
   onClose: () => void;
 }) {
   const { lang, preference, setPreference } = useLanguage();
@@ -135,6 +139,14 @@ export function SettingsSheet({
           </div>
           <Switch label={t('settings.voiceInstructions')} checked={settings.hangos_utasitasok} onChange={(v) => update({ hangos_utasitasok: v })} />
         </div>
+      </div>
+
+      {/* AW19: az utak naplója – egy sor a Mentett helyek fölött */}
+      <div className="list trips-entry">
+        <button className="list-row nav-row" onClick={onOpenTrips}>
+          <div className="label">{t('trips.title')}</div>
+          <Icon name="chevronRight" size={20} />
+        </button>
       </div>
 
       <div className="group-label">{t('settings.group.places')}</div>

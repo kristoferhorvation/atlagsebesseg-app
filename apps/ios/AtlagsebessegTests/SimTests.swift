@@ -69,6 +69,28 @@ struct SimTests {
         #expect(views.contains { $0.phase == .befejezve })
     }
 
+    /// AW19: a webes `navSim.test.ts` párja – a navsim teljes vezetése egy út a naplóban (a számok a webes `SIM_TRIP`-pel azonosak).
+    @Test("Budapest → Győr: a teljes navsim-vezetés egy út a naplóban (17,7 km, 3 darab, B 1 · J 3)")
+    func navsimNaplo() throws {
+        let fixture = try SimFixture.load(.navsim)
+        let rec = TripRecorder(newId: { _ in "sim" })
+        for s in fixture.samples where !s.dropped {
+            rec.onFix(GpsFix(lat: s.lat, lon: s.lon, timestamp: s.t, speed: s.speed, accuracy: s.accuracy, heading: s.heading))
+        }
+        rec.stop()
+        guard case let .saved(trip)? = rec.drainEnded().first else {
+            Issue.record("nincs mentett út")
+            return
+        }
+        #expect(trip.distanceM == 17_677)
+        #expect(trip.movingS == 792)
+        #expect(trip.idleS == 0)
+        #expect(trip.maxKmh == 128)
+        #expect(trip.turns == TripTurns(left: 1, right: 3, uTurn: 0))
+        #expect(trip.path.count == 3)
+        #expect(trip.samples == 793)
+    }
+
     /// Végigjátssza a forgatókönyvet a jelzés-figyelőkön (közeledés + tervezett mérés), hang nélkül.
     private func alerts(_ scenario: SimScenario) throws -> (events: [AlertEvent], planned: [String]) {
         let fixture = try SimFixture.load(scenario)

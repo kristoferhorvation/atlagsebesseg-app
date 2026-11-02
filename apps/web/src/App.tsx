@@ -24,6 +24,7 @@ import {
   gateStartedAfter,
   type ReportPrompt,
   greetingText,
+  cruiseStatusText,
   reportVisual,
   rowToActiveReport,
   visibleCameras,
@@ -72,6 +73,7 @@ import { useSections } from './hooks/useSections';
 import { useSession } from './hooks/useSession';
 import { useSettings } from './hooks/useSettings';
 import { useTileItems } from './hooks/useTileItems';
+import { useTrips } from './hooks/useTrips';
 import { useWakeLock } from './hooks/useWakeLock';
 import { createWebMapAdapter, type MapReport, type MapRoute, type WebMapAdapter } from './map';
 import { simCameras, simPlannedChecks, simReports } from './sim/scenarios';
@@ -93,9 +95,10 @@ import { SettingsSheet } from './ui/SettingsSheet';
 import { SimPanel } from './ui/SimPanel';
 import { StartScreen } from './ui/StartScreen';
 import { StatusPills } from './ui/StatusPills';
+import { TripLogSheet } from './ui/TripLog';
 
 /** `?navsim`: a navigációs szimulátor (Budapest → Győr, rögzített Directions-fixtúrával). */
-const NAV_SIM = new URLSearchParams(location.search).has('navsim');
+const NAV_SIM = new URLSearchParams(location.search).has('navsim') || new URLSearchParams(location.search).has('cruise');
 /** `?navsim&alt=worth|maybe|not|aftergate`: a szimulált gyorsabb út kategóriája (AW12); alapból „megéri”. */
 const NAV_SIM_ALT: SimAltMode = (SIM_ALT_MODES as readonly string[]).includes(new URLSearchParams(location.search).get('alt') ?? '') ? (new URLSearchParams(location.search).get('alt') as SimAltMode) : 'worth';
 const SIM_MODE = new URLSearchParams(location.search).has('sim') || NAV_SIM;
@@ -107,6 +110,11 @@ const NAV_SIM_OPTS = (() => {
   const q = new URLSearchParams(location.search);
   return { traffic: q.has('traffic'), fasterAlt: q.has('fasterAlt'), rerouteFail: q.has('rerouteFail') };
 })();
+/** AW19: `?cruise` – krúzing mód: a navsim-vezetés cél nélkül, rögtön indul (az utak naplójához). */
+const NAV_SIM_CRUISE = NAV_SIM && new URLSearchParams(location.search).has('cruise');
+/** AW19: `?sheet=trips` – az utak naplója nyitva; `&tripOpen=first` – a legújabb út részlete (képernyőképekhez). */
+const START_SHEET = new URLSearchParams(location.search).get('sheet') === 'trips' ? ('trips' as const) : null;
+const TRIP_OPEN = new URLSearchParams(location.search).get('tripOpen');
 /** `?sim&panel=0`: a szimulátor vezérlője és jelzése nélkül (marketing-képernyőképekhez). */
 const SIM_PANEL = new URLSearchParams(location.search).get('panel') !== '0' && !NAV_SIM;
 /** `?sunAt=<ISO-idő>`: a térkép fénye ehhez az időponthoz (napszak-képernyőképekhez, AW16); alapból a valós idő. */
@@ -181,10 +189,13 @@ function Drive({ map }: { map: WebMapAdapter }) {
 
   // navigáció (A8): a munkamenet ugyanazokat a fixeket kapja, mint a mérés
   const navSessionRef = useRef<NavigationSession | null>(null);
+  // AW19: az utak naplója ugyanazokat a fixeket kapja (a felvevő lent, a navigáció után jön létre)
+  const tripsRef = useRef<ReturnType<typeof useTrips> | null>(null);
   const onFix = useCallback(
     (fix: GpsFix) => {
       session.onFix(fix);
       navSessionRef.current?.onFix(fix);
+      tripsRef.current?.onFix(fix);
       setTileFix(fix);
     },
     [session.onFix],
@@ -202,6 +213,8 @@ function Drive({ map }: { map: WebMapAdapter }) {
     places,
   );
   navSessionRef.current = nav.session;
+  const trips = useTrips(now, nav.view, view);
+  tripsRef.current = trips;
   const navSearch = useCallback((q: string) => (NAV_SIM ? simSearch(q) : searchPlaces(q, view.lastFix)), [view.lastFix]);
   const requestsToday = useSyncExternalStore(requestCounter.subscribe, () => requestCounter.count);
 
@@ -217,18 +230,28 @@ function Drive({ map }: { map: WebMapAdapter }) {
     const id = setInterval(() => {
       session.tick();
       navSessionRef.current?.tick();
+      tripsRef.current?.tick();
     }, 1000);
     return () => clearInterval(id);
   }, [session.tick]);
 
   // Háttérbe kerülés: a mérés tisztán megszakad (nincs GPS a háttérben → nem becsülünk tovább).
   useEffect(() => {
-    const onHide = () => document.visibilityState === 'hidden' && session.interrupt();
+    // AW19: háttérben nincs GPS – a futó út is lezárul (a következő mozgás újat kezd)
+    const onHide = () => {
+      if (document.visibilityState !== 'hidden') return;
+      session.interrupt();
+      tripsRef.current?.stop();
+    };
+    const onPageHide = () => {
+      session.interrupt();
+      tripsRef.current?.stop();
+    };
     document.addEventListener('visibilitychange', onHide);
-    window.addEventListener('pagehide', session.interrupt);
+    window.addEventListener('pagehide', onPageHide);
     return () => {
       document.removeEventListener('visibilitychange', onHide);
-      window.removeEventListener('pagehide', session.interrupt);
+      window.removeEventListener('pagehide', onPageHide);
     };
   }, [session.interrupt]);
 
@@ -521,7 +544,7 @@ function Drive({ map }: { map: WebMapAdapter }) {
   }, [map, navFollowOn]);
 
   // lapok, visszajelzés
-  const [sheet, setSheet] = useState<'report' | 'settings' | 'geo' | null>(null);
+  const [sheet, setSheet] = useState<'report' | 'settings' | 'geo' | 'trips' | null>(START_SHEET);
   const [toast, setToast] = useState<Toast | null>(null);
   const showToast = useCallback((t: Omit<Toast, 'id'>) => setToast({ ...t, id: Date.now() }), []);
   useEffect(() => {
@@ -682,6 +705,7 @@ function Drive({ map }: { map: WebMapAdapter }) {
       <StatusPills
         onSearch={nav.view || driving || view.phase === 'kezi_eredmeny' ? undefined : () => nav.openSearch()}
         greeting={reportAlert ? undefined : greetingText(settings.megszolitas)}
+        cruise={trips.cruise ? cruiseStatusText(trips.cruise, settings.egyseg) : undefined}
         geo={SIM_MODE ? 'aktiv' : geo}
         accuracy={accuracy}
         wake={wake.status}
@@ -696,7 +720,19 @@ function Drive({ map }: { map: WebMapAdapter }) {
           else wake.request();
         }}
       />
-      {NAV_SIM && navSim && <NavSimDriver data={navSim} active={nav.session !== null} onFix={onFix} onTick={session.tick} clock={clock} onSection={setSimSection} onCameras={setSimCams} onReports={setSimReps} />}
+      {NAV_SIM && navSim && (
+        <NavSimDriver
+          data={navSim}
+          active={nav.session !== null || NAV_SIM_CRUISE}
+          onFix={onFix}
+          onTick={session.tick}
+          onEnd={trips.stop}
+          clock={clock}
+          onSection={setSimSection}
+          onCameras={setSimCams}
+          onReports={setSimReps}
+        />
+      )}
       {SIM_MODE && !NAV_SIM && (
         <SimDriver
           onFix={onFix}
@@ -846,6 +882,7 @@ function Drive({ map }: { map: WebMapAdapter }) {
           onPickPlace={(kind) => nav.openSearch(kind)}
           onClearPlace={(kind) => places.setSaved(kind, null)}
           onRemoveOther={places.removeOther}
+          onOpenTrips={() => setSheet('trips')}
           onClose={() => setSheet(null)}
           info={{
             gps: t(SIM_MODE ? 'geo.sim' : GEO_TEXT[geo]),
@@ -861,6 +898,16 @@ function Drive({ map }: { map: WebMapAdapter }) {
             server: t(supabase ? 'server.set' : 'server.none'),
             requests: String(requestsToday),
           }}
+        />
+      )}
+      {sheet === 'trips' && (
+        <TripLogSheet
+          unit={settings.egyseg}
+          version={trips.version}
+          lightPreset={mapLightPreset('visszafogott', lightPreset)}
+          now={now()}
+          initialTripId={TRIP_OPEN}
+          onClose={() => setSheet(null)}
         />
       )}
     </>
@@ -910,6 +957,7 @@ function NavSimDriver({
   active,
   onFix,
   onTick,
+  onEnd,
   clock,
   onSection,
   onCameras,
@@ -919,6 +967,8 @@ function NavSimDriver({
   active: boolean;
   onFix: (f: GpsFix) => void;
   onTick: () => void;
+  /** AW19: a lejátszás vége – a „GPS” leáll (a futó út a naplóba kerül). */
+  onEnd: () => void;
   clock: { current: () => number };
   onSection: (s: Section) => void;
   onCameras: (c: FixedCamera[]) => void;
@@ -936,7 +986,8 @@ function NavSimDriver({
   }, [data, onSection, onCameras, onReports]);
   // indulás előtt: állva a kiindulópontnál
   useEffect(() => {
-    onFix(simIdleFix());
+    // 1 s-mal korábbi: azonnali indulásnál (krúzing) a lejátszás első fixe ne essen az utak mintavételi kapujába
+    onFix(simIdleFix(Date.now() - 1000));
   }, [onFix]);
   useEffect(() => {
     if (!active) return;
@@ -954,7 +1005,11 @@ function NavSimDriver({
     };
     for (; i < target; i++) play(i);
     const id = setInterval(() => {
-      if (i >= samples.length) return clearInterval(id);
+      if (i >= samples.length) {
+        clearInterval(id);
+        onEnd();
+        return;
+      }
       play(i++);
     }, 1000 / speed);
     return () => clearInterval(id);

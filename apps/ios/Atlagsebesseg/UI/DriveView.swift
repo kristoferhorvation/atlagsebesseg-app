@@ -91,7 +91,8 @@ struct DriveView: View {
                             compact: driving || model.nav != nil,
                             onGps: model.gpsPillTapped,
                             onSearch: emptyView ? { model.openSearch() } : nil,
-                            greeting: emptyView && alert == nil ? greetingText(model.settings.megszolitas) : nil
+                            greeting: emptyView && alert == nil ? greetingText(model.settings.megszolitas) : nil,
+                            cruise: emptyView && alert == nil ? model.cruiseText : nil
                         )
                     }
                     if let nav = model.nav, !measuringLayout {

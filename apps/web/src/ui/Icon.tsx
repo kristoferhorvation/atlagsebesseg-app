@@ -15,6 +15,9 @@ export const PATHS = {
   kapu_kezdo: ['M4 20V5', 'M20 20V5', 'M4 5h16', 'M10.5 10.5v6l5-3z'],
   kapu_zaro: ['M4 20V5', 'M20 20V5', 'M4 5h16', 'M10 10.5h4.5v4.5H10z'],
   check: ['M5 12.5l4.5 4.5L19 7.5'],
+  // AW19: a napló sora (megnyitás) és a részlet „vissza” gombja
+  chevronRight: ['M9 5.5l6.5 6.5L9 18.5'],
+  chevronLeft: ['M15 5.5 8.5 12l6.5 6.5'],
   approx: ['M5 9.5c2.3-2 4.7-2 7 0s4.7 2 7 0', 'M5 15c2.3-2 4.7-2 7 0s4.7 2 7 0'],
   arrowUp: ['M12 19V5', 'M6 11l6-6 6 6'],
   arrowDown: ['M12 5v14', 'M6 13l6 6 6-6'],

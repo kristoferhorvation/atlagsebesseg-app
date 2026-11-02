@@ -278,7 +278,7 @@ Gyökér: `npm test` és `npm run typecheck` minden csomagra; `npm run test:all`
     álló–induló araszolás, a friss lekérések `SIM_JAM` szerint +7 perccel, alternatíva nélkül; iOS: `navsim-traffic.json`),
     `?fasterAlt` / `-fasterAlt YES` (a 2. útvonal 1 perccel gyorsabb), `?rerouteFail` / `-rerouteFail YES` (az újratervezés
     HTTP 503). Az alap navsimben az M1-re visszatérő 50 km/h-s szakasz is dugónak számít (a terv ott ~110) – ez valós viselkedés.
-- **AOS15 (2026-10-30), iOS (+ web a kamera-kártyánál):** képek: `apps/ios/docs/aos15-*.png` (a javításban + `aos15-reroute-fail.png`, `aos15-live-attribucio.png`). **nav-shots:** a teljes futás ~20 perc – háttérben futtasd (az előtérbeli 10 perces korlát csendben megszakítja, részleges számot adva).
+- **AOS15 (2026-10-30), iOS (+ web a kamera-kártyánál):** képek: `apps/ios/docs/aos15-*.png` (a javításban + `aos15-reroute-fail.png`, `aos15-live-attribucio.png`). **nav-shots:** a teljes futás ~20 perc – háttérben futtasd (az előtérbeli 10 perces korlát csendben megszakítja, részleges számot adva). AW19 óta a `page.close()` a lapot is bezárja (a nyitva maradt lapok terhelték a gépet és nyitva tartották az IndexedDB-t), a CDP-hívásnak 180 s a korlátja, az AW19-blokk saját Chrome-ban fut; teszt-adatot tranzakcióval törölj, ne `deleteDatabase`-szel (nyitott kapcsolat mellett a mögé sorolt `open` örökre vár).
   - **CameraCard iOS-en** (a webes `CameraCard` 1:1, `UI/ReportViews.swift` `CameraCard`): kamera-jelölőre koppintva a bejelentés
     kártyájának helyén és stílusában – típus, út · limit (`cameraCardDetail`, a választott egységben), irány a haladásunkhoz
     képest + távolság (`cameraCardMeta`, `cameraDirection`: irány nélküli kamera → mindkét irány; álló autó → „egy irányban”;
@@ -318,6 +318,37 @@ Gyökér: `npm test` és `npm run typecheck` minden csomagra; `npm run test:all`
     dugó-kérdéssel együtt mért (mint a weben), így nem villog vissza a teljes kártya.
   - Szimulátor: `-manual 0` navigáció nélkül is (kézi mérés indul); az előnézet (`-livePreview YES`) az `AppModel.liveState`-et
     rajzolja – benne a valódi (letöltött) térképképpel.
+- **AW19 (2026-11-02), weben és iOS-en: krúzing mód, utak naplója, statisztika.** Logika: `packages/app-logic/src/trips.ts` ↔
+  `Logic/Trips.swift` (`TripRecorder`, `TurnDetector`, `simplifyPath`, `tripTotals`, feliratok), tesztek `trips.test.ts` ↔
+  `TripTests.swift` azonos nevekkel; a küszöbök a `TRIP`-ben (iOS-re generálva).
+  - **Út:** cél nélkül is – ≥ 10 km/h legalább 30 s → indul (a kezdete e mozgás eleje); 5 perc állás (< 5 km/h; a záró állás
+    nem része, a vége az utolsó mozgó minta), 5 perc fix nélküli csend vagy a GPS leállása (web: háttér / `pagehide`; iOS:
+    `stopSource`, a szimuláció vége) zárja; 200 m alatt eldobjuk (a mintáival). Navigáció és szakaszmérés **ugyanabba** az
+    útba: a cél neve (az utolsó), újratervezések (a `rerouting` felfutó éle), dugóidő (a `jam` állapot), szakaszmérések (a
+    `befejezve` eredmény, `overLimit` = túl gyors). Távolság csak mozgó, ≤ 50 m pontosságú mintából; > 250 km/h-s ugrás nem táv,
+    az útvonal új darabot kezd (a navsim ablakai). Kanyar: ≥ 60° irányváltás 5 s alatt indítja, vége ha 3 s-ig < 15°; a nettó
+    irányváltás dönt (≥ 150° megfordulás, < 45° semmi – S-kanyar). A navigáció manővereit **nem** számoljuk külön (az irány
+    mindkét módban ugyanaz – a „navigáció manővereiből” rész nem készült). Útvonal: Douglas–Peucker 10 m, [lat, lon] 6 tizedes.
+  - **Tárolás (csak helyben, szerverre semmi; az AW18 dugó-minták változatlanok):**
+    - web: IndexedDB `atlagsebesseg-trips` v1 (`apps/web/src/trips/tripStore.ts`) – `trips` (kulcs `id`, index `startedAt`; a
+      közös `Trip` alakja) és `samples` (automatikus kulcs, index `tripId`; `TripSample`: `tripId, t, lat, lon, speedKmh, heading,
+      accuracy, h3`). A minták 1 Hz-cel, fixenként egy tranzakcióban, sorrendtartó láncon (`useTrips`).
+    - iOS: rendszer-SQLite (`libsqlite3`, külső függőség nélkül; `Trips/TripStore.swift`, Application Support/`trips.sqlite`,
+      WAL, `user_version` 1): `trips(id TEXT PK, started_at REAL, ended_at REAL, record TEXT)` – a rekord JSON-ban, a webes
+      alakkal –, index `started_at`; `samples(trip_id, t, lat, lon, speed_kmh, heading, accuracy, h3)`, index `(trip_id, t)`.
+    - **H3 (res 10)** minden mintán, előre számolva a következő kör hőtérképéhez: web `h3-js` 4.5.0 (lustán töltve, külön
+      chunk), iOS `SwiftyH3` 0.6.0 (SPM, a H3 C-könyvtárát csomagolja); páros teszt ugyanarra a cellára.
+    - Tárhely: ~3600 minta / vezetési óra – iOS ~0,45 MB/óra (mérve: 3600 sor 460 KB, SQLite-sor + index); web ~2,8 MB/óra
+      (a Chrome `storage.estimate()` szerint 793 minta 622 KB-ot foglal, ez a tömörítetlen naplóval és a rekorddal együtt felső
+      becslés, 793 mintából felszorozva); a rekord az egyszerűsített útvonallal ~5–40 KB / út.
+  - **UI:** az üres nézet köszöntése alatt halvány „Krúzing · 12,4 km · 23 perc” (`cruiseStatusText`); iOS Live Activity „figyel”
+    állapota ugyanezt mutatja (`Watch.cruise`). Beállítások › „Utak naplója” (a Mentett helyek fölött) → összesítő kártya
+    (ez a hét hétfőtől / hónap / összes – `periodStart`, a készülék időzónájában), lista, részlet kis térképpel (Visszafogott),
+    törlés (web: hosszú nyomás / balra húzás; iOS: swipe / helyi menü), „Összes törlése” megerősítéssel.
+  - **Szimulátor:** `?cruise` / `-cruise YES` (a navsim-vezetés cél nélkül, rögtön indul); a lejátszás vége a GPS leállása (az út
+    a naplóba kerül). A navsim teljes vezetése: `SIM_TRIP` (17 677 m, 792 s, B 1 · J 3 · U 0, 3 darab, 793 minta) – `navSim.test.ts`
+    ↔ `SimTests.swift`, és a nav-shots a böngészőben az IndexedDB-ből méri. Képernyőkép: `?sheet=trips[&tripOpen=first]` /
+    `-settingsOpen trips [-tripOpen first]`.
 - **Paritási tartozás (AW12 + AW13 → iOS) lezárva az AOS12-ben (2026-10-29):** a `NavigationTests.swift` újra a
   `navigation.test.ts` teljes párja (86 = 86 `it`, azonos névvel), a webes `navSim.test.ts` 6 esete a `SimTests.swift`-ben.
   A közös Budapest→Győr fixtúra **AOS13-ban teljesen újra felvéve** méteres hangegységgel (`voice_units=metric`, mindkét

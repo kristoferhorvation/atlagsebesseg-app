@@ -115,6 +115,10 @@ struct WatchBlock: View {
                         Text(next).font(.inter(15, 620)).lineLimit(1).minimumScaleFactor(0.85)
                     }
                 }
+                // AW19: a futó út, halványan (mint az üres nézet köszöntése alatt)
+                if let c = w.cruise {
+                    Text(c).font(.inter(13, 560)).foregroundStyle(Tokens.Colors.textMuted).lineLimit(1).minimumScaleFactor(0.85)
+                }
             }
             Spacer(minLength: 0)
             if let limit = w.limit { Sign(text: limit, size: 56) }
@@ -389,6 +393,8 @@ struct IslandBottom: View {
                     LiveIcon(name: .kapu_kezdo, size: 16).foregroundStyle(Tokens.Colors.accent)
                     Text(next).font(.inter(15, 620)).foregroundStyle(Tokens.Colors.text).lineLimit(1)
                 }
+            } else if let c = state.watch?.cruise {
+                Text(c).font(.inter(14, 560)).foregroundStyle(Tokens.Colors.textMuted).lineLimit(1)
             }
         }
         .padding(.horizontal, 6)

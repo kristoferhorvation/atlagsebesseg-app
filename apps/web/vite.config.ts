@@ -37,6 +37,9 @@ export default defineConfig(async () => {
   return {
     plugins,
     server: { host: true, port: 5173 },
+    // AW19: a lustán töltött h3-js (utak naplója) is induláskor előre csomagolva – különben az első minta írásakor a dev-szerver
+    // újraoptimalizál, és a nyitott oldalt újratölti
+    optimizeDeps: { include: ['h3-js'] },
     preview: { host: true, port: 4173 },
     // a Mapbox GL önmagában ~1,9 MB (külön, lustán töltött chunk)
     build: { target: 'es2022', sourcemap: true, chunkSizeWarningLimit: 2000 },

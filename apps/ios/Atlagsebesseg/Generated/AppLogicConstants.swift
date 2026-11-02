@@ -94,6 +94,29 @@ nonisolated enum TRAFFIC {
     static let rerouteBackoffS: [Double] = [5.0, 10.0, 20.0, 30.0]
     static let directionsTimeoutMs = 10000.0
 }
+/// AW19: krúzing mód / utak naplója – indulás (`startKmh` × `startHoldS`), állás (`idleKmh`, zárás `stopIdleS` után),
+/// pontosság és ugrás-szűrés, kanyar-felismerés (`turnDeg` / `turnWindowS`, vége `turnSettleS` / `turnSettleDeg`),
+/// Douglas–Peucker (`simplifyM`), H3-felbontás, 1 Hz-es mintavétel, a legrövidebb mentett út.
+nonisolated enum TRIP {
+    static let startKmh = 10.0
+    static let startHoldS = 30.0
+    static let idleKmh = 5.0
+    static let stopIdleS = 300.0
+    static let maxAccuracyM = 50.0
+    static let maxJumpKmh = 250.0
+    static let turnDeg = 60.0
+    static let turnWindowS = 5.0
+    static let turnSettleS = 3.0
+    static let turnSettleDeg = 15.0
+    static let turnMinNetDeg = 45.0
+    static let uTurnDeg = 150.0
+    static let turnMinKmh = 10.0
+    static let turnMaxS = 60.0
+    static let simplifyM = 10.0
+    static let h3Res = 10.0
+    static let sampleMinMs = 900.0
+    static let minTripM = 200.0
+}
 /// A megszólítás (AOS14) legfeljebb ennyi karakter.
 nonisolated let MEGSZOLITAS_MAX = 24
 

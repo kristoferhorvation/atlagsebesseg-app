@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { NavigationSession, type NavView, type RouteFetcher } from '@atlagsebesseg/app-logic';
-import { buildNavSim, simRouteFetcher, SIM_ALTS, type NavSimData, type SimAltMode } from './navSim';
+import { NavigationSession, TripRecorder, type NavView, type RouteFetcher } from '@atlagsebesseg/app-logic';
+import { buildNavSim, simRouteFetcher, SIM_ALTS, SIM_TRIP, type NavSimData, type SimAltMode } from './navSim';
 
 const T0 = 1_800_000_000_000;
 
@@ -89,5 +89,22 @@ describe('navigációs szimulátor: gyorsabb út kategóriánként (AW12)', () =
     expect(Math.max(...near.map((x) => x.view.cameraNear!.distanceM))).toBeLessThan(370);
     const last = views.length - 1 - [...views].reverse().findIndex((x) => x.view.cameraNear);
     expect(views[last + 1]?.view.cameraNear ?? null).toBeNull();
+  });
+});
+
+// AW19: a navsim-vezetés az utak naplójában (a Swift-pár: SimTests.swift, azonos névvel; a nav-shots a böngészőben is ezt méri)
+describe('AW19: utak naplója a szimulátorból', () => {
+  it('Budapest → Győr: a teljes navsim-vezetés egy út a naplóban (17,7 km, 3 darab, B 1 · J 3)', () => {
+    const d = buildNavSim(0);
+    const rec = new TripRecorder({ newId: () => 'sim' });
+    for (const s of d.samples) if (!s.dropped) rec.onFix(s.fix);
+    rec.stop();
+    const [end] = rec.drainEnded();
+    const trip = end?.kind === 'saved' ? end.trip : null;
+    expect(trip).not.toBeNull();
+    // az ablakok közti ugrás nem táv: a három ablak hossza (~4,7 + 10,2 + 2,6 km) és három útvonal-darab
+    expect({ distanceM: trip!.distanceM, movingS: trip!.movingS, idleS: trip!.idleS, maxKmh: trip!.maxKmh, turns: trip!.turns, pieces: trip!.path.length, samples: trip!.samples }).toEqual(
+      SIM_TRIP,
+    );
   });
 });

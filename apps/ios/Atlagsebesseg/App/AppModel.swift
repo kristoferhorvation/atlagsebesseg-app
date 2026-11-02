@@ -130,6 +130,17 @@ final class AppModel {
     /// AOS15: nő, ha a Live Activity koppintása megnyitotta az appot (a nézet bezárja a lapjait).
     var liveLinkSeq = 0
 
+    // MARK: utak naplója (AW19)
+
+    /// A napló (legújabb elöl; a `TripStore`-ból).
+    var trips: [Trip] = []
+    /// A futó út (az üres nézet „Krúzing · …” állapotsorához és a Live Activity „figyel” állapotához).
+    var cruise: CruiseView?
+    @ObservationIgnored let tripRecorder = TripRecorder()
+    @ObservationIgnored let tripStore = TripStore()
+    @ObservationIgnored var tripNavPrev = (rerouting: false, jam: false)
+    @ObservationIgnored var tripLastResult: String?
+
     @ObservationIgnored var navSession: NavigationSession?
     @ObservationIgnored var routeData = EnforcementData.none
     @ObservationIgnored let placesStore: SyncStore = DefaultsStore()
@@ -156,6 +167,7 @@ final class AppModel {
         serverStatus = backend.configured ? "…" : "offline"
         setUpNavigation()
         setUpReports()
+        reloadTrips()
         LiveActivityController.endStale()
         liveMap.onImage = { [weak self] in
             self?.liveMapSeq += 1
@@ -163,7 +175,8 @@ final class AppModel {
         }
         let args = UserDefaults.standard
         navStage = args.string(forKey: "navStage")
-        if let raw = args.string(forKey: "sim"), let scenario = SimScenario(rawValue: raw) {
+        // AW19: `-cruise YES` önmagában is a navsim-vezetés (a webes `?cruise`)
+        if let raw = args.string(forKey: "sim") ?? (args.bool(forKey: "cruise") ? SimScenario.navsim.rawValue : nil), let scenario = SimScenario(rawValue: raw) {
             simPanel = args.object(forKey: "simPanel") == nil || args.bool(forKey: "simPanel")
             startSim(scenario, speed: args.object(forKey: "simSpeed") == nil ? 4 : args.double(forKey: "simSpeed"), seek: args.double(forKey: "simSeek"))
             // `-geoHelp YES`: a tiltott helyhozzáférés lapja (a képernyőképhez; szimulátorban a GPS-pill nem kér)
@@ -228,6 +241,8 @@ final class AppModel {
             self?.simProgress = p
             self?.simPlaying = s?.playing ?? false
         }
+        // AW19: a lejátszás vége = a GPS leáll – a futó út lezárul (a naplóba kerül)
+        s.onEnd = { [weak self] in self?.stopTrips() }
         sim = s
         started = true
         follow = true
@@ -244,8 +259,13 @@ final class AppModel {
             simFetcher = (try? NavSim.mainRoutes()).flatMap(\.first).map {
                 NavSim.fetcher(main: $0, nav: navData, alt: alt, traffic: args.bool(forKey: "traffic"), fasterAlt: args.bool(forKey: "fasterAlt"), rerouteFail: args.bool(forKey: "rerouteFail"))
             }
-            s.hold(at: navData.from)
-            runNavStage()
+            // AW19: `-cruise YES` – krúzing mód: a vezetés cél nélkül, rögtön indul (a webes `?cruise`)
+            if UserDefaults.standard.bool(forKey: "cruise") {
+                s.start()
+            } else {
+                s.hold(at: navData.from)
+                runNavStage()
+            }
         } else {
             simFetcher = nil
             s.start()
@@ -289,6 +309,7 @@ final class AppModel {
     }
 
     private func stopSource() {
+        stopTrips()
         source?.stop()
         source = nil
         ticker?.invalidate()
@@ -317,6 +338,8 @@ final class AppModel {
         let fix = GpsFix(location: l)
         view = session.onFix(fix)
         navSession?.onFix(fix)
+        recordTrip(fix)
+        syncTripMeasure()
         syncNavMeasure()
         updateAlerts(fix)
         checkReports()
@@ -331,6 +354,8 @@ final class AppModel {
     private func tick() {
         view = session.tick()
         navSession?.tick()
+        tickTrips()
+        syncTripMeasure()
         checkCommunityJams()
         syncNavMeasure()
         alerts.expire(now: nowMs())
@@ -364,7 +389,7 @@ final class AppModel {
         let fix = view.lastFix
         let next = nav == nil ? nextSectionAheadM(fix, sections) : nil
         let shown = liveMapShown(liveMap.stamp, version: liveMap.version, pos: fix.map { LatLon(lat: $0.lat, lon: $0.lon) })
-        return liveActivityState(view, nav: nav, unit: settings.egyseg, gps: started, nextSectionM: next, mapVersion: shown)
+        return liveActivityState(view, nav: nav, unit: settings.egyseg, gps: started, nextSectionM: next, mapVersion: shown, cruise: cruiseText)
     }
 
     /// AOS15: új térképkép, ha esedékes – manővernél / állapotváltáskor azonnal, különben ≤ 30 s-enként és > 100 m mozgásnál.

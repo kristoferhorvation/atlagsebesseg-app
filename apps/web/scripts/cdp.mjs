@@ -6,6 +6,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 export const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+const SEND_TIMEOUT_MS = 180_000;
 const CHROME = process.env.CHROME ?? '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
 
 export async function launchChrome() {
@@ -57,10 +58,18 @@ export async function openPage({ port, base, outDir }) {
       else resolve(msg.result);
     }
   };
+  // időkorláttal: a válasz nélkül maradt hívás (pl. be nem fejeződő Promise) hibát ad, nem akasztja meg a futást a végtelenségig
   const send = (method, params = {}) =>
     new Promise((resolve, reject) => {
       const mid = ++id;
-      pending.set(mid, { resolve, reject });
+      const timer = setTimeout(() => {
+        pending.delete(mid);
+        reject(new Error(`CDP-időtúllépés (${SEND_TIMEOUT_MS / 1000} s): ${method} ${String(params.expression ?? '').slice(0, 120)}`));
+      }, SEND_TIMEOUT_MS);
+      pending.set(mid, {
+        resolve: (v) => (clearTimeout(timer), resolve(v)),
+        reject: (e) => (clearTimeout(timer), reject(e)),
+      });
       ws.send(JSON.stringify({ id: mid, method, params }));
     });
   await send('Page.enable');
@@ -101,6 +110,10 @@ export async function openPage({ port, base, outDir }) {
       await writeFile(join(outDir, file), Buffer.from(data, 'base64'));
       console.log(`  kép: docs/screenshots/${file}`);
     },
-    close: () => ws.close(),
+    // a lap is bezárul, nem csak a kapcsolat: a nyitva hagyott térképes lapok tovább futnak és terhelik a gépet
+    async close() {
+      ws.close();
+      await fetch(`http://127.0.0.1:${port}/json/close/${target.id}`).catch(() => {});
+    },
   };
 }

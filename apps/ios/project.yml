@@ -31,6 +31,10 @@ packages:
   Supabase:
     url: https://github.com/supabase/supabase-swift.git
     exactVersion: 2.55.5
+  # AW19: H3-cella a napló GPS-mintáiban (a következő kör hőtérképéhez; a webes h3-js párja, a H3 C-könyvtárát csomagolja)
+  SwiftyH3:
+    url: https://github.com/pawelmajcher/SwiftyH3.git
+    exactVersion: 0.6.0
 
 targets:
   Atlagsebesseg:
@@ -59,6 +63,10 @@ targets:
         product: MapboxMaps
       - package: Supabase
         product: Supabase
+      - package: SwiftyH3
+        product: SwiftyH3
+      # AW19: az utak naplója a rendszer SQLite-jával (külső függőség nélkül)
+      - sdk: libsqlite3.tbd
       # AOS14: a Live Activity widget-kiterjesztése (lezárt képernyő, Dynamic Island)
       - target: AtlagsebessegWidget
         embed: true

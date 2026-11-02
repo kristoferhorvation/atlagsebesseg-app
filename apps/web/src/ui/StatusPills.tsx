@@ -28,6 +28,7 @@ export function StatusPills({
   onGps,
   onSearch,
   greeting,
+  cruise,
 }: {
   geo: GeoStatus;
   accuracy: number | null;
@@ -42,6 +43,8 @@ export function StatusPills({
   onSearch?: () => void;
   /** AOS14: a köszöntő felirat az üres nézeten (a kereső-gombbal együtt látszik). */
   greeting?: string;
+  /** AW19: a futó út halvány állapotsora a köszöntés alatt („Krúzing · 12,4 km · 23 perc”). */
+  cruise?: string;
 }) {
   const pills: Pill[] = [];
   if (simMode) pills.push({ key: 'sim', tone: 'kezi', icon: 'play', text: 'Szimulátor' });
@@ -95,6 +98,11 @@ export function StatusPills({
     {onSearch && greeting && (
       <div className="greeting glass" role="status">
         {greeting}
+      </div>
+    )}
+    {onSearch && greeting && cruise && (
+      <div className="cruise-status glass" role="status">
+        {cruise}
       </div>
     )}
     </>
