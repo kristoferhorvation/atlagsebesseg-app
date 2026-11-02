@@ -22,6 +22,9 @@
 // hiba (?rerouteFail): visszaszámlálás, koppintásra azonnali próba; Bejelentés menü: Dugó / Beállt a kapu-tétel sorában.
 // AW19: krúzing (?cruise): cél nélkül is út a naplóban, „Krúzing · …” sor a köszöntés alatt; a rekord számai (km,
 // kanyarok, szakaszmérés, minták H3-cellával) az IndexedDB-ből; Napló lap (statisztika, lista, részlet térképpel, törlés).
+// AW20: hőtérkép (?heatSeed: mesterséges, több utas adat): a réteg megléte, a mód-váltó (Gyakoriság / Átlagsebesség), a zoom-
+// függő összevonás (res 10 → 8), a Beállítások új sorai (Hőtérkép ki / saját / közösségi, adatmegosztás alapból ki), a személyes
+// hőtérkép a krúzing-út után (IndexedDB `heat`), az út sebesség szerint színezve a napló-részleten.
 //
 //   npm run dev -w @atlagsebesseg/web            # másik terminálban (a Mapbox-token az apps/web/.env-ben)
 //   npm run nav-shots -w @atlagsebesseg/web
@@ -846,6 +849,7 @@ try {
   // ------------------------------------------------------------------
   // AW19: krúzing mód, utak naplója, statisztika (IndexedDB, csak helyben)
   // ------------------------------------------------------------------
+  let CLEAR_TRIPS;
   {
     // az előző lapok már bezárultak (egy Chrome, egy lap); az IndexedDB-t az első lap kiüríti, mielőtt útja lenne
     // a navsim teljes vezetése ezt az utat adja (a webes `SIM_TRIP` – navSim.ts; a navSim.test.ts és a Swift SimTests is ezt méri)
@@ -859,7 +863,7 @@ try {
       return out;
     })()`;
     // tranzakcióval, nem deleteDatabase-szel: az utóbbi egy nyitott kapcsolat mellett „blocked” marad, és minden későbbi open mögé áll
-    const CLEAR_TRIPS = `new Promise((res, rej) => { const o = indexedDB.open('atlagsebesseg-trips'); o.onerror = () => rej(o.error); o.onsuccess = () => { const db = o.result; const tx = db.transaction(['trips', 'samples'], 'readwrite'); tx.objectStore('trips').clear(); tx.objectStore('samples').clear(); tx.oncomplete = () => { db.close(); res(true); }; tx.onerror = () => rej(tx.error); }; })`;
+    CLEAR_TRIPS = `new Promise((res, rej) => { const o = indexedDB.open('atlagsebesseg-trips'); o.onerror = () => rej(o.error); o.onsuccess = () => { const db = o.result; const names = ['trips', 'samples', 'heat', 'heatTrips'].filter((n) => db.objectStoreNames.contains(n)); const tx = db.transaction(names, 'readwrite'); for (const n of names) tx.objectStore(n).clear(); tx.oncomplete = () => { db.close(); res(true); }; tx.onerror = () => rej(tx.error); }; })`;
 
     // 1) krúzing: cél nélkül, a navsim-vezetés rögtön indul; 30 s mozgás után az állapotsor a köszöntés alatt
     const cr = await mk(SHOT);
@@ -980,6 +984,145 @@ try {
     check('AW19: „Összes törlése” megerősítéssel – a napló és a minták üresek', confirmTxt === 'Törlöd az összes utat?' && afterAll.trips.length === 0 && afterAll.samples.length === 0, JSON.stringify({ confirmTxt, trips: afterAll.trips.length }));
     check('nincs kezeletlen JS-kivétel (AW19 napló)', cr.logs.length === 0 && cf.logs.length === 0 && cn.logs.length === 0, [...cr.logs, ...cf.logs, ...cn.logs].join(' | '));
     await cn.close();
+  }
+
+
+  // ------------------------------------------------------------------
+  // AW20: hőtérkép (személyes, közösségi), adatmegosztás, az út színezése
+  // ------------------------------------------------------------------
+  {
+    const HEAT_STATE = `(() => { const d = document.querySelector('.mapboxgl-map')?.dataset.heat ?? ''; const [view, n, res] = d.split(':'); return { view: view ?? '', n: Number(n ?? 0), res: Number(res ?? 0), raw: d }; })()`;
+    const heatIs = (cond) => `(() => { const h = ${HEAT_STATE}; return ${cond}; })()`;
+
+    // 1) mesterséges, több utas adat: a réteg, a mód-váltó, a zoom-függő összevonás
+    const hs = await mk(SHOT);
+    await hs.goto('/?navsim&heatSeed&panel=0');
+    await hs.waitFor(MAP_READY, 60_000, 'térkép');
+    await hs.waitFor(heatIs(`h.n > 0`), 60_000, 'hőtérkép-réteg');
+    const h1 = await hs.evaluate(`(() => ({ h: ${HEAT_STATE}, sw: [...document.querySelectorAll('.heat-switch .segmented button')].map((b) => b.innerText.trim() + (b.getAttribute('aria-pressed') === 'true' ? '*' : '')), legend: ${text('.heat-legend-text')} }))()`);
+    check('AW20: ?heatSeed – a hőtérkép-réteg megvan az üres nézeten (Gyakoriság mód, pontok a látható területen)', h1.h.view === 'gyakorisag' && h1.h.n > 5, JSON.stringify(h1.h));
+    check('AW20: a mód-váltó „Gyakoriság*” | „Átlagsebesség”, jelmagyarázattal („ritkán → gyakran”)', h1.sw.join('|') === 'Gyakoriság*|Átlagsebesség' && h1.legend === 'ritkán → gyakran', JSON.stringify(h1));
+    if (!CHECK_ONLY) {
+      await hs.evaluate(`window.__mapJump(47.497, 19.05, 12.9)`);
+      await sleep(3500);
+      await hs.shot(`${DATE}-aw20-hoterkep-gyakorisag.png`);
+    }
+    await click(hs, '.heat-switch .segmented button[aria-pressed="false"]');
+    await hs.waitFor(heatIs(`h.view === 'atlagsebesseg'`), 10_000, 'átlagsebesség mód');
+    const h2 = await hs.evaluate(`(() => ({ h: ${HEAT_STATE}, legend: ${text('.heat-legend-text')}, stored: JSON.parse(localStorage.getItem('settings:v1')).hoterkep_nezet }))()`);
+    check('AW20: átlagsebesség módra váltva a réteg a másik skálán marad (zöld → piros jelmagyarázat), a választás tárolódik', h2.h.n > 5 && h2.legend === 'lassú → gyors' && h2.stored === 'atlagsebesseg', JSON.stringify(h2));
+    if (!CHECK_ONLY) {
+      await sleep(2500);
+      await hs.shot(`${DATE}-aw20-hoterkep-atlagsebesseg.png`);
+    }
+    // zoom-függő összevonás: közelről res 10, kicsinyítve res 8 (kevesebb, összevont pont)
+    await hs.evaluate(`window.__mapJump(47.5, 19.04, 14)`);
+    await hs.waitFor(heatIs(`h.res === 10 && h.n > 0`), 15_000, 'res 10');
+    const near = await hs.evaluate(HEAT_STATE);
+    await hs.evaluate(`window.__mapJump(47.55, 18.5, 9)`);
+    await hs.waitFor(heatIs(`h.res === 8 && h.n > 0`), 15_000, 'res 8');
+    const far = await hs.evaluate(HEAT_STATE);
+    await hs.evaluate(`window.__mapJump(47.5, 19.04, 12.6)`);
+    await hs.waitFor(heatIs(`h.res === 10`), 15_000, 'res 10 közelítve');
+    const mid = await hs.evaluate(HEAT_STATE);
+    await hs.evaluate(`window.__mapJump(47.5, 19.04, 12.4)`);
+    await hs.waitFor(heatIs(`h.res === 8`), 15_000, 'res 8 kicsinyítve');
+    const mid8 = await hs.evaluate(HEAT_STATE);
+    check('AW20: zoom-függő felbontás – közelről res 10, kicsinyítve res 8-ra összevont pontok (a rajzolt pontszám a plafon alatt)', near.res === 10 && far.res === 8 && mid.res === 10 && far.n > 0 && far.n <= 4000 && mid8.n > 0 && mid8.n < mid.n, JSON.stringify({ near, mid, mid8, far }));
+    // közösségi mód: ugyanaz a mesterséges adat a heat_global-nak megfelelő sorokból (hálózat nélkül)
+    await hs.close();
+    const hc = await mk(SHOT);
+    await hc.goto('/?navsim&heatSeed&heat=kozossegi&panel=0');
+    await hc.waitFor(MAP_READY, 60_000, 'térkép');
+    await hc.waitFor(heatIs(`h.n > 0`), 60_000, 'közösségi réteg');
+    const hcs = await hc.evaluate(`(() => ({ h: ${HEAT_STATE}, mode: JSON.parse(localStorage.getItem('settings:v1')).hoterkep }))()`);
+    check('AW20: közösségi mód – a réteg a közösségi sorokból rajzol (?heatSeed), a beállítás tárolódik', hcs.mode === 'kozossegi' && hcs.h.n > 50, JSON.stringify(hcs));
+    await hc.close();
+
+    // 2) „ki” mód és navigáció / mérés közben nincs réteg
+    const ho = await mk(SHOT);
+    await ho.goto('/?navsim&heatSeed&heat=ki&panel=0');
+    await ho.waitFor(MAP_READY, 60_000, 'térkép');
+    await sleep(2500);
+    const off = await ho.evaluate(`(() => ({ raw: ${HEAT_STATE}.raw, sw: !!${q('.heat-switch')} }))()`);
+    check('AW20: „Hőtérkép: ki” – nincs réteg és nincs mód-váltó', off.raw === '' && !off.sw, JSON.stringify(off));
+    await ho.close();
+    const hn = await mk(SHOT);
+    await hn.goto('/?navsim&heatSeed&stage=nav&speed=1&panel=0');
+    await hn.waitFor(MAP_READY, 60_000, 'térkép');
+    await hn.waitFor(q('.nav-top'), 60_000, 'navigáció');
+    await sleep(2500);
+    const nv = await hn.evaluate(`(() => ({ raw: ${HEAT_STATE}.raw, sw: !!${q('.heat-switch')} }))()`);
+    check('AW20: navigáció közben nincs hőtérkép-réteg (csak az üres nézeten és krúzingban)', nv.raw === '' && !nv.sw, JSON.stringify(nv));
+    await hn.close();
+
+    // 3) Beállítások: Hőtérkép ki / saját / közösségi + névtelen adatmegosztás (alapból KI)
+    const hg = await mk(SHOT);
+    await hg.goto('/?navsim&panel=0');
+    await hg.waitFor(MAP_READY, 60_000, 'térkép');
+    await click(hg, '.round-btn[aria-label="Beállítások"]');
+    await hg.waitFor(q('[data-testid="heat-mode"]'), 10_000, 'hőtérkép-sor');
+    const st = await hg.evaluate(`(() => { const m = ${q('[data-testid="heat-mode"]')}; const row = m.closest('.list-row'); const shareRow = [...document.querySelectorAll('.list-row')].find((r) => r.querySelector('.label')?.innerText === 'Névtelen vezetési adatok megosztása'); const sw = shareRow?.querySelector('[role="switch"]'); return { modes: [...m.querySelectorAll('button')].map((b) => b.innerText.trim() + (b.getAttribute('aria-pressed') === 'true' ? '*' : '')), hint: row.querySelector('.hint').innerText, share: sw?.getAttribute('aria-checked'), shareHint: shareRow?.querySelector('.hint').innerText ?? '' }; })()`);
+    check('AW20: Beállítások – „Hőtérkép” Ki | Saját* | Közösségi, rövid magyarázattal', st.modes.join('|') === 'Ki|Saját*|Közösségi' && /névtelen/.test(st.hint), JSON.stringify(st));
+    check('AW20: „Névtelen vezetési adatok megosztása” alapból KI, a magyarázat szerint cellánkénti összesítés, nincs útvonal / pontos idő / azonosító, a 300 m kimarad', st.share === 'false' && /cellánkénti/.test(st.shareHint) && /nincs útvonal/.test(st.shareHint) && /300 m/.test(st.shareHint), st.shareHint);
+    await hg.evaluate(`(() => { const r = ${q('[data-testid="heat-mode"]')}.closest('.list-row'); r.scrollIntoView({ block: 'center' }); return true; })()`);
+    if (!CHECK_ONLY) {
+      await sleep(900);
+      await hg.shot(`${DATE}-aw20-beallitasok-hoterkep.png`);
+    }
+    await click(hg, '[data-testid="heat-mode"] button:last-child');
+    const stored = await hg.evaluate(`JSON.parse(localStorage.getItem('settings:v1')).hoterkep`);
+    check('AW20: a Hőtérkép-választó („Közösségi”) a beállításba kerül', stored === 'kozossegi', stored);
+    await hg.close();
+
+    // 4) személyes hőtérkép a krúzing-út után: a `heat` tár (inkrementális), majd a réteg az üres nézeten
+    const hk = await mk(SHOT);
+    await hk.goto('/');
+    await hk.waitFor(q('.mapboxgl-canvas'), 60_000, 'térkép');
+    await hk.evaluate(CLEAR_TRIPS);
+    await hk.goto('/?cruise&speed=60&panel=0');
+    await hk.waitFor(MAP_READY, 60_000, 'térkép');
+    const HEAT_DB = `(async () => {
+      const db = await new Promise((res, rej) => { const o = indexedDB.open('atlagsebesseg-trips'); o.onsuccess = () => res(o.result); o.onerror = () => rej(o.error); });
+      const all = (store) => new Promise((res) => { const r = db.transaction(store).objectStore(store).getAll(); r.onsuccess = () => res(r.result); });
+      const out = { trips: await all('trips'), samples: await all('samples'), heat: await all('heat'), heatTrips: await all('heatTrips'), v: db.version };
+      db.close();
+      return out;
+    })()`;
+    const hd = Date.now() + 120_000;
+    let hdb = { trips: [], samples: [], heat: [], heatTrips: [], v: 0 };
+    while (Date.now() < hd) {
+      hdb = await hk.evaluate(HEAT_DB);
+      if (hdb.heat.length > 0) break;
+      await sleep(500);
+    }
+    const trip = hdb.trips[0];
+    const passes = hdb.heat.reduce((n, c) => n + c.count, 0);
+    check('AW20: a krúzing-út végén a személyes hőtérkép cellánként frissül (IndexedDB v2 `heat`: h3 res 10, áthaladások, átlag, utolsó idő), az út megjelölve', hdb.v === 2 && !!trip && hdb.heat.length > 20 && hdb.heat.every((c) => /^8a[0-9a-f]{13}$/.test(c.h3) && c.count >= 1 && c.avgKmh > 0 && c.lastT > 0) && hdb.heatTrips.some((x) => x.id === trip.id), JSON.stringify({ v: hdb.v, cells: hdb.heat.length, passes, trips: hdb.heatTrips.length }));
+    console.log(`  info: ${hdb.heat.length} cella / ${passes} áthaladás / ${hdb.samples.length} minta egy 17,7 km-es útból`);
+    check('AW20: a megosztás alapból ki – a szimulátor-út nem kerül a feltöltési sorba, nincs hálózati írás', (await hk.evaluate(`localStorage.getItem('heat:outbox:v1')`)) === null);
+    await hk.close();
+    const hp = await mk(SHOT);
+    await hp.goto('/?navsim&panel=0&heat=sajat');
+    await hp.waitFor(MAP_READY, 60_000, 'térkép');
+    await hp.waitFor(heatIs(`h.n > 0`), 60_000, 'saját hőtérkép');
+    const own = await hp.evaluate(HEAT_STATE);
+    check('AW20: a krúzing után az üres nézeten a saját (valódi, helyi) hőtérkép látszik, mesterséges adat nélkül', own.n > 0 && own.res === 10, JSON.stringify(own));
+    await hp.close();
+
+    // 5) az út részlete: sebesség szerint színezett útvonal + jelmagyarázat
+    const hdt = await mk(SHOT);
+    await hdt.goto('/?navsim&panel=0&sheet=trips&tripOpen=first');
+    await hdt.waitFor(`${q('.trip-map')} && window.__tripMapReady`, 60_000, 'út-térkép');
+    await hdt.waitFor(q('[data-testid="trip-legend"]'), 15_000, 'jelmagyarázat');
+    const tm = await hdt.evaluate(`(() => ({ runs: window.__tripMapRuns, kind: ${q('[data-testid="trip-legend"]')}.dataset.kind, txt: ${text('[data-testid="trip-legend"]')} }))()`);
+    check('AW20: az út részletén a vonal a mért sebesség szerint színezett (több szakasz), abszolút skálával, ha a tábla-limit ismeretlen (krúzing)', tm.runs >= 2 && tm.kind === 'abs' && tm.txt === 'Sebesség: lassú → gyors', JSON.stringify(tm));
+    if (!CHECK_ONLY) {
+      await sleep(1500);
+      await hdt.shot(`${DATE}-aw20-ut-reszlet-szinezett.png`);
+    }
+    check('nincs kezeletlen JS-kivétel (AW20 hőtérkép)', [hs, hc, ho, hn, hg, hk, hp, hdt].every((x) => x.logs.length === 0), [hs, hc, ho, hn, hg, hk, hp, hdt].flatMap((x) => x.logs).join(' | '));
+    await hdt.close();
   }
 
   // ------------------------------------------------------------------

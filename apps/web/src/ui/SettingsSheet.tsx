@@ -1,4 +1,4 @@
-import { LANGUAGE_NAMES, MEGSZOLITAS_MAX, languageMenu, normalizeName, t, voiceInstructionsHint, type MapLook, type SavedPlaces, type Settings, type SpeedUnit } from '@atlagsebesseg/app-logic';
+import { HEAT_MODES, LANGUAGE_NAMES, MEGSZOLITAS_MAX, languageMenu, normalizeName, t, voiceInstructionsHint, type HeatMode, type MapLook, type SavedPlaces, type Settings, type SpeedUnit } from '@atlagsebesseg/app-logic';
 import { DEFAULT_TOLERANCE } from '@atlagsebesseg/core';
 import { useLanguage, useVoiceStatus } from '../i18n';
 import { Icon } from './Icon';
@@ -52,6 +52,7 @@ export function SettingsSheet({
     { id: 'szines', label: t('settings.look.color') },
     { id: 'visszafogott', label: t('settings.look.muted') },
   ];
+  const heatLabels: Record<HeatMode, string> = { ki: t('settings.heat.off'), sajat: t('settings.heat.own'), kozossegi: t('settings.heat.community') };
   return (
     <Sheet title={t('settings.title')} onClose={onClose}>
       <div className="group-label">{t('settings.group.display')}</div>
@@ -93,6 +94,27 @@ export function SettingsSheet({
               </button>
             ))}
           </div>
+        </div>
+        {/* AW20: hőtérkép (ki / saját / közösségi) és a névtelen adatmegosztás (alapból ki) */}
+        <div className="list-row stacked">
+          <div>
+            <div className="label">{t('settings.heat')}</div>
+            <div className="hint">{t('settings.heatHint')}</div>
+          </div>
+          <div className="segmented" role="group" aria-label={t('settings.heat')} data-testid="heat-mode">
+            {HEAT_MODES.map((m) => (
+              <button key={m} aria-pressed={settings.hoterkep === m} onClick={() => update({ hoterkep: m })}>
+                {heatLabels[m]}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div className="list-row">
+          <div>
+            <div className="label">{t('settings.share')}</div>
+            <div className="hint">{t('settings.shareHint')}</div>
+          </div>
+          <Switch label={t('settings.share')} checked={settings.adatmegosztas} onChange={(v) => update({ adatmegosztas: v })} />
         </div>
         <div className="list-row">
           <div className="label">{t('settings.language')}</div>

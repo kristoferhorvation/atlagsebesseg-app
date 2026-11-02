@@ -16,6 +16,8 @@ nonisolated struct TripSample: Codable, Equatable, Sendable {
     var heading: Double?
     var accuracy: Double?
     var h3: String?
+    /// AW20: a navigáció tábla-limitje (km/h) a mintánál; `nil`, ha nem ismert (az út színezéséhez).
+    var limitKmh: Double? = nil
 }
 
 /// Egy szakaszmérés az úton (a mérés eredményéből).
@@ -276,6 +278,7 @@ nonisolated final class TripRecorder {
     private var outbox: [TripSample] = []
     private var ended: [TripEnd] = []
     private var destination: String?
+    private var limitKmh: Double?
     private var nextManeuver: (icon: String, instruction: String, distanceM: Double)?
 
     init(newId: ((Double) -> String)? = nil) {
@@ -349,6 +352,9 @@ nonisolated final class TripRecorder {
     /// Egy befejezett szakaszmérés.
     func noteMeasurement(_ m: TripMeasurement) { run?.measurements.append(m) }
 
+    /// A navigáció mostani tábla-limitje (`nil`: ismeretlen / nincs navigáció) – a következő minták kapják (AW20).
+    func setLimit(_ kmh: Double?) { limitKmh = kmh }
+
     /// A navigáció célja (`nil`: nincs navigáció); a futó útra és a következőre is.
     func setDestination(_ name: String?) {
         destination = name
@@ -416,7 +422,7 @@ nonisolated final class TripRecorder {
         let good = accurate(fix)
         let sample = TripSample(
             tripId: r.id, t: t, lat: fix.lat, lon: fix.lon, speedKmh: kmh.map { jsRound($0 * 10) / 10 }, heading: fix.heading,
-            accuracy: fix.accuracy, h3: nil
+            accuracy: fix.accuracy, h3: nil, limitKmh: limitKmh
         )
         if good, let p = r.prev, t > p.t, haversineM(LatLon(lat: p.lat, lon: p.lon), fix) / ((t - p.t) / 1000) * 3.6 > TRIP.maxJumpKmh { r.turns.reset() }
         r.turns.feed(t, (kmh ?? 0) >= TRIP.turnMinKmh && kmh != nil ? fix.heading : nil)

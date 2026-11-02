@@ -1,5 +1,5 @@
 import type { ComponentType } from 'react';
-import type { BBox, MapController, MapLook, MapState } from '@atlagsebesseg/app-logic';
+import type { BBox, HeatPoint, HeatView, MapController, MapLook, MapState } from '@atlagsebesseg/app-logic';
 import type { GpsFix, LatLon } from '@atlagsebesseg/core';
 import type { IconName } from '../ui/Icon';
 
@@ -27,6 +27,16 @@ export interface WebMapState extends MapState {
   destination: LatLon | null;
   /** Az útvonal(ak) látványa a térképen (útvonalválasztó): a kamera ide áll, a követés kikapcsol. */
   fit: MapFit | null;
+  /** AW20: a hőtérkép-réteg (a mód színskálájával); `null`: nincs réteg. */
+  heat: MapHeat | null;
+}
+
+/** A hőtérkép-réteg tartalma: súlyozott pontok és a mód (a színskála). */
+export interface MapHeat {
+  points: readonly HeatPoint[];
+  view: HeatView;
+  /** A cellák felbontása (10 közelről, 8 kicsinyítve) – a böngészős ellenőrzéshez. */
+  res: number;
 }
 
 /** Egy tervezett útvonal a térképen: dugó szerint színezett szakaszokra bontva. */
@@ -92,8 +102,8 @@ export interface MapHandlers {
   onCameraTap: (id: string) => void;
   /** Koppintás egy alternatív útvonalra (a vonalra vagy a címkéjére): az lesz a kiválasztott. */
   onRouteTap: (id: string) => void;
-  /** A látható terület (a kamera mozgása után, ritkítva). */
-  onView: (bbox: BBox) => void;
+  /** A látható terület és a zoom (a kamera mozgása után, ritkítva; a térkép betöltése után egyszer). */
+  onView: (bbox: BBox, zoom: number) => void;
 }
 
 /**
@@ -112,5 +122,6 @@ export interface WebMapAdapter extends MapController {
   showPlannedChecks(planned: readonly MapPlanned[], activeId: string | null): void;
   showRoutes(routes: readonly MapRoute[], destination: LatLon | null): void;
   fitRoute(fit: MapFit | null): void;
+  showHeat(heat: MapHeat | null): void;
   setHandlers(handlers: Partial<MapHandlers>): void;
 }

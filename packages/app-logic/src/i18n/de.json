@@ -396,5 +396,20 @@
   "trips.d.noChecks": "Keine Abschnittskontrolle.",
   "trips.checkLimit": "Limit {v}",
   "trips.checkOk": "ok",
-  "trips.checkFast": "zu schnell"
+  "trips.checkFast": "zu schnell",
+
+  "settings.heat": "Heatmap",
+  "settings.heat.off": "Aus",
+  "settings.heat.own": "Eigene",
+  "settings.heat.community": "Community",
+  "settings.heatHint": "„Eigene“ entsteht aus deinen Fahrten und bleibt auf diesem Gerät. „Community“ zeigt anonyme Daten anderer Fahrer.",
+  "heat.view.aria": "Heatmap-Modus",
+  "heat.view.frequency": "Häufigkeit",
+  "heat.view.speed": "Durchschnittsgeschwindigkeit",
+  "heat.legend.frequency": "selten → oft",
+  "heat.legend.speed": "langsam → schnell",
+  "settings.share": "Anonyme Fahrdaten teilen",
+  "settings.shareHint": "Eingeschaltet wird am Ende einer Fahrt nur eine Zusammenfassung je Zelle gesendet (Anzahl der Durchfahrten, Durchschnittsgeschwindigkeit, Stunde, Wochentag): keine Route, keine genaue Zeit, keine Kennung. Die ersten und letzten 300 m einer Fahrt werden nie gesendet.",
+  "trips.map.legendLimit": "Im Verhältnis zum Tempolimit: darunter → darüber",
+  "trips.map.legendAbs": "Geschwindigkeit: langsam → schnell"
 }

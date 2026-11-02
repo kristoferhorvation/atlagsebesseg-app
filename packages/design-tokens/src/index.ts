@@ -34,6 +34,20 @@ export const color = {
   /** A Mapbox Standard térkép jellemző háttere (a keverékhez és a kontraszt-teszthez). */
   mapBgDay: '#E8EBEF',
   mapBgNight: '#1B2030',
+  /**
+   * AW20: hőtérkép-színskála. Gyakoriság: indigó → lila → borostyánsárga (ritkán → gyakran); átlagsebesség: zöld → borostyán →
+   * piros (lassú → gyors). Az út színezése a napló-részleten ugyanezt a zöld–sárga–piros skálát használja (`tripSlow` /
+   * `tripMid` / `tripFast`, a státuszszínekkel azonos értékek, hogy külön lehessen hangolni).
+   */
+  heatFreqLow: '#5B6CFF',
+  heatFreqMid: '#C65CFF',
+  heatFreqHigh: '#FFD166',
+  heatSpeedLow: '#2EE59D',
+  heatSpeedMid: '#FFB224',
+  heatSpeedHigh: '#FF4D61',
+  tripSlow: '#2EE59D',
+  tripMid: '#FFB224',
+  tripFast: '#FF4D61',
   signRing: '#E5303F',
   signFace: '#FFFFFF',
   signText: '#0B0C10',

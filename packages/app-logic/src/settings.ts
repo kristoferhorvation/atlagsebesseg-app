@@ -1,3 +1,5 @@
+import { HEAT_MODES, HEAT_VIEWS, type HeatMode, type HeatView } from './heat';
+
 export type SpeedUnit = 'kmh' | 'mph';
 
 /**
@@ -18,6 +20,12 @@ export interface Settings {
   hangos_utasitasok: boolean;
   /** AOS14: a köszöntés neve („Szia Kristof!”); üresen név nélkül köszön („Szia!”). */
   megszolitas: string;
+  /** AW20: hőtérkép – ki / saját (helyi) / közösségi. */
+  hoterkep: HeatMode;
+  /** AW20: a hőtérkép módja – gyakoriság / átlagsebesség. */
+  hoterkep_nezet: HeatView;
+  /** AW20: névtelen vezetési adatok megosztása a közösségi hőtérképhez (alapból ki). */
+  adatmegosztas: boolean;
 }
 
 /** A megszólítás legfeljebb ennyi karakter (a köszöntő sor egy sorban maradjon). */
@@ -26,7 +34,7 @@ export const MEGSZOLITAS_MAX = 24;
 /** A tárolt / beírt név: szélein vágva, a belső szóközök egyre, legfeljebb `MEGSZOLITAS_MAX` karakter. */
 export const normalizeName = (raw: string): string => [...raw.replace(/\s+/g, ' ').trim()].slice(0, MEGSZOLITAS_MAX).join('').trim();
 
-export const DEFAULT_SETTINGS: Settings = { hatosagi_tures_megjelenitese: false, egyseg: 'kmh', terkep: 'szines', tervezett_meresek: true, hangos_utasitasok: true, megszolitas: '' };
+export const DEFAULT_SETTINGS: Settings = { hatosagi_tures_megjelenitese: false, egyseg: 'kmh', terkep: 'szines', tervezett_meresek: true, hangos_utasitasok: true, megszolitas: '', hoterkep: 'sajat', hoterkep_nezet: 'gyakorisag', adatmegosztas: false };
 export const SETTINGS_KEY = 'settings:v1';
 
 /** Tárolt beállítások beolvasása; ismeretlen / sérült érték helyett az alapértelmezés. */
@@ -42,6 +50,9 @@ export function parseSettings(raw: string | null | undefined): Settings {
       tervezett_meresek: typeof p.tervezett_meresek === 'boolean' ? p.tervezett_meresek : DEFAULT_SETTINGS.tervezett_meresek,
       hangos_utasitasok: typeof p.hangos_utasitasok === 'boolean' ? p.hangos_utasitasok : DEFAULT_SETTINGS.hangos_utasitasok,
       megszolitas: typeof p.megszolitas === 'string' ? normalizeName(p.megszolitas) : DEFAULT_SETTINGS.megszolitas,
+      hoterkep: HEAT_MODES.includes(p.hoterkep as HeatMode) ? (p.hoterkep as HeatMode) : DEFAULT_SETTINGS.hoterkep,
+      hoterkep_nezet: HEAT_VIEWS.includes(p.hoterkep_nezet as HeatView) ? (p.hoterkep_nezet as HeatView) : DEFAULT_SETTINGS.hoterkep_nezet,
+      adatmegosztas: typeof p.adatmegosztas === 'boolean' ? p.adatmegosztas : DEFAULT_SETTINGS.adatmegosztas,
     };
   } catch {
     return DEFAULT_SETTINGS;

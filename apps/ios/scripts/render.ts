@@ -1,4 +1,4 @@
-import { ALT_OFFER, CAMERA_ALERT, CAMERA_CARD, TRAFFIC, TRIP, DICTIONARIES, MEGSZOLITAS_MAX, REPORT_PROMPT, type ActiveReport, LANGUAGE_FLAGS, LANGUAGE_NAMES, LANGUAGES, MANUAL_PILL, NAV_CONFIG, NAV_COUNTRIES, NAV_FOLLOW, PLANNED_MATCH_M, PLANNED_OFF_FIXES, ROUTE_MATCH_M, type FixedCamera, type PlannedCheck, type TKey } from '@atlagsebesseg/app-logic';
+import { HEAT, SPEED_TONE, ALT_OFFER, CAMERA_ALERT, CAMERA_CARD, TRAFFIC, TRIP, DICTIONARIES, MEGSZOLITAS_MAX, REPORT_PROMPT, type ActiveReport, LANGUAGE_FLAGS, LANGUAGE_NAMES, LANGUAGES, MANUAL_PILL, NAV_CONFIG, NAV_COUNTRIES, NAV_FOLLOW, PLANNED_MATCH_M, PLANNED_OFF_FIXES, ROUTE_MATCH_M, type FixedCamera, type PlannedCheck, type TKey } from '@atlagsebesseg/app-logic';
 import { Route, type LatLon } from '@atlagsebesseg/core';
 import { testCourse } from '@atlagsebesseg/core/test/helpers/trace';
 import { toSwift } from '@atlagsebesseg/design-tokens';
@@ -106,6 +106,15 @@ function appLogicConstants(): string {
     '/// Douglas–Peucker (`simplifyM`), H3-felbontás, 1 Hz-es mintavétel, a legrövidebb mentett út.',
     'nonisolated enum TRIP {',
     ...Object.entries(TRIP).map(([k, v]) => `    static let ${k} = ${num(v)}`),
+    '}',
+    '/// AW20: hőtérkép – cella-felbontások, zoom-küszöb, pontplafon, lakóhely-védelem (az út első / utolsó `shareEndsM` méterének',
+    '/// cellái sosem mennek fel), súly-skálák, a közösségi lekérés gyorsítótára és a feltöltés-várólista.',
+    'nonisolated enum HEAT {',
+    ...Object.entries(HEAT).map(([k, v]) => `    static let ${k} = ${num(v)}`),
+    '}',
+    '/// AW20: az út színezése a mért sebesség szerint (a limithez képest `rel*`, limit nélkül abszolút `abs*`, `steps` fokozat).',
+    'nonisolated enum SPEED_TONE {',
+    ...Object.entries(SPEED_TONE).map(([k, v]) => `    static let ${k} = ${num(v)}`),
     '}',
     '/// A megszólítás (AOS14) legfeljebb ennyi karakter.',
     `nonisolated let MEGSZOLITAS_MAX = ${MEGSZOLITAS_MAX}`,

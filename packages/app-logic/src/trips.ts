@@ -65,6 +65,8 @@ export interface TripSample {
   heading: number | null;
   accuracy: number | null;
   h3: string | null;
+  /** AW20: a navigáció tábla-limitje (km/h) a mintánál; `null`, ha nem ismert (az út színezéséhez). */
+  limitKmh: number | null;
 }
 
 /** Egy szakaszmérés az úton (a mérés eredményéből). */
@@ -310,6 +312,7 @@ export class TripRecorder {
   private outbox: TripSample[] = [];
   private ended: TripEnd[] = [];
   private destination: string | null = null;
+  private limitKmh: number | null = null;
   private nextManeuver: { icon: string; instruction: string; distanceM: number } | null = null;
 
   constructor(opts: TripRecorderOptions = {}) {
@@ -361,6 +364,11 @@ export class TripRecorder {
     if (prev.distanceM > TRIP.maneuverPassM) return;
     const kind = maneuverTurnKind(prev.icon);
     if (kind) this.run.maneuverTurns[kind]++;
+  }
+
+  /** A navigáció mostani tábla-limitje (`null`: ismeretlen / nincs navigáció) – a következő minták kapják. */
+  setLimit(kmh: number | null): void {
+    this.limitKmh = kmh;
   }
 
   /** Újratervezés a navigációban (a futó útba). */
@@ -482,6 +490,7 @@ export class TripRecorder {
       heading: fix.heading,
       accuracy: fix.accuracy,
       h3: null,
+      limitKmh: this.limitKmh,
     };
     if (good && r.prev && t > r.prev.t && (haversineM(r.prev, fix) / ((t - r.prev.t) / 1000)) * 3.6 > TRIP.maxJumpKmh) r.turns.reset();
     r.turns.feed(t, kmh !== null && kmh >= TRIP.turnMinKmh && fix.heading !== null ? fix.heading : null);

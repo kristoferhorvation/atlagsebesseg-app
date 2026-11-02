@@ -35,6 +35,21 @@ struct SettingsSheet: View {
                             .pickerStyle(.segmented)
                             .labelsHidden()
                         }
+                        // AW20: hőtérkép (ki / saját / közösségi) és a névtelen adatmegosztás (alapból KI)
+                        VStack(alignment: .leading, spacing: Tokens.Space.s2) {
+                            Text(t(.settingsHeat))
+                            Picker(t(.settingsHeat), selection: $model.settings.hoterkep) {
+                                Text(t(.settingsHeatOff)).tag(HeatMode.ki)
+                                Text(t(.settingsHeatOwn)).tag(HeatMode.sajat)
+                                Text(t(.settingsHeatCommunity)).tag(HeatMode.kozossegi)
+                            }
+                            .pickerStyle(.segmented)
+                            .labelsHidden()
+                        }
+                        .id(Self.heatAnchor)
+                        Text(t(.settingsHeatHint)).font(.footnote).foregroundStyle(Tokens.Colors.textMuted)
+                        Toggle(t(.settingsShare), isOn: $model.settings.adatmegosztas)
+                        Text(t(.settingsShareHint)).font(.footnote).foregroundStyle(Tokens.Colors.textMuted)
                         Toggle(t(.settingsPlanned), isOn: $model.settings.tervezettMeresek)
                         Text(t(.settingsPlannedHint)).font(.footnote).foregroundStyle(Tokens.Colors.textMuted)
                     }
@@ -148,6 +163,7 @@ struct SettingsSheet: View {
                     switch UserDefaults.standard.string(forKey: "settingsOpen") {
                     case "language": scroll.scrollTo(Self.languageAnchor, anchor: .top)
                     case "voice": scroll.scrollTo(Self.voiceAnchor, anchor: .top)
+                    case "heat": scroll.scrollTo(Self.heatAnchor, anchor: .top)
                     default: break
                     }
                 }
@@ -199,6 +215,7 @@ struct SettingsSheet: View {
         model.openSearch(for: slot)
     }
 
+    private static let heatAnchor = "heat"
     private static let languageAnchor = "language"
     private static let voiceAnchor = "voice"
 

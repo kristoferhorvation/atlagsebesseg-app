@@ -396,5 +396,20 @@
   "trips.d.noChecks": "Brak pomiarów odcinkowych.",
   "trips.checkLimit": "limit {v}",
   "trips.checkOk": "OK",
-  "trips.checkFast": "za szybko"
+  "trips.checkFast": "za szybko",
+
+  "settings.heat": "Mapa cieplna",
+  "settings.heat.off": "Wył.",
+  "settings.heat.own": "Własna",
+  "settings.heat.community": "Społeczności",
+  "settings.heatHint": "Własna powstaje z Twoich przejazdów i zostaje na tym urządzeniu. Społeczności pokazuje anonimowe dane innych kierowców.",
+  "heat.view.aria": "Tryb mapy cieplnej",
+  "heat.view.frequency": "Częstość",
+  "heat.view.speed": "Średnia prędkość",
+  "heat.legend.frequency": "rzadko → często",
+  "heat.legend.speed": "wolno → szybko",
+  "settings.share": "Udostępniaj anonimowe dane o jeździe",
+  "settings.shareHint": "Po włączeniu na końcu przejazdu wysyłane jest tylko podsumowanie dla każdej komórki (liczba przejazdów, średnia prędkość, godzina, dzień tygodnia): bez trasy, bez dokładnego czasu, bez identyfikatora. Pierwsze i ostatnie 300 m przejazdu nigdy nie jest wysyłane.",
+  "trips.map.legendLimit": "W odniesieniu do limitu: poniżej → powyżej",
+  "trips.map.legendAbs": "Prędkość: wolno → szybko"
 }

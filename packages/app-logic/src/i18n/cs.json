@@ -396,5 +396,20 @@
   "trips.d.noChecks": "Žádné úsekové měření.",
   "trips.checkLimit": "limit {v}",
   "trips.checkOk": "v pořádku",
-  "trips.checkFast": "příliš rychle"
+  "trips.checkFast": "příliš rychle",
+
+  "settings.heat": "Teplotní mapa",
+  "settings.heat.off": "Vyp.",
+  "settings.heat.own": "Vlastní",
+  "settings.heat.community": "Komunitní",
+  "settings.heatHint": "Vlastní vzniká z tvých jízd a zůstává jen v tomto zařízení. Komunitní ukazuje anonymní data ostatních řidičů.",
+  "heat.view.aria": "Režim teplotní mapy",
+  "heat.view.frequency": "Frekvence",
+  "heat.view.speed": "Průměrná rychlost",
+  "heat.legend.frequency": "zřídka → často",
+  "heat.legend.speed": "pomalu → rychle",
+  "settings.share": "Sdílet anonymní data o jízdě",
+  "settings.shareHint": "Po zapnutí se na konci jízdy odešle jen souhrn po buňkách (počet průjezdů, průměrná rychlost, hodina, den v týdnu): žádná trasa, žádný přesný čas, žádný identifikátor. Prvních a posledních 300 m jízdy se nikdy neodešle.",
+  "trips.map.legendLimit": "Vůči limitu: pod ním → nad ním",
+  "trips.map.legendAbs": "Rychlost: pomalu → rychle"
 }

@@ -6,6 +6,7 @@ import { rowToPlannedCheck, type PlannedCheck, type PlannedCheckRow } from './pl
 import type { CommunityJam, JamSampleInsert } from './navigation/traffic';
 import type { ReportInsert } from './reports';
 import type { BBox } from './sectionCache';
+import { HEAT, type HeatGlobalRow, type HeatUploadRow } from './heat';
 
 export type { SupabaseClient };
 
@@ -169,4 +170,26 @@ export async function createJamSamples(client: SupabaseClient | null, rows: read
   await ensureSignedIn(client);
   const { error } = await need(client).from('jam_samples').insert(rows);
   if (error) throw error;
+}
+
+/** AW20: a közösségi hőtérkép feltöltése (cellánkénti aggregátum; a tábla nem olvasható, nincs azonosító). Bejelentkezés nem kell. */
+export async function uploadHeatRows(client: SupabaseClient | null, rows: readonly HeatUploadRow[]): Promise<void> {
+  if (rows.length === 0) return;
+  const { error } = await need(client).from('heat_cells').insert(rows);
+  if (error) throw error;
+}
+
+/** AW20: a `heat_global` (res 10) vagy `heat_global_r8` (res 8) nézet a téglalapra – a legtöbb áthaladású cellák, legfeljebb `HEAT.queryLimit`. */
+export async function fetchHeatGlobal(client: SupabaseClient | null, b: BBox, res: number): Promise<HeatGlobalRow[]> {
+  const { data, error } = await need(client)
+    .from(res >= HEAT.res ? 'heat_global' : 'heat_global_r8')
+    .select('h3,lat,lon,count,avg_speed')
+    .gte('lat', b.south)
+    .lte('lat', b.north)
+    .gte('lon', b.west)
+    .lte('lon', b.east)
+    .order('count', { ascending: false })
+    .limit(HEAT.queryLimit);
+  if (error) throw error;
+  return data as HeatGlobalRow[];
 }

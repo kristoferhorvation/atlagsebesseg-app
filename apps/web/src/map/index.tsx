@@ -1,6 +1,6 @@
 import type { WebMapAdapter } from './WebMapAdapter';
 
-export type { MapFit, MapReport, MapRoute, WebMapAdapter } from './WebMapAdapter';
+export type { MapFit, MapHeat, MapReport, MapRoute, WebMapAdapter } from './WebMapAdapter';
 
 /**
  * Az egyetlen hely, ahol a térkép-implementáció eldől. Token nélkül egy térkép nélküli háttér
@@ -28,5 +28,6 @@ class NoMapAdapter implements WebMapAdapter {
   showPlannedChecks(): void {}
   showRoutes(): void {}
   fitRoute(): void {}
+  showHeat(): void {}
   setHandlers(): void {}
 }

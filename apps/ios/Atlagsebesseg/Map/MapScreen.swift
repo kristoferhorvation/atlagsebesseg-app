@@ -20,6 +20,9 @@ struct MapScreen: View {
     /// A térkép aktuális elforgatása (fok) – a saját pozíció nyila ehhez képest mutat a haladási irányba.
     @State private var mapBearing: Double = 0
     @State private var routesFC = FeatureCollection(features: [])
+    /// AW20: a hőtérkép pontjai (súllyal); navigáció / mérés közben üres.
+    @State private var heatFC = FeatureCollection(features: [])
+    @State private var heatBuiltAt = 0.0
     @State private var altLabels: [AltLabel] = []
     /// AW17: a címkék képernyő-pontban számolt helye (a buborék közepe), útvonal-azonosító szerint.
     @State private var altLabelAt: [String: CLLocationCoordinate2D] = [:]
@@ -53,6 +56,15 @@ struct MapScreen: View {
 
     private func map(_ proxy: MapProxy) -> some View {
         Map(viewport: $viewport) {
+            // AW20: hőtérkép (saját / közösségi) – legalul, az útvonalak és szakaszok alatt; csak az üres nézeten és krúzingban
+            GeoJSONSource(id: "heat").data(.featureCollection(heatFC))
+            HeatmapLayer(id: "heat-layer", source: "heat")
+                .slot(.middle)
+                .heatmapWeight(Exp(.get) { "weight" })
+                .heatmapIntensity(Exp(.interpolate) { Exp(.linear); Exp(.zoom); 6; 0.9; 12; 1.6; 17; 2.8 })
+                .heatmapRadius(Exp(.interpolate) { Exp(.linear); Exp(.zoom); 6; 12; 11; 20; 14; 36; 17; 84 })
+                .heatmapOpacity(0.85)
+                .heatmapColor(Self.heatColorRamp(model.settings.hoterkepNezet))
             // útvonalak (A8/A11): legalul, hogy a szakaszok és a mérés fölöttük látszódjanak; az alternatíva alul
             GeoJSONSource(id: "routes").data(.featureCollection(routesFC))
             // AW11 (A8d): a kiválasztott 7 pt erős kék + 2 × 2 pt fehér kontúr, az alternatíva 5 pt + 2 × 1,5 pt kontúr –
@@ -256,9 +268,15 @@ struct MapScreen: View {
             if let m = proxy.map {
                 let r = m.coordinateBounds(for: CameraOptions(cameraState: e.cameraState))
                 model.setReportView(BBox(south: r.south, west: r.west, north: r.north, east: r.east))
+                // AW20: a hőtérkép a látható részre és a zoomra (res-10 / res-8) számol
+                model.setHeatViewport(HeatViewport(zoom: e.cameraState.zoom, bbox: BBox(south: r.south, west: r.west, north: r.north, east: r.east)))
+                // mozgás közben ritkítva (a pontok számítása ne akadályozza a gesztust); a végén az `onMapIdle` pontosít
+                let now = Date().timeIntervalSince1970
+                if now - heatBuiltAt > 0.4 { rebuildHeat() }
                 placeAltLabels(m)
             }
         }
+        .onMapIdle { _ in rebuildHeat() }
         .onChange(of: altLabels) { if let m = proxy.map { placeAltLabels(m) } }
         .ignoresSafeArea()
         .onAppear {
@@ -268,6 +286,7 @@ struct MapScreen: View {
             if follow, let fix = view.lastFix { recenter(fix, animated: false) }
         }
         .onChange(of: model.dataVersion) { rebuild() }
+        .onChange(of: heatKey) { rebuildHeat() }
         .onChange(of: routeKey) { rebuildRoutes() }
         .onChange(of: model.fitVersion) { fitRoutes() }
         .onChange(of: view.lastFix) { _, fix in
@@ -355,6 +374,40 @@ struct MapScreen: View {
         if let n = model.nav { return n.destination.latLon }
         if let p = model.plan, p.status == .ready { return p.dest.latLon }
         return nil
+    }
+
+    /// AW20: mikor kell a hőtérkép pontjait újraszámolni: más mód / nézet, látható-e, új út vagy közösségi adat.
+    private var heatKey: String { "\(model.settings.hoterkep.rawValue):\(model.settings.hoterkepNezet.rawValue):\(model.heatVisible):\(model.heatVersion)" }
+
+    private func rebuildHeat() {
+        heatBuiltAt = Date().timeIntervalSince1970
+        let pts = model.heatPoints()
+        heatFC = FeatureCollection(features: pts.map { p in
+            var f = Feature(geometry: Point(CLLocationCoordinate2D(latitude: p.lat, longitude: p.lon)))
+            f.properties = ["weight": .number(p.weight)]
+            return f
+        })
+    }
+
+    /// A hőtérkép színskálája a sűrűségből (tokenekből): átlátszó → alacsony → közép → magas; gyakoriságnál indigó → lila →
+    /// borostyánsárga, átlagsebességnél zöld → borostyán → piros.
+    private static func heatColorRamp(_ view: HeatView) -> Exp {
+        let (lo, mid, hi) = view == .gyakorisag
+            ? (Tokens.Colors.heatFreqLow, Tokens.Colors.heatFreqMid, Tokens.Colors.heatFreqHigh)
+            : (Tokens.Colors.heatSpeedLow, Tokens.Colors.heatSpeedMid, Tokens.Colors.heatSpeedHigh)
+        func rgba(_ c: Color, _ a: Double) -> String {
+            var (r, g, b, o) = (CGFloat(0), CGFloat(0), CGFloat(0), CGFloat(0))
+            UIColor(c).getRed(&r, green: &g, blue: &b, alpha: &o)
+            return "rgba(\(Int((r * 255).rounded())), \(Int((g * 255).rounded())), \(Int((b * 255).rounded())), \(a))"
+        }
+        return Exp(.interpolate) {
+            Exp(.linear)
+            Exp(.heatmapDensity)
+            0; rgba(lo, 0)
+            0.1; rgba(lo, 0.55)
+            0.5; rgba(mid, 0.75)
+            1; rgba(hi, 0.95)
+        }
     }
 
     /// Mikor kell újrarajzolni: más útvonalak, más kiválasztás, új navigációs útvonal, megjött az összefoglaló.

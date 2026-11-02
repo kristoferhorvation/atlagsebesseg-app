@@ -7,8 +7,13 @@ import SwiftyH3
 // (1 Hz GPS-minták, a H3-cellával a következő kör hőtérképéhez). Szerverre semmi nem megy.
 //
 //   trips(id TEXT PK, started_at REAL, ended_at REAL, record TEXT)          – index: started_at
-//   samples(trip_id TEXT, t REAL, lat REAL, lon REAL, speed_kmh REAL, heading REAL, accuracy REAL, h3 TEXT)
+//   samples(trip_id TEXT, t REAL, lat REAL, lon REAL, speed_kmh REAL, heading REAL, accuracy REAL, h3 TEXT, limit_kmh REAL)
 //                                                                          – index: (trip_id, t)
+//
+// AW20 (user_version 2): a hőtérkép helyi összesítése és a navigáció tábla-limitje a mintákon (az út színezéséhez):
+//   heat(h3 TEXT PK, count INTEGER, avg_kmh REAL, last_t REAL)             – cellánként egy sor (res 10)
+//   heat_trips(trip_id TEXT PK)                                            – melyik út van már beolvasztva (idempotencia)
+// Az út törlése a hőtérképből NEM von vissza (az összesítés cellánkénti, nem útonkénti); az „Összes törlése” a hőtérképet is törli.
 
 /// A minta H3-cellája (`TRIP.h3Res` felbontás, a h3-js `latLngToCell` párja); hibánál `nil`.
 nonisolated func tripCell(_ lat: Double, _ lon: Double) -> String? {
@@ -37,8 +42,25 @@ final class TripStore {
         CREATE TABLE IF NOT EXISTS samples (trip_id TEXT NOT NULL, t REAL NOT NULL, lat REAL NOT NULL, lon REAL NOT NULL,
           speed_kmh REAL, heading REAL, accuracy REAL, h3 TEXT);
         CREATE INDEX IF NOT EXISTS samples_trip ON samples(trip_id, t);
-        PRAGMA user_version = 1;
         """)
+        migrate()
+    }
+
+    /// AW20: user_version 1 → 2 (a minták tábla-limitje, a hőtérkép táblái).
+    private func migrate() {
+        guard let db else { return }
+        var st: OpaquePointer?
+        sqlite3_prepare_v2(db, "PRAGMA user_version", -1, &st, nil)
+        let version = sqlite3_step(st) == SQLITE_ROW ? sqlite3_column_int(st, 0) : 0
+        sqlite3_finalize(st)
+        if version < 2 {
+            exec("""
+            ALTER TABLE samples ADD COLUMN limit_kmh REAL;
+            CREATE TABLE IF NOT EXISTS heat (h3 TEXT PRIMARY KEY, count INTEGER NOT NULL, avg_kmh REAL NOT NULL, last_t REAL NOT NULL);
+            CREATE TABLE IF NOT EXISTS heat_trips (trip_id TEXT PRIMARY KEY);
+            PRAGMA user_version = 2;
+            """)
+        }
     }
 
     deinit { sqlite3_close(db) }
@@ -54,7 +76,7 @@ final class TripStore {
         guard let db, !samples.isEmpty else { return }
         exec("BEGIN")
         var st: OpaquePointer?
-        sqlite3_prepare_v2(db, "INSERT INTO samples (trip_id, t, lat, lon, speed_kmh, heading, accuracy, h3) VALUES (?, ?, ?, ?, ?, ?, ?, ?)", -1, &st, nil)
+        sqlite3_prepare_v2(db, "INSERT INTO samples (trip_id, t, lat, lon, speed_kmh, heading, accuracy, h3, limit_kmh) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)", -1, &st, nil)
         for s in samples {
             sqlite3_bind_text(st, 1, s.tripId, -1, SQLITE_TRANSIENT)
             sqlite3_bind_double(st, 2, s.t)
@@ -64,6 +86,7 @@ final class TripStore {
             bind(st, 6, s.heading)
             bind(st, 7, s.accuracy)
             if let h = s.h3 ?? tripCell(s.lat, s.lon) { sqlite3_bind_text(st, 8, h, -1, SQLITE_TRANSIENT) } else { sqlite3_bind_null(st, 8) }
+            bind(st, 9, s.limitKmh)
             sqlite3_step(st)
             sqlite3_reset(st)
         }
@@ -108,7 +131,7 @@ final class TripStore {
     func deleteSamples(_ tripId: String) { run("DELETE FROM samples WHERE trip_id = ?", tripId) }
 
     func deleteAll() {
-        exec("DELETE FROM samples; DELETE FROM trips;")
+        exec("DELETE FROM samples; DELETE FROM trips; DELETE FROM heat; DELETE FROM heat_trips;")
         exec("VACUUM")
     }
 
@@ -116,18 +139,83 @@ final class TripStore {
     func samples(_ tripId: String) -> [TripSample] {
         guard let db else { return [] }
         var st: OpaquePointer?
-        sqlite3_prepare_v2(db, "SELECT t, lat, lon, speed_kmh, heading, accuracy, h3 FROM samples WHERE trip_id = ? ORDER BY t", -1, &st, nil)
+        sqlite3_prepare_v2(db, "SELECT t, lat, lon, speed_kmh, heading, accuracy, h3, limit_kmh FROM samples WHERE trip_id = ? ORDER BY t", -1, &st, nil)
         sqlite3_bind_text(st, 1, tripId, -1, SQLITE_TRANSIENT)
         var out: [TripSample] = []
         while sqlite3_step(st) == SQLITE_ROW {
             out.append(TripSample(
                 tripId: tripId, t: sqlite3_column_double(st, 0), lat: sqlite3_column_double(st, 1), lon: sqlite3_column_double(st, 2),
                 speedKmh: column(st, 3), heading: column(st, 4), accuracy: column(st, 5),
-                h3: sqlite3_column_text(st, 6).map { String(cString: $0) }
+                h3: sqlite3_column_text(st, 6).map { String(cString: $0) }, limitKmh: column(st, 7)
             ))
         }
         sqlite3_finalize(st)
         return out
+    }
+
+    // MARK: hőtérkép (AW20)
+
+    /// A hőtérkép összes cellája (a térkép indexének).
+    func heatCells() -> [HeatCell] {
+        guard let db else { return [] }
+        var st: OpaquePointer?
+        sqlite3_prepare_v2(db, "SELECT h3, count, avg_kmh, last_t FROM heat", -1, &st, nil)
+        var out: [HeatCell] = []
+        while sqlite3_step(st) == SQLITE_ROW {
+            guard let c = sqlite3_column_text(st, 0) else { continue }
+            out.append(HeatCell(h3: String(cString: c), count: Int(sqlite3_column_int64(st, 1)), avgKmh: sqlite3_column_double(st, 2), lastT: sqlite3_column_double(st, 3)))
+        }
+        sqlite3_finalize(st)
+        return out
+    }
+
+    /// Azok az utak, amelyek még nincsenek a hőtérképbe beolvasztva (a visszamenőleges feldolgozáshoz).
+    func unabsorbedTripIds() -> [String] {
+        guard let db else { return [] }
+        var st: OpaquePointer?
+        sqlite3_prepare_v2(db, "SELECT id FROM trips WHERE id NOT IN (SELECT trip_id FROM heat_trips) ORDER BY started_at", -1, &st, nil)
+        var out: [String] = []
+        while sqlite3_step(st) == SQLITE_ROW { if let c = sqlite3_column_text(st, 0) { out.append(String(cString: c)) } }
+        sqlite3_finalize(st)
+        return out
+    }
+
+    /// Egy út beolvasztása a hőtérképbe egy tranzakcióban: áthaladások a mintákból → cellák (upsert) → az út jelölése.
+    /// Idempotens: a már beolvasztott utat nem számolja újra (`nil`). A változott cellákat és az áthaladásokat adja
+    /// (az utóbbiból megy fel a közösségi összesítés, ha be van kapcsolva).
+    func absorbTrip(_ tripId: String) -> (changed: [HeatCell], passes: [HeatPass])? {
+        guard let db else { return nil }
+        var st: OpaquePointer?
+        sqlite3_prepare_v2(db, "SELECT 1 FROM heat_trips WHERE trip_id = ?", -1, &st, nil)
+        sqlite3_bind_text(st, 1, tripId, -1, SQLITE_TRANSIENT)
+        let already = sqlite3_step(st) == SQLITE_ROW
+        sqlite3_finalize(st)
+        if already { return nil }
+        let passes = tripPasses(samples(tripId))
+        var cells: [String: HeatCell] = [:]
+        for h in Set(passes.map(\.h3)) {
+            var q: OpaquePointer?
+            sqlite3_prepare_v2(db, "SELECT count, avg_kmh, last_t FROM heat WHERE h3 = ?", -1, &q, nil)
+            sqlite3_bind_text(q, 1, h, -1, SQLITE_TRANSIENT)
+            if sqlite3_step(q) == SQLITE_ROW { cells[h] = HeatCell(h3: h, count: Int(sqlite3_column_int64(q, 0)), avgKmh: sqlite3_column_double(q, 1), lastT: sqlite3_column_double(q, 2)) }
+            sqlite3_finalize(q)
+        }
+        let changed = mergePasses(&cells, passes)
+        exec("BEGIN")
+        var up: OpaquePointer?
+        sqlite3_prepare_v2(db, "INSERT OR REPLACE INTO heat (h3, count, avg_kmh, last_t) VALUES (?, ?, ?, ?)", -1, &up, nil)
+        for c in changed {
+            sqlite3_bind_text(up, 1, c.h3, -1, SQLITE_TRANSIENT)
+            sqlite3_bind_int64(up, 2, Int64(c.count))
+            sqlite3_bind_double(up, 3, c.avgKmh)
+            sqlite3_bind_double(up, 4, c.lastT)
+            sqlite3_step(up)
+            sqlite3_reset(up)
+        }
+        sqlite3_finalize(up)
+        run("INSERT OR IGNORE INTO heat_trips (trip_id) VALUES (?)", tripId)
+        exec("COMMIT")
+        return (changed, passes)
     }
 
     // MARK: segédek

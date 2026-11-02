@@ -25,6 +25,11 @@ adatokat nem módosítja. **Az anonim bejelentkezést a Supabase-dashboardon be 
   (`lat`, `lon`), `heading_deg`, `avg_kmh`, `length_m`, `user_id`, `created_at` (a szerveré, trigger). Az app 15 percnél
   frissebb, azonos irányú, más felhasználótól származó mintával írja felül az érintett szakasz idejét az ETA-ban.
 - **active_jams** – nézet a 15 percnél frissebb mintákra (explicit oszloplistával).
+- **heat_cells** (AW20) – a közösségi hőtérkép nyers, cellánkénti aggregátuma (csak bekapcsolt megosztásnál): `h3` (res 10),
+  `h3_r8` (a szülője), a cella középpontja (`lat`, `lon`), `count` (áthaladás), `avg_speed`, `hour` (0–23), `dow` (0 = vasárnap).
+  **Nincs** felhasználó-azonosító, időbélyeg, útvonal vagy sorrend. A tábla senkinek nem olvasható.
+- **heat_global** / **heat_global_r8** – az egyetlen olvasási út: cellánként összegzett darabszám és súlyozott átlagsebesség, csak
+  a legalább 3 beküldésű cellákra (a magányos áthaladás nem látszik). Az app a látható téglalapra kéri, 10 perc gyorsítótárral.
 - **report_votes** – megerősítés/cáfolat, felhasználónként és bejelentésenként egy; a
   számlálókat trigger tartja karban.
 - **active_reports** – nézet a le nem járt bejelentésekre, **explicit oszloplistával** (A5): a
@@ -89,6 +94,7 @@ ennek hiányában az úthálózat `maxspeed`-je; 30 nap után lejár, ha egyik k
 | reports | mindenki | bejelentkezve, saját névre; módosítás csak a sajátot (számlálót nem) | csak a sajátot |
 | report_votes | mindenki | bejelentkezve, saját névre, nem a saját bejelentésre | a saját szavazatot |
 | jam_samples | mindenki | bejelentkezve, saját névre; módosítás nincs | csak a sajátot |
+| heat_cells | senki (csak a `heat_global*` nézeteken át) | anon és bejelentkezett, érték-ellenőrzésekkel (cella-formátum, óra 0–23, nap 0–6, sebesség ≤ 250); módosítás nincs | senki |
 
 Az OSM/hivatalos szakaszokat az import a `service_role` kulccsal tölti (megkerüli az RLS-t);
 ez a kulcs soha nem kerül az appba vagy a repóba.

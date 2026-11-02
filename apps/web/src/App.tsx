@@ -25,6 +25,10 @@ import {
   type ReportPrompt,
   greetingText,
   cruiseStatusText,
+  HEAT_MODES,
+  HEAT_VIEWS,
+  type HeatMode,
+  type HeatView,
   reportVisual,
   rowToActiveReport,
   visibleCameras,
@@ -74,6 +78,8 @@ import { useSession } from './hooks/useSession';
 import { useSettings } from './hooks/useSettings';
 import { useTileItems } from './hooks/useTileItems';
 import { useTrips } from './hooks/useTrips';
+import { HEAT_SEED, useHeat, type HeatViewport } from './hooks/useHeat';
+import { HeatSwitch } from './ui/HeatSwitch';
 import { useWakeLock } from './hooks/useWakeLock';
 import { createWebMapAdapter, type MapReport, type MapRoute, type WebMapAdapter } from './map';
 import { simCameras, simPlannedChecks, simReports } from './sim/scenarios';
@@ -213,7 +219,7 @@ function Drive({ map }: { map: WebMapAdapter }) {
     places,
   );
   navSessionRef.current = nav.session;
-  const trips = useTrips(now, nav.view, view);
+  const trips = useTrips(now, nav.view, view, settings.adatmegosztas);
   tripsRef.current = trips;
   const navSearch = useCallback((q: string) => (NAV_SIM ? simSearch(q) : searchPlaces(q, view.lastFix)), [view.lastFix]);
   const requestsToday = useSyncExternalStore(requestCounter.subscribe, () => requestCounter.count);
@@ -701,6 +707,24 @@ function Drive({ map }: { map: WebMapAdapter }) {
   const navSign = nav.view !== null && (view.phase === 'nincs_szakasz' || view.phase === 'befejezve' || view.phase === 'megszakadt' || view.phase === 'kezi_eredmeny' || pillCollapsed);
   const accuracy = view.lastFix?.accuracy ?? null;
 
+  // AW20: hőtérkép – csak az üres nézeten és krúzingban (navigáció, útvonalválasztó és mérés közben nincs)
+  const [heatViewport, setHeatViewport] = useState<HeatViewport | null>(null);
+  useEffect(() => map.setHandlers({ onView: (bbox, zoom) => setHeatViewport({ bbox, zoom }) }), [map]);
+  const heatVisible = settings.hoterkep !== 'ki' && nav.view === null && nav.plan === null && !driving && view.phase !== 'kezi_eredmeny';
+  const heat = useHeat({ mode: settings.hoterkep, view: settings.hoterkep_nezet, share: settings.adatmegosztas, version: trips.version, viewport: heatViewport, visible: heatVisible });
+  useEffect(() => map.showHeat(heat ? { points: heat.points, view: heat.view, res: heat.res } : null), [map, heat]);
+  // szimulátor / képernyőkép: `?heat=ki|sajat|kozossegi`, `?heatView=gyakorisag|atlagsebesseg`
+  useEffect(() => {
+    if (!SIM_MODE) return;
+    const q = new URLSearchParams(location.search);
+    const mode = q.get('heat');
+    const hv = q.get('heatView');
+    update({
+      ...(HEAT_MODES.includes(mode as HeatMode) ? { hoterkep: mode as HeatMode } : HEAT_SEED ? { hoterkep: 'sajat' as const } : {}),
+      ...(HEAT_VIEWS.includes(hv as HeatView) ? { hoterkep_nezet: hv as HeatView } : {}),
+    });
+  }, [update]);
+
   return (
     <>
       <StatusPills
@@ -721,6 +745,7 @@ function Drive({ map }: { map: WebMapAdapter }) {
           else wake.request();
         }}
       />
+      {heat && <HeatSwitch view={settings.hoterkep_nezet} onChange={(v) => update({ hoterkep_nezet: v })} />}
       {NAV_SIM && navSim && (
         <NavSimDriver
           data={navSim}

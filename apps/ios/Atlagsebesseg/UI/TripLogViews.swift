@@ -141,6 +141,10 @@ struct TripRowView: View {
 struct TripDetailView: View {
     let model: AppModel
     let trip: Trip
+    /// AW20: az út színezett szakaszai a mintákból (a részlet megnyitásakor számolva); minták nélkül üres → egyszínű vonal.
+    @State private var runs: [SpeedRun] = []
+    /// AW20: van-e a mintákon tábla-limit (a jelmagyarázat szövegéhez).
+    @State private var hasLimit = false
 
     var body: some View {
         let unit = model.settings.egyseg
@@ -160,9 +164,10 @@ struct TripDetailView: View {
         ScrollViewReader { proxy in
         List {
             SwiftUI.Section {
-                TripMapView(trip: trip, preset: model.tripMapPreset)
+                TripMapView(trip: trip, preset: model.tripMapPreset, runs: runs)
                     .frame(height: 220)
                     .listRowInsets(EdgeInsets())
+                if !runs.isEmpty { TripSpeedLegend(hasLimit: hasLimit) }
             }
             SwiftUI.Section {
                 ForEach(rows, id: \.0) { r in LabeledContent(r.0, value: r.1).id(r.0) }
@@ -197,6 +202,26 @@ struct TripDetailView: View {
         }
         .navigationTitle(tripTitle(trip))
         .navigationBarTitleDisplayMode(.inline)
+        .task {
+            let samples = model.tripStore.samples(trip.id)
+            runs = speedRuns(samples)
+            hasLimit = samples.contains { $0.limitKmh != nil }
+        }
+    }
+}
+
+/// AW20: az út színezésének jelmagyarázata – zöld → sárga → piros sáv és a szöveg (a limithez képest, vagy abszolút skálán).
+struct TripSpeedLegend: View {
+    let hasLimit: Bool
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: Tokens.Space.s1) {
+            Capsule()
+                .fill(LinearGradient(colors: [Tokens.Colors.tripSlow, Tokens.Colors.tripMid, Tokens.Colors.tripFast], startPoint: .leading, endPoint: .trailing))
+                .frame(height: 6)
+            Text(t(hasLimit ? .tripsMapLegendLimit : .tripsMapLegendAbs)).font(.footnote).foregroundStyle(Tokens.Colors.textMuted)
+        }
+        .accessibilityElement(children: .combine)
     }
 }
 
@@ -222,6 +247,8 @@ nonisolated func tripMapCamera(_ points: [CLLocationCoordinate2D], widthPt: Doub
 struct TripMapView: View {
     let trip: Trip
     let preset: LightPreset
+    /// AW20: a mért sebesség szerint színezett szakaszok; üresen az egyszínű vonal.
+    var runs: [SpeedRun] = []
 
     var body: some View {
         let segs = trip.path.map { $0.map { CLLocationCoordinate2D(latitude: $0[0], longitude: $0[1]) } }.filter { $0.count >= 2 }
@@ -238,13 +265,34 @@ struct TripMapView: View {
                 .lineWidth(7)
                 .lineOpacity(0.9)
                 .lineEmissiveStrength(1)
-            LineLayer(id: "trip-line", source: "trip")
-                .slot(.top)
-                .lineCap(.round)
-                .lineJoin(.round)
-                .lineColor(UIColor(Tokens.Colors.route))
-                .lineWidth(4)
-                .lineEmissiveStrength(1)
+            if runs.isEmpty {
+                LineLayer(id: "trip-line", source: "trip")
+                    .slot(.top)
+                    .lineCap(.round)
+                    .lineJoin(.round)
+                    .lineColor(UIColor(Tokens.Colors.route))
+                    .lineWidth(4)
+                    .lineEmissiveStrength(1)
+            } else {
+                GeoJSONSource(id: "trip-speed").data(.featureCollection(FeatureCollection(features: runs.map { run in
+                    var f = Feature(geometry: LineString(run.points.map { CLLocationCoordinate2D(latitude: $0.lat, longitude: $0.lon) }))
+                    f.properties = ["tone": .number(run.tone)]
+                    return f
+                })))
+                LineLayer(id: "trip-speed-line", source: "trip-speed")
+                    .slot(.top)
+                    .lineCap(.round)
+                    .lineJoin(.round)
+                    .lineColor(Exp(.interpolate) {
+                        Exp(.linear)
+                        Exp(.get) { "tone" }
+                        0; UIColor(Tokens.Colors.tripSlow)
+                        0.5; UIColor(Tokens.Colors.tripMid)
+                        1; UIColor(Tokens.Colors.tripFast)
+                    })
+                    .lineWidth(4)
+                    .lineEmissiveStrength(1)
+            }
         }
         .mapStyle(.standard(theme: .monochrome, lightPreset: StandardLightPreset(rawValue: preset.rawValue), showPointOfInterestLabels: false))
         .ornamentOptions(OrnamentOptions(

@@ -142,6 +142,24 @@ final class AppModel {
     @ObservationIgnored var tripLastResult: String?
     @ObservationIgnored var tripCheckpointAt = 0.0
 
+    // MARK: hőtérkép (AW20)
+
+    /// A saját hőtérkép indexe (a `TripStore` heat tábláiból; út végén csak a módosult cellák frissülnek).
+    @ObservationIgnored let heatIndex = HeatIndex(geo: H3Geo())
+    /// A közösségi lekérések gyorsítótára (10 perc).
+    @ObservationIgnored let heatGlobalCache = HeatGlobalCache(now: { Date().timeIntervalSince1970 * 1000 })
+    /// A térkép látható része (a `MapScreen` küldi kamera-mozdulatkor).
+    @ObservationIgnored var heatViewport: HeatViewport?
+    /// A legutóbb megkapott közösségi sorok (a mostani téglalapra).
+    @ObservationIgnored var heatGlobalRows: [HeatGlobalRow] = []
+    @ObservationIgnored var heatGlobalKey: String?
+    /// Nő, ha a hőtérkép tartalma változott (új út, érkezett közösségi adat) – a térkép ebből tudja, hogy újra kell töltenie.
+    var heatVersion = 0
+    /// `-heatSeed YES`: mesterséges, több utas adat a szimulátorban (a közösségi mód is ebből, hálózat nélkül).
+    @ObservationIgnored var heatSeedList: [HeatCell]?
+    /// Egyszerre egy feltöltés fut (különben a várólista kétszer menne fel).
+    @ObservationIgnored var heatFlushing = false
+
     @ObservationIgnored var navSession: NavigationSession?
     @ObservationIgnored var routeData = EnforcementData.none
     @ObservationIgnored let placesStore: SyncStore = DefaultsStore()
@@ -169,6 +187,7 @@ final class AppModel {
         setUpNavigation()
         setUpReports()
         reloadTrips()
+        setUpHeat()
         LiveActivityController.endStale()
         liveMap.onImage = { [weak self] in
             self?.liveMapSeq += 1
@@ -386,6 +405,7 @@ final class AppModel {
     func appBecameActive() {
         refreshLiveMap()
         liveActivity.resume(liveState)
+        flushHeatOutbox()
     }
 
     /// A Live Activity mostani tartalma (a szimulátoros előnézet is ezt rajzolja).

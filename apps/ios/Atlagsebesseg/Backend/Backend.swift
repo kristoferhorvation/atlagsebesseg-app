@@ -94,6 +94,30 @@ final class Backend {
         try await client.from("report_votes").upsert(VoteRow(report_id: reportId, confirm: confirm), onConflict: "report_id,user_id").execute()
     }
 
+    // MARK: közösségi hőtérkép (AW20, a webes `uploadHeatRows` / `fetchHeatGlobal`)
+
+    /// Cellánkénti aggregátum feltöltése a `heat_cells` táblába – anon kulccsal, bejelentkezés és azonosító nélkül.
+    func uploadHeat(_ rows: [HeatUploadRow]) async throws {
+        guard let client else { throw BackendError.nincsBeallitas }
+        if rows.isEmpty { return }
+        try await client.from("heat_cells").insert(rows).execute()
+    }
+
+    /// A `heat_global` (res 10) vagy `heat_global_r8` nézet a téglalapra – a legtöbb áthaladású cellák, legfeljebb `HEAT.queryLimit`.
+    func heatGlobal(in b: BBox, res: Int) async throws -> [HeatGlobalRow] {
+        guard let client else { throw BackendError.nincsBeallitas }
+        return try await client.from(res >= Int(HEAT.res) ? "heat_global" : "heat_global_r8")
+            .select("h3,lat,lon,count,avg_speed")
+            .gte("lat", value: b.south)
+            .lte("lat", value: b.north)
+            .gte("lon", value: b.west)
+            .lte("lon", value: b.east)
+            .order("count", ascending: false)
+            .limit(Int(HEAT.queryLimit))
+            .execute()
+            .value
+    }
+
     // MARK: közösségi dugó-adat (AW18, a webes `listActiveJams` / `createJamSamples`)
 
     /// A téglalap 15 percnél frissebb dugó-mintái (`active_jams` nézet), legfeljebb 500.

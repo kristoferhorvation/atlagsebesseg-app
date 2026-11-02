@@ -121,6 +121,35 @@ nonisolated enum TRIP {
     static let checkpointS = 60.0
     static let maneuverPassM = 80.0
 }
+/// AW20: hőtérkép – cella-felbontások, zoom-küszöb, pontplafon, lakóhely-védelem (az út első / utolsó `shareEndsM` méterének
+/// cellái sosem mennek fel), súly-skálák, a közösségi lekérés gyorsítótára és a feltöltés-várólista.
+nonisolated enum HEAT {
+    static let res = 10.0
+    static let coarseRes = 8.0
+    static let coarseBelowZoom = 12.5
+    static let maxFeatures = 4000.0
+    static let viewPad = 0.25
+    static let minPassKmh = 5.0
+    static let passGapMs = 120000.0
+    static let shareEndsM = 300.0
+    static let freqCap = 20.0
+    static let speedMaxKmh = 130.0
+    static let cacheMs = 600000.0
+    static let querySnapDeg = 0.05
+    static let queryLimit = 5000.0
+    static let outboxMax = 2000.0
+    static let serverMinRows = 3.0
+}
+/// AW20: az út színezése a mért sebesség szerint (a limithez képest `rel*`, limit nélkül abszolút `abs*`, `steps` fokozat).
+nonisolated enum SPEED_TONE {
+    static let relGreen = 0.9
+    static let relYellow = 1.0
+    static let relRed = 1.15
+    static let absGreen = 50.0
+    static let absYellow = 90.0
+    static let absRed = 130.0
+    static let steps = 12.0
+}
 /// A megszólítás (AOS14) legfeljebb ennyi karakter.
 nonisolated let MEGSZOLITAS_MAX = 24
 

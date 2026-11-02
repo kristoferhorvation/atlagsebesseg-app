@@ -33,6 +33,7 @@ extension AppModel {
     /// A navigáció állapota a felvevőnek: a cél, az újratervezések (felfutó él), a helyi dugó-állapot.
     func syncTripNav() {
         tripRecorder.setDestination(nav?.destination.name)
+        tripRecorder.setLimit(nav?.limitKmh)
         let rerouting = nav?.rerouting ?? false
         if rerouting, !tripNavPrev.rerouting { tripRecorder.noteReroute() }
         let jam = nav?.jam ?? false
@@ -84,6 +85,7 @@ extension AppModel {
             case let .saved(trip):
                 tripStore.saveTrip(trip)
                 changed = true
+                absorbIntoHeat(trip)
                 if sim != nil { NSLog("TRIP saved %@ %.0f m %.0f s turns %d/%d/%d checks %d", trip.id, trip.distanceM, trip.movingS, trip.turns.left, trip.turns.right, trip.turns.uTurn, trip.measurements.count) }
             case let .discarded(id):
                 tripStore.deleteSamples(id)

@@ -396,5 +396,20 @@
   "trips.d.noChecks": "Nem volt szakaszmérés.",
   "trips.checkLimit": "határ {v}",
   "trips.checkOk": "rendben",
-  "trips.checkFast": "túl gyors"
+  "trips.checkFast": "túl gyors",
+
+  "settings.heat": "Hőtérkép",
+  "settings.heat.off": "Ki",
+  "settings.heat.own": "Saját",
+  "settings.heat.community": "Közösségi",
+  "settings.heatHint": "A saját mód a megtett utaidból készül, csak ezen a készüléken. A közösségi mód mások névtelen adatait mutatja.",
+  "heat.view.aria": "Hőtérkép módja",
+  "heat.view.frequency": "Gyakoriság",
+  "heat.view.speed": "Átlagsebesség",
+  "heat.legend.frequency": "ritkán → gyakran",
+  "heat.legend.speed": "lassú → gyors",
+  "settings.share": "Névtelen vezetési adatok megosztása",
+  "settings.shareHint": "Bekapcsolva az út végén csak cellánkénti összesítés megy fel (áthaladások száma, átlagsebesség, óra-sáv, a hét napja): nincs útvonal, nincs pontos idő, nincs azonosító. Az utak első és utolsó 300 m-e sosem kerül fel.",
+  "trips.map.legendLimit": "A tábla-limithez képest: alatta → fölötte",
+  "trips.map.legendAbs": "Sebesség: lassú → gyors"
 }

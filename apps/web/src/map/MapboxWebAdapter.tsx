@@ -1,4 +1,4 @@
-import type { FeatureCollection, LineString, MultiLineString, MultiPolygon, Polygon } from 'geojson';
+import type { FeatureCollection, LineString, MultiLineString, MultiPolygon, Point, Polygon } from 'geojson';
 import mapboxgl, { type GeoJSONSource, type Map as MbMap } from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { useEffect, useRef } from 'react';
@@ -7,8 +7,8 @@ import { bearingDeg, haversineM, LocalProjection, type GpsFix, type LatLon, type
 import { color } from '@atlagsebesseg/design-tokens';
 import { iconSvg } from '../ui/Icon';
 import { t } from '@atlagsebesseg/app-logic';
-import { mapStyleFor } from './testMapMode';
-import type { MapCamera, MapFit, MapHandlers, MapPlanned, MapReport, MapRoute, MapZone, WebMapAdapter, WebMapState } from './WebMapAdapter';
+import { mapStyleFor, mapTestMode } from './testMapMode';
+import type { MapCamera, MapFit, MapHandlers, MapHeat, MapPlanned, MapReport, MapRoute, MapZone, WebMapAdapter, WebMapState } from './WebMapAdapter';
 
 const STANDARD_STYLE = 'mapbox://styles/mapbox/standard';
 const PITCH = 60;
@@ -51,6 +51,7 @@ export class MapboxWebAdapter implements WebMapAdapter {
     routes: [],
     destination: null,
     fit: null,
+    heat: null,
   });
   private readonly handlers: MapHandlers = { onGesture: () => {}, onReportTap: () => {}, onCameraTap: () => {}, onRouteTap: () => {}, onView: () => {} };
   readonly MapView: (props: { className?: string }) => React.JSX.Element;
@@ -95,6 +96,9 @@ export class MapboxWebAdapter implements WebMapAdapter {
   }
   showReports(reports: readonly MapReport[], selectedId: string | null): void {
     this.store.set({ reports, selectedReportId: selectedId });
+  }
+  showHeat(heat: MapHeat | null): void {
+    this.store.set({ heat });
   }
   showCameras(cameras: readonly MapCamera[], zones: readonly MapZone[], selectedId: string | null): void {
     this.store.set({ cameras, cameraZones: zones, selectedCameraId: selectedId });
@@ -205,9 +209,19 @@ class MapController {
     el.innerHTML = '<div class="puck-cone"></div><div class="puck-dot"></div>';
     this.marker = new mapboxgl.Marker({ element: el, rotationAlignment: 'map', pitchAlignment: 'map' }).setLngLat([0, 0]);
 
+    // csak az ellenőrzéshez (nav-shots) és a `?heatSeed` szimulátorhoz: a kamera szabadon, követés nélkül egy adott helyre
+    if (mapTestMode() || new URLSearchParams(location.search).has('heatSeed')) {
+      (window as unknown as { __mapJump?: (lat: number, lon: number, zoom: number) => void }).__mapJump = (lat, lon, zoom) => {
+        this.following = false;
+        this.store.set({ follow: false });
+        this.map.jumpTo({ center: [lon, lat], zoom, pitch: 0, bearing: 0 });
+        this.onMoveEnd();
+      };
+    }
     this.map.on('style.load', () => {
       this.addLayers();
       this.styleReady = true;
+      this.onMoveEnd(); // AW20: az első látható terület a hőtérképnek
       this.prev = null;
       this.apply(store.getState());
     });
@@ -336,6 +350,21 @@ class MapController {
         'line-emissive-strength': 1,
       },
     });
+    // AW20: hőtérkép – súlyozott pontok (a cellák középpontja), a színskála a módtól függ (setPaintProperty az `apply`-ban)
+    m.addSource('heat', { type: 'geojson', data: heatGeoJson(null) });
+    m.addLayer({
+      id: 'heat',
+      type: 'heatmap',
+      source: 'heat',
+      slot: 'middle',
+      paint: {
+        'heatmap-weight': ['get', 'weight'],
+        'heatmap-radius': ['interpolate', ['exponential', 1.6], ['zoom'], 6, 7, 10, 13, 12, 20, 14, 32, 16, 58, 18, 110],
+        'heatmap-intensity': ['interpolate', ['linear'], ['zoom'], 6, 0.7, 12, 1.1, 16, 1.5],
+        'heatmap-color': heatColor('gyakorisag'),
+        'heatmap-opacity': 0.88,
+      },
+    });
     // kamera-zóna (`zone` láthatóság): kör, pont nélkül
     m.addSource('camera-zones', { type: 'geojson', data: zonesGeoJson([]) });
     m.addLayer({
@@ -402,7 +431,7 @@ class MapController {
     this.viewTimer = setTimeout(() => {
       this.viewTimer = undefined;
       const b = this.map.getBounds();
-      if (b) this.handlers.onView({ south: b.getSouth(), west: b.getWest(), north: b.getNorth(), east: b.getEast() });
+      if (b) this.handlers.onView({ south: b.getSouth(), west: b.getWest(), north: b.getNorth(), east: b.getEast() }, this.map.getZoom());
     }, VIEW_DEBOUNCE_MS);
   };
 
@@ -607,6 +636,13 @@ class MapController {
       (m.getSource('planned-zones') as GeoJSONSource | undefined)?.setData(plannedZonesGeoJson(s.planned, s.activePlannedId));
     }
     if (s.routes !== p?.routes) (m.getSource('routes') as GeoJSONSource | undefined)?.setData(routesGeoJson(s.routes));
+    if (s.heat !== p?.heat) {
+      (m.getSource('heat') as GeoJSONSource | undefined)?.setData(heatGeoJson(s.heat));
+      if (s.heat?.view !== p?.heat?.view && s.heat) m.setPaintProperty('heat', 'heatmap-color', heatColor(s.heat.view));
+      m.setLayoutProperty('heat', 'visibility', s.heat ? 'visible' : 'none');
+      // a böngészős ellenőrzés ebből olvassa a réteget (mint a `data-theme`-et): mód és pontszám
+      this.map.getContainer().dataset.heat = s.heat ? `${s.heat.view}:${s.heat.points.length}:${s.heat.res}` : '';
+    }
     if (s.cameraZones !== p?.cameraZones) (m.getSource('camera-zones') as GeoJSONSource | undefined)?.setData(zonesGeoJson(s.cameraZones));
     if (s.highlightId !== p?.highlightId) {
       const f: mapboxgl.FilterSpecification = ['==', ['get', 'id'], s.highlightId ?? ''];
@@ -747,6 +783,19 @@ function routesGeoJson(routes: readonly MapRoute[]): FeatureCollection<LineStrin
         geometry: { type: 'LineString' as const, coordinates: run.points.map((p) => [p.lon, p.lat]) },
       })),
     ),
+  };
+}
+
+/** AW20: a hőtérkép színskálája a módban (design-tokenek): sűrűség 0 átlátszó, majd alacsony → közepes → magas. */
+function heatColor(view: 'gyakorisag' | 'atlagsebesseg'): mapboxgl.ExpressionSpecification {
+  const [lo, mid, hi] = view === 'gyakorisag' ? [color.heatFreqLow, color.heatFreqMid, color.heatFreqHigh] : [color.heatSpeedLow, color.heatSpeedMid, color.heatSpeedHigh];
+  return ['interpolate', ['linear'], ['heatmap-density'], 0, withAlpha(lo, 0), 0.12, withAlpha(lo, 0.5), 0.45, withAlpha(mid, 0.8), 1, withAlpha(hi, 0.95)];
+}
+
+function heatGeoJson(heat: MapHeat | null): FeatureCollection<Point> {
+  return {
+    type: 'FeatureCollection',
+    features: (heat?.points ?? []).map((p) => ({ type: 'Feature', properties: { weight: p.weight }, geometry: { type: 'Point', coordinates: [p.lon, p.lat] } })),
   };
 }
 

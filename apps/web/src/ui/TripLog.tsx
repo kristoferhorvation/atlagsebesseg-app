@@ -6,6 +6,7 @@ import {
   getLanguage,
   mapTheme,
   sortTrips,
+  speedRuns,
   t,
   TRIP_PERIODS,
   tripAvgKmh,
@@ -23,7 +24,7 @@ import {
   type TKey,
 } from '@atlagsebesseg/app-logic';
 import { color } from '@atlagsebesseg/design-tokens';
-import { deleteAllTrips, deleteTrip, listTrips } from '../trips/tripStore';
+import { deleteAllTrips, deleteTrip, listTrips, tripSamples } from '../trips/tripStore';
 import { Icon } from './Icon';
 import { mapStyleFor } from '../map/testMapMode';
 import { Sheet } from './Sheet';
@@ -279,9 +280,14 @@ function TripDetail({ trip, unit, lightPreset, onBack }: { trip: Trip; unit: Spe
   );
 }
 
-/** Kis, nem mozgatható térkép az út vonalával (Visszafogott stílus, a mostani napszak fényével). */
+/**
+ * Kis, nem mozgatható térkép az út vonalával (Visszafogott stílus, a mostani napszak fényével). AW20: az útvonal a mért
+ * sebesség szerint színezve (zöld–sárga–piros a tábla-limithez képest, ha ismert; különben abszolút skála); minta nélkül
+ * (régi út) az egyszínű vonal.
+ */
 function TripMap({ trip, lightPreset }: { trip: Trip; lightPreset: LightPreset }) {
   const ref = useRef<HTMLDivElement>(null);
+  const [legend, setLegend] = useState<'limit' | 'abs' | null>(null);
   useEffect(() => {
     const el = ref.current;
     const token = import.meta.env.VITE_MAPBOX_TOKEN ?? '';
@@ -290,8 +296,10 @@ function TripMap({ trip, lightPreset }: { trip: Trip; lightPreset: LightPreset }
     let map: import('mapbox-gl').Map | null = null;
     let cancelled = false;
     // a Mapbox GL külön, lustán töltött chunk (mint a fő térképnél) – a napló ne húzza a fő csomagba
-    void import('mapbox-gl').then(({ default: mapboxgl }) => {
+    void Promise.all([import('mapbox-gl'), tripSamples(trip.id).catch(() => [])]).then(([{ default: mapboxgl }, samples]) => {
       if (cancelled) return;
+      const runs = speedRuns(samples);
+      setLegend(runs.length > 0 ? (samples.some((x) => x.limitKmh) ? 'limit' : 'abs') : null);
       const bounds = pts.reduce((b, [lat, lon]) => b.extend([lon, lat]), new mapboxgl.LngLatBounds([pts[0]![1], pts[0]![0]], [pts[0]![1], pts[0]![0]]));
       const base = mapStyleFor('mapbox://styles/mapbox/standard', { lightPreset, theme: mapTheme('visszafogott'), showPointOfInterestLabels: false, showTransitLabels: false, showPedestrianRoads: false });
       const m = new mapboxgl.Map({
@@ -312,9 +320,26 @@ function TripMap({ trip, lightPreset }: { trip: Trip; lightPreset: LightPreset }
           type: 'geojson',
           data: { type: 'Feature', properties: {}, geometry: { type: 'MultiLineString', coordinates: trip.path.map((seg) => seg.map(([lat, lon]) => [lon, lat])) } },
         });
-        m.addLayer({ id: 'trip-casing', type: 'line', source: 'trip', slot: 'top', paint: { 'line-color': color.routeCasing, 'line-width': 7, 'line-opacity': 0.9 }, layout: { 'line-cap': 'round', 'line-join': 'round' } });
-        m.addLayer({ id: 'trip-line', type: 'line', source: 'trip', slot: 'top', paint: { 'line-color': color.route, 'line-width': 4 }, layout: { 'line-cap': 'round', 'line-join': 'round' } });
+        const layout = { 'line-cap': 'round', 'line-join': 'round' } as const;
+        m.addLayer({ id: 'trip-casing', type: 'line', source: 'trip', slot: 'top', paint: { 'line-color': color.routeCasing, 'line-width': 7, 'line-opacity': 0.9 }, layout });
+        if (runs.length === 0) {
+          m.addLayer({ id: 'trip-line', type: 'line', source: 'trip', slot: 'top', paint: { 'line-color': color.route, 'line-width': 4 }, layout });
+        } else {
+          m.addSource('trip-speed', {
+            type: 'geojson',
+            data: { type: 'FeatureCollection', features: runs.map((r) => ({ type: 'Feature', properties: { tone: r.tone }, geometry: { type: 'LineString', coordinates: r.points.map(([lat, lon]) => [lon, lat]) } })) },
+          });
+          m.addLayer({
+            id: 'trip-line',
+            type: 'line',
+            source: 'trip-speed',
+            slot: 'top',
+            paint: { 'line-color': ['interpolate', ['linear'], ['get', 'tone'], 0, color.tripSlow, 0.5, color.tripMid, 1, color.tripFast], 'line-width': 4 },
+            layout,
+          });
+        }
         (window as unknown as { __tripMapReady?: string }).__tripMapReady = trip.id;
+        (window as unknown as { __tripMapRuns?: number }).__tripMapRuns = runs.length;
       });
     });
     return () => {
@@ -322,5 +347,15 @@ function TripMap({ trip, lightPreset }: { trip: Trip; lightPreset: LightPreset }
       map?.remove();
     };
   }, [trip.id, lightPreset]);
-  return <div className="trip-map" ref={ref} data-testid="trip-map" />;
+  return (
+    <>
+      <div className="trip-map" ref={ref} data-testid="trip-map" />
+      {legend && (
+        <div className="trip-legend" data-testid="trip-legend" data-kind={legend}>
+          <span className="trip-legend-bar" />
+          <span>{legend === 'limit' ? t('trips.map.legendLimit') : t('trips.map.legendAbs')}</span>
+        </div>
+      )}
+    </>
+  );
 }

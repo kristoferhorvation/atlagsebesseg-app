@@ -52,6 +52,24 @@ enum Tokens {
         static let mapBgDay = Color(.sRGB, red: 0.909804, green: 0.921569, blue: 0.937255, opacity: 1)
         /// `#1B2030`
         static let mapBgNight = Color(.sRGB, red: 0.105882, green: 0.12549, blue: 0.188235, opacity: 1)
+        /// `#5B6CFF`
+        static let heatFreqLow = Color(.sRGB, red: 0.356863, green: 0.423529, blue: 1, opacity: 1)
+        /// `#C65CFF`
+        static let heatFreqMid = Color(.sRGB, red: 0.776471, green: 0.360784, blue: 1, opacity: 1)
+        /// `#FFD166`
+        static let heatFreqHigh = Color(.sRGB, red: 1, green: 0.819608, blue: 0.4, opacity: 1)
+        /// `#2EE59D`
+        static let heatSpeedLow = Color(.sRGB, red: 0.180392, green: 0.898039, blue: 0.615686, opacity: 1)
+        /// `#FFB224`
+        static let heatSpeedMid = Color(.sRGB, red: 1, green: 0.698039, blue: 0.141176, opacity: 1)
+        /// `#FF4D61`
+        static let heatSpeedHigh = Color(.sRGB, red: 1, green: 0.301961, blue: 0.380392, opacity: 1)
+        /// `#2EE59D`
+        static let tripSlow = Color(.sRGB, red: 0.180392, green: 0.898039, blue: 0.615686, opacity: 1)
+        /// `#FFB224`
+        static let tripMid = Color(.sRGB, red: 1, green: 0.698039, blue: 0.141176, opacity: 1)
+        /// `#FF4D61`
+        static let tripFast = Color(.sRGB, red: 1, green: 0.301961, blue: 0.380392, opacity: 1)
         /// `#E5303F`
         static let signRing = Color(.sRGB, red: 0.898039, green: 0.188235, blue: 0.247059, opacity: 1)
         /// `#FFFFFF`

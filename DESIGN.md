@@ -31,6 +31,9 @@ változókká alakítja, a natív app közvetlenül importálja.
 | `planned` | `#F2DC82` | tervezett rendőrségi mérés: vonal és sáv (A7) – nem státuszszín |
 | `route` / `routeCasing` | `#1F5BFF` / `#FFFFFF` | navigáció (A8d): a kiválasztott útvonal, 7 px, 2 px-es fehér kontúrral (dugónál a szakasz `near`/`over`) |
 | `routeAltDay` / `routeAltNight` | `#799CF8` / `#1E49C1` | az alternatív útvonal: **tömör**, 5 px, a kiválasztott ALATT. Nappal (hajnal is): `route` 55% + a térkép háttere (`mapBgDay` `#E8EBEF`) 45%, `routeAltCasingDay` `#1A2130` sötét kontúr. Éjjel (alkony is, AW11): `route` 70% + háttér (`mapBgNight` `#1B2030`) 30%, `routeAltCasingNight` világos kontúr (`#E8EBEF`, 60%) – éjjel a kiválasztottól a kontúr (fehér vs. 60%) és a vastagság választja el |
+| `heatFreqLow` / `heatFreqMid` / `heatFreqHigh` | `#5B6CFF` / `#C65CFF` / `#FFD166` | hőtérkép (AW20), „Gyakoriság” mód: indigó → lila → borostyánsárga (ritkán → gyakran); a Mapbox `heatmap-color` a sűrűségen 0 → átlátszó, 0,12 → low 50%, 0,45 → mid 80%, 1 → high 95% |
+| `heatSpeedLow` / `heatSpeedMid` / `heatSpeedHigh` | `#2EE59D` / `#FFB224` / `#FF4D61` | hőtérkép, „Átlagsebesség” mód: zöld → borostyán → piros (lassú → gyors); a súly az átlag/130 km/h |
+| `tripSlow` / `tripMid` / `tripFast` | `#2EE59D` / `#FFB224` / `#FF4D61` | az út színezése a napló-részleten (AW20): a mért sebesség a tábla-limithez képest (≤ 90% zöld, a limitnél sárga, ≥ 115% piros), limit nélkül abszolút skálán (≤ 50 zöld, 90 sárga, ≥ 130 km/h piros); a kontúr fehér (`routeCasing`) |
 
 A státuszszín a nagy számot, a chipet, a sávot, a progress kitöltését, a kártya háttér-
 árnyalatát és fényívét, valamint a térképen az aktív szakasz vonalát színezi – **mindig ugyanabból
@@ -231,3 +234,15 @@ hajnalban (`dawn`), napnyugtakor (`dusk`) és éjjel (`night`) mindkettő a naps
 térkép-rétegek (pl. alternatív útvonal) az alkalmazott fényhez igazodnak. Nappali fényű „Világos” térképen az üveg-felületek a
 `surfaceStrong` kitöltést kapják (a halvány szöveg a legvilágosabb háttéren is ≥ 5:1), a kártyák sötétek maradnak. Kamera: pitch 60°, haladási irány felfelé, az autó a képernyő alsó harmadában
 (a HUD fölött). A szakaszok vonala halványan, az aktív a státuszszínnel, a megtett rész teltebb.
+
+### Hőtérkép (AW20)
+- Mapbox `heatmap` réteg a `middle` slotban, súlyozott pontokkal (a cella középpontja); sugár zoom szerint 7 → 110 px (6 → 18), a
+  `heatmap-opacity` 0,88. Két mód (Gyakoriság / Átlagsebesség) a színskálával a fenti tokenekből; a súly gyakoriságnál
+  `log(1+n)/log(1+20)`, sebességnél `átlag/130`.
+- Csak az üres nézeten és krúzingban látszik; navigáció, útvonalválasztó és szakaszmérés közben nincs.
+- Mód-váltó: üveg szegmens („Gyakoriság | Átlagsebesség”) a krúzing-állapotsor alatt, balra; alatta 56 × 6 px-es színsáv + „ritkán →
+  gyakran” / „lassú → gyors” felirat (12 px, `textMuted`).
+- Zoom-függő felbontás: 12,5 fölött res 10, alatta res 8 (és ha a látható rész > 4000 pont); a rajzolt pontok a látható terület
+  +25%-ára vágva.
+- Beállítások: „Hőtérkép” Ki / Saját / Közösségi szegmens (a Térkép sor után), alatta a „Névtelen vezetési adatok megosztása”
+  kapcsoló (alapból ki) a magyarázattal.

@@ -17,3 +17,5 @@ export * from './i18n';
 export * from './navigation';
 export * from './location';
 export * from './trips';
+export * from './heat';
+export * from './heatSeed';

@@ -30,6 +30,12 @@ nonisolated struct Settings: Equatable, Sendable {
     var jelzesMod: AlertMode = .hang
     /// AOS14: a köszöntés neve („Szia Kristof!”); üresen név nélkül köszön („Szia!”).
     var megszolitas = ""
+    /// AW20: hőtérkép – ki / saját (helyi) / közösségi.
+    var hoterkep: HeatMode = .sajat
+    /// AW20: a hőtérkép módja – gyakoriság / átlagsebesség.
+    var hoterkepNezet: HeatView = .gyakorisag
+    /// AW20: névtelen vezetési adatok megosztása a közösségi hőtérképhez (alapból ki).
+    var adatmegosztas = false
 
     static let `default` = Settings()
     static let storageKey = "settings:v1"
@@ -48,6 +54,9 @@ nonisolated struct Settings: Equatable, Sendable {
         if let v = p["tervezett_jelzes"] as? Bool { s.tervezettJelzes = v }
         if let v = (p["jelzes_mod"] as? String).flatMap(AlertMode.init(rawValue:)) { s.jelzesMod = v }
         if let v = p["megszolitas"] as? String { s.megszolitas = normalizeName(v) }
+        if let v = (p["hoterkep"] as? String).flatMap(HeatMode.init(rawValue:)) { s.hoterkep = v }
+        if let v = (p["hoterkep_nezet"] as? String).flatMap(HeatView.init(rawValue:)) { s.hoterkepNezet = v }
+        if let v = p["adatmegosztas"] as? Bool { s.adatmegosztas = v }
         return s
     }
 
@@ -56,7 +65,7 @@ nonisolated struct Settings: Equatable, Sendable {
             "hatosagi_tures_megjelenitese": hatosagiTuresMegjelenitese, "egyseg": egyseg.rawValue, "terkep": terkep.rawValue,
             "tervezett_meresek": tervezettMeresek, "hangos_utasitasok": hangosUtasitasok,
             "kamera_jelzes": kameraJelzes, "tervezett_jelzes": tervezettJelzes, "jelzes_mod": jelzesMod.rawValue,
-            "megszolitas": megszolitas,
+            "megszolitas": megszolitas, "hoterkep": hoterkep.rawValue, "hoterkep_nezet": hoterkepNezet.rawValue, "adatmegosztas": adatmegosztas,
         ]
         let data = (try? JSONSerialization.data(withJSONObject: obj, options: [.sortedKeys])) ?? Data()
         return String(decoding: data, as: UTF8.self)

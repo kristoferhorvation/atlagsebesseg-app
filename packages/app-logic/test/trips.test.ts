@@ -180,7 +180,7 @@ describe('TripRecorder (minták és távolság)', () => {
     const { rec } = record(fixes);
     const samples = rec.drainSamples();
     expect(samples).toHaveLength(60);
-    expect(samples[0]).toEqual({ tripId: 'trip-1', t: T0, lat: 47.5, lon: 19.05, speedKmh: 72, heading: 0, accuracy: 5, h3: null });
+    expect(samples[0]).toEqual({ tripId: 'trip-1', t: T0, lat: 47.5, lon: 19.05, speedKmh: 72, heading: 0, accuracy: 5, h3: null, limitKmh: null });
   });
 
   it('a sebesség hiányában a két fix közti távolságból számol', () => {

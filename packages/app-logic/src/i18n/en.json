@@ -396,5 +396,20 @@
   "trips.d.noChecks": "No section checks.",
   "trips.checkLimit": "limit {v}",
   "trips.checkOk": "OK",
-  "trips.checkFast": "too fast"
+  "trips.checkFast": "too fast",
+
+  "settings.heat": "Heatmap",
+  "settings.heat.off": "Off",
+  "settings.heat.own": "Mine",
+  "settings.heat.community": "Community",
+  "settings.heatHint": "Mine is built from your own trips and stays on this device. Community shows other drivers' anonymous data.",
+  "heat.view.aria": "Heatmap mode",
+  "heat.view.frequency": "Frequency",
+  "heat.view.speed": "Average speed",
+  "heat.legend.frequency": "rarely → often",
+  "heat.legend.speed": "slow → fast",
+  "settings.share": "Share anonymous driving data",
+  "settings.shareHint": "When on, only a per-cell summary is sent at the end of a trip (number of passes, average speed, hour of day, day of week): no route, no exact time, no identifier. The first and last 300 m of a trip are never sent.",
+  "trips.map.legendLimit": "Relative to the posted limit: below → above",
+  "trips.map.legendAbs": "Speed: slow → fast"
 }

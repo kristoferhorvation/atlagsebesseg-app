@@ -214,6 +214,11 @@ struct DriveView: View {
                 .id(cam.id)
                 .transition(.opacity.combined(with: .offset(y: 12)))
         }
+        // AW20: hőtérkép-mód (Gyakoriság | Átlagsebesség) és jelmagyarázat – csak az üres nézeten / krúzingban
+        if model.heatVisible, compactOffer == nil, model.shownReport == nil, model.shownCamera == nil {
+            HeatSwitch(model: model)
+                .transition(.opacity.combined(with: .offset(y: 12)))
+        }
         if compactOffer == nil {
             HStack(alignment: .bottom, spacing: Tokens.Space.s3) {
                 if navSign, let nav = model.nav {

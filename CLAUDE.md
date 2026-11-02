@@ -365,6 +365,38 @@ Gyökér: `npm test` és `npm run typecheck` minden csomagra; `npm run test:all`
     a naplóba kerül). A navsim teljes vezetése: `SIM_TRIP` (17 677 m, 792 s, kanyar 0 – a felvevő csak fixeket kap –, irányváltás B 1 · J 3 · U 0, 3 darab, 793 minta) – `navSim.test.ts`
     ↔ `SimTests.swift`, és a nav-shots a böngészőben az IndexedDB-ből méri. Képernyőkép: `?sheet=trips[&tripOpen=first]` /
     `-settingsOpen trips [-tripOpen first [-tripScroll YES]]` (a `-tripScroll` a számok sorát legalulra görgeti, hogy a két számláló látsszon; képek: `apps/ios/docs/aw19-javitas2-*.png`; navsim-vezetés `-simSpeed 40`-nel végigjátszva, majd újraindítva).
+- **AW20 (2026-11-02), weben és iOS-en: hőtérkép, közösségi adatmegosztás, színezett út.** Logika: `packages/app-logic/src/heat.ts` ↔
+  `Logic/Heat.swift` (és `heatSeed.ts` ↔ `HeatSeed.swift`), tesztek `heat.test.ts` ↔ `HeatTests.swift` azonos nevekkel; konstansok: `HEAT`,
+  `SPEED_TONE` (iOS-re generálva). A H3-műveletek (középpont, szülő) függvényként jönnek be (web: h3-js, iOS: SwiftyH3).
+  - **Személyes hőtérkép (csak helyben):** az AW19 res-10 mintáiból cellánként `HeatCell` {h3, count, avgKmh, lastT}; egy áthaladás = egymás
+    utáni, azonos cellájú, mozgó (≥ 5 km/h) minták (`tripPasses`). **Inkrementális:** minden út végén egyszer (`absorbTrip` / iOS `TripStore`,
+    egy tranzakcióban, idempotens a `heatTrips` / `heat_trips` jelölővel), indításkor a még be nem olvasztott utak (pl. a háttérben leállt
+    app pillanatképe) visszamenőleg; rajzoláskor nem számol újra (`HeatIndex`: középpont- és res-8 gyorsítótár). Az út törlése a
+    hőtérképből NEM von vissza; az „Összes törlése” törli. Tárolás: web IndexedDB v2 (`heat`, `heatTrips`), iOS SQLite `user_version` 2
+    (`heat`, `heat_trips`, `samples.limit_kmh`).
+  - **Megjelenítés:** Mapbox heatmap réteg, módok „Gyakoriság” (súly `log(1+n)/log(21)`) és „Átlagsebesség” (átlag/130); színskála a
+    `heatFreq*` / `heatSpeed*` tokenekből (DESIGN.md). Beállítások › „Hőtérkép: ki / saját / közösségi” (`hoterkep`, alap saját), a mód
+    (`hoterkep_nezet`) a térképen üveg-szegmens + jelmagyarázat. **Csak az üres nézeten és krúzingban** (nincs navigáció / útvonalválasztó /
+    szakasz- vagy kézi mérés). **Zoom:** 12,5 fölött res 10, alatta res 8; ha a látható rész > `maxFeatures` = 4000 pont, res 8; csak a
+    látható téglalap (+25%) kerül a rétegre.
+  - **Közösségi (opt-in, alapból KI):** Beállítások › „Névtelen vezetési adatok megosztása” (`adatmegosztas`). Bekapcsolva az út végén
+    `uploadRows`: (cella, óra, hét napja) szerint összevont {h3, h3_r8, lat, lon, count, avg_speed, hour, dow} → feltöltési sor (web
+    localStorage / iOS UserDefaults `heat:outbox:v1`, ≤ 2000 sor) → `heat_cells`. **Az út első és utolsó 300 m-ének cellái sosem mennek
+    fel** (a védett cella MINDEN áthaladása kimarad, `endCells`). Kikapcsoláskor a várakozó sor törlődik; a már beolvasztott régi utak
+    visszamenőleg nem töltődnek fel; szimulátorban nincs feltöltés. Olvasás: `heat_global` (res 10) / `heat_global_r8` a látható
+    téglalapra (`heatQueryBox`, 10 perc gyorsítótár, ≤ 5000 cella). Migráció `20261102000000_heat_cells.sql` (élőben lefuttatva
+    2026-11-02, SQL-teszt `heat_cells_test.sql`): a tábla senkinek nem olvasható, csak az aggregált nézetek (≥ 3 beküldésű cella).
+  - **Út színezése:** a napló-részlet kis térképén a vonal a mért sebesség szerint (`speedRuns`, 12 fokozat): zöld–sárga–piros a
+    tábla-limithez képest (≤ 90% / limit / ≥ 115%), ismeretlen limitnél abszolút (50 / 90 / 130 km/h). A `TripSample` új `limitKmh`
+    mezője (a navigáció tábla-limitje, `TripRecorder.setLimit`); régi minta / út: abszolút skála, minta nélkül az egyszínű vonal.
+  - **Háttér (iOS):** a `location` háttér-mód, `allowsBackgroundLocationUpdates` és `CLBackgroundActivitySession` megvolt; háttérbe
+    kerüléskor semmi nem állítja le a mérést / navigációt (AppTests őr védi). Weben a böngésző-korlát marad: a háttérlap GPS-e
+    felfüggesztődik (a szakaszmérés megszakad, az AW19 szerint az út és a navigáció nem zárul).
+  - **Szimulátor:** `?heatSeed` / `-heatSeed YES` (determinisztikus, 12 „utas”, M1 + budapesti körök; közösségi módban is ebből, hálózat
+    nélkül), `?heat=ki|sajat|kozossegi`, `?heatView=…` / `-heat`, `-heatView`, `-settingsOpen heat`; webes teszt-kampó `window.__mapJump`
+    (csak teszt / heatSeed módban). nav-shots: 177/177.
+  - **Nincs megépítve (nincs jóváhagyás):** a beillesztett „adatvédelmi zónák” (Strava-minta: mentett helyek körüli 200 m / 500 m / 1 km zóna,
+    szürkítés, „Részletek” lap) – lásd a nyitott kérdést; a 300 m-es út-vég védelem megvan.
 - **Paritási tartozás (AW12 + AW13 → iOS) lezárva az AOS12-ben (2026-10-29):** a `NavigationTests.swift` újra a
   `navigation.test.ts` teljes párja (86 = 86 `it`, azonos névvel), a webes `navSim.test.ts` 6 esete a `SimTests.swift`-ben.
   A közös Budapest→Győr fixtúra **AOS13-ban teljesen újra felvéve** méteres hangegységgel (`voice_units=metric`, mindkét

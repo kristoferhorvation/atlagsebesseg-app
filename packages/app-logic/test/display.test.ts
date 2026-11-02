@@ -49,6 +49,9 @@ describe('beállítások', () => {
       tervezett_meresek: true,
       hangos_utasitasok: true,
       megszolitas: '',
+      hoterkep: 'sajat',
+      hoterkep_nezet: 'gyakorisag',
+      adatmegosztas: false,
     });
   });
   it('a térkép alapból színes; a visszafogott megmarad, ismeretlen érték színes; a sorrend Világos, Színes, Visszafogott', () => {

@@ -2741,3 +2741,66 @@ button.nav-reroute {
 .trip-detail .value[data-tone='jo'] {
   color: var(--color-ok);
 }
+
+/* AW20: a hőtérkép módváltója és jelmagyarázata (csak látható rétegnél), a krúzing-állapotsor alatt */
+.heat-switch {
+  position: absolute;
+  top: calc(env(safe-area-inset-top) + 40px + var(--size-round-button) + 8px + 52px + 38px);
+  left: max(12px, env(safe-area-inset-left));
+  max-width: calc(100% - 24px);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  z-index: 2;
+}
+
+.heat-switch .segmented {
+  padding: 2px;
+}
+
+.heat-switch .segmented button {
+  height: 30px;
+  padding: 0 12px;
+  font-size: 14px;
+}
+
+.heat-legend {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-left: 4px;
+  font-size: 12px;
+  font-weight: 560;
+  color: var(--color-text-muted);
+  pointer-events: none;
+}
+
+.heat-legend-bar {
+  width: 56px;
+  height: 6px;
+  border-radius: 3px;
+  background: linear-gradient(90deg, var(--color-heat-freq-low), var(--color-heat-freq-mid), var(--color-heat-freq-high));
+}
+
+.heat-legend[data-view='atlagsebesseg'] .heat-legend-bar {
+  background: linear-gradient(90deg, var(--color-heat-speed-low), var(--color-heat-speed-mid), var(--color-heat-speed-high));
+}
+
+/* AW20: az út sebesség szerinti színezésének jelmagyarázata a napló-részleten */
+.trip-legend {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 4px 0;
+  font-size: 13px;
+  font-weight: 560;
+  color: var(--color-text-muted);
+}
+
+.trip-legend-bar {
+  flex: none;
+  width: 72px;
+  height: 6px;
+  border-radius: 3px;
+  background: linear-gradient(90deg, var(--color-trip-slow), var(--color-trip-mid), var(--color-trip-fast));
+}
