@@ -398,6 +398,27 @@ Gyökér: `npm test` és `npm run typecheck` minden csomagra; `npm run test:all`
 - Feltöltés (`npm run upload:sections`) után az élő darabszámot ellenőrizni kell, és a
   zárójelentésbe beírni.
 
+## nav-shots futtatása (AW20)
+- **Közbenső lépésnél csak `npm run nav-shots -w @atlagsebesseg/web -- --check-only`** (háttérben, a végén az „N/M ellenőrzés zöld” sort nézve).
+  A **teljes** (képkészítő) mód a kör zárásakor fut, **egyszer** – a mai dátumú képeket felülírja.
+- Egy Chrome, egy lap, párhuzamosság 1: a `cdp.mjs` `openPage`-e hibát dob, ha már van nyitott lap; minden lapot `await x.close()`-zal zárj
+  (a lap tényleg eltűnik a listából), blokkonként legfeljebb egy van nyitva.
+- Térkép a `openPage({ map })`-pal: `blank` (alap: üres helyi stílus, nincs tile / 3D épület / terrain, DPR 1), `real` (valódi stílus 2D-ben,
+  DPR 1 – csak a térképet mérő ellenőrzés: címke-elhelyezés, térképstílus), `photo` (éles megjelenés, DPR 3 – a képet adó lapok teljes módban).
+  Az app oldalán `window.__mapTest` (`src/map/testMapMode.ts`); éles használatban nincs beállítva. Új ellenőrzésnél: ha a térkép tartalmát
+  (nem az app logikáját) méri, `REAL`; különben alapértelmezett.
+- A Chrome kapcsolói: `--js-flags=--max-old-space-size=512`, `--disable-gpu-compositing` (`NAV_GPU_COMPOSITING=1` visszakapcsolja), animációk
+  `prefers-reduced-motion: reduce`.
+- **Gyorsított szimulátor:** a session és az időzítői (újratervezés 5/10/20/30 s, 45 s elfogadás, 2 perces lekérés és dugó-ablak) a minták
+  időbélyegéből járó szimulátor-órát olvassák; a `?speed=` csak a lejátszás ütemét adja, a kiírt értékek szimulált másodpercek. Ellenőrző módban
+  (`fast(n, szorzó)` a nav-shots.mjs-ben) a képet nem adó, állapot-alapú blokkok 2–8×-szoros szorzóval futnak; a valós `sleep`-et és a valós
+  időt mérő ellenőrzést a sebességgel arányosan kell skálázni (pl. `RF_SPEED`, `O_SPEED`, `RPG_SPEED`). Teljes módban a sebességek változatlanok.
+- **Teljes (képkészítő) módban** a Chrome GPU-kompozitálással és reduced-motion nélkül fut (DPR 3-nál a kikapcsolt kompozitálás
+  lelassítja a renderelést, és az időzítés-érzékeny ellenőrzések buknak). A teljes futás után a felülírt képeket `git checkout -- docs/screenshots`,
+  az újonnan keletkezetteket (követetlen `<dátum>-*.png`) törölni kell, ha nem a kör képei.
+- Mérés (2026-11-02, AW20): `--check-only` 622 s → 290 s, csúcs RAM (Chrome RSS-összeg) 2961 → 1670 MB, csúcs folyamat 27 → 14; teljes mód 953 s,
+  csúcs RAM 1826 MB. Mérés: `ps` mintavétel a Chrome-folyamatokra (összes RSS) a futás alatt.
+
 ## Hol vannak a döntések
 - `supabase/README.md` – séma, cron, RLS-indoklás
 - `DESIGN.md` – UI, tokenek

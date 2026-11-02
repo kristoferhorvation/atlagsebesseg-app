@@ -7,6 +7,7 @@ import { bearingDeg, haversineM, LocalProjection, type GpsFix, type LatLon, type
 import { color } from '@atlagsebesseg/design-tokens';
 import { iconSvg } from '../ui/Icon';
 import { t } from '@atlagsebesseg/app-logic';
+import { mapStyleFor } from './testMapMode';
 import type { MapCamera, MapFit, MapHandlers, MapPlanned, MapReport, MapRoute, MapZone, WebMapAdapter, WebMapState } from './WebMapAdapter';
 
 const STANDARD_STYLE = 'mapbox://styles/mapbox/standard';
@@ -134,6 +135,8 @@ interface Pose {
 /** Az imperatív rész: a store változásait alkalmazza a térképre, a pozíciót 60 fps-sel animálja. */
 class MapController {
   private readonly map: MbMap;
+  /** Böngészős ellenőrzés: üres helyi stílus, nincs Standard `basemap` import. */
+  private readonly blankStyle: boolean;
   private readonly marker: mapboxgl.Marker;
   private readonly unsubscribe: () => void;
   private styleReady = false;
@@ -171,10 +174,18 @@ class MapController {
     private readonly handlers: MapHandlers,
   ) {
     const s = store.getState();
+    const base = mapStyleFor(STANDARD_STYLE, {
+      lightPreset: s.lightPreset,
+      theme: mapTheme(s.look),
+      showPointOfInterestLabels: false,
+      showTransitLabels: false,
+      showPedestrianRoads: false,
+    });
+    this.blankStyle = base.blank;
     this.map = new mapboxgl.Map({
       container,
       accessToken,
-      style: STANDARD_STYLE,
+      style: base.style,
       center: [12.5, 46.5],
       zoom: 5.2,
       pitch: 0,
@@ -185,15 +196,7 @@ class MapController {
       attributionControl: false,
       logoPosition: 'top-left',
       fadeDuration: 0,
-      config: {
-        basemap: {
-          lightPreset: s.lightPreset,
-          theme: mapTheme(s.look),
-          showPointOfInterestLabels: false,
-          showTransitLabels: false,
-          showPedestrianRoads: false,
-        },
-      },
+      config: base.config,
     });
     this.map.addControl(new mapboxgl.AttributionControl({ compact: true, customAttribution: t('map.attribution') }), 'top-right');
 
@@ -593,11 +596,11 @@ class MapController {
     if (!this.styleReady) return;
     const m = this.map;
     if (s.lightPreset !== p?.lightPreset) {
-      m.setConfigProperty('basemap', 'lightPreset', s.lightPreset);
+      if (!this.blankStyle) m.setConfigProperty('basemap', 'lightPreset', s.lightPreset);
       m.setPaintProperty('route-alt', 'line-color', altColor(s.lightPreset));
       m.setPaintProperty('route-alt-casing', 'line-color', altCasing(s.lightPreset));
     }
-    if (s.look !== p?.look) m.setConfigProperty('basemap', 'theme', mapTheme(s.look));
+    if (s.look !== p?.look && !this.blankStyle) m.setConfigProperty('basemap', 'theme', mapTheme(s.look));
     if (s.sections !== p?.sections) (m.getSource('sections') as GeoJSONSource | undefined)?.setData(toGeoJson(s.sections));
     if (s.planned !== p?.planned || s.activePlannedId !== p?.activePlannedId) {
       (m.getSource('planned') as GeoJSONSource | undefined)?.setData(plannedGeoJson(s.planned, s.activePlannedId));

@@ -25,6 +25,7 @@ import {
 import { color } from '@atlagsebesseg/design-tokens';
 import { deleteAllTrips, deleteTrip, listTrips } from '../trips/tripStore';
 import { Icon } from './Icon';
+import { mapStyleFor } from '../map/testMapMode';
 import { Sheet } from './Sheet';
 
 /**
@@ -287,16 +288,17 @@ function TripMap({ trip, lightPreset }: { trip: Trip; lightPreset: LightPreset }
     void import('mapbox-gl').then(({ default: mapboxgl }) => {
       if (cancelled) return;
       const bounds = pts.reduce((b, [lat, lon]) => b.extend([lon, lat]), new mapboxgl.LngLatBounds([pts[0]![1], pts[0]![0]], [pts[0]![1], pts[0]![0]]));
+      const base = mapStyleFor('mapbox://styles/mapbox/standard', { lightPreset, theme: mapTheme('visszafogott'), showPointOfInterestLabels: false, showTransitLabels: false, showPedestrianRoads: false });
       const m = new mapboxgl.Map({
         container: el,
         accessToken: token,
-        style: 'mapbox://styles/mapbox/standard',
+        style: base.style,
         bounds,
         fitBoundsOptions: { padding: 28 },
         interactive: false,
         attributionControl: false,
         fadeDuration: 0,
-        config: { basemap: { lightPreset, theme: mapTheme('visszafogott'), showPointOfInterestLabels: false, showTransitLabels: false, showPedestrianRoads: false } },
+        config: base.config,
       });
       map = m;
       m.addControl(new mapboxgl.AttributionControl({ compact: true, customAttribution: t('map.attribution') }), 'bottom-right');

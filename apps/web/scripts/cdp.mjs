@@ -9,7 +9,8 @@ export const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const SEND_TIMEOUT_MS = 180_000;
 const CHROME = process.env.CHROME ?? '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
 
-export async function launchChrome() {
+/** `photo`: képkészítő mód – az éles megjelenés, ezért nincs GPU-kompozitálás-kikapcsolás (DPR 3-nál az nagyon lassú). */
+export async function launchChrome({ photo = false } = {}) {
   const port = 9300 + Math.floor(Math.random() * 500);
   const profile = await mkdtemp(join(tmpdir(), 'atlag-nav-'));
   const proc = spawn(CHROME, [
@@ -20,6 +21,12 @@ export async function launchChrome() {
     '--hide-scrollbars',
     '--use-angle=swiftshader',
     '--enable-unsafe-swiftshader',
+    // AW20: kevesebb erőforrás – V8-halom korlát, nincs GPU-kompozitálás (NAV_GPU_COMPOSITING=1 visszakapcsolja), háttér-munka le
+    '--js-flags=--max-old-space-size=512',
+    ...(photo || process.env.NAV_GPU_COMPOSITING ? [] : ['--disable-gpu-compositing']),
+    '--disable-extensions',
+    '--disable-background-networking',
+    '--disable-component-update',
     'about:blank',
   ]);
   // zárolt / alvó kijelzőnél az indulás 10 s fölött is lehet: legfeljebb 30 s-ot várunk
@@ -40,8 +47,17 @@ export async function closeChrome({ proc, profile }) {
   await rm(profile, { recursive: true, force: true });
 }
 
-/** Egy lap CDP-kapcsolattal; `base` a dev-szerver címe, `outDir` a képek helye. */
-export async function openPage({ port, base, outDir }) {
+/** A (legfeljebb egy) nyitott lap: új lap csak a régi tényleges bezárása után nyílhat. */
+let openPageNow = null;
+
+/**
+ * Egy lap CDP-kapcsolattal; `base` a dev-szerver címe, `outDir` a képek helye.
+ * `map`: `blank` (üres helyi stílus, DPR 1 – az app logikáját mérő ellenőrzések), `real` (valódi stílus, 2D, DPR 1 –
+ * a térképet magát mérők), `photo` (az éles megjelenés, DPR 3 – képkészítés).
+ */
+export async function openPage({ port, base, outDir, map = 'blank' }) {
+  if (openPageNow) throw new Error(`már van nyitott lap (${openPageNow}) – előbb await-tel zárd be`);
+  openPageNow = map;
   const target = await (await fetch(`http://127.0.0.1:${port}/json/new?about:blank`, { method: 'PUT' })).json();
   const ws = new WebSocket(target.webSocketDebuggerUrl);
   await new Promise((r, j) => ((ws.onopen = r), (ws.onerror = j)));
@@ -74,9 +90,10 @@ export async function openPage({ port, base, outDir }) {
     });
   await send('Page.enable');
   await send('Runtime.enable');
-  await send('Emulation.setDeviceMetricsOverride', { width: 390, height: 844, deviceScaleFactor: 3, mobile: true });
+  await send('Emulation.setDeviceMetricsOverride', { width: 390, height: 844, deviceScaleFactor: map === 'photo' ? 3 : 1, mobile: true });
+  if (map !== 'photo') await send('Page.addScriptToEvaluateOnNewDocument', { source: `window.__mapTest = ${JSON.stringify(map)};` });
   await send('Emulation.setTouchEmulationEnabled', { enabled: true, maxTouchPoints: 5 });
-  await send('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-color-scheme', value: 'dark' }] });
+  await send('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-color-scheme', value: 'dark' }, ...(map === 'photo' ? [] : [{ name: 'prefers-reduced-motion', value: 'reduce' }])] });
   const evaluate = async (expression) => {
     const r = await send('Runtime.evaluate', { expression, returnByValue: true, awaitPromise: true });
     if (r.exceptionDetails) throw new Error(r.exceptionDetails.exception?.description ?? r.exceptionDetails.text);
@@ -88,7 +105,11 @@ export async function openPage({ port, base, outDir }) {
     logs,
     async goto(path, settings) {
       await send('Page.navigate', { url: `${base}/` });
-      await sleep(300);
+      // a localStorage-írás előtt a lapnak a saját eredetén kell állnia (fix 300 ms helyett pollozva)
+      for (let i = 0; i < 100; i++) {
+        if (await evaluate(`location.href.startsWith(${JSON.stringify(base)}) && document.readyState !== 'loading'`).catch(() => false)) break;
+        await sleep(20);
+      }
       // magyar nyelv, a beállítás a betöltés előtt, a DE-figyelmeztetés már „látott”
       await evaluate(`localStorage.clear(); localStorage.setItem('lang:v1', 'hu'); ${settings ? `localStorage.setItem('settings:v1', ${JSON.stringify(JSON.stringify(settings))});` : ''} true`);
       await send('Page.navigate', { url: `${base}${path}` });
@@ -114,6 +135,13 @@ export async function openPage({ port, base, outDir }) {
     async close() {
       ws.close();
       await fetch(`http://127.0.0.1:${port}/json/close/${target.id}`).catch(() => {});
+      // megvárjuk, amíg a lap tényleg eltűnik a listából
+      for (let i = 0; i < 50; i++) {
+        const list = await fetch(`http://127.0.0.1:${port}/json/list`).then((r) => r.json()).catch(() => []);
+        if (!list.some((t) => t.id === target.id)) break;
+        await sleep(100);
+      }
+      openPageNow = null;
     },
   };
 }

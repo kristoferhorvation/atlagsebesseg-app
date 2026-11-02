@@ -37,9 +37,10 @@ const DATE = new Date().toISOString().slice(0, 10);
 const CHECK_ONLY = process.argv.includes('--check-only');
 
 const results = [];
+const T0 = Date.now();
 function check(name, ok, detail = '') {
   results.push({ name, ok });
-  console.log(`${ok ? 'OK ' : 'HIBA'}  ${name}${detail ? ` – ${detail}` : ''}`);
+  console.log(`${ok ? 'OK ' : 'HIBA'} ${String(Math.round((Date.now() - T0) / 1000)).padStart(4)}s ${name}${detail ? ` – ${detail}` : ''}`);
 }
 
 const q = (sel) => `document.querySelector(${JSON.stringify(sel)})`;
@@ -49,16 +50,24 @@ const click = (p, sel) => p.evaluate(`${q(sel)}.click(); true`);
 /** A név nélküli manőver teljes Directions-mondata (ez nem kerülhet az „Utána” sorba). */
 const SENTENCE = /^(Forduljon|Tartson|Hajtson|Válassza|Menjen|Térjen|Megérkezett)/;
 
-const chrome = await launchChrome();
-const tripChrome = await launchChrome();
-const mk = () => openPage({ port: chrome.port, base: BASE, outDir: OUT });
+// AW20: egy Chrome, egy lap, az ellenőrzések sorban (a cdp.mjs nem enged egyszerre két nyitott lapot).
+// Térkép: `blank` = üres helyi stílus (alapértelmezett a térképet nem mérő ellenőrzéseknél); `real` = valódi stílus 2D-ben, DPR 1
+// (címke-elhelyezés, térképstílus); `photo` = az éles megjelenés, DPR 3. Képkészítő (teljes) módban a képet adó lapok `photo`-k.
+const REAL = CHECK_ONLY ? 'real' : 'photo';
+const SHOT = CHECK_ONLY ? 'blank' : 'photo';
+// AW20: a szimulátor-óra a minták időbélyege (a session és az időzítői – újratervezés 5/10/20/30 s, 45 s elfogadás, 2 perces
+// lekérés, 2 perces dugó-ablak – ezt olvassák), a `speed` csak a lejátszás ütemét adja; a kiírt értékek szimulált másodpercek.
+// Ellenőrző módban a képet nem adó, állapot-alapú blokkok gyorsabban futnak; a valós várakozást (sleep) a szorzóval osztjuk.
+const fast = (n, x) => (CHECK_ONLY ? n * x : n);
+const chrome = await launchChrome({ photo: !CHECK_ONLY });
+const mk = (map = 'blank') => openPage({ port: chrome.port, base: BASE, outDir: OUT, map });
 try {
   // ------------------------------------------------------------------
   // 1. végigjátszás gyorsítva: keresés → útvonal → indulás → ... → érkezés
   // ------------------------------------------------------------------
-  const p = await mk();
+  const p = await mk(REAL);
   // a fő végigjátszásban a „lehet” kategória: 45 s után marad a régi (a „megéri” elfogadása letérést okozna a szimulátorban)
-  await p.goto('/?navsim&speed=12&alt=maybe&panel=0');
+  await p.goto(`/?navsim&speed=${fast(12, 3)}&alt=maybe&panel=0`);
   await p.waitFor(MAP_READY, 60_000, 'térkép');
   await p.waitFor(`document.querySelector('button[aria-label="Úti cél keresése"]')`, 20_000, 'lupa gomb');
   const lupaBox = await p.evaluate(`(() => { const e = ${q('button[aria-label="Úti cél keresése"]')}; const r = e.getBoundingClientRect(); const s = ${q('button[aria-label="Beállítások"]')}.getBoundingClientRect(); const pills = ${q('.pills')}.getBoundingClientRect(); const gps = ${q('.pills .pill')}.getBoundingClientRect(); return { top: r.top, right: r.right, w: r.width, h: r.height, sw: s.width, sh: s.height, inActions: !!e.closest('.actions'), edge: innerWidth - r.right, overlapsRow: r.top < gps.bottom && r.bottom > gps.top, pillsRight: pills.right, left: r.left, cls: e.className }; })()`);
@@ -248,12 +257,12 @@ try {
   await sleep(300);
   check('a „Befejezés” kilép a navigációból', !(await p.evaluate(`!!${q('.nav-top')} || !!${q('.nav-bottom')}`)));
   check('nincs kezeletlen JS-kivétel', p.logs.length === 0, p.logs.join(' | '));
-  p.close();
+  await p.close();
 
   // ------------------------------------------------------------------
   // 2. költségvédelem és beállítások
   // ------------------------------------------------------------------
-  const s = await mk();
+  const s = await mk(SHOT);
   await s.goto('/?navsim&speed=12&panel=0');
   await s.waitFor(MAP_READY, 60_000, 'térkép');
   await s.waitFor(`document.querySelector('button[aria-label="Beállítások"]')`, 20_000, 'beállítások gomb');
@@ -271,18 +280,18 @@ try {
     await sleep(400);
     await s.shot(`${DATE}-beallitasok-hangos-utasitasok.png`);
   }
-  s.close();
+  await s.close();
 
   // ------------------------------------------------------------------
   // AW12: mentett címek chip-sora, újratervezés-hang, ajánlat-kategóriák, kapu utáni lehajtó
   // ------------------------------------------------------------------
-  const info0 = await mk();
+  const info0 = await mk(SHOT);
   await info0.goto('/?navsim&panel=0');
   await info0.waitFor(`window.__navSim`, 60_000, 'szimulátor-adat');
   const { windows } = await info0.evaluate(`window.__navSim`);
-  info0.close();
+  await info0.close();
 
-  const c = await mk();
+  const c = await mk(SHOT);
   await c.goto('/?navsim&speed=12&panel=0');
   await c.waitFor(MAP_READY, 60_000, 'térkép');
   const SAVED = {
@@ -313,18 +322,18 @@ try {
   await click(c, '.saved-chip:nth-child(3)');
   await c.waitFor(`${q('.picker')} && /Gyöngyös/.test(${q('.picker')}.innerText)`, 15_000, 'chip → útvonalválasztó');
   check('chipre koppintva a mentett cím a célpont', true);
-  c.close();
+  await c.close();
 
   // az „Újratervezés” hang a sárga kiírással együtt (a letérés kezdetén), nem az új útvonal megérkezésekor
-  const r = await mk();
-  await r.goto('/?navsim&stage=nav&speed=1&at=120&alt=maybe&panel=0');
+  const r = await mk(SHOT);
+  await r.goto(`/?navsim&stage=nav&speed=${fast(1, 4)}&at=120&alt=maybe&panel=0`);
   await r.waitFor(MAP_READY, 60_000, 'térkép');
   await r.waitFor(`${q('.nav-top')}?.dataset.busy === 'true'`, 90_000, 'letérés');
   const atBusy = await r.evaluate(`({ voice: (window.__navVoice ?? []).filter((v) => v.kind === 'reroute').length, spinning: !!document.querySelector('.nav-reroute .spin') })`);
   check('újratervezés: a hang a kiírással együtt szól (a kérés indulása előtt)', atBusy.voice === 1 && !atBusy.spinning, JSON.stringify(atBusy));
   await r.waitFor(`${q('.nav-top')}?.dataset.busy === 'false'`, 30_000, 'új útvonal');
   check('újratervezés: egyszer szól, az új útvonalnál nem ismétli', (await r.evaluate(`(window.__navVoice ?? []).filter((v) => v.kind === 'reroute').length`)) === 1);
-  r.close();
+  await r.close();
 
   // ajánlat-kategóriák: kártya + bemondás
   for (const [alt, title, said, name] of [
@@ -332,8 +341,9 @@ try {
     ['maybe', /^Lehet · −3 perc, \+5 km/, /^Gyorsabb út, 3 perc, 5 kilométer kerülő, te döntesz$/, 'lehet'],
     ['not', /^Nem éri meg · \+40 km kerülő, −10 perc/, /^Gyorsabb út, de nem éri meg, 40 kilométer kerülő$/, 'nem-eri-meg'],
   ]) {
-    const o = await mk();
-    await o.goto(`/?navsim&stage=nav&speed=8&alt=${alt}&panel=0`);
+    const o = await mk(SHOT);
+    const O_SPEED = fast(8, 2);
+    await o.goto(`/?navsim&stage=nav&speed=${O_SPEED}&alt=${alt}&panel=0`);
     await o.waitFor(MAP_READY, 60_000, 'térkép');
     await o.waitFor(q('.nav-offer'), 120_000, `ajánlat (${alt})`);
     // AW13: fogyó csík a kiemelt gomb alatt, szám nélkül; csak egy van, és a kiemelt gombban. A beállított (nem a
@@ -341,14 +351,14 @@ try {
     // megjelenésekor – 8×-os lejátszásnál a 400 m-es lehajtót az autó néhány másodperc alatt elhagyja (és az ajánlat eltűnik)
     const TIMER = `(() => { const e = ${q('.nav-offer-timer')}; if (!e) return null; const m = new DOMMatrix(e.style.transform); const b = e.closest('.btn').getBoundingClientRect(); const r = e.getBoundingClientRect(); return { scale: m.a, inPrimary: e.closest('.btn').classList.contains('primary'), n: document.querySelectorAll('.nav-offer-timer').length, below: r.top >= b.bottom - 1, h: r.height, txt: e.innerText }; })()`;
     const t1 = await o.evaluate(TIMER);
-    await sleep(700);
+    await sleep((700 * 8) / O_SPEED);
     const card = await o.evaluate(`(() => { const e = ${q('.nav-offer')}; return { txt: e.innerText.replace(/\s+/g, ' ').trim(), verdict: e.dataset.verdict, primary: e.querySelector('.btn.primary')?.innerText }; })()`);
     const v = await o.evaluate(`(window.__navVoice ?? []).filter((x) => x.kind === 'faster').map((x) => x.text)`);
     check(`ajánlat „${alt}”: kártya`, title.test(card.txt) && card.verdict === alt, card.txt);
     check(`ajánlat „${alt}”: bemondás`, said.test(v[0] ?? ''), v[0]);
     check(`ajánlat „${alt}”: a kiemelt gomb a 45 s utáni alapértelmezés`, card.primary === (alt === 'worth' ? 'Elfogad' : 'Elvet'), card.primary);
     // 8×-os lejátszás: legfeljebb 2 s ≈ 16 s szimulált idő (a közeli lehajtó elhagyása előtt)
-    await o.waitFor(`(${TIMER})?.scale < ${t1?.scale ?? 0}`, 2000, 'a csík fogy').catch(() => undefined);
+    await o.waitFor(`(${TIMER})?.scale < ${t1?.scale ?? 0}`, (2000 * 8) / O_SPEED, 'a csík fogy').catch(() => undefined);
     const t2 = await o.evaluate(TIMER);
     check(`ajánlat „${alt}”: fogyó csík a kiemelt gomb alatt, szám nélkül`, !!t1 && t1.inPrimary && t1.n === 1 && t1.below && t1.h <= 4 && t1.txt === '', JSON.stringify(t1));
     check(`ajánlat „${alt}”: a csík fogy`, !!t1 && !!t2 && t2.scale < t1.scale && t1.scale <= 1, `${t1?.scale.toFixed(2)} → ${t2?.scale.toFixed(2)}`);
@@ -373,23 +383,23 @@ try {
       const route = await o.evaluate(`window.__navRouteId`);
       check('AW17: „Lehet” – nincs automatikus váltás', !/^sim-fast/.test(route ?? ''), route);
     }
-    o.close();
+    await o.close();
   }
 
   // AW13: a fogyó csík képe – 2×-es lejátszás, ~12 s-mal az ajánlat után (a csík kb. negyedénél fogyott)
   if (!CHECK_ONLY) {
-    const cs = await mk();
+    const cs = await mk(SHOT);
     await cs.goto('/?navsim&stage=nav&speed=2&alt=worth&panel=0');
     await cs.waitFor(MAP_READY, 60_000, 'térkép');
     await cs.waitFor(q('.nav-offer-timer'), 180_000, 'ajánlat csíkkal');
     await sleep(6000);
     await cs.shot(`${DATE}-nav-ajanlat-csik.png`);
-    cs.close();
+    await cs.close();
   }
 
   // AW13: kapu utáni (1 km-en belüli) lehajtó: mérés közben azonnal kompakt ajánlat, bemondással
-  const g = await mk();
-  await g.goto(`/?navsim&stage=nav&speed=6&alt=aftergate&at=${windows[1]}&panel=0`);
+  const g = await mk(SHOT);
+  await g.goto(`/?navsim&stage=nav&speed=${fast(6, 2)}&alt=aftergate&at=${windows[1]}&panel=0`);
   await g.waitFor(MAP_READY, 60_000, 'térkép');
   await g.waitFor(q('.nav-strip'), 120_000, 'mérés');
   await g.waitFor(q('.nav-offer-compact'), 120_000, 'kompakt ajánlat mérés közben');
@@ -422,7 +432,7 @@ try {
   const barBack = await g.waitFor(`document.querySelector('.slowdown')?.dataset.show === 'true'`, 8000, 'sáv vissza').then(() => true, () => false);
   check('AW17-javítás: az ajánlat eltűnése után a „Lassíts” sáv a teljes kártyával visszajön', barBack, await g.evaluate(`document.querySelector('.slowdown')?.innerText ?? null`));
   check('nincs kezeletlen JS-kivétel (AW12–13-oldalak)', g.logs.length === 0, g.logs.join(' | '));
-  g.close();
+  await g.close();
 
   // ------------------------------------------------------------------
   // AW13: helyhozzáférés (valódi mód, a Permissions API és a geolocation a lap előtt felülírva)
@@ -450,7 +460,7 @@ try {
   })()`;
   const GPS_PILL = `document.querySelector('.pills .pill')`;
   async function geoPage(state, mode, ua) {
-    const pg = await mk();
+    const pg = await mk(SHOT);
     await pg.send('Page.addScriptToEvaluateOnNewDocument', { source: fakeGeo(state, mode) });
     if (ua) await pg.send('Emulation.setUserAgentOverride', { userAgent: ua });
     // Mac-en nincs érintőképernyő (különben iPadnek ismerjük fel)
@@ -487,7 +497,7 @@ try {
       await sleep(200);
       check('tiltott-lap: az „Újrapróbálás” újra kér és bezár', (await pill(d)).calls === before + 1 && !(await d.evaluate(`!!${q('.geo-help')}`)));
     }
-    d.close();
+    await d.close();
   }
 
   // prompt + gesztus nélküli elutasítás (Mac Safari): „koppints”, az első érintés bárhol újra kér; a pill is kér
@@ -507,7 +517,7 @@ try {
   await pr.waitFor(`window.__geoFake.calls === ${pr1.calls + 1} && !!${q('.geo-help')}`, 5000, 'tiltott-lap (pill)').catch(() => undefined);
   // AW15: a pill kérésére jött elutasítás (PERMISSION_DENIED) a tiltott-lapot nyitja
   check('prompt: a GPS-pill koppintása kér, az elutasításra a tiltott-lap nyílik (AW15)', (await pill(pr)).calls === pr1.calls + 1 && (await pr.evaluate(`!!${q('.geo-help')}`)));
-  pr.close();
+  await pr.close();
 
   // granted: pontosság, a pill nem gomb
   const gr = await geoPage('granted', 'fix');
@@ -518,7 +528,7 @@ try {
   await sleep(300);
   check('granted: koppintásra nem nyílik lap és nincs újrakérés', !(await gr.evaluate(`!!${q('.sheet')}`)) && (await pill(gr)).calls === gr0.calls);
   check('nincs kezeletlen JS-kivétel (helyhozzáférés)', gr.logs.length === 0, gr.logs.join(' | '));
-  gr.close();
+  await gr.close();
 
   // AW14 (élesben, iPhone Safari): zöld pill ±8 m-rel, a Permissions API mégis „denied” → a pozíció nyer, nincs lap
   for (const [state, name] of [['denied', 'API „denied”'], ['none', 'nincs Permissions API']]) {
@@ -529,7 +539,7 @@ try {
     await sleep(300);
     const sheet = await ip.evaluate(`!!${q('.sheet')}`);
     check(`iOS Safari, ${name}, van pozíció: zöld pill ±8 m, koppintásra nincs tiltott-lap`, ip0.tag === 'DIV' && ip0.tone === 'jo' && /^GPS ±8 m$/.test(ip0.txt) && !sheet, JSON.stringify({ ...ip0, sheet }));
-    ip.close();
+    await ip.close();
   }
   // iOS Safari, nincs Permissions API, nincs pozíció (elutasítva): a pill kér (nem a lapot nyitja a „denied”-re) – AW15: a
   // kérésre jött PERMISSION_DENIED (1) után a tiltott-lap nyílik
@@ -545,19 +555,19 @@ try {
     `${JSON.stringify(nx0)} → ${nx1.calls}`,
   );
   check('nincs kezeletlen JS-kivétel (AW14)', nx.logs.length === 0, nx.logs.join(' | '));
-  nx.close();
+  await nx.close();
   // más hiba (nincs jel) a pill kérésére: nincs tiltott-lap
   const ns = await geoPage('none', 'nosignal', UA_IPHONE);
   const ns0 = await pill(ns);
   await ns.evaluate(`${GPS_PILL}.click(); true`);
   await sleep(400);
   check('AW15: a pill kérésére „nincs jel” hiba: nincs tiltott-lap', (await pill(ns)).calls === ns0.calls + 1 && !(await ns.evaluate(`!!${q('.sheet')}`)));
-  ns.close();
+  await ns.close();
 
   // ------------------------------------------------------------------
   // AW15: nyelvlista, visszatérés a Beállításokba, három térképstílus, kézi pill, kompakt kézi eredmény
   // ------------------------------------------------------------------
-  const st = await mk();
+  const st = await mk(SHOT);
   await st.goto('/?navsim&panel=0');
   await st.waitFor(MAP_READY, 60_000, 'térkép');
   await st.waitFor(`document.querySelector('button[aria-label="Beállítások"]')`, 20_000, 'beállítások gomb');
@@ -600,7 +610,7 @@ try {
   await sleep(300);
   check('Escape a lap fölötti keresőben csak a keresőt zárja', await st.evaluate(`!${q('.search-screen')} && !!${q('.sheet')}`));
   check('nincs kezeletlen JS-kivétel (AW15 Beállítások)', st.logs.length === 0, st.logs.join(' | '));
-  st.close();
+  await st.close();
 
   // AW16: három térképstílus ugyanarról a helyről (navigáció, a belváros), nappal / napnyugtakor / éjjel (?sunAt), sötét
   // rendszer-módban: a készülék módja sehol nem számít
@@ -608,7 +618,7 @@ try {
   const looked = {};
   for (const terkep of ['vilagos', 'szines', 'visszafogott']) {
     for (const [napszak, sunAt] of Object.entries(SUN)) {
-      const v = await mk();
+      const v = await mk(REAL);
       await v.send('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-color-scheme', value: 'dark' }] });
       await v.goto(`/?navsim&stage=nav&speed=1&at=20&panel=0&sunAt=${sunAt}`, { terkep });
       await v.waitFor(MAP_READY, 60_000, 'térkép');
@@ -618,7 +628,7 @@ try {
         await sleep(4500);
         await v.shot(`${DATE}-terkep-${terkep}-${napszak === 'nappal' ? 'nappal' : 'ejjel'}.png`);
       }
-      v.close();
+      await v.close();
     }
   }
   const L = (k) => looked[k].light;
@@ -629,19 +639,19 @@ try {
   check('erősebb üveg csak a nappali fényű Világos térképen', looked['vilagos/nappal'].look === 'vilagos' && looked['vilagos/ejjel'].look === 'normal' && looked['szines/nappal'].look === 'normal', JSON.stringify(looked));
 
   // kézi átlagmérés navigáció nélkül: a nagy kártya marad
-  const kn = await mk();
+  const kn = await mk(SHOT);
   await kn.goto('/?navsim&panel=0');
   await kn.waitFor(MAP_READY, 60_000, 'térkép');
   await kn.waitFor(q('button[aria-label="Kézi átlagmérés indítása"]'), 20_000, 'stopper');
   await click(kn, 'button[aria-label="Kézi átlagmérés indítása"]');
   await sleep(6500);
   check('navigáció nélkül a kézi mérés nagy kártyája marad (nincs zsugorított kártya)', await kn.evaluate(`!!${q('.hud .card[aria-label="Kézi átlagmérés"] .btn.danger')} && !${q('.manual-mini')}`));
-  kn.close();
+  await kn.close();
 
   // AW16: navigáció közben 5 s után (vagy közeli manővernél) a zsugorított kártya a jobb oldalon: nagy átlag státusz-színnel,
   // „km/h átlag”, idő; bökésre a teljes kártya, újabb bökésre zsugorított; a kézi mérés privát (nincs hálózati hívás)
   const MANUAL_CARD = q('.hud .card[aria-label="Kézi átlagmérés"]');
-  const kp = await mk();
+  const kp = await mk(SHOT);
   await kp.goto('/?navsim&stage=nav&speed=1&at=20&panel=0');
   await kp.waitFor(MAP_READY, 60_000, 'térkép');
   await kp.waitFor(q('.nav-top'), 30_000, 'felső kártya');
@@ -682,12 +692,12 @@ try {
   if (!CHECK_ONLY) await kp.shot(`${DATE}-nav-kezi-eredmeny.png`);
   check('a kézi eredmény után is nincs kapu-küldés', (await kp.evaluate(`window.__reportCalls.length`)) === 0);
   check('nincs kezeletlen JS-kivétel (AW15/AW16 kézi mérés)', kp.logs.length === 0, kp.logs.join(' | '));
-  kp.close();
+  await kp.close();
 
   // ------------------------------------------------------------------
   // AOS14: köszöntés, köszönés a navigáció indításakor, „Még ott van?”
   // ------------------------------------------------------------------
-  const gk = await mk();
+  const gk = await mk(SHOT);
   await gk.goto('/?navsim&panel=0', { megszolitas: 'Kristof' });
   await gk.waitFor(MAP_READY, 60_000, 'térkép');
   await gk.waitFor(q('.greeting'), 20_000, 'köszöntés');
@@ -697,25 +707,26 @@ try {
     await sleep(2500);
     await gk.shot(`${DATE}-koszontes.png`);
   }
-  gk.close();
-  const gn = await mk();
+  await gk.close();
+  const gn = await mk(SHOT);
   await gn.goto('/?navsim&panel=0');
   await gn.waitFor(q('.greeting'), 60_000, 'köszöntés név nélkül');
   check('köszöntés üres megszólítással: „Szia!”', (await gn.evaluate(text('.greeting'))) === 'Szia!');
-  gn.close();
-  const gvo = await mk();
+  await gn.close();
+  const gvo = await mk(SHOT);
   await gvo.goto('/?navsim&stage=nav&speed=1&at=20&panel=0', { megszolitas: 'Kristof' });
   await gvo.waitFor(q('.nav-top'), 60_000, 'navigáció');
   await sleep(500);
   const gvoices = await gvo.evaluate(`(window.__navVoice ?? []).map((v) => v.text)`);
   check('navigáció indításakor köszönés: „Szia Kristof, indulhatunk!” (az indulási utasítás előtt)', gvoices[0] === 'Szia Kristof, indulhatunk!', gvoices.slice(0, 3).join(' | '));
   check('navigáció közben nincs köszöntő felirat', !(await gvo.evaluate(`!!${q('.greeting')}`)));
-  gvo.close();
+  await gvo.close();
   // AOS14 javítás: EGY kártya a kamera-figyelmeztetés helyén – navigáció nélkül önállóan a felső kártya helyén; előbb
   // „Rendőrség 240 m”, 50 m-rel a bejelentés előtt UGYANAZ az elem helyben „Még ott van? Igen / Nem”; az elhaladás után még
-  // 10 s-ig (a szimulátor 4×-es: ~2,5 s), válaszra azonnal eltűnik
-  const rpg = await mk();
-  await rpg.goto('/?sim=jo&speed=4&panel=0');
+  // 10 s-ig (szimulált idő; a valós idő = ennek és a lejátszási sebességnek a hányadosa), válaszra azonnal eltűnik
+  const rpg = await mk(SHOT);
+  const RPG_SPEED = fast(4, 2);
+  await rpg.goto(`/?sim=jo&speed=${RPG_SPEED}&panel=0`);
   await rpg.waitFor(MAP_READY, 60_000, 'térkép');
   // a kártya állapotának naplója (100 ms-enként): fázis, felirat, idő
   await rpg.evaluate(`window.__alertLog = []; setInterval(() => { const r = document.querySelector('.report-alert-row'); window.__alertLog.push({ t: performance.now(), phase: r?.dataset.phase ?? null, txt: r?.querySelector('b')?.innerText.trim() ?? null }); }, 100); true`);
@@ -734,8 +745,8 @@ try {
   const askAt = await rpg.evaluate(`performance.now()`);
   const nextTitle = await rpg.evaluate(`${q('.report-alert-row b')}?.innerText.trim() ?? null`);
   await rpg.waitFor(`!/Akadály/.test(${q('.report-alert-row b')}?.innerText ?? '')`, 30_000, 'magától eltűnik');
-  const shownS = ((await rpg.evaluate(`performance.now()`)) - askAt) / 1000;
-  check('arra a bejelentésre nem tér vissza; a következő kérdés válasz nélkül az elhaladás után ~10 s-mal magától eltűnik', nextTitle === 'Akadály' && shownS >= 2.3 && shownS < 8, `${nextTitle}, ${shownS.toFixed(1)} s (4× sim)`);
+  const shownSim = (((await rpg.evaluate(`performance.now()`)) - askAt) / 1000) * RPG_SPEED;
+  check('arra a bejelentésre nem tér vissza; a következő kérdés válasz nélkül az elhaladás után ~10 s-mal magától eltűnik', nextTitle === 'Akadály' && shownSim >= 9.2 && shownSim < 32, `${nextTitle}, ${shownSim.toFixed(1)} s szimulált (${RPG_SPEED}× lejátszás)`);
   // egy kapu-tétel: „Átlagmérés eleje” → elküldve (a szerver-hívás itt elfogva) → ugyanaz a sor „Átlagmérés vége”
   await rpg.evaluate(`window.__gateCalls = []; const f0 = window.fetch; window.fetch = (...a) => { const u = String(a[0]?.url ?? a[0]); if (/\\/rest\\/v1\\/reports/.test(u)) { window.__gateCalls.push(u); return Promise.resolve(new Response(JSON.stringify([{ id: '00000000-0000-4000-8000-0000000000a1' }]), { status: 201, headers: { 'content-type': 'application/json' } })); } return f0(...a); }; true`);
   await click(rpg, 'button[aria-label="Bejelentés"]');
@@ -750,23 +761,23 @@ try {
   const g2 = await rpg.evaluate(`({ tiles: [...document.querySelectorAll('.sheet .tile')].map((t) => t.innerText.trim()), note: ${text('.sheet-note')}, calls: window.__gateCalls.length })`);
   check('elküldés után ugyanaz a sor „Átlagmérés vége”, a jegyzet a végére emlékeztet', g2.calls === 1 && g2.tiles.length === 9 && g2.tiles.at(-1) === 'Átlagmérés vége' && /végét/.test(g2.note), JSON.stringify(g2));
   if (!CHECK_ONLY) await rpg.shot(`${DATE}-bejelentes-menu-vege.png`);
+  check('nincs kezeletlen JS-kivétel (AOS14)', rpg.logs.length === 0 && gk.logs.length === 0, [...rpg.logs, ...gk.logs].join(' | '));
+  await rpg.close();
   // navigáció közben a manőverkártya alatt (a kamera-sor helyén), ugyanígy
-  const rn = await mk();
-  await rn.goto('/?navsim&stage=nav&speed=2&at=40&panel=0');
+  const rn = await mk(SHOT);
+  await rn.goto(`/?navsim&stage=nav&speed=${fast(2, 3)}&at=40&panel=0`);
   await rn.waitFor(q('.nav-top'), 60_000, 'navigáció');
   await rn.waitFor(q('.nav-top:not(.report-alert) .report-alert-row'), 120_000, 'bejelentés a manőverkártyán');
   const rnv = await rn.evaluate(`(() => { const top = ${q('.nav-top:not(.report-alert)')}; const row = top.querySelector('.report-alert-row'); const main = top.querySelector('.nav-main').getBoundingClientRect(); return { below: row.getBoundingClientRect().top >= main.bottom - 1, cam: top.dataset.camera, alone: !!document.querySelector('.nav-top.report-alert') }; })()`);
   check('navigációban a bejelentés a manőverkártya alatt, a kamera-sor helyén (borostyán kártya), nem külön elemként', rnv.below && rnv.cam === 'true' && !rnv.alone, JSON.stringify(rnv));
   await rn.waitFor(`${q('.report-alert-row')}?.dataset.phase === 'ask'`, 60_000, 'kérdés a navigációban');
   if (!CHECK_ONLY) await rn.shot(`${DATE}-nav-meg-ott-van.png`);
-  rn.close();
-  check('nincs kezeletlen JS-kivétel (AOS14)', rpg.logs.length === 0 && gk.logs.length === 0, [...rpg.logs, ...gk.logs].join(' | '));
-  rpg.close();
+  await rn.close();
 
   // ------------------------------------------------------------------
   // AW18: útvonalválasztó, forgalom, dugó, újratervezés-hiba, menü
   // ------------------------------------------------------------------
-  const pk = await mk();
+  const pk = await mk(REAL);
   await pk.goto('/?navsim&stage=picker&fasterAlt&speed=1&panel=0');
   await pk.waitFor(MAP_READY, 60_000, 'térkép');
   await pk.waitFor(`document.querySelectorAll('.route-opt').length === 2 && ${q('.route-label')}`, 30_000, 'útvonalválasztó');
@@ -777,11 +788,11 @@ try {
   await pk.waitFor(`/−1 perc/.test(${text('.route-label')})`, 10_000, 'címke a gyorsabbon').catch(() => undefined);
   const pk2 = await pk.evaluate(`({ label: ${text('.route-label')}, times: [...document.querySelectorAll('.route-opt b')].map((x) => x.innerText.trim()) })`);
   check('AW18: a lassabb kiválasztva a gyorsabb alternatíván „−1 perc” (a kártyák kerekített perceiből)', pk2.label === '−1 perc', JSON.stringify(pk2));
-  pk.close();
+  await pk.close();
 
   // dugó mód: a friss Mapbox-lekérés dugót mutat, a vezetés araszol (a bejelentés-küldés itt elfogva)
-  const tr = await mk();
-  await tr.goto('/?navsim&stage=nav&traffic&speed=12&panel=0');
+  const tr = await mk(SHOT);
+  await tr.goto(`/?navsim&stage=nav&traffic&speed=${fast(12, 2)}&panel=0`);
   await tr.waitFor(q('.nav-top'), 60_000, 'navigáció');
   await tr.evaluate(`window.__repCalls = []; const f0 = window.fetch; window.fetch = (...a) => { const u = String(a[0]?.url ?? a[0]); if (/\\/rest\\/v1\\/reports/.test(u)) { window.__repCalls.push(u); return Promise.resolve(new Response(JSON.stringify([{ id: '00000000-0000-4000-8000-0000000000b1' }]), { status: 201, headers: { 'content-type': 'application/json' } })); } return f0(...a); }; true`);
   await tr.waitFor(q('.nav-delay'), 120_000, '+N perc dugó');
@@ -797,16 +808,17 @@ try {
   const tr3 = await tr.evaluate(`({ calls: window.__repCalls.length, ask: !!${q('.jam-ask-row')}, pins: document.querySelectorAll('.report-pin').length, dugoPin: [...document.querySelectorAll('.report-pin')].some((e) => e.innerHTML.includes('M10.5 9.5 12 5h8')), toast: (window.__toasts ?? []).join(' | '), jam: (window.__navJam ?? []).map((x) => x.kind) })`);
   check('AW18: „Igen” → „Dugó” bejelentés a pozícióra (a térképen), bejelentett közösségi minta, a kártya eltűnik', tr3.calls === 1 && !tr3.ask && tr3.dugoPin && tr3.pins === tr2.pins + 1 && /Dugó/.test(tr3.toast) && tr3.jam.includes('bejelentett'), JSON.stringify(tr3));
   check('nincs kezeletlen JS-kivétel (AW18 dugó)', tr.logs.length === 0, tr.logs.join(' | '));
-  tr.close();
+  await tr.close();
 
   // újratervezés-hiba: visszaszámlálás, koppintásra azonnali próba, az ok a naplóban
-  const rf = await mk();
-  await rf.goto('/?navsim&stage=nav&rerouteFail&speed=2&panel=0');
+  const rf = await mk(SHOT);
+  const RF_SPEED = fast(2, 8);
+  await rf.goto(`/?navsim&stage=nav&rerouteFail&speed=${RF_SPEED}&panel=0`);
   await rf.waitFor(q('.nav-top'), 60_000, 'navigáció');
   await rf.evaluate(`window.__warns = []; const w0 = console.warn; console.warn = (...a) => { window.__warns.push(a.map(String).join(' ')); w0(...a); }; true`);
   await rf.waitFor(`${q('button.nav-reroute small')}`, 240_000, 'nem sikerült kártya');
   const rf1 = await rf.evaluate(`({ title: ${text('button.nav-reroute span span')}, small: ${text('button.nav-reroute small')}, warns: window.__warns.filter((x) => x.includes('[nav] reroute failed')) })`);
-  await sleep(1200);
+  await sleep((1200 * 2) / RF_SPEED); // 1,2 s valós idő 2×-es lejátszásnál = 2,4 szimulált mp
   const rf2 = await rf.evaluate(`({ small: ${text('button.nav-reroute small')}, n: window.__warns.filter((x) => x.includes('[nav] reroute failed')).length })`);
   const secs = (x) => Number(/(\d+) mp/.exec(x)?.[1] ?? NaN);
   check('AW18: „Az újratervezés nem sikerült – próbálom újra”, alatta a következő próbáig hátralévő másodperc, fogy; az ok (http_503) a konzolon', rf1.title === 'Az újratervezés nem sikerült – próbálom újra' && /^Újra \d+ mp múlva – koppints most$/.test(rf1.small) && secs(rf2.small) < secs(rf1.small) && rf1.warns.some((x) => x.includes('http_503')), JSON.stringify({ rf1, rf2 }));
@@ -818,10 +830,10 @@ try {
   await sleep(500);
   const rf3 = await rf.evaluate(`({ n: window.__warns.filter((x) => x.includes('[nav] reroute failed')).length, last: window.__warns.at(-1), small: ${text('button.nav-reroute small')} })`);
   check('AW18: koppintásra azonnal újrapróbál (új próba a naplóban, a következő várakozás 20 s)', rf3.n === before + 1 && /attempt 3, retry in 20 s/.test(rf3.last), JSON.stringify({ before, rf3 }));
-  rf.close();
+  await rf.close();
 
   // Bejelentés menü: Dugó / Beállt a kapu-tétel sorában, a menü nem lesz magasabb (4 sor)
-  const mn = await mk();
+  const mn = await mk(SHOT);
   await mn.goto('/?navsim&panel=0');
   await mn.waitFor(MAP_READY, 60_000, 'térkép');
   await click(mn, 'button[aria-label="Bejelentés"]');
@@ -829,14 +841,13 @@ try {
   await sleep(500);
   const mn1 = await mn.evaluate(`(() => { const t = [...document.querySelectorAll('.sheet .tile')]; const r = t.map((x) => x.getBoundingClientRect()); const last = t.slice(-3); return { labels: last.map((x) => x.innerText.replace(/\\s+/g, ' ').trim()), rows: new Set(r.map((x) => Math.round(x.top))).size, sameTop: new Set(last.map((x) => Math.round(x.getBoundingClientRect().top))).size === 1, h: r.map((x) => Math.round(x.height)), sheetH: Math.round(${q('.sheet')}.getBoundingClientRect().height), overflow: document.documentElement.scrollWidth > innerWidth, rightAligned: Math.abs(r.at(-1).right - Math.max(...r.map((x) => x.right))) < 1, spill: t.filter((x) => x.scrollWidth > x.clientWidth + 1).map((x) => x.innerText.trim()), inSheet: Math.max(...r.map((x) => x.right)) <= ${q('.sheet')}.getBoundingClientRect().right - 8 }; })()`);
   check('AW18: Bejelentés menü – egy sorban „Dugó” és „Beállt” a kapu-tétel mellett; 4 sor, a csempék egyforma magasak, a felirat a csempén belül', mn1.labels.join('|') === 'Dugó|Beállt|Átlagmérés eleje' && mn1.rows === 4 && mn1.sameTop && new Set(mn1.h).size === 1 && !mn1.overflow && mn1.rightAligned && mn1.spill.length === 0 && mn1.inSheet, JSON.stringify(mn1));
-  mn.close();
+  await mn.close();
 
   // ------------------------------------------------------------------
   // AW19: krúzing mód, utak naplója, statisztika (IndexedDB, csak helyben)
   // ------------------------------------------------------------------
   {
-    // saját Chrome: az előző lapok a közös IndexedDB-t nyitva tartanák, és a maguk útját is ide mentenék
-    const mk = () => openPage({ port: tripChrome.port, base: BASE, outDir: OUT });
+    // az előző lapok már bezárultak (egy Chrome, egy lap); az IndexedDB-t az első lap kiüríti, mielőtt útja lenne
     // a navsim teljes vezetése ezt az utat adja (a webes `SIM_TRIP` – navSim.ts; a navSim.test.ts és a Swift SimTests is ezt méri)
     const SIM_TRIP = { distanceM: 17_677, movingS: 792, idleS: 0, maxKmh: 128, turns: { left: 1, right: 3, uTurn: 0 }, pieces: 3, samples: 793 };
     const TRIPS_DB = `(async () => {
@@ -851,9 +862,10 @@ try {
     const CLEAR_TRIPS = `new Promise((res, rej) => { const o = indexedDB.open('atlagsebesseg-trips'); o.onerror = () => rej(o.error); o.onsuccess = () => { const db = o.result; const tx = db.transaction(['trips', 'samples'], 'readwrite'); tx.objectStore('trips').clear(); tx.objectStore('samples').clear(); tx.oncomplete = () => { db.close(); res(true); }; tx.onerror = () => rej(tx.error); }; })`;
 
     // 1) krúzing: cél nélkül, a navsim-vezetés rögtön indul; 30 s mozgás után az állapotsor a köszöntés alatt
-    const cr = await mk();
-    await cr.goto('/?cruise&speed=3&panel=0');
+    const cr = await mk(SHOT);
+    await cr.goto(`/?cruise&speed=${fast(3, 3)}&panel=0`);
     await cr.waitFor(MAP_READY, 60_000, 'térkép');
+    await cr.evaluate(CLEAR_TRIPS);
     await cr.waitFor(q('.cruise-status'), 60_000, 'krúzing-sor');
     const crs = await cr.evaluate(`(() => { const e = ${q('.cruise-status')}; const g = ${q('.greeting')}; const r = e.getBoundingClientRect(); const gr = g.getBoundingClientRect(); return { txt: e.innerText.trim(), below: r.top >= gr.bottom, left: Math.abs(r.left - gr.left) < 1, op: getComputedStyle(e).opacity, fs: getComputedStyle(e).fontSize, inView: r.right <= innerWidth }; })()`);
     check('AW19: krúzing – cél nélkül, mozgás után „Krúzing · X km · N perc” halvány sor a köszöntés alatt, balra zárva', /^Krúzing · [\d,]+ (km|m) · \d+ perc$/.test(crs.txt) && crs.below && crs.left && Number(crs.op) < 1 && crs.fs === '15px' && crs.inView, JSON.stringify(crs));
@@ -864,7 +876,7 @@ try {
     await cr.close();
 
     // a teljes vezetés gyorsan: a lejátszás vége (a „GPS” leáll) zárja az utat; előtte az előző lap (bezáráskor mentett) útja törlődik
-    const cf = await mk();
+    const cf = await mk(SHOT);
     await cf.goto('/');
     await cf.waitFor(q('.mapboxgl-canvas'), 60_000, 'térkép');
     await cf.evaluate(CLEAR_TRIPS);
@@ -932,7 +944,7 @@ try {
     await cf.close();
 
     // 2) navigációval: a teljes Budapest → Győr út a céllal, az újratervezéssel és a méréssel; „Összes törlése” megerősítéssel
-    const cn = await mk();
+    const cn = await mk(SHOT);
     await cn.goto('/?navsim&stage=nav&speed=60&alt=maybe&panel=0');
     await cn.waitFor(MAP_READY, 60_000, 'térkép');
     const deadline2 = Date.now() + 120_000;
@@ -956,85 +968,84 @@ try {
     const afterAll = await cn.evaluate(TRIPS_DB);
     check('AW19: „Összes törlése” megerősítéssel – a napló és a minták üresek', confirmTxt === 'Törlöd az összes utat?' && afterAll.trips.length === 0 && afterAll.samples.length === 0, JSON.stringify({ confirmTxt, trips: afterAll.trips.length }));
     check('nincs kezeletlen JS-kivétel (AW19 napló)', cr.logs.length === 0 && cf.logs.length === 0 && cn.logs.length === 0, [...cr.logs, ...cf.logs, ...cn.logs].join(' | '));
-    cn.close();
+    await cn.close();
   }
 
   // ------------------------------------------------------------------
   // 3. marketing-képernyőképek (1×-es lejátszás, szimulátor-panel nélkül)
   // ------------------------------------------------------------------
   if (!CHECK_ONLY) {
-    const info = await mk();
+    const info = await mk('photo');
     await info.goto('/?navsim&panel=0');
     await info.waitFor(`window.__navSim`, 60_000, 'szimulátor-adat');
     const { windows, length } = await info.evaluate(`window.__navSim`);
-    info.close();
+    await info.close();
     console.log(`  ablakok: ${windows.join(', ')} / ${length}`);
 
     // A8d, AW11: az alternatíva a színes és a visszafogott térképen (útvonalválasztó); éjjel éjjeli szín + világos kontúr,
     // nappal (Színes: alkonyi fény, Visszafogott: nappali fény) a napszak szerint (?sunAt, AW16)
     for (const terkep of ['szines', 'visszafogott']) {
       for (const [sunAt, suffix] of [[SUN.ejjel, ''], [SUN.nappal, '-nappal']]) {
-        const v = await mk();
+        const v = await mk('photo');
         await v.goto(`/?navsim&stage=picker&speed=1&panel=0&sunAt=${sunAt}`, { terkep });
         await v.waitFor(MAP_READY, 60_000, 'térkép');
         await v.waitFor(q('.route-label'), 30_000, 'alternatíva-címke');
         await sleep(4000);
         await v.shot(`${DATE}-nav-alternativa-${terkep}${suffix}.png`);
-        v.close();
+        await v.close();
       }
     }
 
     // navigáció felső kártyával (az 1. ablak eleje, a belvárosból indulás)
-    const a = await mk();
+    const a = await mk('photo');
     await a.goto('/?navsim&stage=nav&speed=1&at=20&panel=0');
     await a.waitFor(MAP_READY, 60_000, 'térkép');
     await a.waitFor(q('.nav-top'), 30_000, 'felső kártya');
     await sleep(4500);
     await a.shot(`${DATE}-nav-felso-kartya.png`);
-    a.close();
+    await a.close();
 
     // szakasz-közeledés: a B ablakban a szakasz előtt ~1,5 km-re
-    const b = await mk();
+    const b = await mk('photo');
     await b.goto(`/?navsim&stage=nav&speed=1&at=${windows[1] + 55}&panel=0`);
     await b.waitFor(MAP_READY, 60_000, 'térkép');
     await b.waitFor(`${q('.nav-badge')} && /Szakaszellenőrzés/.test(${q('.nav-badge')}.innerText)`, 60_000, 'szakasz-jelzés');
     await sleep(4500);
     await b.shot(`${DATE}-nav-szakasz-kozeledes.png`);
-    b.close();
+    await b.close();
 
     // mérés közbeni összevont nézet: a szakaszon, gyors szakaszban (Túl gyors)
-    const m = await mk();
+    const m = await mk('photo');
     await m.goto(`/?navsim&stage=nav&speed=1&at=${windows[1] + 95 + 22}&panel=0`);
     await m.waitFor(MAP_READY, 60_000, 'térkép');
     await m.waitFor(q('.nav-strip'), 60_000, 'összevont sáv');
     await sleep(4500);
     await m.shot(`${DATE}-nav-meres-kozben.png`);
-    m.close();
+    await m.close();
 
     // közeli kamera: a borostyán felső sáv (a B ablakban, a szakasz után)
-    const k = await mk();
+    const k = await mk('photo');
     await k.goto(`/?navsim&stage=nav&speed=1&at=${windows[1] + 245}&alt=maybe&panel=0`);
     await k.waitFor(MAP_READY, 60_000, 'térkép');
     await k.waitFor(`${q('.nav-top')}?.dataset.camera === 'true'`, 60_000, 'kamera-közeledés');
     await sleep(2500);
     await k.shot(`${DATE}-nav-kamera-kozel.png`);
-    k.close();
+    await k.close();
 
     // gyorsabb út ajánlat: 4×-es lejátszás, amíg az ajánlat meg nem jelenik
-    const o = await mk();
+    const o = await mk('photo');
     await o.goto('/?navsim&stage=nav&speed=4&panel=0');
     await o.waitFor(MAP_READY, 60_000, 'térkép');
     await o.waitFor(q('.nav-offer'), 180_000, 'ajánlat');
     await sleep(1200);
     await o.shot(`${DATE}-nav-gyorsabb-ut.png`);
-    o.close();
+    await o.close();
   }
 } catch (e) {
   // a closeChrome ENOTEMPTY-je különben elnyelné a valódi kivételt
   check(`kivétel: ${e?.message ?? e}`, false);
 } finally {
   await closeChrome(chrome).catch(() => undefined);
-  await closeChrome(tripChrome).catch(() => undefined);
 }
 
 const failed = results.filter((r) => !r.ok).length;
