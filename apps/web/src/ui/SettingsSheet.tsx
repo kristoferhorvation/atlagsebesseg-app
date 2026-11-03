@@ -1,6 +1,8 @@
-import { HEAT_MODES, LANGUAGE_NAMES, MEGSZOLITAS_MAX, languageMenu, normalizeName, t, voiceInstructionsHint, type HeatMode, type HeatZone, type MapLook, type SavedPlaces, type Settings, type SpeedUnit } from '@atlagsebesseg/app-logic';
+import { useEffect, useState } from 'react';
+import { HEAT_MODES, LANGUAGE_NAMES, LOCALES, MEGSZOLITAS_MAX, getLanguage, languageMenu, normalizeName, t, voiceInstructionsHint, type HeatMode, type HeatZone, type MapLook, type SavedPlaces, type Settings, type SpeedUnit } from '@atlagsebesseg/app-logic';
 import { DEFAULT_TOLERANCE } from '@atlagsebesseg/core';
 import { useLanguage, useVoiceStatus } from '../i18n';
+import { purgeTrash, restoreTrash, trashExpiry } from '../trips/tripStore';
 import { Icon } from './Icon';
 import { Sheet } from './Sheet';
 import { ZonePicker } from './ZonePicker';
@@ -28,6 +30,7 @@ export function SettingsSheet({
   onClearPlace,
   onRemoveOther,
   onOpenTrips,
+  onRestored,
   zones,
   onOpenHeatDetails,
   onShowZone,
@@ -45,6 +48,8 @@ export function SettingsSheet({
   onRemoveOther: (id: string) => void;
   /** AW19: az utak naplója (a lap helyén nyílik). */
   onOpenTrips: () => void;
+  /** AOS17: a törölt adatok visszaálltak (a napló és a hőtérkép újratöltése + visszajelzés). */
+  onRestored: () => void;
   /** AW20-javítás: az adatvédelmi zónák (mentett helyenként), a Részletek lap és a zóna megmutatása a térképen. */
   zones: readonly HeatZone[];
   onOpenHeatDetails: () => void;
@@ -55,6 +60,14 @@ export function SettingsSheet({
   onClose: () => void;
 }) {
   const zoneOf = (id: string) => zones.find((z) => z.id === id);
+  // AOS17: a „Törölt adatok visszaállítása” sor csak a lejáratig látszik
+  const [trashUntil, setTrashUntil] = useState<number | null>(null);
+  useEffect(() => {
+    void purgeTrash()
+      .then(() => trashExpiry())
+      .then(setTrashUntil)
+      .catch(() => setTrashUntil(null));
+  }, []);
   const { lang, preference, setPreference } = useLanguage();
   const voice = useVoiceStatus(lang);
   const units: { id: SpeedUnit; label: string }[] = [
@@ -187,6 +200,22 @@ export function SettingsSheet({
           <div className="label">{t('trips.title')}</div>
           <Icon name="chevronRight" size={20} />
         </button>
+        {trashUntil !== null && (
+          <button
+            className="list-row nav-row"
+            data-testid="trash-restore"
+            onClick={() => void restoreTrash().then(() => {
+              setTrashUntil(null);
+              onRestored();
+            })}
+          >
+            <div>
+              <div className="label">{t('settings.restore')}</div>
+              <div className="hint">{t('settings.restoreHint', { date: new Date(trashUntil).toLocaleDateString(LOCALES[getLanguage()], { year: 'numeric', month: 'long', day: 'numeric' }) })}</div>
+            </div>
+            <Icon name="chevronRight" size={20} />
+          </button>
+        )}
       </div>
 
       <div className="group-label">{t('settings.group.places')}</div>
@@ -196,7 +225,6 @@ export function SettingsSheet({
             <div style={{ minWidth: 0 }}>
               <div className="label">{t(kind === 'home' ? 'nav.place.home' : 'nav.place.work')}</div>
               <div className="hint">{saved[kind]?.name ?? t('nav.place.unset')}</div>
-              {zoneOf(kind) && <ZonePicker zone={zoneOf(kind)!} name={t(kind === 'home' ? 'nav.place.home' : 'nav.place.work')} settings={settings} update={update} onShow={onShowZone} />}
             </div>
             <div className="mini-btns">
               <button className="mini-btn" onClick={() => onPickPlace(kind)}>
@@ -208,6 +236,8 @@ export function SettingsSheet({
                 </button>
               )}
             </div>
+            {/* AOS17: a sor teljes szélességében, a gombok alatt – 320 px-en sem csúszik ki */}
+            {zoneOf(kind) && <ZonePicker zone={zoneOf(kind)!} name={t(kind === 'home' ? 'nav.place.home' : 'nav.place.work')} settings={settings} update={update} onShow={onShowZone} />}
           </div>
         ))}
         {saved.others.map((p) => (
@@ -215,13 +245,13 @@ export function SettingsSheet({
             <div style={{ minWidth: 0 }}>
               <div className="label">{p.name}</div>
               {p.address && <div className="hint">{p.address}</div>}
-              {zoneOf(p.id) && <ZonePicker zone={zoneOf(p.id)!} name={p.name} settings={settings} update={update} onShow={onShowZone} />}
             </div>
             <div className="mini-btns">
               <button className="mini-btn" onClick={() => onRemoveOther(p.id)}>
                 {t('nav.place.remove')}
               </button>
             </div>
+            {zoneOf(p.id) && <ZonePicker zone={zoneOf(p.id)!} name={p.name} settings={settings} update={update} onShow={onShowZone} />}
           </div>
         ))}
         <div className="list-row">

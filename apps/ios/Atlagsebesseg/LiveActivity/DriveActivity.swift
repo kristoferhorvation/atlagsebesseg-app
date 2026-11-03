@@ -77,8 +77,10 @@ nonisolated struct DriveActivityAttributes: ActivityAttributes {
         var speedOver: Bool
         /// „Szakasz 3,2 km múlva” – a következő ismert szakasz, ha 5 km-en belül.
         var nextSection: String?
-        /// AW19: „Krúzing · 12,4 km · 23 perc” – a futó út (az üres nézet állapotsora), ha tart.
+        /// AOS17: „12,4 km · 23 perc · 32 km/h” – a futó út km · idő · átlag, ha tart.
         var cruise: String? = nil
+        /// AOS17: „Irányváltások: 7” – a futó út irányváltásai.
+        var dirChanges: String? = nil
     }
 }
 

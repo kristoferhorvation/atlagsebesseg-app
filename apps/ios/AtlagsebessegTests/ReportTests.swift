@@ -455,7 +455,7 @@ struct LiveActivityAOS15Tests {
             active: nil, routeHex: "1F5BFF", sectionHex: "7A86FF", activeHex: "2EE59D"
         )
         let url = try #require(liveMapURL(r, token: "pk.test")).absoluteString
-        #expect(url.hasPrefix("https://api.mapbox.com/styles/v1/mapbox/dark-v11/static/path-4+7A86FF-0.7("))
+        #expect(url.hasPrefix("https://api.mapbox.com/styles/v1/mapbox/streets-v12/static/path-4+7A86FF-0.7("))
         #expect(url.contains(",path-6+1F5BFF-1("))
         #expect(url.contains(String(format: "/%.5f,%.5f,13.50,270,0/120x120@2x?access_token=pk.test&logo=false&attribution=false", r.center.lon, r.center.lat)))
         #expect(liveMapZoom(30) == 14 && liveMapZoom(130) == 13 && liveMapZoom(nil) == 14)

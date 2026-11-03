@@ -13,7 +13,9 @@ struct MapScreen: View {
     let model: AppModel
     @Binding var follow: Bool
 
-    @State private var viewport: Viewport = .camera(center: CLLocationCoordinate2D(latitude: 47.4979, longitude: 19.0402), zoom: 6.5)
+    // AOS17: az első helyzetig a webes kiinduló nézet; az első fixre ugrik (nem repül), utána a közeli követés
+    @State private var viewport: Viewport = .camera(center: CLLocationCoordinate2D(latitude: 46.5, longitude: 12.5), zoom: 5.2)
+    @State private var firstFixShown = false
     @State private var sectionsFC = FeatureCollection(features: [])
     @State private var cameraPoints: [FixedCamera] = []
     @State private var zonesFC = FeatureCollection(features: [])
@@ -83,12 +85,12 @@ struct MapScreen: View {
             GeoJSONSource(id: "privacy-zones").data(.featureCollection(privacyZonesFC))
             FillLayer(id: "privacy-zones-fill", source: "privacy-zones")
                 .slot(.middle)
-                .fillColor(UIColor(Tokens.Colors.accent))
+                .fillColor(UIColor(Tokens.Colors.brand))
                 .fillOpacity(0.10)
                 .fillEmissiveStrength(1)
             LineLayer(id: "privacy-zones-line", source: "privacy-zones")
                 .slot(.middle)
-                .lineColor(UIColor(Tokens.Colors.accent))
+                .lineColor(UIColor(Tokens.Colors.brand))
                 .lineWidth(1.5)
                 .lineOpacity(0.45)
                 .lineEmissiveStrength(1)
@@ -140,7 +142,7 @@ struct MapScreen: View {
                 .filter(Exp(.neq) { Exp(.get) { "id" }; activeId ?? "" })
                 .lineCap(.round)
                 .lineJoin(.round)
-                .lineColor(UIColor(Tokens.Colors.accent))
+                .lineColor(UIColor(Tokens.Colors.brand))
                 .lineWidth(Exp(.interpolate) { Exp(.linear); Exp(.zoom); 8; 2; 16; 6 })
                 .lineOpacity(0.55)
                 .lineEmissiveStrength(1)
@@ -227,7 +229,7 @@ struct MapScreen: View {
                     Icon(name: .pin, size: 24)
                         .foregroundStyle(Tokens.Colors.bg)
                         .frame(width: 40, height: 40)
-                        .background(Tokens.Colors.accent, in: Circle())
+                        .background(Tokens.Colors.brand, in: Circle())
                         .overlay(Circle().strokeBorder(Tokens.Colors.text, lineWidth: 2))
                         .accessibilityLabel(t(.navDestAria))
                 }
@@ -362,15 +364,21 @@ struct MapScreen: View {
     /// A pozíció képernyő-helyének (focusY) simítási időállandója (ms; a webes `FOCUS_TAU_MS`).
     private static let focusTauMs = 150.0
 
-    private func recenter(_ fix: GpsFix, animated: Bool) {
+    private func recenter(_ fix: GpsFix, animated wanted: Bool) {
+        let animated = wanted && firstFixShown
+        firstFixShown = true
         let navigating = model.nav != nil
         let center = CLLocationCoordinate2D(latitude: fix.lat, longitude: fix.lon)
         let h = UIScreen.main.bounds.height
         guard navigating else {
             zoomShown = nil
-            // a saját pozíció a kártya fölötti, látható térképrészre kerül (ne takarja a mérőkártya)
+            // AOS17: a webes követő kamera – közeli, a sebességgel távolodó zoom, 60°-os dőlés, a pozíció az alsó kártya felső
+            // szélének 60%-án (a webes `setFocusY`)
             let bearing = fix.heading ?? mapBearing
-            move(center, animated: animated, split: false) { Viewport.camera(center: $0, zoom: 15.2, bearing: bearing, pitch: 45).padding(.bottom, h * 0.45) }
+            let focus = model.hudTop > 0 ? min(0.5, max(0.18, model.hudTop * 0.6 / h)) : idleFocusDefault
+            let (top, bottom) = (max(0, 2 * focus * h - h), max(0, h - 2 * focus * h))
+            let zoom = idleFollowZoom((fix.speed ?? 0) * 3.6)
+            move(center, animated: animated, split: false) { Viewport.camera(center: $0, zoom: zoom, bearing: bearing, pitch: idleFollowPitch).padding(.top, top).padding(.bottom, bottom) }
             return
         }
         // AW12: zoom a sebességből (a GPS-sebesség zaját simítva), a pozíció a képernyő 72 %-án – de legalább 56 pt-tel

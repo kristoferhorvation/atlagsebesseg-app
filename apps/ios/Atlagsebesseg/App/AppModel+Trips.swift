@@ -63,12 +63,32 @@ extension AppModel {
         reloadTrips()
     }
 
-    func deleteAllTrips() {
-        tripStore.deleteAll()
+    /// AOS17: `heat`: a saját hőtérkép is törlődik; `keep`: 30 napig visszaállítható, különben azonnal és véglegesen.
+    func deleteAllTrips(heat: Bool, keep: Bool) {
+        tripStore.deleteAll(heat: heat, keep: keep)
         reloadTrips()
+        refreshTrash()
         // AOS16: a kirajzolt hőtérkép is ürül (az `upsert` nem vesz ki cellát, az újraindításig látszana)
-        heatIndex.setAll(heatSeedList ?? [])
+        if heat {
+            heatIndex.setAll(heatSeedList ?? [])
+            heatVersion += 1
+        }
+    }
+
+    /// A kuka lejárt sorainak törlése és a „Törölt adatok visszaállítása” sor lejárata.
+    func refreshTrash() {
+        tripStore.purgeTrash()
+        trashUntil = tripStore.trashExpiry()
+    }
+
+    /// A Beállítások sora: a napló és a hőtérkép visszaáll, a kirajzolt réteg is frissül.
+    func restoreTrash() {
+        tripStore.restoreTrash()
+        reloadTrips()
+        refreshTrash()
+        heatIndex.setAll(heatSeedList ?? tripStore.heatCells())
         heatVersion += 1
+        showToast(AppToast(text: t(.settingsRestored), color: Tokens.StatusColors.jo, icon: .check))
     }
 
     /// Az üres nézet állapotsora („Krúzing · 12,4 km · 23 perc”), amíg az út tart.
@@ -98,7 +118,7 @@ extension AppModel {
         // az állapotsor 10 m-enként és percenként változik – nem minden fixnél új érték
         let v = tripRecorder.view(nowMs())
         let same = cruise.map { c in
-            v.map { c.tripId == $0.tripId && jsRound(c.distanceM / 10) == jsRound($0.distanceM / 10) && floor(c.elapsedS / 60) == floor($0.elapsedS / 60) } ?? false
+            v.map { c.tripId == $0.tripId && jsRound(c.distanceM / 10) == jsRound($0.distanceM / 10) && floor(c.elapsedS / 60) == floor($0.elapsedS / 60) && c.dirChanges == $0.dirChanges } ?? false
         } ?? (v == nil)
         if !same { cruise = v }
     }

@@ -314,12 +314,21 @@ struct HeatQueryTests {
 
 @Suite("beállítások (hőtérkép)")
 struct HeatSettingsTests {
-    @Test("a hőtérkép alapból saját, gyakoriság; a megosztás alapból KI")
+    @Test("a hőtérkép alapból saját, gyakoriság; a megosztás alapból BE")
     func alapertek() {
         let s = Settings.parse(nil)
         #expect(s.hoterkep == .sajat)
         #expect(s.hoterkepNezet == .gyakorisag)
-        #expect(!s.adatmegosztas)
+        #expect(s.adatmegosztas)
+    }
+
+    @Test("AOS17 migráció: a régi tárolt KI egyszer BE-re vált, utána a felhasználó KI-je megmarad")
+    func megosztasMigracio() {
+        var s = Settings.parse(#"{"adatmegosztas":false,"terkep":"vilagos"}"#)
+        #expect(s.adatmegosztas)
+        #expect(s.terkep == .vilagos)
+        s.adatmegosztas = false
+        #expect(!Settings.parse(s.serialized()).adatmegosztas)
     }
 
     @Test("érvénytelen érték helyett az alapértelmezés, érvényes megmarad")
@@ -331,7 +340,7 @@ struct HeatSettingsTests {
         let bad = Settings.parse(#"{"hoterkep":"x","hoterkep_nezet":7,"adatmegosztas":"igen"}"#)
         #expect(bad.hoterkep == .sajat)
         #expect(bad.hoterkepNezet == .gyakorisag)
-        #expect(!bad.adatmegosztas)
+        #expect(bad.adatmegosztas)
         #expect(Settings.parse(ok.serialized()) == ok)
     }
 }

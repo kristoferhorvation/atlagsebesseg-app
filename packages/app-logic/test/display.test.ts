@@ -51,7 +51,8 @@ describe('beállítások', () => {
       megszolitas: '',
       hoterkep: 'sajat',
       hoterkep_nezet: 'gyakorisag',
-      adatmegosztas: false,
+      adatmegosztas: true,
+      adatmegosztas_v2: true,
       zona_m: {},
     });
   });

@@ -43,6 +43,7 @@ import {
   reportFromFix,
   t,
   type TKey,
+  type MapErrorKind,
   type ReportChoice,
   type ReportInsert,
   type SessionView,
@@ -619,8 +620,9 @@ function Drive({ map }: { map: WebMapAdapter }) {
 
   const [sending, setSending] = useState<ReportChoice | null>(null);
   const report = useCallback(
-    (choice: ReportChoice, opts: { jamSample?: boolean } = {}) => {
-      const row = view.lastFix ? reportFromFix(choice, view.lastFix) : null;
+    (choice: ReportChoice, opts: { jamSample?: boolean; subtype?: MapErrorKind; fix?: GpsFix } = {}) => {
+      const fix = opts.fix ?? view.lastFix;
+      const row = fix ? reportFromFix(choice, fix, opts.subtype) : null;
       if (!row) return;
       const label = reportChoiceLabel(choice);
       setSending(choice);
@@ -957,6 +959,10 @@ function Drive({ map }: { map: WebMapAdapter }) {
           peek={zonePeek}
           onPeekEnd={() => setZonePeek(false)}
           onOpenTrips={() => setSheet('trips')}
+          onRestored={() => {
+            trips.touch();
+            showToast({ text: t('settings.restored'), tone: 'jo', icon: 'check' });
+          }}
           onClose={() => setSheet(null)}
           info={{
             gps: t(SIM_MODE ? 'geo.sim' : GEO_TEXT[geo]),

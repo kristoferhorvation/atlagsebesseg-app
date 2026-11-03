@@ -36,7 +36,7 @@ export class MapboxWebAdapter implements WebMapAdapter {
   private readonly store = new MapStore<WebMapState>({
     position: null,
     progress: null,
-    tone: color.accent,
+    tone: color.brand,
     focusY: 0.38,
     navFollow: false,
     lightPreset: 'night',
@@ -384,8 +384,8 @@ class MapController {
       },
     });
     m.addSource('privacy-zones', { type: 'geojson', data: zonesGeoJson([]) });
-    m.addLayer({ id: 'privacy-zones-fill', type: 'fill', source: 'privacy-zones', slot: 'middle', paint: { 'fill-color': color.accent, 'fill-opacity': 0.1, 'fill-emissive-strength': 1 } });
-    m.addLayer({ id: 'privacy-zones-line', type: 'line', source: 'privacy-zones', slot: 'middle', paint: { 'line-color': color.accent, 'line-opacity': 0.45, 'line-width': 1.5, 'line-emissive-strength': 1 } });
+    m.addLayer({ id: 'privacy-zones-fill', type: 'fill', source: 'privacy-zones', slot: 'middle', paint: { 'fill-color': color.brand, 'fill-opacity': 0.1, 'fill-emissive-strength': 1 } });
+    m.addLayer({ id: 'privacy-zones-line', type: 'line', source: 'privacy-zones', slot: 'middle', paint: { 'line-color': color.brand, 'line-opacity': 0.45, 'line-width': 1.5, 'line-emissive-strength': 1 } });
     // kamera-zóna (`zone` láthatóság): kör, pont nélkül
     m.addSource('camera-zones', { type: 'geojson', data: zonesGeoJson([]) });
     m.addLayer({
@@ -409,7 +409,7 @@ class MapController {
       source: 'sections',
       slot: 'middle',
       layout,
-      paint: { 'line-color': color.accent, 'line-width': ['interpolate', ['linear'], ['zoom'], 8, 2, 16, 6], 'line-opacity': 0.55, 'line-emissive-strength': 1 },
+      paint: { 'line-color': color.brand, 'line-width': ['interpolate', ['linear'], ['zoom'], 8, 2, 16, 6], 'line-opacity': 0.55, 'line-emissive-strength': 1 },
     });
     m.addLayer({
       id: 'active-glow',
@@ -418,7 +418,7 @@ class MapController {
       slot: 'middle',
       layout,
       filter: ['==', ['get', 'id'], ''],
-      paint: { 'line-color': color.accent, 'line-width': 26, 'line-opacity': 0.22, 'line-blur': 10, 'line-emissive-strength': 1 },
+      paint: { 'line-color': color.brand, 'line-width': 26, 'line-opacity': 0.22, 'line-blur': 10, 'line-emissive-strength': 1 },
     });
     m.addLayer({
       id: 'active-line',
@@ -427,7 +427,7 @@ class MapController {
       slot: 'middle',
       layout,
       filter: ['==', ['get', 'id'], ''],
-      paint: { 'line-width': ['interpolate', ['linear'], ['zoom'], 10, 4, 17, 11], 'line-color': color.accent, 'line-emissive-strength': 1 },
+      paint: { 'line-width': ['interpolate', ['linear'], ['zoom'], 10, 4, 17, 11], 'line-color': color.brand, 'line-emissive-strength': 1 },
     });
   }
 

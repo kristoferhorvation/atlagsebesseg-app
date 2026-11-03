@@ -13,7 +13,10 @@ export const color = {
   text: '#F4F6FA',
   textMuted: 'rgba(244,246,250,0.64)',
   textFaint: 'rgba(244,246,250,0.40)',
-  accent: '#7A86FF',
+  /** AOS17: a jelölőszín – kapcsoló, jelölőnégyzet, kiválasztott útvonal, fókusz. */
+  accent: '#2EE59D',
+  /** AOS17: a kézi mód, a márka és a térképi elemek eddigi színe (Kristof döntése: ezek nem zöldek). */
+  brand: '#7A86FF',
   ok: '#2EE59D',
   near: '#FFB224',
   over: '#FF4D61',
@@ -65,7 +68,7 @@ export const statusColor = {
   hataron: color.near,
   tul: color.over,
   semleges: color.idle,
-  kezi: color.accent,
+  kezi: color.brand,
 } as const;
 
 export type StatusTone = keyof typeof statusColor;

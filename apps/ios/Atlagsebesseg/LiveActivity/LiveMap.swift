@@ -5,8 +5,10 @@ import UIKit
 
 // AOS15: a Live Activity négyzetes térképképe. A Mapbox Static Images API rendereli (a szerveren – a háttérben futó app
 // GPU-t nem használhat, a Snapshotter zárolt képernyőnél nem menne; Kristof döntése, 2026-10-30): a pozíció körüli rész az
-// útvonallal és a közeli szakaszokkal, menetirány felfelé, sötét, visszafogott stílusban. A kép az App Group tárolóba kerül
-// (`LiveMapStore`), a widget onnan tölti be; a pozíció-jelet a widget rajzolja a kép közepére.
+// útvonallal és a közeli szakaszokkal, menetirány felfelé. AOS17: a Színes térkép sötét képe – a Static Images API a Standard stílust
+// nem rendereli (400, 2026-11-03-án mérve), ezért a klasszikus `streets-v12` kép színeit a CPU-n a Standard palettájára képezzük le
+// (`liveMapGrade`, a háttérben futó app nem kap GPU-t). A kép az App Group tárolóba kerül (`LiveMapStore`), a widget onnan tölti be;
+// a pozíció-jelet a widget rajzolja a kép közepére.
 
 /// A térképkép tartalma (tiszta adat – a kérés-URL ebből).
 nonisolated struct LiveMapRequest: Equatable, Sendable {
@@ -29,8 +31,8 @@ nonisolated struct LiveMapRequest: Equatable, Sendable {
 nonisolated enum LIVE_MAP {
     /// A kép mérete (pt; a kérés @2x – 240 × 240 px).
     static let sizePt = 120
-    /// Visszafogott, sötét klasszikus stílus (a Static Images API-ban a Standard nem érhető el).
-    static let style = "mapbox/dark-v11"
+    /// A forrás-stílus: színes klasszikus (a Static Images API-ban a Standard nem érhető el); a színeit a `liveMapGrade` cseréli.
+    static let style = "mapbox/streets-v12"
     /// Frissítés legfeljebb ennyi időnként (ms) – manővernél azonnal.
     static let minGapMs = 30_000.0
     /// …és csak, ha a pozíció ennyit mozdult (m).
@@ -45,6 +47,61 @@ nonisolated enum LIVE_MAP {
     static let sectionsNearM = 2500.0
     /// Pontok legalább ilyen távolságra (m) – az URL rövid marad (≤ 8192 karakter).
     static let minStepM = 20.0
+}
+
+/// Forrás (streets-v12) → cél (a Standard stílus Színes alapnézete, referencia-renderelésből mért színek). Az útvonal és a státusz-
+/// színek önmagukra képződnek, hogy a rárajzolt vonalak ne változzanak.
+nonisolated let LIVE_MAP_PALETTE: [(from: (Double, Double, Double), to: (Double, Double, Double))] = [
+    ((237, 232, 229), (87, 82, 99)), // beépített terület
+    ((248, 243, 228), (92, 80, 92)), // meleg terület
+    ((254, 254, 254), (132, 130, 152)), // út
+    ((153, 221, 255), (43, 59, 88)), // víz
+    ((192, 236, 170), (84, 101, 92)), // park
+    ((60, 60, 70), (226, 226, 236)), // felirat
+    ((120, 120, 130), (180, 180, 195)), // halvány felirat
+    ((230, 110, 190), (176, 158, 196)), // látnivaló-ikon
+    ((31, 91, 255), (31, 91, 255)), // route
+    ((46, 229, 157), (46, 229, 157)), // ok
+    ((122, 134, 255), (122, 134, 255)), // brand (a közeli szakaszok)
+    ((255, 178, 36), (255, 178, 36)), // near
+    ((255, 77, 97), (255, 77, 97)), // over
+]
+
+/// Egy szín leképezése: a paletta-pontok fordított távolság-súlyozott átlaga (a feliratok élsimítása így folytonos marad).
+nonisolated func liveMapGradeColor(_ r: Double, _ g: Double, _ b: Double) -> (Double, Double, Double) {
+    var (sum, x, y, z) = (0.0, 0.0, 0.0, 0.0)
+    for p in LIVE_MAP_PALETTE {
+        let (dr, dg, db) = (r - p.from.0, g - p.from.1, b - p.from.2)
+        let d = dr * dr + dg * dg + db * db
+        if d == 0 { return p.to }
+        let w = 1 / (d * d)
+        sum += w
+        x += w * p.to.0
+        y += w * p.to.1
+        z += w * p.to.2
+    }
+    return (x / sum, y / sum, z / sum)
+}
+
+/// A letöltött kép színeinek cseréje a CPU-n (CGBitmapContext, GPU nélkül – háttérben is fut). Hibánál `nil`: a nyers képet mutatjuk.
+nonisolated func liveMapGrade(_ data: Data) -> Data? {
+    guard let source = UIImage(data: data)?.cgImage else { return nil }
+    let (w, h) = (source.width, source.height)
+    guard let ctx = CGContext(data: nil, width: w, height: h, bitsPerComponent: 8, bytesPerRow: w * 4, space: CGColorSpaceCreateDeviceRGB(), bitmapInfo: CGImageAlphaInfo.noneSkipLast.rawValue),
+          let px = ctx.data?.bindMemory(to: UInt8.self, capacity: w * h * 4) else { return nil }
+    ctx.draw(source, in: CGRect(x: 0, y: 0, width: w, height: h))
+    var cache: [UInt32: (UInt8, UInt8, UInt8)] = [:]
+    for i in stride(from: 0, to: w * h * 4, by: 4) {
+        let key = UInt32(px[i]) << 16 | UInt32(px[i + 1]) << 8 | UInt32(px[i + 2])
+        let out = cache[key] ?? {
+            let c = liveMapGradeColor(Double(px[i]), Double(px[i + 1]), Double(px[i + 2]))
+            let v = (UInt8(c.0), UInt8(c.1), UInt8(c.2))
+            cache[key] = v
+            return v
+        }()
+        (px[i], px[i + 1], px[i + 2]) = out
+    }
+    return ctx.makeImage().flatMap { UIImage(cgImage: $0).pngData() }
 }
 
 /// A kép zoomja a sebességből: városban 14 (~0,8 km a kép széle), autópályán 13 (~1,6 km).
@@ -188,7 +245,7 @@ final class LiveMapRenderer {
                     self?.stamp = at
                     return
                 }
-                try data.write(to: file, options: .atomic)
+                try (liveMapGrade(data) ?? data).write(to: file, options: .atomic)
                 self?.version = next
                 self?.stamp = at
                 NSLog("LIVE-MAP: image %d (%d bytes)", next, data.count)

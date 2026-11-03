@@ -217,7 +217,7 @@ struct SearchPanel: View {
                         ForEach(chips) { c in
                             Button { model.choose(c.place) } label: {
                                 HStack(spacing: 6) {
-                                    Icon(name: c.icon == .home ? .home : c.icon == .work ? .work : .pin, size: 18).foregroundStyle(Tokens.Colors.accent)
+                                    Icon(name: c.icon == .home ? .home : c.icon == .work ? .work : .pin, size: 18).foregroundStyle(Tokens.Colors.brand)
                                     Text(c.label).font(.inter(Tokens.Typography.caption.size, 600)).foregroundStyle(Tokens.Colors.text).lineLimit(1)
                                 }
                                 .padding(.leading, 11)
@@ -401,7 +401,7 @@ struct RoutePickerCard: View {
                     Text(routeTagText(i, model.fastestRoute))
                         // AOS15 (AW18-paritás): mindig accent, 16 / 620, mint a webes `.route-opt-tag`
                         .font(.inter(16, 620))
-                        .foregroundStyle(Tokens.Colors.accent)
+                        .foregroundStyle(Tokens.Colors.brand)
                         .fixedSize()
                     (Text(t(.navPickerSections, ["n": String(s.sections)])).foregroundColor(s.sections == 0 ? Tokens.Colors.textFaint : Tokens.Colors.textMuted)
                         + Text(" · ").foregroundColor(Tokens.Colors.textFaint)

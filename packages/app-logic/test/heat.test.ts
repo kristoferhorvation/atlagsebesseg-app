@@ -312,11 +312,11 @@ describe('közösségi lekérés', () => {
 });
 
 describe('beállítások', () => {
-  it('a hőtérkép alapból saját, gyakoriság; a megosztás alapból KI', () => {
+  it('a hőtérkép alapból saját, gyakoriság; a megosztás alapból BE', () => {
     const s = parseSettings(null);
     expect(s.hoterkep).toBe('sajat');
     expect(s.hoterkep_nezet).toBe('gyakorisag');
-    expect(s.adatmegosztas).toBe(false);
+    expect(s.adatmegosztas).toBe(true);
   });
 
   it('érvénytelen érték helyett az alapértelmezés, érvényes megmarad', () => {
@@ -325,7 +325,7 @@ describe('beállítások', () => {
       hoterkep_nezet: 'atlagsebesseg',
       adatmegosztas: true,
     });
-    expect(parseSettings(JSON.stringify({ hoterkep: 'x', hoterkep_nezet: 7, adatmegosztas: 'igen' }))).toMatchObject({ hoterkep: 'sajat', hoterkep_nezet: 'gyakorisag', adatmegosztas: false });
+    expect(parseSettings(JSON.stringify({ hoterkep: 'x', hoterkep_nezet: 7, adatmegosztas: 'igen' }))).toMatchObject({ hoterkep: 'sajat', hoterkep_nezet: 'gyakorisag', adatmegosztas: true });
   });
 });
 

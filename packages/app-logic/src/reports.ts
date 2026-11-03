@@ -6,12 +6,22 @@ import type { GateReportInsert } from './gateReports';
 /** AW18: `dugo` (lassan halad) és `beallt` (áll) – a navigáció „Dugóba kerültél?” kártyája is `dugo`-t küld. */
 export type ReportType = 'traffipax' | 'rendorseg' | 'baleset' | 'akadaly' | 'utlezaras' | 'szakasz_hiba' | 'dugo' | 'beallt' | 'ideiglenes_kapu';
 
+/** AOS17: a „Térképhiba” második választójának tételei, a lap sorrendjében (a `reports.subtype` értékei). */
+export const MAP_ERROR_KINDS = ['szakaszhatar', 'sebesseghatar', 'nem_letezik', 'hianyzo', 'kamera', 'egyeb'] as const;
+export type MapErrorKind = (typeof MAP_ERROR_KINDS)[number];
+
+/** A Térképhiba alkategóriájának felirata; csak a szakaszhatárnak van magyarázó sora. */
+export const mapErrorLabel = (k: MapErrorKind): string => t(`report.sub.${k}` as TKey);
+export const mapErrorHint = (k: MapErrorKind): string | null => (k === 'szakaszhatar' ? t('report.sub.szakaszhatarHint') : null);
+
 /** Egyszerű (nem kapu) bejelentés sora; user_id-t a szerver adja. */
 export interface SimpleReportInsert {
   type: Exclude<ReportType, 'ideiglenes_kapu'>;
   lat: number;
   lon: number;
   heading_deg: number | null;
+  /** AOS17: a Térképhiba alkategóriája (`reports.subtype`); más típusnál nincs. */
+  subtype?: MapErrorKind;
 }
 
 export type ReportInsert = SimpleReportInsert | GateReportInsert;
@@ -64,7 +74,7 @@ const heading = (h: number | null) => (h === null ? null : ((Math.round(h) % 360
  * Egy koppintásos bejelentés a jelenlegi helyről. Kapunál irány kell (a kapu iránya a haladási
  * irány) – ha nincs, `null`.
  */
-export function reportFromFix(choice: SimpleReportInsert['type'] | GateChoice, fix: GpsFix): ReportInsert | null {
+export function reportFromFix(choice: SimpleReportInsert['type'] | GateChoice, fix: GpsFix, subtype?: MapErrorKind): ReportInsert | null {
   if (choice === 'kapu_kezdo' || choice === 'kapu_zaro') {
     const h = heading(fix.heading);
     if (h === null) return null;
@@ -78,7 +88,8 @@ export function reportFromFix(choice: SimpleReportInsert['type'] | GateChoice, f
       speed_limit_kmh: null,
     };
   }
-  return { type: choice, lat: fix.lat, lon: fix.lon, heading_deg: heading(fix.heading) };
+  const row: SimpleReportInsert = { type: choice, lat: fix.lat, lon: fix.lon, heading_deg: heading(fix.heading) };
+  return choice === 'szakasz_hiba' && subtype ? { ...row, subtype } : row;
 }
 
 /** AW18: a menü utolsó sorának kis csempéi (egy sorban, a kapu-tétel mellett). */

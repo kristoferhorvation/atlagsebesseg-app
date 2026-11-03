@@ -140,6 +140,8 @@ final class AppModel {
     var trips: [Trip] = []
     /// A futó út (az üres nézet „Krúzing · …” állapotsorához és a Live Activity „figyel” állapotához).
     var cruise: CruiseView?
+    /// AOS17: meddig állíthatók vissza a törölt adatok (`nil`: nincs mit).
+    var trashUntil: Double?
     @ObservationIgnored let tripRecorder = TripRecorder()
     @ObservationIgnored let tripStore = TripStore()
     @ObservationIgnored var tripNavPrev = (rerouting: false, jam: false)
@@ -205,6 +207,7 @@ final class AppModel {
         reloadTrips()
         setUpHeat()
         LiveActivityController.endStale()
+        refreshTrash()
         liveMap.onImage = { [weak self] in
             self?.liveMapSeq += 1
             self?.updateLiveActivity()
@@ -430,7 +433,7 @@ final class AppModel {
         let fix = view.lastFix
         let next = nav == nil ? nextSectionAheadM(fix, sections) : nil
         let shown = liveMapShown(liveMap.stamp, version: liveMap.version, pos: fix.map { LatLon(lat: $0.lat, lon: $0.lon) })
-        return liveActivityState(view, nav: nav, unit: settings.egyseg, gps: started, nextSectionM: next, mapVersion: shown, cruise: cruiseText)
+        return liveActivityState(view, nav: nav, unit: settings.egyseg, gps: started, nextSectionM: next, mapVersion: shown, cruise: cruise.map { cruiseFiguresText($0, unit: settings.egyseg) }, dirChanges: cruise.map { cruiseDirChangesText($0) })
     }
 
     /// AOS15: új térképkép, ha esedékes – manővernél / állapotváltáskor azonnal, különben ≤ 30 s-enként és > 100 m mozgásnál.
@@ -459,7 +462,7 @@ final class AppModel {
             sections: near.prefix(6).map(geometry),
             active: active.map(geometry),
             routeHex: hexOf(Tokens.Colors.route),
-            sectionHex: hexOf(Tokens.Colors.accent),
+            sectionHex: hexOf(Tokens.Colors.brand),
             activeHex: hexOf(toneOf(view).color)
         )
     }

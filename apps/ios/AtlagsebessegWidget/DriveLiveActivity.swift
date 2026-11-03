@@ -35,7 +35,7 @@ struct DriveLiveActivity: Widget {
             } minimal: {
                 IslandMinimal(state: s)
             }
-            .keylineTint(s.measure?.tone.color ?? Tokens.Colors.accent)
+            .keylineTint(s.measure?.tone.color ?? Tokens.Colors.brand)
             .widgetURL(s.link)
         }
     }

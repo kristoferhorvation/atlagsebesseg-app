@@ -23,7 +23,8 @@ változókká alakítja, a natív app közvetlenül importálja.
 | `surfaceStrong` | `rgba(22,25,32,0.88)` | lapok (beállítások, bejelentés) |
 | `stroke` | `rgba(255,255,255,0.08)` | 1 px-es élek |
 | `text` / `textMuted` / `textFaint` | `#F4F6FA` / 64% / 40% | szöveg |
-| `accent` | `#7A86FF` | márka, kézi mód, fókusz |
+| `accent` | `#2EE59D` (AOS17: azonos az `ok`-kal) | a jelölőszín: kapcsoló, jelölőnégyzet, kiválasztott útvonal, fókusz |
+| `brand` | `#7A86FF` | márka, kézi mód (`kezi`), Rendőrség- és kapu-ikon, pozíció-jel, közeli szakaszok a térképen, Live Activity ikonjai (AOS17 előtt `accent`) |
 | `ok` | `#2EE59D` | **Jó ütem** (`jo`) – az átlag ≤ határ |
 | `near` | `#FFB224` | **Átlag magas** (`lassits`) – az átlag a határ felett, de a várható végső ≤ határ |
 | `over` | `#FF4D61` | **Túl gyors** (`tul_gyors`) – a várható végső a határ felett |
@@ -86,7 +87,7 @@ biztonsági zóna fölött lebeg.
   opacity + transform; hiszterézis: 1,5 s fennállás után jelenik meg, 3 s hiány után tűnik el,
   így a határérték körüli ingadozás nem villog. 
 - **Kerek gombok** (64 px, üveg): bejelentés, kézi mérés, beállítások; a kereső ugyanilyen, de felül, a GPS-pill sorában (AW16).
-- **Lap** (bottom sheet): bejelentés-rács (2 oszlop, 76 px-es csempék), beállítások. **AW18:** egy 4 oszlopos rács (a
+- **Lap** (bottom sheet): bejelentés-rács, beállítások. **AOS17 – a bejelentés-rács méret-tokenjei (az A5-ös méret, ez érvényes):** 2 oszlop, `size.tile` 76 px-es csempe, 44 px-es ikon (14 px-es sarok), 18 / 600 felirat, a kapu-tétel teljes szélességű, 9 tétel = 5 sor; elválasztás és szó közbeni törés nincs (a belső térköz 12 / 10 px, a lap margójából 7-7 px; 390 px alatt a felirat és a térköz enged). A lap a tartalma magas, alul (iOS: `.height` detent). „Térképhiba” → második lap, 6 soros választó. **AW18 (a méretei AOS17-től nem érvényesek):** egy 4 oszlopos rács (a
   csempék 2 oszlopot foglalnak; a lap belső margójából 7-7 px, belső térköz 12 px), az utolsó sor 1 + 1 + 2: „Dugó” (lassan
   halad, `near`) és „Beállt” (áll, `over`) kis csempe – 36 px-es ikon a 15 px-es felirat fölött –, mellettük a kapu-tétel
   (16 px-es felirat, 1.1-es sorköz, 36 px-es ikon); a hosszú szavak elválasztva (`hyphens: auto`). A menü 4 sor marad, minden
@@ -97,7 +98,7 @@ biztonsági zóna fölött lebeg.
   megy; az „ideiglenes szakasz” folyamat, a kapu-küldés és az „Újra” gomb megszűnt.
 - **Kézi átlagmérés navigáció közben (AW16):** a kártya 5 s után (vagy ha a navigációnak hely kell: manőver < 500 m,
   ajánlat-kártya, közeli kamera) a mérőkártya lekicsinyített változatává zsugorodik a gombsor jobb oldalán: a nagy átlag-szám
-  (40 px) mindig a kézi mérés semleges (accent, `kezi`) színében, mint a teljes kézi kártyán – kézi mérésnél nincs referencia, nincs
+  (40 px) mindig a kézi mérés semleges (`brand`, `kezi`) színében, mint a teljes kézi kártyán – kézi mérésnél nincs referencia, nincs
   státusz-szín –, alatta kicsiben „km/h átlag” és az eltelt idő; Leállítás nélkül. Bökésre a
   teljes kártya, újabb bökésre vagy 5 s után vissza. Indítás után az első 5 s-ban hely-igény mellett is nyitva marad, de 3 s után
   összemegy. A zsugorított kártya alatt a navigáció teljes. Navigáció nélkül a nagy kártya marad. Az eredmény navigáció közben
@@ -163,7 +164,7 @@ biztonsági zóna fölött lebeg.
 - **Országos figyelmeztetés (A7):** ha a környéken német kamera/mérés van, egyszer (eszközönként)
   toast: „Németországban a vezető nem használhatja ezt a funkciót” (6 s).
 - **Szabad térkép (A5):** húzás, csípés, forgatás. Mozdításkor a követés kikapcsol, és a gombsor
-  fölött megjelenik a **„Vissza a helyemre”** (64 px, célkereszt, accent); rá a követő kamera
+  fölött megjelenik a **„Vissza a helyemre”** (64 px, célkereszt, `brand`); rá a követő kamera
   animálva (900 ms) áll vissza. Mérés közben 5 s tétlenség után magától is; mérésen kívül csak a
   gombra. Mérés közben a gomb a állapot-sáv helye fölött ül.
 - **Mapbox-attribúció (A5):** logó a bal, kompakt „i” a jobb felső sarokban, alapméretben, a
@@ -174,19 +175,19 @@ biztonsági zóna fölött lebeg.
   képernyőn elhúzhatja – a következő GPS-indításig nem jön vissza; a rendszer 8 órás lezárása után vagy ha hiányzik, az
   app előtérbe kerülésekor futó GPS-szel magától újraindul). Sötét háttér (`bg` 92%), Inter, nagy számok, levegős
   sorköz; **a teljes magasság legfeljebb 160 pt** (a rendszer a magasabbat levágja, `LiveActivityTests` méri); bal oldalt **84 pt-es négyzetes térképkép** (18 pt-es sarok, 1 pt `stroke`; mérés + navigációnál 62 pt, 14 pt-es sarok), közepén a pozíció-nyíl a tónus
-  színében, menetirány felfelé. A kép a Mapbox Static Images API-ból (`dark-v11`, 120 pt @2x, az útvonal `route`, a közeli
-  szakaszok `accent` 70%, a mért szakasz a tónus színében; a képen logó és attribúció nincs – `logo=false&attribution=false`
+  színében, menetirány felfelé. A kép a Mapbox Static Images API-ból (AOS17: `streets-v12`, a színei a CPU-n a Színes térkép sötét palettájára képezve – `liveMapGrade`, mert a Static Images API a Standard stílust nem rendereli; 120 pt @2x, az útvonal `route`, a közeli
+  szakaszok `brand` 70%, a mért szakasz a tónus színében; a képen logó és attribúció nincs – `logo=false&attribution=false`
   –, helyette a lezárt képernyős nézet alsó margójában 8 pt-es `textFaint` „© Mapbox © OpenStreetMap”, csak ha van kép; a Dynamic
   Islandben nincs), frissítés manővernél / állapotváltáskor azonnal, különben ≤ 30 s-enként és csak > 100 m mozgásnál;
   1500 m-nél messzebbi középpontú kép nem látszik. A számok legfeljebb 1 Hz-cel frissülnek, „figyel” állapotban 0,5 Hz-cel.
   Öt állapot:
   | állapot | lezárt képernyő | Dynamic Island szűk (bal · jobb) |
   |---|---|---|
-  | **figyel** (GPS, cél nélkül) | „● Figyel”, sebesség 50 pt + egység, tábla (ha ismert), „Szakasz 3,2 km múlva” (≤ 5 km, kapu-ikon); AW19: alatta a futó út 13 pt `textMuted` („Krúzing · 12,4 km · 23 perc”) | GPS-ikon · sebesség |
+  | **figyel** (GPS, cél nélkül) | „● Figyel”, sebesség 50 pt + egység (következő szakasz + krúzing-adatok mellett 40 pt), tábla (ha ismert), „Szakasz 3,2 km múlva” (≤ 5 km, kapu-ikon); AOS17: alatta két 13 pt `textMuted` sor: „12,4 km · 23 perc · 37 km/h” és „Irányváltások: 7”; kibontott Island: egy sorban ugyanez, térképkép nélkül | GPS-ikon · sebesség |
   | **navigáció** | manőver-rajz 38 pt + távolság 36 pt, utcanév, érkezés · „18 perc · 21,4 km”, borostyán „+N perc dugó” kapszula | manőver · távolság |
   | **szakaszmérés** | cím + „Maradj X alatt” / „Lassíts · max X” (tónus; jó állapotban halvány), átlag 50 pt a tónus színében, tábla 54 pt, most · várható · hátra | státusz-ikon (pipa / lefelé nyíl) a tónus színében · átlag |
   | **mérés + navigáció** | mint a mérés, de átlag 38 pt a felirattal egy sorban, tábla 42 pt, alatta teljes szélességben a manőver egysoros sávja (`surfaceRaised`; a dugó teljesen látszik, az utcanév rövidül) | mint a mérés |
-  | **kézi mérés** | átlag `accent` (kézi) színben, limit nélkül, a tábla helyén stopper + eltelt idő | stopper · átlag |
+  | **kézi mérés** | átlag `brand` (kézi) színben, limit nélkül, a tábla helyén stopper + eltelt idő | stopper · átlag |
   Kibontott Dynamic Island: **két oszlop** (bal: cím + fő szám, jobb: tábla / érkezés + hátralévő / kézi idő), alatta a
   részletek (figyelésnél a következő szakasz és a krúzing-sor is); térképkép nélkül, legfeljebb 160 pt (mérés + navigációnál az átlag 34 pt, a felirat mellette). A keret (`keylineTint`) mérésnél a tónus, különben `accent`. Koppintásra az app a vezetési
   nézetre nyílik (`atlagsebesseg://live/measure|nav|map`: a lapok bezárulnak, a térkép újra követ).
@@ -212,7 +213,7 @@ biztonsági zóna fölött lebeg.
 | **közeledés** | kártya: út + irány, „múlva” távolság (`display`), határ-tábla; a szakasz vonala kiemelve |
 | **mérés** | HUD-kártya; a szín az egy állapotból (jo / lassits / tul_gyors); alagútban „becsült” jelzés |
 | **befejezve** | összegzés: végső átlag (hero, státuszszín), ítélet („határ alatt” / „+4 km/h”), hossz, idő, határ; 60 s után eltűnik |
-| **kézi mód** | HUD az `accent` színnel (nincs határ): átlag, megtett út, idő, nagy „Leállítás” gomb; utána összegzés (bejelentés nélkül) |
+| **kézi mód** | HUD a `brand` színnel (nincs határ): átlag, megtett út, idő, nagy „Leállítás” gomb; utána összegzés (bejelentés nélkül) |
 | **ideiglenes szakasz** | mint a kézi mód, „Ideiglenes szakasz” chip és „Vége · záró kapu” gomb; az összegzés a kapuk küldésének állapotát mutatja (hiba esetén „Újraküldés”) |
 | **megszakadt** | szürke kártya ⏸ ikonnal: ok (háttérbe került / letértél / ellenirány / nincs GPS) és „Az átlag nem érvényes” – nincs szám |
 
@@ -245,4 +246,13 @@ térkép-rétegek (pl. alternatív útvonal) az alkalmazott fényhez igazodnak. 
 - Zoom-függő felbontás: 12,5 fölött res 10, alatta res 8 (és ha a látható rész > 4000 pont); a rajzolt pontok a látható terület
   +25%-ára vágva.
 - Beállítások: „Hőtérkép” Ki / Saját / Közösségi szegmens (a Térkép sor után), alatta a „Névtelen vezetési adatok megosztása”
-  kapcsoló (alapból ki) a magyarázattal.
+  kapcsoló (AOS17: alapból BE) a magyarázattal; köztük és a „Részletek” sor között nincs vonal.
+
+## Beállítás-elemek (AOS17, web és iOS azonos)
+
+- Lista: `surfaceRaised` kártya, `tile` sarok, 1 px `stroke`; sor legalább 60 px, 14 / 16 px margó, a sorok között 1 px `stroke`. A főcím (17 / 580) és a leírás (14, `textMuted`) egy sorban, köztük soha nincs vonal; a „Részletek” a megosztás sorához tartozik, köztük sincs.
+- Csoportcím: 13 / 640, nagybetűs, 0,06em, `textFaint`.
+- Kapcsoló: 52 × 32 px, bekapcsolva `accent`. Szegmens: 3 px belső margó, 12 px-es sarok, fehér 8% háttér; szegmens 34 px magas, 9 px-es sarok, 15 / 620; kiválasztva `text` (fehér) háttér + `signText` felirat. Zóna-választó: 30 px, 14 px-es betű, a sor teljes szélességében, egyenlő szegmensek (320 px-en is).
+- Jelölőnégyzet: 26 px, 8 px-es sarok, kipipálva `accent`. Kis gomb: 48 px magas, 14 px-es sarok, 16 / 600.
+- **Kezdőképernyő:** a térkép fölött `bg` 10% → 94% (52%-ig) átmenet, alulra zárt oszlop, 22 px térköz, 76 px-es ikon (20 px-es sarok), cím 44 / 700, −0,035em, **soha nem törik** (ha nem fér ki, a betű kisebb), mondat 19 `textMuted`, három `ok` pipa 17 / 540, 60 px-es elsődleges gomb, szimulátor-link 16 / 600.
+

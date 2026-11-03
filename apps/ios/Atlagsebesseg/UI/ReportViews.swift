@@ -23,7 +23,7 @@ struct ReportSheet: View {
     let sending: ReportChoice?
     /// AOS14 javítás: az „Átlagmérés eleje” elküldve – az egyetlen kapu-tétel most „Átlagmérés vége”.
     let gateStarted: Bool
-    let onPick: (ReportChoice) -> Void
+    let onPick: (ReportChoice, MapErrorKind?, GpsFix?) -> Void
     @Environment(\.dismiss) private var dismiss
 
     private var noHeading: Bool { fix != nil && fix?.heading == nil }
@@ -34,85 +34,89 @@ struct ReportSheet: View {
         return gateStarted ? t(.reportNoteGateEnd) : t(.reportNoteDefault)
     }
 
+    /// AOS17: a „Térképhiba” második választója nyitva – a küldés az első koppintáskori helyről megy.
+    @State private var mapErrorFix: GpsFix?
+    /// AOS17: a lap a tartalma magas (mint a weben), alul, nem teljes képernyős.
+    @State private var contentHeight: CGFloat = 480
+
     var body: some View {
-        VStack(alignment: .leading, spacing: Tokens.Space.s3) {
-            HStack {
-                Text(t(.reportTitle)).typeStyle(Tokens.Typography.title).foregroundStyle(Tokens.Colors.text)
-                Spacer()
-                Button { dismiss() } label: { Icon(name: .close, size: 22) }
-                    .buttonStyle(.plain)
-                    .foregroundStyle(Tokens.Colors.textMuted)
-                    .frame(width: Tokens.Size.touch, height: Tokens.Size.touch)
-                    .accessibilityLabel(t(.commonClose))
-            }
-            let menu = reportMenu(gateStarted: gateStarted)
-            LazyVGrid(columns: [GridItem(.flexible(), spacing: Tokens.Space.s2), GridItem(.flexible(), spacing: Tokens.Space.s2)], spacing: Tokens.Space.s2) {
-                ForEach(menu.filter { !$0.isGate && !$0.isRowTile }) { tile($0) }
-            }
-            // AW18: az utolsó sor négy oszlopnyi: Dugó | Beállt | az egy kapu-tétel (két oszlop széles) – a menü nem lesz magasabb.
-            // AOS14 javítás: egy kapu-tétel – elküldött „eleje” után ugyanez a sor „vége”
-            HStack(spacing: Tokens.Space.s2) {
-                HStack(spacing: Tokens.Space.s2) {
-                    ForEach(menu.filter(\.isRowTile)) { smallTile($0) }
+        ScrollView {
+            VStack(alignment: .leading, spacing: Tokens.Space.s3) {
+                HStack {
+                    Text(mapErrorFix == nil ? t(.reportTitle) : ReportChoice.szakaszHiba.label).typeStyle(Tokens.Typography.title).foregroundStyle(Tokens.Colors.text)
+                    Spacer()
+                    Button { dismiss() } label: { Icon(name: .close, size: 22) }
+                        .buttonStyle(.plain)
+                        .foregroundStyle(Tokens.Colors.textMuted)
+                        .frame(width: Tokens.Size.touch, height: Tokens.Size.touch)
+                        .accessibilityLabel(t(.commonClose))
                 }
-                .frame(maxWidth: .infinity)
-                ForEach(menu.filter(\.isGate)) { tile($0) }
-                    .frame(maxWidth: .infinity)
+                if let fix = mapErrorFix {
+                    mapErrorList(fix)
+                } else {
+                    let menu = reportMenu(gateStarted: gateStarted)
+                    LazyVGrid(columns: [GridItem(.flexible(), spacing: Tokens.Space.s2), GridItem(.flexible(), spacing: Tokens.Space.s2)], spacing: Tokens.Space.s2) {
+                        ForEach(menu.filter { !$0.isGate }) { tile($0) }
+                    }
+                    // az egy kapu-tétel teljes szélességben; elküldött „eleje” után ugyanez a sor „vége” (AOS14 javítás)
+                    ForEach(menu.filter(\.isGate)) { tile($0) }
+                    Text(note)
+                        .font(.inter(Tokens.Typography.caption.size, 500))
+                        .foregroundStyle(Tokens.Colors.textMuted)
+                        .padding(.horizontal, 6)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
             }
-            Text(note)
-                .font(.inter(Tokens.Typography.caption.size, 500))
-                .foregroundStyle(Tokens.Colors.textMuted)
-                .padding(.horizontal, 6)
-                .fixedSize(horizontal: false, vertical: true)
-            Spacer(minLength: 0)
+            .padding(.horizontal, 9)
+            .padding(.top, Tokens.Space.s3)
+            .padding(.bottom, Tokens.Space.s2)
+            .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { contentHeight = $0 }
         }
-        .padding(.horizontal, Tokens.Space.s4)
-        .padding(.top, Tokens.Space.s3)
+        .scrollBounceBehavior(.basedOnSize)
+        .presentationDetents([.height(contentHeight)])
+        // `-reportMapError YES` (képernyőkép, `-reportOpen YES` mellett): rögtön a második választó
+        .onAppear { if UserDefaults.standard.bool(forKey: "reportMapError") { mapErrorFix = fix } }
     }
 
-    /// AW18: kis csempe az utolsó sorban – az ikon a felirat fölött, a nagy csempével azonos magasságban.
-    private func smallTile(_ c: ReportChoice) -> some View {
-        let disabled = !online || fix == nil || sending != nil
-        return Button { onPick(c) } label: {
-            VStack(spacing: 4) {
-                Icon(name: c.icon, size: 22)
-                    .foregroundStyle(c.tone.color)
-                    .frame(width: 36, height: 36)
-                    .background(c.tone.color.opacity(0.18), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
-                Text(c.label)
-                    .font(.inter(15, 600))
-                    .foregroundStyle(Tokens.Colors.text)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.7)
+    /// AOS17: mi a hiba? Egy koppintás elküldi, alkategóriával.
+    private func mapErrorList(_ fix: GpsFix) -> some View {
+        VStack(alignment: .leading, spacing: 0) {
+            GroupLabel(text: t(.reportSubQuestion))
+            ListCard {
+                ForEach(MapErrorKind.allCases) { k in
+                    Button { onPick(.szakaszHiba, k, fix) } label: {
+                        HStack(spacing: 14) {
+                            RowText(label: k.label, hint: k.hint)
+                            Icon(name: .chevronRight, size: 20).foregroundStyle(Tokens.Colors.textFaint)
+                        }
+                        .listRow()
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(sending != nil)
+                    if k != MapErrorKind.allCases.last { RowDivider() }
+                }
             }
-            .padding(.horizontal, 4)
-            .padding(.vertical, 6)
-            .frame(maxWidth: .infinity, minHeight: Tokens.Size.tile)
-            .background(sending == c ? c.tone.color.opacity(0.22) : Tokens.Colors.surfaceRaised, in: RoundedRectangle(cornerRadius: Tokens.Radius.tile, style: .continuous))
-            .overlay(RoundedRectangle(cornerRadius: Tokens.Radius.tile, style: .continuous).strokeBorder(Tokens.Colors.stroke, lineWidth: 1))
-            .contentShape(Rectangle())
         }
-        .buttonStyle(PressScaleStyle())
-        .disabled(disabled)
-        .opacity(disabled ? 0.4 : 1)
-        .accessibilityLabel(c.label)
     }
 
+    /// AOS17: az A5-ös csempe (76 pt, 44 pt-es ikon, 18 pt-es felirat). Szó közben soha nem törik: az egyszavas felirat egy sor, és
+    /// ha nem fér ki, a betű enged.
     private func tile(_ c: ReportChoice) -> some View {
         let disabled = !online || fix == nil || sending != nil || (c.isGate && noHeading)
-        return Button { onPick(c) } label: {
-            // 390 pt szélességen is egy sorban férjen a leghosszabb egyszavas felirat („Rendőrség”) – nincs szó közbeni törés
-            let box: CGFloat = c.isGate ? 36 : 44
+        return Button {
+            if c == .szakaszHiba { mapErrorFix = fix } else { onPick(c, nil, nil) }
+        } label: {
             HStack(spacing: 10) {
                 Icon(name: c.icon)
                     .foregroundStyle(c.tone.color)
-                    .frame(width: box, height: box)
-                    .background(c.tone.color.opacity(0.18), in: RoundedRectangle(cornerRadius: c.isGate ? 12 : 14, style: .continuous))
+                    .frame(width: 44, height: 44)
+                    .background(c.tone.color.opacity(0.18), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
                 Text(c.label)
-                    .font(.inter(c.isGate ? 16 : 18, 600))
+                    .font(.inter(18, 600))
                     .foregroundStyle(Tokens.Colors.text)
-                    .lineLimit(2)
-                    .minimumScaleFactor(0.85)
+                    .lineLimit(c.label.contains(" ") ? 2 : 1)
+                    .minimumScaleFactor(0.7)
                     .multilineTextAlignment(.leading)
                 Spacer(minLength: 0)
             }

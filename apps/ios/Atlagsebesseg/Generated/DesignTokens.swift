@@ -24,8 +24,10 @@ enum Tokens {
         static let textMuted = Color(.sRGB, red: 0.956863, green: 0.964706, blue: 0.980392, opacity: 0.64)
         /// `rgba(244,246,250,0.40)`
         static let textFaint = Color(.sRGB, red: 0.956863, green: 0.964706, blue: 0.980392, opacity: 0.4)
+        /// `#2EE59D`
+        static let accent = Color(.sRGB, red: 0.180392, green: 0.898039, blue: 0.615686, opacity: 1)
         /// `#7A86FF`
-        static let accent = Color(.sRGB, red: 0.478431, green: 0.52549, blue: 1, opacity: 1)
+        static let brand = Color(.sRGB, red: 0.478431, green: 0.52549, blue: 1, opacity: 1)
         /// `#2EE59D`
         static let ok = Color(.sRGB, red: 0.180392, green: 0.898039, blue: 0.615686, opacity: 1)
         /// `#FFB224`
@@ -82,13 +84,13 @@ enum Tokens {
 
     /// Státusz → szín (a nagy szám, a progress és az aktív szakasz vonala).
     enum StatusColors {
-        static let jo = Colors.ok
+        static let jo = Colors.accent
         static let lassits = Colors.near
         static let tul_gyors = Colors.over
         static let hataron = Colors.near
         static let tul = Colors.over
         static let semleges = Colors.idle
-        static let kezi = Colors.accent
+        static let kezi = Colors.brand
     }
 
     /// A betűcsalád (a web `Inter Variable`-je; az app a Resources/Fonts/InterVariable.ttf-et regisztrálja).

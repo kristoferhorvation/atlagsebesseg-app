@@ -10503,37 +10503,37 @@
         "cs" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Do nahlášení se zapíše tvoje poloha a směr jízdy. Začátek / konec úsekového měření nahlásí neznámou zónu: vždy jednu bránu na tvé poloze."
+            "value" : "Do nahlášení se zapíše tvoje aktuální poloha a směr jízdy. Dočasný úsek: na konci měření tlačítko „Konec” nahlásí koncovou bránu."
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Deine aktuelle Position und Fahrtrichtung werden mitgesendet. Abschnittsmessung Anfang / Ende meldet eine unbekannte Zone: je ein Tor an deiner Position."
+            "value" : "Deine aktuelle Position und Fahrtrichtung werden mitgesendet. Temporärer Abschnitt: Am Ende der Messung meldet die Taste „Ende“ das Schlusstor."
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Your current position and heading are included in the report. Average check start / end report an unknown zone: one gate each, at your position."
+            "value" : "Your current position and heading are included in the report. Temporary section: at the end of the measurement, the “End” button reports the closing gate."
           }
         },
         "hu" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "A jelenlegi helyed és haladási irányod kerül a bejelentésbe. Az Átlagmérés eleje / vége ismeretlen mérési zónát jelent be: egy-egy kaput a mostani helyeden."
+            "value" : "A jelenlegi helyed és haladási irányod kerül a bejelentésbe. Ideiglenes szakasz: a mérés végén a „Vége” gomb jelenti be a záró kaput."
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Do zgłoszenia trafia twoja pozycja i kierunek jazdy. Początek / koniec odcinkowego pomiaru zgłasza nieznaną strefę: po jednej bramce w twoim miejscu."
+            "value" : "Do zgłoszenia trafia twoja bieżąca pozycja i kierunek jazdy. Odcinek tymczasowy: na końcu pomiaru przycisk „Koniec” zgłasza bramkę końcową."
           }
         },
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Do nahlásenia sa zapíše tvoja poloha a smer jazdy. Začiatok / koniec úsekového merania nahlási neznámu zónu: vždy jednu bránu na tvojej polohe."
+            "value" : "Do nahlásenia sa zapíše tvoja aktuálna poloha a smer jazdy. Dočasný úsek: na konci merania tlačidlo „Koniec” nahlási koncovú bránu."
           }
         }
       }
@@ -10907,6 +10907,334 @@
         }
       }
     },
+    "report.sub.egyeb" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jiné"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sonstiges"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Other"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Egyéb"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Inne"
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Iné"
+          }
+        }
+      }
+    },
+    "report.sub.hianyzo" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Chybějící úsek"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fehlender Abschnitt"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Missing section"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hiányzó szakasz"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Brakujący odcinek"
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Chýbajúci úsek"
+          }
+        }
+      }
+    },
+    "report.sub.kamera" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Špatná poloha kamery"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Falsche Kameraposition"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wrong camera position"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rossz kamera-pozíció"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zła pozycja kamery"
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zlá poloha kamery"
+          }
+        }
+      }
+    },
+    "report.sub.nem_letezik" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tento úsek neexistuje"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Diesen Abschnitt gibt es nicht"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This section does not exist"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nem létezik ez a szakasz"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ten odcinek nie istnieje"
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tento úsek neexistuje"
+          }
+        }
+      }
+    },
+    "report.sub.question" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Co je špatně?"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Was stimmt nicht?"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "What is wrong?"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mi a hiba?"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Co jest nie tak?"
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Čo je zle?"
+          }
+        }
+      }
+    },
+    "report.sub.sebesseghatar" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Špatný rychlostní limit"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Falsches Tempolimit"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wrong speed limit"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rossz sebességhatár"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Złe ograniczenie prędkości"
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zlý rýchlostný limit"
+          }
+        }
+      }
+    },
+    "report.sub.szakaszhatar" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Špatná hranice úseku"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Falsche Abschnittsgrenze"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wrong section boundary"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rossz szakaszhatár"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zła granica odcinka"
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zlá hranica úseku"
+          }
+        }
+      }
+    },
+    "report.sub.szakaszhatarHint" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "počáteční/koncová brána na špatném místě"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Start-/Schlusstor an falscher Stelle"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "start/end gate in the wrong place"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "kezdő/záró kapu rossz helyen"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "bramka początkowa/końcowa w złym miejscu"
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "začiatočná/koncová brána na zlom mieste"
+          }
+        }
+      }
+    },
     "report.title" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -11241,37 +11569,37 @@
         "cs" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Chybný úsek"
+            "value" : "Chyba mapy"
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Strecke fehlerhaft"
+            "value" : "Kartenfehler"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Faulty section"
+            "value" : "Map error"
           }
         },
         "hu" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Hibás szakasz"
+            "value" : "Térképhiba"
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Błędny odcinek"
+            "value" : "Błąd mapy"
           }
         },
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Chybný úsek"
+            "value" : "Chyba mapy"
           }
         }
       }
@@ -12625,6 +12953,129 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Žiadosti o trasu dnes"
+          }
+        }
+      }
+    },
+    "settings.restore" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Obnovit smazaná data"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gelöschte Daten wiederherstellen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Restore deleted data"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Törölt adatok visszaállítása"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Przywróć usunięte dane"
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Obnoviť vymazané údaje"
+          }
+        }
+      }
+    },
+    "settings.restoreHint" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Platí do: {date}"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Läuft ab: {date}"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Expires: {date}"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lejárat: {date}"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wygasa: {date}"
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Platí do: {date}"
+          }
+        }
+      }
+    },
+    "settings.restored" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Obnoveno"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wiederhergestellt"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Restored"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Visszaállítva"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Przywrócono"
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Obnovené"
           }
         }
       }
@@ -15331,6 +15782,170 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Vymazať všetko"
+          }
+        }
+      }
+    },
+    "trips.deleteAll.finalHint" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Data se smažou okamžitě a natrvalo."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die Daten werden sofort und endgültig gelöscht."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The data is deleted immediately and permanently."
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Az adatok azonnal és véglegesen törlődnek."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dane zostaną usunięte natychmiast i na stałe."
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Údaje sa vymažú okamžite a natrvalo."
+          }
+        }
+      }
+    },
+    "trips.deleteAll.heat" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Smazat i moji vlastní tepelnou mapu"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Auch meine eigene Heatmap löschen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Also delete my own heatmap"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A saját hőtérképet is törlöm"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usuń też moją mapę cieplną"
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vymazať aj moju vlastnú teplotnú mapu"
+          }
+        }
+      }
+    },
+    "trips.deleteAll.keep" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Obnovitelné 30 dní"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "30 Tage wiederherstellbar"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Restorable for 30 days"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "30 napig visszaállítható"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Można przywrócić przez 30 dni"
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Obnoviteľné 30 dní"
+          }
+        }
+      }
+    },
+    "trips.deleteAll.keepHint" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Data zůstanou v tomto zařízení a lze je obnovit v Nastavení."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die Daten bleiben auf diesem Gerät und lassen sich in den Einstellungen wiederherstellen."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The data stays on this device and can be restored in Settings."
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Az adatok ezen a készüléken maradnak, a Beállításokból visszaállíthatók."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dane zostają na tym urządzeniu i można je przywrócić w Ustawieniach."
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Údaje zostanú v tomto zariadení a dajú sa obnoviť v Nastaveniach."
           }
         }
       }

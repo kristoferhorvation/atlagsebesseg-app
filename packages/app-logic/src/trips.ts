@@ -1,6 +1,7 @@
 import { haversineM, LocalProjection, type GpsFix, type LatLon } from '@atlagsebesseg/core';
 import { formatDistance, speedIn, unitLabel } from './display';
 import type { SpeedUnit } from './settings';
+import type { HeatCell } from './heat';
 import { t } from './i18n';
 import { formatTripDuration } from './navigation/maneuver';
 
@@ -667,3 +668,26 @@ export const tripDurationText = (s: number): string => (s < 30 ? t('nav.dur.min'
 
 /** A szakasz neve a mérés-rekordban: „M1 · Budapest → Győr” (irány nélkül csak az út). */
 export const measurementName = (s: { road: string; direction?: string | null }): string => (s.direction ? `${s.road} · ${s.direction}` : s.road);
+
+// ---------------------------------------------------------------------------
+// AOS17: „Összes törlése” 30 napos visszaállítással (a tárolók a törölt sorokat `deletedAt`-tal őrzik, helyben)
+// ---------------------------------------------------------------------------
+
+/** Ennyi ideig állítható vissza a törölt adat (ms). */
+export const TRASH_KEEP_MS = 30 * 24 * 3600 * 1000;
+
+/** Lejárt-e egy törölt sor (a határon még visszaállítható). */
+export const trashExpired = (deletedAt: number, now: number): boolean => now - deletedAt > TRASH_KEEP_MS;
+
+/** A „Törölt adatok visszaállítása” sor lejárata: a legutóbb törölt sor szerint; üres / minden lejárt: `null`. */
+export function trashExpiresAt(deletedAts: readonly number[], now: number): number | null {
+  const live = deletedAts.filter((d) => !trashExpired(d, now));
+  return live.length ? Math.max(...live) + TRASH_KEEP_MS : null;
+}
+
+/** Egy visszaállított hőtérkép-cella és a törlés óta keletkezett (ha van): darabszám-súlyozott átlag, a későbbi időpont. */
+export function mergeHeatCells(a: HeatCell, b: HeatCell | null | undefined): HeatCell {
+  if (!b) return a;
+  const count = a.count + b.count;
+  return { h3: a.h3, count, avgKmh: Math.round(((a.avgKmh * a.count + b.avgKmh * b.count) / count) * 10) / 10, lastT: Math.max(a.lastT, b.lastT) };
+}

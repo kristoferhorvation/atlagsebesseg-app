@@ -23,7 +23,7 @@ enum LiveActivitySamples {
     )
     static let watch = DriveActivityAttributes.Watch(
         title: "Figyel", speed: "87", unit: "km/h", limit: nil, speedOver: false, nextSection: "Szakasz 3,2 km múlva",
-        cruise: "Krúzing · 124,6 km · 1 óra 23 perc"
+        cruise: "124,6 km · 1 óra 23 perc · 90 km/h", dirChanges: "Irányváltások: 17"
     )
     private static let att = "© Mapbox © OpenStreetMap"
     static let all: [(name: String, state: LiveState)] = [

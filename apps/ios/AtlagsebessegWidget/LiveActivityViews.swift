@@ -24,7 +24,7 @@ struct LockScreenView: View {
         VStack(alignment: .leading, spacing: dense ? 6 : 8) {
             HStack(alignment: .center, spacing: 12) {
                 if let image {
-                    MapThumb(image: image, tone: state.measure?.tone.color ?? Tokens.Colors.accent, size: dense ? 62 : 84)
+                    MapThumb(image: image, tone: state.measure?.tone.color ?? Tokens.Colors.brand, size: dense ? 62 : 84)
                 }
                 Group {
                     if let m = state.measure {
@@ -111,23 +111,27 @@ struct WatchBlock: View {
         HStack(alignment: .center, spacing: 12) {
             VStack(alignment: .leading, spacing: 2) {
                 HStack(spacing: 6) {
-                    Circle().fill(Tokens.Colors.accent).frame(width: 7, height: 7)
+                    Circle().fill(Tokens.Colors.brand).frame(width: 7, height: 7)
                     Text(w.title).font(.inter(15, 620)).foregroundStyle(Tokens.Colors.textMuted).lineLimit(1)
                 }
                 HStack(alignment: .firstTextBaseline, spacing: 6) {
-                    Text(w.speed).font(.num(50, 720)).tracking(-1.5)
+                    // AOS17: a krúzing-sorok és a következő szakasz mellett is 160 pt-en belül
+                    Text(w.speed).font(.num(w.cruise != nil && w.nextSection != nil ? 40 : 50, 720)).tracking(-1.5)
                         .foregroundStyle(w.speedOver ? Tokens.StatusColors.tul_gyors : Tokens.Colors.text)
                     Text(w.unit).font(.inter(16, 600)).foregroundStyle(Tokens.Colors.textMuted)
                 }
                 if let next = w.nextSection {
                     HStack(spacing: 6) {
-                        LiveIcon(name: .kapu_kezdo, size: 16).foregroundStyle(Tokens.Colors.accent)
+                        LiveIcon(name: .kapu_kezdo, size: 16).foregroundStyle(Tokens.Colors.brand)
                         Text(next).font(.inter(15, 620)).lineLimit(1).minimumScaleFactor(0.85)
                     }
                 }
-                // AW19: a futó út, halványan (mint az üres nézet köszöntése alatt)
+                // AOS17: a futó út km · idő · átlag és az irányváltások száma
                 if let c = w.cruise {
-                    Text(c).font(.num(13, 560)).foregroundStyle(Tokens.Colors.textMuted).lineLimit(1).minimumScaleFactor(0.85)
+                    Text(c).font(.num(13, 560)).foregroundStyle(Tokens.Colors.textMuted).lineLimit(1).minimumScaleFactor(0.7)
+                }
+                if let d = w.dirChanges {
+                    Text(d).font(.num(13, 560)).foregroundStyle(Tokens.Colors.textMuted).lineLimit(1).minimumScaleFactor(0.7)
                 }
             }
             Spacer(minLength: 0)
@@ -143,7 +147,7 @@ struct NavBlock: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
             HStack(spacing: 10) {
-                Glyph(maneuver: nav.maneuver, size: 38).foregroundStyle(Tokens.Colors.accent)
+                Glyph(maneuver: nav.maneuver, size: 38).foregroundStyle(Tokens.Colors.brand)
                 Text(nav.distance).font(.num(36, 720)).tracking(-0.8).lineLimit(1).minimumScaleFactor(0.7)
             }
             Text(nav.street).font(.inter(17, 620)).foregroundStyle(Tokens.Colors.textMuted).lineLimit(1)
@@ -247,7 +251,7 @@ struct NavLine: View {
 
     var body: some View {
         HStack(spacing: 8) {
-            Glyph(maneuver: nav.maneuver, size: 20).foregroundStyle(Tokens.Colors.accent)
+            Glyph(maneuver: nav.maneuver, size: 20).foregroundStyle(Tokens.Colors.brand)
             Text(nav.distance).font(.num(16, 700)).foregroundStyle(Tokens.Colors.text).lineLimit(1).fixedSize()
             Text(nav.street).font(.inter(15, 560)).foregroundStyle(Tokens.Colors.textMuted).lineLimit(1)
             Spacer(minLength: 0)
@@ -358,7 +362,7 @@ struct IslandLeading: View {
                     Text(m.avgLabel).font(.inter(13, 560)).foregroundStyle(Tokens.Colors.textMuted).lineLimit(1)
                 }
             } else if let n = state.nav {
-                Glyph(maneuver: n.maneuver, size: 34).foregroundStyle(Tokens.Colors.accent)
+                Glyph(maneuver: n.maneuver, size: 34).foregroundStyle(Tokens.Colors.brand)
                 Text(n.distance).font(.num(30, 720)).foregroundStyle(Tokens.Colors.text).lineLimit(1).minimumScaleFactor(0.7)
             } else if let w = state.watch {
                 Text(w.title).font(.inter(13, 620)).foregroundStyle(Tokens.Colors.textMuted).lineLimit(1)
@@ -419,13 +423,13 @@ struct IslandBottom: View {
             } else if let w = state.watch {
                 if let next = w.nextSection {
                     HStack(spacing: 6) {
-                        LiveIcon(name: .kapu_kezdo, size: 16).foregroundStyle(Tokens.Colors.accent)
+                        LiveIcon(name: .kapu_kezdo, size: 16).foregroundStyle(Tokens.Colors.brand)
                         Text(next).font(.inter(15, 620)).foregroundStyle(Tokens.Colors.text).lineLimit(1)
                     }
                 }
-                // AOS16: a krúzing-sor a következő szakasz mellett is látszik
+                // AOS17: kibontva km · idő · átlag · irányváltások, térképkép nélkül (a következő szakasz mellett is)
                 if let c = w.cruise {
-                    Text(c).font(.num(14, 560)).foregroundStyle(Tokens.Colors.textMuted).lineLimit(1).minimumScaleFactor(0.85)
+                    Text([c, w.dirChanges].compactMap { $0 }.joined(separator: " · ")).font(.num(14, 560)).foregroundStyle(Tokens.Colors.textMuted).lineLimit(1).minimumScaleFactor(0.6)
                 }
             }
         }
@@ -441,9 +445,9 @@ struct IslandCompactLeading: View {
         if let m = state.measure {
             LiveIcon(name: m.tone.icon, size: 20).foregroundStyle(m.tone.color)
         } else if let n = state.nav {
-            Glyph(maneuver: n.maneuver, size: 20).foregroundStyle(Tokens.Colors.accent)
+            Glyph(maneuver: n.maneuver, size: 20).foregroundStyle(Tokens.Colors.brand)
         } else {
-            LiveIcon(name: .gps, size: 18).foregroundStyle(Tokens.Colors.accent)
+            LiveIcon(name: .gps, size: 18).foregroundStyle(Tokens.Colors.brand)
         }
     }
 }
@@ -470,7 +474,7 @@ struct IslandMinimal: View {
         if let m = state.measure {
             Text(m.avg).font(.num(14, 720)).foregroundStyle(m.tone.color).minimumScaleFactor(0.6)
         } else if let n = state.nav {
-            Glyph(maneuver: n.maneuver, size: 18).foregroundStyle(Tokens.Colors.accent)
+            Glyph(maneuver: n.maneuver, size: 18).foregroundStyle(Tokens.Colors.brand)
         } else if let w = state.watch {
             Text(w.speed).font(.num(14, 720)).foregroundStyle(Tokens.Colors.text).minimumScaleFactor(0.6)
         }

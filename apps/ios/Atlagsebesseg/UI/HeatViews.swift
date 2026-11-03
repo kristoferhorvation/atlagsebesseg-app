@@ -57,13 +57,9 @@ struct ZoneRadiusRow: View {
     var body: some View {
         VStack(alignment: .leading, spacing: Tokens.Space.s1) {
             Text(t(.heatZoneLabel)).font(.footnote).foregroundStyle(Tokens.Colors.textMuted)
-            Picker(t(.heatZoneLabel), selection: Binding(get: { model.zoneRadius(id) }, set: { model.setZoneRadius(id, $0) })) {
-                Text(t(.heatZone200)).tag(200)
-                Text(t(.heatZone500)).tag(500)
-                Text(t(.heatZone1000)).tag(1000)
-            }
-            .pickerStyle(.segmented)
-            .labelsHidden()
+            // AOS17: mindhárom szegmens a háttéren belül, 320 pt-en is (a sor teljes szélességében)
+            Segmented(options: [(200, t(.heatZone200)), (500, t(.heatZone500)), (1000, t(.heatZone1000))], selection: Binding(get: { model.zoneRadius(id) }, set: { model.setZoneRadius(id, $0) }), compact: true)
+                .accessibilityLabel(t(.heatZoneLabel))
         }
     }
 }

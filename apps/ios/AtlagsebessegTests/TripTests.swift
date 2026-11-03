@@ -2,6 +2,7 @@ import AtlagsebessegCore
 import CoreLocation
 import Foundation
 import Testing
+import UIKit
 @testable import Atlagsebesseg
 
 // AW19: a packages/app-logic/test/trips.test.ts párja (azonos nevekkel) – krúzing mód, utak naplója, statisztika.
@@ -486,8 +487,12 @@ struct TripStoreTests {
 struct TripIOSTests {
     @Test("a Live Activity „figyel” állapota a krúzing-sort mutatja, mérés nélkül")
     func figyelKruzing() {
-        let state = liveActivityState(SessionView(), nav: nil, unit: .kmh, cruise: "Krúzing · 12,4 km · 23 perc", lang: .hu)
-        #expect(state?.watch?.cruise == "Krúzing · 12,4 km · 23 perc")
+        let v = CruiseView(tripId: "a", startedAt: 0, distanceM: 12_400, elapsedS: 23 * 60, movingS: 20 * 60, dirChanges: 7)
+        #expect(cruiseFiguresText(v, unit: .kmh, lang: .hu) == "12,4 km · 23 perc · 37 km/h")
+        #expect(cruiseDirChangesText(v, lang: .hu) == "Irányváltások: 7")
+        let state = liveActivityState(SessionView(), nav: nil, unit: .kmh, cruise: cruiseFiguresText(v, unit: .kmh, lang: .hu), dirChanges: cruiseDirChangesText(v, lang: .hu), lang: .hu)
+        #expect(state?.watch?.cruise == "12,4 km · 23 perc · 37 km/h")
+        #expect(state?.watch?.dirChanges == "Irányváltások: 7")
         #expect(liveActivityState(SessionView(), nav: nil, unit: .kmh, lang: .hu)?.watch?.cruise == nil)
     }
 
@@ -504,3 +509,158 @@ struct TripIOSTests {
         #expect(tripMapCamera([pts[0]], widthPt: 370, heightPt: 220, paddingPt: 28)?.zoom == 16)
     }
 }
+
+// AOS17: a kuka (a TS-pár: packages/app-logic/test/trash.test.ts, azonos nevű tesztek)
+@Suite("Összes törlése: 30 napos visszaállítás")
+struct TrashTests {
+    private let day = 24.0 * 3600 * 1000
+
+    private func store() -> TripStore {
+        TripStore(url: FileManager.default.temporaryDirectory.appendingPathComponent("trash-\(UUID().uuidString).sqlite"))
+    }
+
+    private func trip(_ id: String) -> Trip {
+        Trip(id: id, startedAt: 1000, endedAt: 2000, distanceM: 100, movingS: 10, idleS: 0, maxKmh: 50, turns: TripTurns(), dirChanges: TripTurns(), reroutes: 0, measurements: [], jamS: 0, destination: nil, path: [], samples: 1)
+    }
+
+    private func sample(_ id: String) -> TripSample {
+        TripSample(tripId: id, t: 1500, lat: 47.5, lon: 19, speedKmh: 50, heading: nil, accuracy: 5, h3: "x", limitKmh: nil)
+    }
+
+    @Test("a törölt sor a 30. napig visszaállítható, utána lejár")
+    func lejarat() {
+        #expect(!trashExpired(0, now: 30 * day))
+        #expect(trashExpired(0, now: 30 * day + 1))
+        #expect(trashExpiresAt([], now: 0) == nil)
+        #expect(trashExpiresAt([0, 5 * day], now: 6 * day) == 35 * day)
+        #expect(trashExpiresAt([0], now: 31 * day) == nil)
+    }
+
+    @Test("a visszaállított cella a törlés óta keletkezettel súlyozottan összevonódik")
+    func osszevonas() {
+        let a = HeatCell(h3: "x", count: 3, avgKmh: 50, lastT: 10)
+        #expect(mergeHeatCells(a, nil) == a)
+        #expect(mergeHeatCells(a, HeatCell(h3: "x", count: 1, avgKmh: 90, lastT: 20)) == HeatCell(h3: "x", count: 4, avgKmh: 60, lastT: 20))
+    }
+
+    @Test("30 napig megőrizve: az utak és a hőtérkép eltűnik, visszaállítva minden visszajön, a minták is")
+    func visszaallitas() {
+        let s = store()
+        s.saveTrip(trip("a"))
+        s.addSamples([sample("a")])
+        _ = s.absorbTrip("a")
+        let cells = s.heatCells()
+        s.deleteAll(heat: true, keep: true, now: 0)
+        #expect(s.trips().isEmpty)
+        #expect(s.heatCells().isEmpty)
+        #expect(s.trashExpiry(now: day) == TRASH_KEEP_MS)
+        s.restoreTrash(now: day)
+        #expect(s.trips().map(\.id) == ["a"])
+        #expect(s.samples("a").count == 1)
+        #expect(s.heatCells() == cells)
+        #expect(s.trashExpiry(now: day) == nil)
+        #expect(s.absorbTrip("a") == nil)
+    }
+
+    @Test("a hőtérkép csak külön kérésre törlődik")
+    func hoterkepMarad() {
+        let s = store()
+        s.saveTrip(trip("a"))
+        s.addSamples([sample("a")])
+        _ = s.absorbTrip("a")
+        let cells = s.heatCells()
+        s.deleteAll(heat: false, keep: true, now: 0)
+        #expect(s.trips().isEmpty)
+        #expect(s.heatCells() == cells)
+    }
+
+    @Test("pipa nélkül azonnal és véglegesen: a korábbi kuka is törlődik, nincs mit visszaállítani")
+    func vegleges() {
+        let s = store()
+        s.saveTrip(trip("a"))
+        s.addSamples([sample("a")])
+        s.deleteAll(heat: true, keep: true, now: 0)
+        s.saveTrip(trip("b"))
+        s.deleteAll(heat: true, keep: false, now: 1)
+        #expect(s.trashExpiry(now: 1) == nil)
+        #expect(s.samples("a").isEmpty)
+        s.restoreTrash(now: 2)
+        #expect(s.trips().isEmpty)
+    }
+
+    @Test("a lejárt kuka az út mintáival együtt törlődik")
+    func purge() {
+        let s = store()
+        s.saveTrip(trip("a"))
+        s.addSamples([sample("a")])
+        s.deleteAll(heat: true, keep: true, now: 0)
+        s.purgeTrash(now: 31 * day)
+        #expect(s.trashExpiry(now: 31 * day) == nil)
+        #expect(s.samples("a").isEmpty)
+    }
+}
+
+// AOS17: dizájn-paritás
+@Suite("AOS17: bejelentés, kamera, térképkép")
+struct AOS17Tests {
+    private func same(_ a: (Double, Double, Double), _ b: (Double, Double, Double)) -> Bool { a == b }
+
+    @Test("a Térképhiba alkategóriája a sorba kerül, más típusnál nincs; a sorrend a lapé")
+    func alkategoria() throws {
+        let fix = GpsFix(lat: 47.5, lon: 19, timestamp: 0, speed: nil, accuracy: 5, heading: 90)
+        #expect(MapErrorKind.allCases.map(\.rawValue) == ["szakaszhatar", "sebesseghatar", "nem_letezik", "hianyzo", "kamera", "egyeb"])
+        #expect(reportFromFix(.szakaszHiba, fix, subtype: .kamera)?.subtype == .kamera)
+        #expect(reportFromFix(.baleset, fix, subtype: .kamera)?.subtype == nil)
+        let json = String(decoding: try JSONEncoder().encode(reportFromFix(.szakaszHiba, fix, subtype: .nemLetezik)!), as: UTF8.self)
+        #expect(json.contains(#""subtype":"nem_letezik""#))
+        #expect(!String(decoding: try JSONEncoder().encode(reportFromFix(.baleset, fix)!), as: UTF8.self).contains("subtype"))
+    }
+
+    @Test("a bejelentés alsó szövege szó szerint a tulajdonosi szöveg")
+    func szoSzerint() {
+        #expect(t(.reportNoteDefault, lang: .hu) == "A jelenlegi helyed és haladási irányod kerül a bejelentésbe. Ideiglenes szakasz: a mérés végén a „Vége” gomb jelenti be a záró kaput.")
+        #expect(t(.reportTypeSzakaszHiba, lang: .hu) == "Térképhiba")
+    }
+
+    @Test("a követő kamera zoomja a webes görbe: közeli, a sebességgel távolodik")
+    func kamera() {
+        #expect(idleFollowZoom(0) == 17.3)
+        #expect(idleFollowZoom(40) == 17.3)
+        #expect(abs(idleFollowZoom(100) - 16.28) < 1e-9)
+        #expect(idleFollowZoom(200) == 15.5)
+    }
+
+    @Test("a térképkép színei: a világos forrás sötét lesz, a rárajzolt útvonal és a státusz-színek nem változnak")
+    func szinezes() throws {
+        #expect(same(liveMapGradeColor(237, 232, 229), (87, 82, 99)))
+        #expect(same(liveMapGradeColor(153, 221, 255), (43, 59, 88)))
+        #expect(same(liveMapGradeColor(31, 91, 255), (31, 91, 255)))
+        #expect(same(liveMapGradeColor(46, 229, 157), (46, 229, 157)))
+        let source = UIGraphicsImageRenderer(size: CGSize(width: 4, height: 4)).image { c in
+            UIColor(red: 237 / 255, green: 232 / 255, blue: 229 / 255, alpha: 1).setFill()
+            c.fill(CGRect(x: 0, y: 0, width: 4, height: 4))
+        }
+        let png = try #require(source.pngData())
+        let out = try #require(liveMapGrade(png))
+        #expect(UIImage(data: out) != nil)
+        #expect(out != png)
+    }
+
+    @Test("a kezdőképernyő iOS-szövege: nincs benne a webes „háttérben megszakad”, a cím nem törhet")
+    func kezdokepernyo() throws {
+        let text = try String(contentsOf: Repo.root.appendingPathComponent("apps/ios/Atlagsebesseg/UI/StartView.swift"), encoding: .utf8)
+        #expect(text.contains(".iosStartTipBackground"))
+        #expect(!text.contains(".startTipForeground"))
+        #expect(text.contains(".lineLimit(1)"))
+    }
+
+    @Test("a jelölőszín a zöld, a kézi mód az eddigi színén; rendszer-kapcsoló és UIKit-szegmens nincs a Beállításokban")
+    func zold() throws {
+        #expect(hexOf(Tokens.Colors.accent) == hexOf(Tokens.Colors.ok))
+        #expect(hexOf(Tokens.StatusColors.kezi) == "7A86FF")
+        let text = try String(contentsOf: Repo.root.appendingPathComponent("apps/ios/Atlagsebesseg/UI/SettingsSheet.swift"), encoding: .utf8)
+        #expect(!text.contains(".pickerStyle(.segmented)"))
+        #expect(!text.contains("Form {"))
+    }
+}
+

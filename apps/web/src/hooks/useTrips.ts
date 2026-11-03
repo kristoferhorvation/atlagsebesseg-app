@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { measurementName, TRIP, TripRecorder, HEAT, uploadRows, type CruiseView, type HeatZone, type NavView, type SessionView } from '@atlagsebesseg/app-logic';
 import type { GpsFix } from '@atlagsebesseg/core';
-import { addSamples, absorbTrip, deleteSamples, saveTrip } from '../trips/tripStore';
+import { addSamples, absorbTrip, deleteSamples, saveTrip, purgeTrash } from '../trips/tripStore';
 import { heatGeo } from '../heat/heatGeo';
 import { enqueueHeatRows, flushHeatOutbox } from '../heat/heatShare';
 import { supabase } from '../backend';
@@ -23,6 +23,11 @@ export function useTrips(now: () => number, nav: NavView | null, view: SessionVi
   const [cruise, setCruise] = useState<CruiseView | null>(null);
   const [version, setVersion] = useState(0);
   const queue = useRef<Promise<void>>(Promise.resolve());
+
+  // AOS17: a kuka 30 napnál régebbi sorai indításkor törlődnek
+  useEffect(() => {
+    void purgeTrash().catch((e: unknown) => console.warn('[trips] purge failed', e));
+  }, []);
 
   /** Az út a naplóba, a személyes hőtérképbe (AW20, inkrementálisan) és – ha a megosztás be van kapcsolva – a feltöltési sorba. */
   const finishTrip = useCallback(async (trip: Parameters<typeof saveTrip>[0]) => {

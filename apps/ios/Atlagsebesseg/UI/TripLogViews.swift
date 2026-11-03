@@ -35,7 +35,10 @@ struct TripLogView: View {
     @Bindable var model: AppModel
     /// `-tripPeriod het|honap|osszes` (képernyőkép): a kezdő időszak; alapból ez a hét.
     @State private var period: TripPeriod = UserDefaults.standard.string(forKey: "tripPeriod").flatMap(TripPeriod.init(rawValue:)) ?? .het
-    @State private var confirmAll = false
+    /// `-tripOpen deleteAll` (képernyőkép): a törlés-párbeszéd nyitva.
+    @State private var confirmAll = UserDefaults.standard.string(forKey: "tripOpen") == "deleteAll"
+    @State private var deleteHeat = false
+    @State private var keepTrash = true
     @State private var openTrip: Trip?
 
     var body: some View {
@@ -44,13 +47,8 @@ struct TripLogView: View {
         List {
             SwiftUI.Section {
                 VStack(alignment: .leading, spacing: Tokens.Space.s3) {
-                    Picker(t(.tripsPeriod), selection: $period) {
-                        Text(t(.tripsPeriodWeek)).tag(TripPeriod.het)
-                        Text(t(.tripsPeriodMonth)).tag(TripPeriod.honap)
-                        Text(t(.tripsPeriodAll)).tag(TripPeriod.osszes)
-                    }
-                    .pickerStyle(.segmented)
-                    .labelsHidden()
+                    Segmented(options: [(TripPeriod.het, t(.tripsPeriodWeek)), (.honap, t(.tripsPeriodMonth)), (.osszes, t(.tripsPeriodAll))], selection: $period)
+                        .accessibilityLabel(t(.tripsPeriod))
                     LazyVGrid(columns: [GridItem(.flexible(), alignment: .topLeading), GridItem(.flexible(), alignment: .topLeading)], spacing: Tokens.Space.s3) {
                         stat(t(.tripsStatDistance), distText(totals.distanceM, unit), big: true)
                         stat(t(.tripsStatMoving), tripDurationText(totals.movingS), big: true)
@@ -81,8 +79,32 @@ struct TripLogView: View {
                     }
                 }
                 SwiftUI.Section {
-                    Button(t(.tripsDeleteAll), role: .destructive) { confirmAll = true }
+                    // AOS17: külön kérdés a saját hőtérképről, „30 napig visszaállítható” alapból bepipálva (a webes `delete-all-panel`)
+                    if confirmAll {
+                        VStack(alignment: .leading, spacing: 14) {
+                            Text(t(.tripsDeleteAllConfirm)).font(.inter(17, 580))
+                            CheckRow(label: t(.tripsDeleteAllHeat), isOn: $deleteHeat)
+                            CheckRow(label: t(.tripsDeleteAllKeep), hint: t(keepTrash ? .tripsDeleteAllKeepHint : .tripsDeleteAllFinalHint), isOn: $keepTrash)
+                            HStack(spacing: Tokens.Space.s2) {
+                                Spacer(minLength: 0)
+                                Button(t(.tripsCancel)) { confirmAll = false }
+                                    .buttonStyle(MiniButtonStyle())
+                                Button(t(.tripsDelete)) {
+                                    confirmAll = false
+                                    model.deleteAllTrips(heat: deleteHeat, keep: keepTrash)
+                                }
+                                .buttonStyle(MiniButtonStyle(danger: true))
+                            }
+                        }
+                        .padding(.vertical, Tokens.Space.s1)
+                    } else {
+                        Button(t(.tripsDeleteAll), role: .destructive) {
+                            deleteHeat = false
+                            keepTrash = true
+                            confirmAll = true
+                        }
                         .frame(maxWidth: .infinity)
+                    }
                 }
             }
             SwiftUI.Section {
@@ -93,10 +115,6 @@ struct TripLogView: View {
         .navigationTitle(t(.tripsTitle))
         .navigationBarTitleDisplayMode(.inline)
         .navigationDestination(item: $openTrip) { trip in TripDetailView(model: model, trip: trip) }
-        .confirmationDialog(t(.tripsDeleteAllConfirm), isPresented: $confirmAll, titleVisibility: .visible) {
-            Button(t(.tripsDelete), role: .destructive) { model.deleteAllTrips() }
-            Button(t(.tripsCancel), role: .cancel) {}
-        }
         .onAppear {
             model.reloadTrips()
             // `-tripOpen first` (képernyőkép): rögtön a legújabb út részlete

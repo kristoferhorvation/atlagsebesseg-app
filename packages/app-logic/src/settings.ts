@@ -26,6 +26,8 @@ export interface Settings {
   hoterkep_nezet: HeatView;
   /** AW20: névtelen vezetési adatok megosztása a közösségi hőtérképhez (alapból ki). */
   adatmegosztas: boolean;
+  /** AOS17: az alapból-BE egyszeri migrációja lefutott (a mentéssel együtt tárolódik). */
+  adatmegosztas_v2: boolean;
   /** AW20-javítás: az adatvédelmi zóna sugara (m) mentett helyenként (`home`, `work`, további hely azonosítója); hiányzó = 500 m. Csak helyben. */
   zona_m: Record<string, number>;
 }
@@ -36,7 +38,7 @@ export const MEGSZOLITAS_MAX = 24;
 /** A tárolt / beírt név: szélein vágva, a belső szóközök egyre, legfeljebb `MEGSZOLITAS_MAX` karakter. */
 export const normalizeName = (raw: string): string => [...raw.replace(/\s+/g, ' ').trim()].slice(0, MEGSZOLITAS_MAX).join('').trim();
 
-export const DEFAULT_SETTINGS: Settings = { hatosagi_tures_megjelenitese: false, egyseg: 'kmh', terkep: 'szines', tervezett_meresek: true, hangos_utasitasok: true, megszolitas: '', hoterkep: 'sajat', hoterkep_nezet: 'gyakorisag', adatmegosztas: false, zona_m: {} };
+export const DEFAULT_SETTINGS: Settings = { hatosagi_tures_megjelenitese: false, egyseg: 'kmh', terkep: 'szines', tervezett_meresek: true, hangos_utasitasok: true, megszolitas: '', hoterkep: 'sajat', hoterkep_nezet: 'gyakorisag', adatmegosztas: true, adatmegosztas_v2: true, zona_m: {} };
 export const SETTINGS_KEY = 'settings:v1';
 
 /** Tárolt beállítások beolvasása; ismeretlen / sérült érték helyett az alapértelmezés. */
@@ -54,7 +56,9 @@ export function parseSettings(raw: string | null | undefined): Settings {
       megszolitas: typeof p.megszolitas === 'string' ? normalizeName(p.megszolitas) : DEFAULT_SETTINGS.megszolitas,
       hoterkep: HEAT_MODES.includes(p.hoterkep as HeatMode) ? (p.hoterkep as HeatMode) : DEFAULT_SETTINGS.hoterkep,
       hoterkep_nezet: HEAT_VIEWS.includes(p.hoterkep_nezet as HeatView) ? (p.hoterkep_nezet as HeatView) : DEFAULT_SETTINGS.hoterkep_nezet,
-      adatmegosztas: typeof p.adatmegosztas === 'boolean' ? p.adatmegosztas : DEFAULT_SETTINGS.adatmegosztas,
+      // AOS17: egyszeri migráció – az `adatmegosztas_v2` jelölő nélküli (régi) tárolt érték helyett BE; utána a felhasználó választása marad
+      adatmegosztas: p.adatmegosztas_v2 === true && typeof p.adatmegosztas === 'boolean' ? p.adatmegosztas : DEFAULT_SETTINGS.adatmegosztas,
+      adatmegosztas_v2: true,
       zona_m: parseZoneRadii(p.zona_m),
     };
   } catch {

@@ -13,6 +13,10 @@ import SwiftyH3
 // AW20 (user_version 2): a hőtérkép helyi összesítése és a navigáció tábla-limitje a mintákon (az út színezéséhez):
 //   heat(h3 TEXT PK, count INTEGER, avg_kmh REAL, last_t REAL)             – cellánként egy sor (res 10)
 //   heat_trips(trip_id TEXT PK)                                            – melyik út van már beolvasztva (idempotencia)
+// AOS17 (user_version 3): az „Összes törlése” 30 napig visszaállítható sorai (a minták a helyükön maradnak, a lejáratkor törlődnek):
+//   trash_trips(id TEXT PK, started_at REAL, ended_at REAL, record TEXT, deleted_at REAL)
+//   trash_heat(h3 TEXT PK, count INTEGER, avg_kmh REAL, last_t REAL, deleted_at REAL)
+//   trash_heat_trips(trip_id TEXT PK, deleted_at REAL)
 // Az út törlése a hőtérképből NEM von vissza (az összesítés cellánkénti, nem útonkénti); az „Összes törlése” a hőtérképet is törli.
 
 /// A minta H3-cellája (`TRIP.h3Res` felbontás, a h3-js `latLngToCell` párja); hibánál `nil`.
@@ -61,6 +65,14 @@ final class TripStore {
             CREATE TABLE IF NOT EXISTS heat_trips (trip_id TEXT PRIMARY KEY);
             """)
             exec("PRAGMA user_version = 2")
+        }
+        if version < 3 {
+            exec("""
+            CREATE TABLE IF NOT EXISTS trash_trips (id TEXT PRIMARY KEY, started_at REAL NOT NULL, ended_at REAL NOT NULL, record TEXT NOT NULL, deleted_at REAL NOT NULL);
+            CREATE TABLE IF NOT EXISTS trash_heat (h3 TEXT PRIMARY KEY, count INTEGER NOT NULL, avg_kmh REAL NOT NULL, last_t REAL NOT NULL, deleted_at REAL NOT NULL);
+            CREATE TABLE IF NOT EXISTS trash_heat_trips (trip_id TEXT PRIMARY KEY, deleted_at REAL NOT NULL);
+            """)
+            exec("PRAGMA user_version = 3")
         }
     }
 
@@ -142,9 +154,68 @@ final class TripStore {
     /// Csak a minták (az eldobott, túl rövid út).
     func deleteSamples(_ tripId: String) { run("DELETE FROM samples WHERE trip_id = ?", tripId) }
 
-    func deleteAll() {
-        exec("DELETE FROM samples; DELETE FROM trips; DELETE FROM heat; DELETE FROM heat_trips;")
-        exec("VACUUM")
+    /// AOS17: „Összes törlése”. `heat`: a saját hőtérkép is törlődik (külön kérdés). `keep`: 30 napig visszaállítható (a sorok a kukába
+    /// kerülnek, az eddigi kuka megmarad); különben azonnal és véglegesen – a korábbi kukával együtt.
+    func deleteAll(heat: Bool = true, keep: Bool = false, now: Double = Date().timeIntervalSince1970 * 1000) {
+        let at = String(format: "%.0f", now)
+        exec("BEGIN")
+        if keep {
+            exec("INSERT OR REPLACE INTO trash_trips SELECT id, started_at, ended_at, record, \(at) FROM trips")
+            if heat {
+                exec("""
+                INSERT INTO trash_heat SELECT h3, count, avg_kmh, last_t, \(at) FROM heat WHERE true
+                ON CONFLICT(h3) DO UPDATE SET count = count + excluded.count, avg_kmh = \(Self.mergedAvg("trash_heat")), last_t = max(last_t, excluded.last_t), deleted_at = excluded.deleted_at
+                """)
+                exec("INSERT OR REPLACE INTO trash_heat_trips SELECT trip_id, \(at) FROM heat_trips")
+            }
+        } else {
+            exec("DELETE FROM samples; DELETE FROM trash_trips; DELETE FROM trash_heat; DELETE FROM trash_heat_trips;")
+        }
+        exec("DELETE FROM trips")
+        if heat { exec("DELETE FROM heat; DELETE FROM heat_trips;") }
+        exec("COMMIT")
+        if !keep { exec("VACUUM") }
+    }
+
+    /// Két cella darabszám-súlyozott átlaga egy tized pontossággal (a `mergeHeatCells` párja, SQL-ben).
+    private static func mergedAvg(_ table: String) -> String {
+        "round((\(table).avg_kmh * \(table).count + excluded.avg_kmh * excluded.count) / (\(table).count + excluded.count), 1)"
+    }
+
+    /// A kuka lejárt sorainak törlése (az út mintáival együtt); indításkor és a Beállítások megnyitásakor fut.
+    func purgeTrash(now: Double = Date().timeIntervalSince1970 * 1000) {
+        let limit = String(format: "%.0f", now - TRASH_KEEP_MS)
+        exec("""
+        DELETE FROM samples WHERE trip_id IN (SELECT id FROM trash_trips WHERE deleted_at < \(limit));
+        DELETE FROM trash_trips WHERE deleted_at < \(limit);
+        DELETE FROM trash_heat WHERE deleted_at < \(limit);
+        DELETE FROM trash_heat_trips WHERE deleted_at < \(limit);
+        """)
+    }
+
+    /// Meddig állítható vissza a kuka (ms); üres kukánál `nil` – ilyenkor a Beállítások sora nem látszik.
+    func trashExpiry(now: Double = Date().timeIntervalSince1970 * 1000) -> Double? {
+        guard let db else { return nil }
+        var st: OpaquePointer?
+        sqlite3_prepare_v2(db, "SELECT deleted_at FROM trash_trips UNION ALL SELECT deleted_at FROM trash_heat UNION ALL SELECT deleted_at FROM trash_heat_trips", -1, &st, nil)
+        defer { sqlite3_finalize(st) }
+        var all: [Double] = []
+        while sqlite3_step(st) == SQLITE_ROW { all.append(sqlite3_column_double(st, 0)) }
+        return trashExpiresAt(all, now: now)
+    }
+
+    /// A kuka visszaállítása: az utak vissza, a hőtérkép-cellák a törlés óta keletkezettekkel összevonva, a kuka kiürül.
+    func restoreTrash(now: Double = Date().timeIntervalSince1970 * 1000) {
+        purgeTrash(now: now)
+        exec("BEGIN")
+        exec("INSERT OR REPLACE INTO trips SELECT id, started_at, ended_at, record FROM trash_trips")
+        exec("""
+        INSERT INTO heat SELECT h3, count, avg_kmh, last_t FROM trash_heat WHERE true
+        ON CONFLICT(h3) DO UPDATE SET count = count + excluded.count, avg_kmh = \(Self.mergedAvg("heat")), last_t = max(last_t, excluded.last_t)
+        """)
+        exec("INSERT OR REPLACE INTO heat_trips SELECT trip_id FROM trash_heat_trips")
+        exec("DELETE FROM trash_trips; DELETE FROM trash_heat; DELETE FROM trash_heat_trips;")
+        exec("COMMIT")
     }
 
     /// Egy út mintái (időrendben) – a tesztekhez és a következő kör hőtérképéhez.

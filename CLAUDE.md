@@ -379,7 +379,7 @@ Gyökér: `npm test` és `npm run typecheck` minden csomagra; `npm run test:all`
     (`hoterkep_nezet`) a térképen üveg-szegmens + jelmagyarázat. **Csak az üres nézeten és krúzingban** (nincs navigáció / útvonalválasztó /
     szakasz- vagy kézi mérés). **Zoom:** 12,5 fölött res 10, alatta res 8; ha a látható rész > `maxFeatures` = 4000 pont, res 8; csak a
     látható téglalap (+25%) kerül a rétegre.
-  - **Közösségi (opt-in, alapból KI):** Beállítások › „Névtelen vezetési adatok megosztása” (`adatmegosztas`). Bekapcsolva az út végén
+  - **Közösségi (AOS17-től alapból BE, egyszeri migrációval, lásd lent):** Beállítások › „Névtelen vezetési adatok megosztása” (`adatmegosztas`). Bekapcsolva az út végén
     `uploadRows`: (cella, óra, hét napja) szerint összevont {h3, h3_r8, lat, lon, count, avg_speed, hour, dow} → feltöltési sor (web
     localStorage / iOS UserDefaults `heat:outbox:v1`, ≤ 2000 sor) → `heat_cells`. **Az út első és utolsó 300 m-ének cellái sosem mennek
     fel** (a védett cella MINDEN áthaladása kimarad, `endCells`). Kikapcsoláskor a várakozó sor törlődik; a már beolvasztott régi utak
@@ -419,6 +419,14 @@ Gyökér: `npm test` és `npm run typecheck` minden csomagra; `npm run test:all`
   szakasz-kiemelés csak mérés / közeledés alatt; háromjegyű sebesség egy sorban. **Web:** zónára álláskor kikapcsol a követés (`useFollow.release`), az
   útvonalválasztóban nincs kereső-gomb és köszöntés. **Live Activity:** a lezárt képernyő és a kibontott Island mind az öt állapotban ≤ 160 pt
   (`LiveActivityTests`), Islanden a krúzing-sor a következő szakasz mellett is; `-liveGallery figyel|nav|meres|meresnav|kezi` (mintaadat, csak `-livePreview` mellett).
+- **AOS17 (2026-11-03), dizájn-paritás az első TestFlight-teszt alapján, web + iOS:**
+  - **Jelölőszín (Kristof döntése):** az `accent` `#2EE59D`, csak kapcsoló, jelölőnégyzet, kiválasztott útvonal, fókusz; a kiválasztott szegmens fehér, mint a weben; a kézi mód, a Rendőrség-ikon és a többi korábbi `accent`-hely az új `brand` tokenen (`#7A86FF`) maradt. iOS: `UI/SettingsControls.swift` (`ListCard`, `RowText`, `ToggleRow`, `SwitchStyle`, `Segmented`, `MiniButtonStyle`, `CheckRow`), a Beállítások `Form` helyett ezekből, a webes sorrendben; rendszer-kapcsoló és UIKit-szegmens ott nem kerülhet vissza (AppTests-őr).
+  - **Kezdőképernyő:** `StartView` a webes `.start`; cím `lineLimit(1)` + `minimumScaleFactor`, weben `white-space: nowrap` + mért betűméret (a német cím eddig levágódott). A 3. tipp platformfüggő: `ios.start.tip.background` / `start.tip.foreground`.
+  - **Kamera:** a nem-navigációs követés a webes (`idleFollowZoom`: 17,3 → 15,5, dőlés 60°, a pozíció a webes `setFocusY` szerint); az első fixre ugrik, a kiinduló nézet a webes (46,5 / 12,5, zoom 5,2).
+  - **Megosztás:** `adatmegosztas` alapból BE; egyszeri migráció: az `adatmegosztas_v2` jelölő nélküli tárolt érték BE-re vált, utána a felhasználó választása marad.
+  - **Bejelentés:** A5-ös csempeméret (DESIGN.md), iOS-en `.height` detent a tartalomhoz (9 tétel 76 pt-vel nem fér a szigorú félmagasságba). „Térképhiba” (`szakasz_hiba`) → második választó, `MAP_ERROR_KINDS` / `MapErrorKind`, a sor `reports.subtype`-pal, az első koppintáskori helyről. Migráció: `20261103000000_reports_subtype.sql`, teszt: `reports_subtype_test.sql`.
+  - **Live Activity „figyel”:** térképkép `streets-v12` + `liveMapGrade` (CPU, `LIVE_MAP_PALETTE`), mert a Static Images API a Standardot 400-zal elutasítja (`Unsupported rasterarray tileset`, 2026-11-03-án mérve); a paletta a Színes alapnézet (`dusk`, Kristof döntése) mért színei, a valódi `dawn` világos barackszínű; mind az öt állapotban ez a kép. A rárajzolt vonalak színei önmagukra képződnek. Krúzing: `cruiseFiguresText`, `cruiseDirChangesText`; `-liveGallery figyel`.
+  - **Összes törlése:** `deleteAll(heat:keep:)`; `keep`: a sorok a kukába (web: `trashTrips`, `trashHeat`, `trashHeatTrips`, IndexedDB v3; iOS: `trash_*`, `user_version` 3), a minták a helyükön, 30 nap után törlődnek (`purgeTrash` indításkor és a Beállítások megnyitásakor); pipa nélkül azonnal, a korábbi kukával együtt. Visszaállítás: Beállítások › „Törölt adatok visszaállítása”, a cellák a törlés óta keletkezettekkel összevonva (`mergeHeatCells`). iOS-képhez: `-tripOpen deleteAll`.
 - **Paritási tartozás (AW12 + AW13 → iOS) lezárva az AOS12-ben (2026-10-29):** a `NavigationTests.swift` újra a
   `navigation.test.ts` teljes párja (86 = 86 `it`, azonos névvel), a webes `navSim.test.ts` 6 esete a `SimTests.swift`-ben.
   A közös Budapest→Győr fixtúra **AOS13-ban teljesen újra felvéve** méteres hangegységgel (`voice_units=metric`, mindkét
@@ -451,6 +459,14 @@ Gyökér: `npm test` és `npm run typecheck` minden csomagra; `npm run test:all`
 - **A web a referencia:** minden webes funkció iOS-re is megy ugyanabban vagy a következő AOS-körben, kivéve a platformspecifikusat
   (CarPlay, Live Activity, böngésző-engedély és hasonló). Paritás-hiány = **tartozás**: a CLAUDE.md-ben jelöljük, és a
   zárójelentésben felsoroljuk, amíg nem zárul.
+
+## Jóváhagyott UI (Kristof, 2026-11-03)
+- Minden felhasználónak látszó szöveg, ikon-/csempe-/betűméret és elrendezés, amit egy kör záró jelentésében elfogadtak, **befagyasztott**.
+  Csak kifejezett utasításra változtatható.
+- Ha egy változás miatt egy szöveg mégis pontatlanná válik: a legkisebb szükséges módosítás, és a záró jelentésben külön **„Megváltozott UI”**
+  blokk: régi → új, indokkal.
+- Paritás-körben az iOS igazodik a webhez, a webhez nem nyúl, csak kifejezett hibánál.
+- **Kör közben nem állunk meg kérdezni (Kristof, 2026-11-03):** döntünk, és a záró jelentés „Megváltozott UI” blokkjában utólag tájékoztatunk. Kérdés csak visszafordíthatatlan dolognál (adat törlése, élő tábla átnevezése).
 
 ## Kör-rendszer
 - Kör-számozás (2026-10-29-től): **AW<n>** = web, **AOS<n>** = iOS; a sorszám az eddigi A1–A10-et folytatja

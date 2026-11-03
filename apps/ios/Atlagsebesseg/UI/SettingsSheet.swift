@@ -2,8 +2,8 @@ import AVFoundation
 import AtlagsebessegCore
 import SwiftUI
 
-/// Beállítások: kijelző (tűrés, egység, térkép, nyelv), jelzések (kamera, tervezett mérés, mód), mentett helyek (Haza,
-/// Munka, továbbiak – AW12), állapot, fejlesztés (szimulátor), attribúció. AW15: a mentett hely keresője a lap fölött
+/// Beállítások, a webes lap 1:1 (AOS17: kártyás csoportok, a `SettingsControls` elemei): kijelző (mint a weben), jelzések (csak iOS),
+/// napló, mentett helyek (Haza, Munka, továbbiak – AW12), állapot, fejlesztés (szimulátor), attribúció. AW15: a mentett hely keresője a lap fölött
 /// nyílik, választás után a lap ugyanott, nyitva marad.
 struct SettingsSheet: View {
     @Bindable var model: AppModel
@@ -16,171 +16,46 @@ struct SettingsSheet: View {
     var body: some View {
         NavigationStack {
             ScrollViewReader { scroll in
-                Form {
-                    SwiftUI.Section(t(.settingsGroupDisplay)) {
-                        Toggle(t(.settingsTolerance), isOn: $model.settings.hatosagiTuresMegjelenitese)
-                        Text(t(.settingsToleranceHint, ["percent": String(Int(ToleranceRule.default.percent)), "min": String(Int(ToleranceRule.default.minKmh))]))
-                            .font(.footnote)
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 0) {
+                        head
+                        GroupLabel(text: t(.settingsGroupDisplay))
+                        displayCard
+                        GroupLabel(text: t(.iosSettingsGroupAlerts))
+                        alertsCard
+                        tripsCard.padding(.top, 18).id(Self.tripsAnchor)
+                        GroupLabel(text: t(.settingsGroupPlaces))
+                        placesCard
+                        GroupLabel(text: t(.settingsGroupStatus))
+                        statusCard
+                        GroupLabel(text: t(.settingsGroupDev))
+                        devCard
+                        Text(t(.settingsAttribution))
+                            .font(.inter(Tokens.Typography.caption.size, 500))
                             .foregroundStyle(Tokens.Colors.textMuted)
-                        Picker(t(.settingsUnit), selection: $model.settings.egyseg) {
-                            Text(unitLabel(.kmh)).tag(SpeedUnit.kmh)
-                            Text(unitLabel(.mph)).tag(SpeedUnit.mph)
-                        }
-                        .pickerStyle(.segmented)
-                        Toggle(t(.settingsPlanned), isOn: $model.settings.tervezettMeresek)
-                        Text(t(.settingsPlannedHint)).font(.footnote).foregroundStyle(Tokens.Colors.textMuted)
-                        VStack(alignment: .leading, spacing: Tokens.Space.s2) {
-                            Text(t(.settingsMap))
-                            Picker(t(.settingsMap), selection: $model.settings.terkep) {
-                                Text(t(.settingsLookLight)).tag(MapLook.vilagos)
-                                Text(t(.settingsLookColor)).tag(MapLook.szines)
-                                Text(t(.settingsLookMuted)).tag(MapLook.visszafogott)
-                            }
-                            .pickerStyle(.segmented)
-                            .labelsHidden()
-                        }
-                        // AW20: hőtérkép (ki / saját / közösségi) és a névtelen adatmegosztás (alapból KI)
-                        VStack(alignment: .leading, spacing: Tokens.Space.s2) {
-                            Text(t(.settingsHeat))
-                            Picker(t(.settingsHeat), selection: $model.settings.hoterkep) {
-                                Text(t(.settingsHeatOff)).tag(HeatMode.ki)
-                                Text(t(.settingsHeatOwn)).tag(HeatMode.sajat)
-                                Text(t(.settingsHeatCommunity)).tag(HeatMode.kozossegi)
-                            }
-                            .pickerStyle(.segmented)
-                            .labelsHidden()
-                        }
-                        .id(Self.heatAnchor)
-                        Text(t(.settingsHeatHint)).font(.footnote).foregroundStyle(Tokens.Colors.textMuted)
-                        Toggle(t(.settingsShare), isOn: $model.settings.adatmegosztas)
-                        Text(t(.settingsShareHint)).font(.footnote).foregroundStyle(Tokens.Colors.textMuted)
-                        Button { heatDetailsOpen = true } label: {
-                            HStack {
-                                Text(t(.settingsShareDetails)).foregroundStyle(Tokens.Colors.text)
-                                Spacer(minLength: Tokens.Space.s2)
-                                Image(systemName: "chevron.right").font(.footnote.weight(.semibold)).foregroundStyle(Tokens.Colors.textFaint)
-                            }
-                            .contentShape(Rectangle())
-                        }
+                            .padding(EdgeInsets(top: 12, leading: 6, bottom: 2, trailing: 6))
+                            .fixedSize(horizontal: false, vertical: true)
                     }
-                    // AW15: zászló + a saját nyelvén írt név, ábécérendben; az „Automatikus” legfelül – beágyazott lista, egy koppintás
-                    SwiftUI.Section {
-                        // AW16: egy sor („Nyelv · 🇭🇺 Magyar”), koppintásra nyíló választó
-                        Menu {
-                            Picker(t(.settingsLanguage), selection: language) {
-                                Text("\(t(.settingsLanguageAuto)) (\(L10n.systemLang.nativeName))").tag(Lang?.none)
-                                ForEach(languageMenu(), id: \.lang) { item in
-                                    Text(item.label).tag(Optional(item.lang))
-                                }
-                            }
-                        } label: {
-                            HStack {
-                                Text("\(t(.settingsLanguage)) · \(languageSummary)")
-                                    .foregroundStyle(Tokens.Colors.text)
-                                Spacer(minLength: Tokens.Space.s2)
-                                Image(systemName: "chevron.up.chevron.down").font(.footnote).foregroundStyle(Tokens.Colors.textMuted)
-                            }
-                            .contentShape(Rectangle())
-                        }
-                        .accessibilityLabel(t(.settingsLanguage))
-                    }
-                    .id(Self.languageAnchor)
-                    // AOS14: megszólítás – a köszöntő felirat és a navigáció-indító köszönés neve (üresen név nélkül)
-                    SwiftUI.Section {
-                        LabeledContent(t(.settingsName)) {
-                            TextField(t(.settingsNamePlaceholder), text: name)
-                                .multilineTextAlignment(.trailing)
-                                .textContentType(.givenName)
-                                .autocorrectionDisabled()
-                                .submitLabel(.done)
-                                .onSubmit { model.settings.megszolitas = normalizeName(model.settings.megszolitas) }
-                        }
-                        Text(t(.settingsNameHint)).font(.footnote).foregroundStyle(Tokens.Colors.textMuted)
-                    }
-                    SwiftUI.Section(t(.iosSettingsGroupAlerts)) {
-                        Toggle(t(.iosSettingsCameraAlert), isOn: $model.settings.kameraJelzes)
-                        Text(t(.iosSettingsCameraAlertHint)).font(.footnote).foregroundStyle(Tokens.Colors.textMuted)
-                        Toggle(t(.iosSettingsPlannedAlert), isOn: $model.settings.tervezettJelzes)
-                            .disabled(!model.settings.tervezettMeresek)
-                        Text(t(.iosSettingsPlannedAlertHint)).font(.footnote).foregroundStyle(Tokens.Colors.textMuted)
-                        Picker(t(.iosSettingsAlertMode), selection: $model.settings.jelzesMod) {
-                            Text(t(.iosSettingsAlertModeSound)).tag(AlertMode.hang)
-                            Text(t(.iosSettingsAlertModeVibrate)).tag(AlertMode.rezges)
-                            Text(t(.iosSettingsAlertModeOff)).tag(AlertMode.ki)
-                        }
-                        .pickerStyle(.segmented)
-                        Text(t(.iosSettingsAlertModeHint)).font(.footnote).foregroundStyle(Tokens.Colors.textMuted)
-                        // A11: a navigáció bemondásai (fordulók, szakaszellenőrzés, „túl gyors”, gyorsabb út)
-                        Toggle(t(.settingsVoiceInstructions), isOn: $model.settings.hangosUtasitasok)
-                        // AW17: a hang elérhetősége zárójelben a leírás végén (mint a weben; külön „Hang” sor nincs)
-                        Text(voiceInstructionsHint(voiceAvailability)).font(.footnote).foregroundStyle(Tokens.Colors.textMuted)
-                    }
-                    .id(Self.voiceAnchor)
-                    // AW19: az utak naplója – egy sor a Mentett helyek fölött
-                    SwiftUI.Section {
-                        Button { tripsOpen = true } label: {
-                            HStack {
-                                Text(t(.tripsTitle)).foregroundStyle(Tokens.Colors.text)
-                                Spacer(minLength: Tokens.Space.s2)
-                                Image(systemName: "chevron.right").font(.footnote.weight(.semibold)).foregroundStyle(Tokens.Colors.textFaint)
-                            }
-                            .contentShape(Rectangle())
-                        }
-                    }
-                    SwiftUI.Section(t(.settingsGroupPlaces)) {
-                        slotRow(t(.navPlaceHome), model.saved.home, .home)
-                        slotRow(t(.navPlaceWork), model.saved.work, .work)
-                        ForEach(model.saved.others) { p in
-                            VStack(alignment: .leading, spacing: Tokens.Space.s2) {
-                                HStack {
-                                    placeText(p.name, p.address)
-                                    Spacer(minLength: Tokens.Space.s2)
-                                    Button(t(.navPlaceRemove), role: .destructive) { model.removeSavedOther(p.id) }
-                                        .buttonStyle(.borderless)
-                                }
-                                ZoneRadiusRow(model: model, id: p.id)
-                            }
-                        }
-                        // „Új hely mentése”: a kereső kiválasztó módban nyílik, a választott hely a listába kerül
-                        Button(t(.navPlaceAdd)) { pick(.other) }
-                    }
-                    SwiftUI.Section(t(.settingsGroupStatus)) {
-                        LabeledContent(t(.settingsGps), value: model.geo.label)
-                        LabeledContent(t(.settingsWake), value: model.started ? t(.geoActive) : t(.geoOff))
-                        LabeledContent(t(.settingsSections), value: String(model.sections.count))
-                        LabeledContent(t(.settingsServer), value: model.serverStatus)
-                        LabeledContent(t(.settingsRequests), value: String(model.requestsToday))
-                    }
-                    SwiftUI.Section(t(.settingsGroupDev)) {
-                        if model.sim == nil {
-                            Button(t(.settingsSimEnter)) {
-                                model.startSim(.lassit)
-                                dismiss()
-                            }
-                        } else {
-                            Button(t(.settingsSimExit), role: .destructive) {
-                                model.exitSim()
-                                dismiss()
-                            }
-                        }
-                        Text(t(.settingsSimHint)).font(.footnote).foregroundStyle(Tokens.Colors.textMuted)
-                    }
-                    SwiftUI.Section {
-                        Text(t(.settingsAttribution)).font(.footnote).foregroundStyle(Tokens.Colors.textMuted)
-                    }
+                    .padding(EdgeInsets(top: 20, leading: 16, bottom: 16, trailing: 16))
                 }
-                .scrollContentBackground(.hidden)
+                .toolbar(.hidden, for: .navigationBar)
                 .navigationDestination(isPresented: $tripsOpen) { TripLogView(model: model) }
                 // AOS16: az Utak naplója alatt a zóna-körök nem látszanak (mint a weben)
-                .onChange(of: tripsOpen) { _, open in model.zonesVisible = !open }
+                .onChange(of: tripsOpen) { _, open in
+                    model.zonesVisible = !open
+                    if !open { model.refreshTrash() }
+                }
                 .onAppear { if tripsOpen { model.zonesVisible = false } }
                 .navigationDestination(isPresented: $heatDetailsOpen) { HeatDetailsView(model: model) }
                 .onAppear {
+                    model.refreshTrash()
                     // `-settingsOpen language|voice`: a nyelvválasztóhoz / a hangos utasításokhoz görget (a képernyőképhez)
                     switch UserDefaults.standard.string(forKey: "settingsOpen") {
                     case "language": scroll.scrollTo(Self.languageAnchor, anchor: .top)
                     case "voice": scroll.scrollTo(Self.voiceAnchor, anchor: .top)
                     case "heat": scroll.scrollTo(Self.heatAnchor, anchor: .top)
+                    case "places": scroll.scrollTo(Self.placesAnchor, anchor: .top)
+                    case "restore": scroll.scrollTo(Self.tripsAnchor, anchor: .center)
                     default: break
                     }
                 }
@@ -196,39 +71,237 @@ struct SettingsSheet: View {
                     .background(Tokens.Colors.bg.ignoresSafeArea())
                 }
             }
-            .navigationTitle(t(.settingsTitle))
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .confirmationAction) {
-                    Button(t(.commonClose)) { dismiss() }
+        }
+    }
+
+    /// A lap feje (`.sheet-head`): cím balra, kerek bezáró gomb jobbra.
+    private var head: some View {
+        HStack {
+            Text(t(.settingsTitle)).typeStyle(Tokens.Typography.title).foregroundStyle(Tokens.Colors.text)
+            Spacer()
+            Button { dismiss() } label: {
+                Icon(name: .close, size: 22)
+                    .foregroundStyle(Tokens.Colors.textMuted)
+                    .frame(width: 48, height: 48)
+                    .background(Color.white.opacity(0.08), in: Circle())
+                    .frame(width: Tokens.Size.touch, height: Tokens.Size.touch)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(t(.commonClose))
+        }
+        .padding(EdgeInsets(top: 0, leading: 6, bottom: 0, trailing: 2))
+    }
+
+    /// A webes „Kijelző” lista, azonos sorrendben.
+    private var displayCard: some View {
+        ListCard {
+            ToggleRow(label: t(.settingsTolerance), hint: t(.settingsToleranceHint, ["percent": String(Int(ToleranceRule.default.percent)), "min": String(Int(ToleranceRule.default.minKmh))]), isOn: $model.settings.hatosagiTuresMegjelenitese)
+            RowDivider()
+            HStack(spacing: 14) {
+                RowText(label: t(.settingsUnit))
+                Segmented(options: [(SpeedUnit.kmh, unitLabel(.kmh)), (.mph, unitLabel(.mph))], selection: $model.settings.egyseg, stretch: false)
+                    .accessibilityLabel(t(.settingsUnit))
+            }
+            .listRow()
+            RowDivider()
+            ToggleRow(label: t(.settingsPlanned), hint: t(.settingsPlannedHint), isOn: $model.settings.tervezettMeresek)
+            RowDivider()
+            VStack(alignment: .leading, spacing: 10) {
+                RowText(label: t(.settingsMap))
+                Segmented(options: [(MapLook.vilagos, t(.settingsLookLight)), (.szines, t(.settingsLookColor)), (.visszafogott, t(.settingsLookMuted))], selection: $model.settings.terkep)
+                    .accessibilityLabel(t(.settingsMap))
+            }
+            .listRow()
+            RowDivider()
+            // AW20: hőtérkép (ki / saját / közösségi) és a névtelen adatmegosztás
+            VStack(alignment: .leading, spacing: 10) {
+                RowText(label: t(.settingsHeat), hint: t(.settingsHeatHint))
+                Segmented(options: [(HeatMode.ki, t(.settingsHeatOff)), (.sajat, t(.settingsHeatOwn)), (.kozossegi, t(.settingsHeatCommunity))], selection: $model.settings.hoterkep)
+                    .accessibilityLabel(t(.settingsHeat))
+            }
+            .listRow()
+            .id(Self.heatAnchor)
+            RowDivider()
+            ToggleRow(label: t(.settingsShare), hint: t(.settingsShareHint), isOn: $model.settings.adatmegosztas)
+            // AOS17: a Részletek a megosztás sorához tartozik – köztük nincs vonal
+            chevronRow(t(.settingsShareDetails)) { heatDetailsOpen = true }
+            RowDivider()
+            // AW16: egy sor („Nyelv”), koppintásra nyíló választó; zászló + a saját nyelvén írt név, az „Automatikus” legfelül
+            HStack(spacing: 14) {
+                RowText(label: t(.settingsLanguage))
+                Menu {
+                    Picker(t(.settingsLanguage), selection: language) {
+                        Text("\(t(.settingsLanguageAuto)) (\(L10n.systemLang.nativeName))").tag(Lang?.none)
+                        ForEach(languageMenu(), id: \.lang) { item in
+                            Text(item.label).tag(Optional(item.lang))
+                        }
+                    }
+                } label: {
+                    Text(languageSummary)
+                        .font(.inter(15, 620))
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.8)
+                        .foregroundStyle(Tokens.Colors.text)
+                        .padding(.horizontal, 12)
+                        .frame(minHeight: 40)
+                        .background(Color.white.opacity(0.08), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
                 }
+                .accessibilityLabel(t(.settingsLanguage))
+            }
+            .listRow()
+            .id(Self.languageAnchor)
+            RowDivider()
+            // AOS14: megszólítás – a köszöntő felirat és a navigáció-indító köszönés neve (üresen név nélkül)
+            VStack(alignment: .leading, spacing: 10) {
+                RowText(label: t(.settingsName), hint: t(.settingsNameHint))
+                TextField(t(.settingsNamePlaceholder), text: name)
+                    .font(.inter(17, 620))
+                    .textContentType(.givenName)
+                    .autocorrectionDisabled()
+                    .submitLabel(.done)
+                    .onSubmit { model.settings.megszolitas = normalizeName(model.settings.megszolitas) }
+                    .padding(.horizontal, 12)
+                    .frame(minHeight: 48)
+                    .background(Color.white.opacity(0.08), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+            }
+            .listRow()
+            RowDivider()
+            // AW17: a hang elérhetősége zárójelben a leírás végén (mint a weben; külön „Hang” sor nincs)
+            ToggleRow(label: t(.settingsVoiceInstructions), hint: voiceInstructionsHint(voiceAvailability), isOn: $model.settings.hangosUtasitasok)
+                .id(Self.voiceAnchor)
+        }
+    }
+
+    /// Csak iOS: a jelzések (A10).
+    private var alertsCard: some View {
+        ListCard {
+            ToggleRow(label: t(.iosSettingsCameraAlert), hint: t(.iosSettingsCameraAlertHint), isOn: $model.settings.kameraJelzes)
+            RowDivider()
+            ToggleRow(label: t(.iosSettingsPlannedAlert), hint: t(.iosSettingsPlannedAlertHint), isOn: $model.settings.tervezettJelzes)
+                .disabled(!model.settings.tervezettMeresek)
+                .opacity(model.settings.tervezettMeresek ? 1 : 0.5)
+            RowDivider()
+            VStack(alignment: .leading, spacing: 10) {
+                RowText(label: t(.iosSettingsAlertMode), hint: t(.iosSettingsAlertModeHint))
+                Segmented(options: [(AlertMode.hang, t(.iosSettingsAlertModeSound)), (.rezges, t(.iosSettingsAlertModeVibrate)), (.ki, t(.iosSettingsAlertModeOff))], selection: $model.settings.jelzesMod)
+                    .accessibilityLabel(t(.iosSettingsAlertMode))
+            }
+            .listRow()
+        }
+    }
+
+    /// AW19: az utak naplója; AOS17: alatta a „Törölt adatok visszaállítása” a lejáratig.
+    private var tripsCard: some View {
+        ListCard {
+            chevronRow(t(.tripsTitle)) { tripsOpen = true }
+            if let until = model.trashUntil {
+                RowDivider()
+                chevronRow(t(.settingsRestore), hint: t(.settingsRestoreHint, ["date": Self.expiryText(until)])) { model.restoreTrash() }
             }
         }
+    }
+
+    private static func expiryText(_ ms: Double) -> String {
+        let f = DateFormatter()
+        f.locale = L10n.lang.locale
+        f.setLocalizedDateFormatFromTemplate("yMMMMd")
+        return f.string(from: Date(timeIntervalSince1970: ms / 1000))
+    }
+
+    private var placesCard: some View {
+        ListCard {
+            slotRow(t(.navPlaceHome), model.saved.home, .home)
+            RowDivider()
+            slotRow(t(.navPlaceWork), model.saved.work, .work)
+            RowDivider()
+            ForEach(model.saved.others) { p in
+                VStack(alignment: .leading, spacing: Tokens.Space.s2) {
+                    HStack(spacing: 14) {
+                        placeText(p.name, p.address)
+                        Button(t(.navPlaceRemove)) { model.removeSavedOther(p.id) }.buttonStyle(MiniButtonStyle())
+                    }
+                    ZoneRadiusRow(model: model, id: p.id)
+                }
+                .listRow()
+                RowDivider()
+            }
+            // „Új hely mentése”: a kereső kiválasztó módban nyílik, a választott hely a listába kerül
+            Button(t(.navPlaceAdd)) { pick(.other) }
+                .buttonStyle(MiniButtonStyle())
+                .listRow()
+        }
+        .id(Self.placesAnchor)
+    }
+
+    private var statusCard: some View {
+        ListCard {
+            statusRow(t(.settingsGps), model.geo.label)
+            RowDivider()
+            statusRow(t(.settingsWake), model.started ? t(.geoActive) : t(.geoOff))
+            RowDivider()
+            statusRow(t(.settingsSections), String(model.sections.count))
+            RowDivider()
+            statusRow(t(.settingsServer), model.serverStatus)
+            RowDivider()
+            statusRow(t(.settingsRequests), String(model.requestsToday))
+        }
+    }
+
+    private func statusRow(_ label: String, _ value: String) -> some View {
+        HStack(spacing: 14) {
+            Text(label).font(.inter(17, 580)).foregroundStyle(Tokens.Colors.text)
+            Spacer(minLength: 0)
+            Text(value).font(.inter(15, 400)).foregroundStyle(Tokens.Colors.textMuted).multilineTextAlignment(.trailing)
+        }
+        .listRow()
+    }
+
+    private var devCard: some View {
+        ListCard {
+            Button {
+                if model.sim == nil { model.startSim(.lassit) } else { model.exitSim() }
+                dismiss()
+            } label: {
+                RowText(label: model.sim == nil ? t(.settingsSimEnter) : t(.settingsSimExit), hint: t(.settingsSimHint))
+                    .listRow()
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+        }
+    }
+
+    /// Koppintható sor nyíllal (`.list-row.nav-row`).
+    private func chevronRow(_ label: String, hint: String? = nil, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            HStack(spacing: 14) {
+                RowText(label: label, hint: hint)
+                Icon(name: .chevronRight, size: 20).foregroundStyle(Tokens.Colors.textFaint)
+            }
+            .listRow()
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
     }
 
     /// Haza / Munka: a mentett hely neve (vagy „nincs beállítva”), Beállítás és Törlés.
     private func slotRow(_ label: String, _ place: Place?, _ slot: PlaceSlot) -> some View {
         VStack(alignment: .leading, spacing: Tokens.Space.s2) {
-            HStack {
+            HStack(spacing: 14) {
                 placeText(label, place?.name ?? t(.navPlaceUnset))
-                Spacer(minLength: Tokens.Space.s2)
-                Button(t(.navPlaceSet)) { pick(slot) }
-                    .buttonStyle(.borderless)
+                Button(t(.navPlaceSet)) { pick(slot) }.buttonStyle(MiniButtonStyle())
                 if place != nil {
-                    Button(t(.navPlaceRemove), role: .destructive) { model.clearSaved(slot) }
-                        .buttonStyle(.borderless)
+                    Button(t(.navPlaceRemove)) { model.clearSaved(slot) }.buttonStyle(MiniButtonStyle())
                 }
             }
             // AW20-javítás: a beállított helyhez adatvédelmi zóna (alapból 500 m); a beállítatlan sor nem kap szegmenst
             if place != nil { ZoneRadiusRow(model: model, id: slot == .home ? "home" : "work") }
         }
+        .listRow()
     }
 
     private func placeText(_ title: String, _ hint: String) -> some View {
-        VStack(alignment: .leading, spacing: 2) {
-            Text(title).lineLimit(1)
-            if !hint.isEmpty { Text(hint).font(.footnote).foregroundStyle(Tokens.Colors.textMuted).lineLimit(1) }
-        }
+        RowText(label: title, hint: hint, hintLines: 1)
     }
 
     /// A kereső kiválasztó módban nyílik, a lap fölött (AW15: a lap nem zárul be).
@@ -239,6 +312,8 @@ struct SettingsSheet: View {
     private static let heatAnchor = "heat"
     private static let languageAnchor = "language"
     private static let voiceAnchor = "voice"
+    private static let placesAnchor = "places"
+    private static let tripsAnchor = "trips"
 
     /// A választott nyelv (`nil`: automatikus); azonnal érvényes, a feliratok újrarajzolódnak.
     /// A sor értéke: a választott nyelv zászlóval és saját nevével, vagy „Automatikus (készülék nyelve)”.

@@ -33,7 +33,8 @@ import { Sheet } from './Sheet';
  * AW19: az utak naplója (Beállítások › „Utak naplója”): felül az összesítő kártya időszakváltóval (ez a hét / hónap /
  * összes), alatta az utak dátum szerint csökkenő sorrendben; koppintásra a részlet (kis térkép a Visszafogott stílusban, a
  * számok, a szakaszmérések). Törlés: hosszú nyomásra vagy balra húzásra a sor „Törlés” gombja; alul „Összes törlése”
- * megerősítéssel. Minden adat csak ezen a készüléken (IndexedDB).
+ * megerősítéssel (AOS17: külön kérdés a saját hőtérképről, „30 napig visszaállítható” alapból bepipálva). Minden adat csak ezen a
+ * készüléken (IndexedDB).
  */
 export function TripLogSheet({
   unit,
@@ -59,6 +60,13 @@ export function TripLogSheet({
   const [openId, setOpenId] = useState<string | null>(null);
   const [armed, setArmed] = useState<string | null>(null);
   const [confirmAll, setConfirmAll] = useState(false);
+  const [deleteHeat, setDeleteHeat] = useState(false);
+  const [keepTrash, setKeepTrash] = useState(true);
+  const askAll = () => {
+    setDeleteHeat(false);
+    setKeepTrash(true);
+    setConfirmAll(true);
+  };
   const reload = () =>
     void listTrips()
       .then((x) => setTrips(sortTrips(x)))
@@ -123,8 +131,10 @@ export function TripLogSheet({
       {trips !== null && trips.length > 0 && (
         <div className="trip-delete-all">
           {confirmAll ? (
-            <div className="list-row">
+            <div className="delete-all-panel" role="dialog" aria-label={t('trips.deleteAllConfirm')}>
               <div className="label">{t('trips.deleteAllConfirm')}</div>
+              <CheckRow label={t('trips.deleteAll.heat')} checked={deleteHeat} onChange={setDeleteHeat} />
+              <CheckRow label={t('trips.deleteAll.keep')} hint={t(keepTrash ? 'trips.deleteAll.keepHint' : 'trips.deleteAll.finalHint')} checked={keepTrash} onChange={setKeepTrash} />
               <div className="mini-btns">
                 <button className="mini-btn" onClick={() => setConfirmAll(false)}>
                   {t('trips.cancel')}
@@ -133,7 +143,7 @@ export function TripLogSheet({
                   className="mini-btn danger"
                   onClick={() => {
                     setConfirmAll(false);
-                    void deleteAllTrips().then(() => {
+                    void deleteAllTrips({ heat: deleteHeat, keep: keepTrash }).then(() => {
                       reload();
                       onDeletedAll();
                     });
@@ -144,7 +154,7 @@ export function TripLogSheet({
               </div>
             </div>
           ) : (
-            <button className="mini-btn danger wide" onClick={() => setConfirmAll(true)}>
+            <button className="mini-btn danger wide" onClick={askAll}>
               {t('trips.deleteAll')}
             </button>
           )}
@@ -152,6 +162,19 @@ export function TripLogSheet({
       )}
       <div className="sheet-note">{t('trips.local')}</div>
     </Sheet>
+  );
+}
+
+/** AOS17: jelölőnégyzet-sor a törlés-párbeszédben. */
+function CheckRow({ label, hint, checked, onChange }: { label: string; hint?: string; checked: boolean; onChange: (v: boolean) => void }) {
+  return (
+    <button className="check-row" role="checkbox" aria-checked={checked} onClick={() => onChange(!checked)}>
+      <span className="check-box">{checked && <Icon name="check" size={18} />}</span>
+      <span>
+        <span className="label">{label}</span>
+        {hint && <span className="hint">{hint}</span>}
+      </span>
+    </button>
   );
 }
 

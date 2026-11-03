@@ -116,6 +116,9 @@ nonisolated struct CruiseView: Equatable, Sendable {
     var startedAt: Double
     var distanceM: Double
     var elapsedS: Double
+    /// AOS17: a Live Activity krúzing-adataihoz: mozgásban töltött idő és a GPS-irányváltások száma.
+    var movingS: Double = 0
+    var dirChanges: Int = 0
 }
 
 nonisolated enum TripEnd: Equatable, Sendable {
@@ -364,7 +367,7 @@ nonisolated final class TripRecorder {
     /// A futó út (az állapotsorhoz); `nil`, ha nincs.
     func view(_ now: Double) -> CruiseView? {
         guard let r = run else { return nil }
-        return CruiseView(tripId: r.id, startedAt: r.startedAt, distanceM: r.distanceM, elapsedS: max(0, now - r.startedAt) / 1000)
+        return CruiseView(tripId: r.id, startedAt: r.startedAt, distanceM: r.distanceM, elapsedS: max(0, now - r.startedAt) / 1000, movingS: r.movingS, dirChanges: turnsTotal(r.turns.turns))
     }
 
     /// Az új minták (a tárolónak).
@@ -550,6 +553,38 @@ private nonisolated func distText(_ m: Double, _ unit: SpeedUnit, lang: Lang?) -
 /// Az üres nézet állapotsora: „Krúzing · 12,4 km · 23 perc”.
 nonisolated func cruiseStatusText(distanceM: Double, elapsedS: Double, unit: SpeedUnit, lang: Lang? = nil) -> String {
     t(.tripsCruiseStatus, ["dist": distText(distanceM, unit, lang: lang), "time": formatTripDuration(elapsedS, lang: lang)], lang: lang)
+}
+
+/// AOS17: a Live Activity „figyel” krúzing-sora: „12,4 km · 23 perc · 32 km/h” (a futó út km · idő · átlag).
+nonisolated func cruiseFiguresText(_ v: CruiseView, unit: SpeedUnit, lang: Lang? = nil) -> String {
+    let avg = speedIn(tripAvgKmh(distanceM: v.distanceM, movingS: v.movingS), unit).map { "\($0) \(unitLabel(unit))" } ?? "–"
+    return "\(distText(v.distanceM, unit, lang: lang)) · \(formatTripDuration(v.elapsedS, lang: lang)) · \(avg)"
+}
+
+/// AOS17: „Irányváltások: 7” – a futó út irányváltásainak száma.
+nonisolated func cruiseDirChangesText(_ v: CruiseView, lang: Lang? = nil) -> String {
+    "\(t(.tripsStatDirChanges, lang: lang)): \(v.dirChanges)"
+}
+
+// AOS17: „Összes törlése” 30 napos visszaállítással (a webes trips.ts párja, azonos nevű tesztek).
+
+/// Ennyi ideig állítható vissza a törölt adat (ms).
+nonisolated let TRASH_KEEP_MS = 30.0 * 24 * 3600 * 1000
+
+/// Lejárt-e egy törölt sor (a határon még visszaállítható).
+nonisolated func trashExpired(_ deletedAt: Double, now: Double) -> Bool { now - deletedAt > TRASH_KEEP_MS }
+
+/// A „Törölt adatok visszaállítása” sor lejárata: a legutóbb törölt sor szerint; üres / minden lejárt: `nil`.
+nonisolated func trashExpiresAt(_ deletedAts: [Double], now: Double) -> Double? {
+    deletedAts.filter { !trashExpired($0, now: now) }.max().map { $0 + TRASH_KEEP_MS }
+}
+
+/// Egy visszaállított hőtérkép-cella és a törlés óta keletkezett (ha van): darabszám-súlyozott átlag, a későbbi időpont.
+nonisolated func mergeHeatCells(_ a: HeatCell, _ b: HeatCell?) -> HeatCell {
+    guard let b else { return a }
+    let count = a.count + b.count
+    let avg = (a.avgKmh * Double(a.count) + b.avgKmh * Double(b.count)) / Double(count)
+    return HeatCell(h3: a.h3, count: count, avgKmh: jsRound(avg * 10) / 10, lastT: max(a.lastT, b.lastT))
 }
 
 /// Az út címe: a cél neve, vagy „Krúzing”.

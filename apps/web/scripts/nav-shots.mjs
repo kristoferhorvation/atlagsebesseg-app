@@ -29,6 +29,7 @@
 //   npm run dev -w @atlagsebesseg/web            # másik terminálban (a Mapbox-token az apps/web/.env-ben)
 //   npm run nav-shots -w @atlagsebesseg/web
 //   npm run nav-shots -w @atlagsebesseg/web -- --check-only
+import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { closeChrome, launchChrome, openPage, sleep } from './cdp.mjs';
@@ -838,17 +839,6 @@ try {
   check('AW18: koppintásra azonnal újrapróbál (új próba a naplóban, a következő várakozás 20 s)', rf3.n === before + 1 && /attempt 3, retry in 20 s/.test(rf3.last), JSON.stringify({ before, rf3 }));
   await rf.close();
 
-  // Bejelentés menü: Dugó / Beállt a kapu-tétel sorában, a menü nem lesz magasabb (4 sor)
-  const mn = await mk(SHOT);
-  await mn.goto('/?navsim&panel=0');
-  await mn.waitFor(MAP_READY, 60_000, 'térkép');
-  await click(mn, 'button[aria-label="Bejelentés"]');
-  await mn.waitFor(q('.sheet .tile.small'), 5000, 'bejelentés-menü');
-  await sleep(500);
-  const mn1 = await mn.evaluate(`(() => { const t = [...document.querySelectorAll('.sheet .tile')]; const r = t.map((x) => x.getBoundingClientRect()); const last = t.slice(-3); return { labels: last.map((x) => x.innerText.replace(/\\s+/g, ' ').trim()), rows: new Set(r.map((x) => Math.round(x.top))).size, sameTop: new Set(last.map((x) => Math.round(x.getBoundingClientRect().top))).size === 1, h: r.map((x) => Math.round(x.height)), sheetH: Math.round(${q('.sheet')}.getBoundingClientRect().height), overflow: document.documentElement.scrollWidth > innerWidth, rightAligned: Math.abs(r.at(-1).right - Math.max(...r.map((x) => x.right))) < 1, spill: t.filter((x) => x.scrollWidth > x.clientWidth + 1).map((x) => x.innerText.trim()), inSheet: Math.max(...r.map((x) => x.right)) <= ${q('.sheet')}.getBoundingClientRect().right - 8 }; })()`);
-  check('AW18: Bejelentés menü – egy sorban „Dugó” és „Beállt” a kapu-tétel mellett; 4 sor, a csempék egyforma magasak, a felirat a csempén belül', mn1.labels.join('|') === 'Dugó|Beállt|Átlagmérés eleje' && mn1.rows === 4 && mn1.sameTop && new Set(mn1.h).size === 1 && !mn1.overflow && mn1.rightAligned && mn1.spill.length === 0 && mn1.inSheet, JSON.stringify(mn1));
-  await mn.close();
-
   // ------------------------------------------------------------------
   // AW19: krúzing mód, utak naplója, statisztika (IndexedDB, csak helyben)
   // ------------------------------------------------------------------
@@ -979,8 +969,10 @@ try {
       await cn.shot(`${DATE}-aw19-statisztika.png`);
     }
     await click(cn, '.trip-delete-all .mini-btn');
-    await cn.waitFor(`${q('.trip-delete-all .list-row')}`, 3000, 'megerősítés');
-    const confirmTxt = await cn.evaluate(text('.trip-delete-all .label'));
+    await cn.waitFor(q('.delete-all-panel'), 3000, 'megerősítés');
+    const confirmTxt = await cn.evaluate(text('.delete-all-panel > .label'));
+    // AOS17: pipa nélkül azonnal és véglegesen (a minták is törlődnek)
+    await click(cn, '.check-row:nth-of-type(2)');
     await click(cn, '.trip-delete-all .mini-btn.danger');
     await cn.waitFor(`!${q('.trip-row')}`, 5000, 'üres napló');
     const afterAll = await cn.evaluate(TRIPS_DB);
@@ -1067,7 +1059,7 @@ try {
     await hg.waitFor(q('[data-testid="heat-mode"]'), 10_000, 'hőtérkép-sor');
     const st = await hg.evaluate(`(() => { const m = ${q('[data-testid="heat-mode"]')}; const row = m.closest('.list-row'); const shareRow = [...document.querySelectorAll('.list-row')].find((r) => r.querySelector('.label')?.innerText === 'Névtelen vezetési adatok megosztása'); const sw = shareRow?.querySelector('[role="switch"]'); return { modes: [...m.querySelectorAll('button')].map((b) => b.innerText.trim() + (b.getAttribute('aria-pressed') === 'true' ? '*' : '')), hint: row.querySelector('.hint').innerText, share: sw?.getAttribute('aria-checked'), shareHint: shareRow?.querySelector('.hint').innerText ?? '' }; })()`);
     check('AW20: Beállítások – „Hőtérkép” Ki | Saját* | Közösségi, rövid magyarázattal', st.modes.join('|') === 'Ki|Saját*|Közösségi' && /névtelen/.test(st.hint), JSON.stringify(st));
-    check('AW20: „Névtelen vezetési adatok megosztása” alapból KI, a leírás: mi megy fel (cella, áthaladás-szám, átlagsebesség, óra-sáv, hét napja) és mi nem (útvonal, pontos idő, azonosító, mentett helyek környéke, utak eleje / vége)', st.share === 'false' && /áthaladás-szám/.test(st.shareHint) && /Nem megy fel: útvonal, pontos idő, azonosító, a mentett helyek környéke, az utak eleje és vége/.test(st.shareHint), st.shareHint);
+    check('AW20 + AOS17: „Névtelen vezetési adatok megosztása” alapból BE, a leírás: mi megy fel (cella, áthaladás-szám, átlagsebesség, óra-sáv, hét napja) és mi nem (útvonal, pontos idő, azonosító, mentett helyek környéke, utak eleje / vége)', st.share === 'true' && /áthaladás-szám/.test(st.shareHint) && /Nem megy fel: útvonal, pontos idő, azonosító, a mentett helyek környéke, az utak eleje és vége/.test(st.shareHint), st.shareHint);
     await hg.evaluate(`(() => { const r = ${q('[data-testid="heat-mode"]')}.closest('.list-row'); r.scrollIntoView({ block: 'center' }); return true; })()`);
     if (!CHECK_ONLY) {
       await sleep(900);
@@ -1101,7 +1093,7 @@ try {
     }
     const trip = hdb.trips[0];
     const passes = hdb.heat.reduce((n, c) => n + c.count, 0);
-    check('AW20: a krúzing-út végén a személyes hőtérkép cellánként frissül (IndexedDB v2 `heat`: h3 res 10, áthaladások, átlag, utolsó idő), az út megjelölve', hdb.v === 2 && !!trip && hdb.heat.length > 20 && hdb.heat.every((c) => /^8a[0-9a-f]{13}$/.test(c.h3) && c.count >= 1 && c.avgKmh > 0 && c.lastT > 0) && hdb.heatTrips.some((x) => x.id === trip.id), JSON.stringify({ v: hdb.v, cells: hdb.heat.length, passes, trips: hdb.heatTrips.length }));
+    check('AW20: a krúzing-út végén a személyes hőtérkép cellánként frissül (IndexedDB `heat`: h3 res 10, áthaladások, átlag, utolsó idő), az út megjelölve', hdb.v === 3 && !!trip && hdb.heat.length > 20 && hdb.heat.every((c) => /^8a[0-9a-f]{13}$/.test(c.h3) && c.count >= 1 && c.avgKmh > 0 && c.lastT > 0) && hdb.heatTrips.some((x) => x.id === trip.id), JSON.stringify({ v: hdb.v, cells: hdb.heat.length, passes, trips: hdb.heatTrips.length }));
     console.log(`  info: ${hdb.heat.length} cella / ${passes} áthaladás / ${hdb.samples.length} minta egy 17,7 km-es útból`);
     check('AW20: a megosztás alapból ki – a szimulátor-út nem kerül a feltöltési sorba, nincs hálózati írás', (await hk.evaluate(`localStorage.getItem('heat:outbox:v1')`)) === null);
     await hk.close();
@@ -1134,6 +1126,8 @@ try {
     await hx.waitFor(heatIs(`h.n > 0`), 60_000, 'saját hőtérkép');
     await click(hx, '.trip-delete-all .mini-btn');
     await hx.waitFor(q('.trip-delete-all .mini-btn.danger'), 3000, 'megerősítés');
+    // AOS17: a hőtérkép csak külön kérésre törlődik
+    await click(hx, '.check-row');
     await click(hx, '.trip-delete-all .mini-btn.danger');
     await hx.waitFor(heatIs(`h.n === 0`), 15_000, 'üres hőtérkép');
     check('AOS16: „Összes törlése” után a saját hőtérkép azonnal üres', (await hx.evaluate(HEAT_STATE)).n === 0);
@@ -1217,6 +1211,195 @@ try {
     const gc = await zc.evaluate(HEAT_STATE);
     check('AW20j: közösségi módban nincs szürke cella', gc.grey === 0 && gc.n > 0, JSON.stringify(gc));
     await zc.close();
+  }
+
+  // ------------------------------------------------------------------
+  // AOS17: kezdőképernyő, Bejelentés (A5-ös méret, Térképhiba-választó), Beállítások (zöld, zóna 320 px-en), törlés 30 nappal
+  // ------------------------------------------------------------------
+  {
+    const LANGS = ['hu', 'en', 'de', 'sk', 'cs', 'pl'];
+    const size = (p, width, height = 844) => p.send('Emulation.setDeviceMetricsOverride', { width, height, deviceScaleFactor: CHECK_ONLY ? 1 : 3, mobile: true });
+    const setLang = async (p, lang, path) => {
+      await p.evaluate(`localStorage.setItem('lang:v1', '${lang}'); true`);
+      await p.send('Page.navigate', { url: `${BASE}${path}` });
+    };
+
+    // a cím minden nyelven egy sorban, a képernyőn belül; 320 px-en is
+    const st0 = await mk(SHOT);
+    await st0.goto('/');
+    await st0.waitFor(q('.start h1'), 30_000, 'kezdőképernyő');
+    for (const width of [320, 390]) {
+      await size(st0, width);
+      for (const lang of LANGS) {
+        await setLang(st0, lang, '/');
+        await sleep(200);
+        await st0.waitFor(q('.start h1'), 30_000, 'kezdőképernyő');
+        await st0.evaluate(`document.fonts.ready.then(() => true)`);
+        await sleep(150);
+        const h = await st0.evaluate(`(() => { const e = ${q('.start h1')}; const r = e.getBoundingClientRect(); const rg = document.createRange(); rg.selectNodeContents(e); const t = rg.getBoundingClientRect(); return { lines: Math.round(t.height / parseFloat(getComputedStyle(e).lineHeight)), right: t.right, vw: innerWidth, size: getComputedStyle(e).fontSize, text: e.innerText.trim() }; })()`);
+        check(`AOS17: a cím egy sorban a ${width} px-es képernyőn belül (${lang}: ${h.text}, ${h.size})`, h.lines === 1 && h.right <= h.vw, JSON.stringify(h));
+      }
+    }
+    if (!CHECK_ONLY) {
+      await size(st0, 390);
+      for (const lang of ['hu', 'de']) {
+        await setLang(st0, lang, '/');
+        await sleep(5000);
+        await st0.shot(`${DATE}-aos17-web-kezdo-${lang}.png`);
+      }
+    }
+    await st0.close();
+
+    // Bejelentés: A5-ös méretek, nincs elválasztás, a felirat a csempén belül – minden nyelven, keskeny kijelzőn is
+    // mozgó szimulátor: a jegyzet csak haladási iránnyal az alapszöveg (álló helyzetben az irány hiányáról szól)
+    const rp = await mk(SHOT);
+    await rp.goto('/?sim=jo&panel=0');
+    await rp.waitFor(MAP_READY, 60_000, 'térkép');
+    await rp.waitFor(q('button[aria-label="Bejelentés"]'), 30_000, 'Bejelentés gomb');
+    await sleep(4000);
+    const TILE = `(() => { const t = [...document.querySelectorAll('.sheet .tile')]; const sheet = ${q('.sheet')}.getBoundingClientRect(); return { n: t.length, h: Math.min(...t.map((x) => x.getBoundingClientRect().height)), ic: t.map((x) => x.querySelector('.ic').getBoundingClientRect().width), font: parseFloat(getComputedStyle(t[0]).fontSize), hyphens: getComputedStyle(t[0]).hyphens, spill: t.filter((x) => { const r = document.createRange(); r.selectNodeContents(x); const b = r.getBoundingClientRect(); const c = x.getBoundingClientRect(); return b.right > c.right || b.left < c.left; }).map((x) => x.innerText.trim()), inSheet: t.every((x) => x.getBoundingClientRect().right <= sheet.right && x.getBoundingClientRect().left >= sheet.left), cols: new Set(t.map((x) => Math.round(x.getBoundingClientRect().left))).size, wide: t.at(-1).getBoundingClientRect().width > t[0].getBoundingClientRect().width * 1.5, note: ${text('.sheet-note')} }; })()`;
+    await click(rp, 'button[aria-label="Bejelentés"]');
+    await rp.waitFor(q('.sheet .tiles'), 5000, 'bejelentés-menü');
+    const a5 = await rp.evaluate(TILE);
+    check('AOS17: Bejelentés – A5-ös méret: 2 oszlop, 76 px-es csempe, 44 px-es ikon, 18 px-es felirat, a kapu-tétel teljes szélességű, nincs elválasztás', a5.n === 9 && a5.cols === 2 && a5.h >= 76 && a5.ic.every((w) => w === 44) && a5.font === 18 && a5.wide && a5.hyphens !== 'auto' && a5.inSheet && a5.spill.length === 0, JSON.stringify(a5));
+    check('AOS17: a lap alsó szövege szó szerint', a5.note === 'A jelenlegi helyed és haladási irányod kerül a bejelentésbe. Ideiglenes szakasz: a mérés végén a „Vége” gomb jelenti be a záró kaput.', a5.note);
+    if (!CHECK_ONLY) await rp.shot(`${DATE}-aos17-web-bejelentes.png`);
+    await rp.close();
+    const rl = await mk('blank');
+    await rl.goto('/?navsim&panel=0');
+    await rl.waitFor(MAP_READY, 60_000, 'térkép');
+    for (const width of [320, 375, 390, 430]) {
+      await size(rl, width);
+      for (const lang of LANGS) {
+        await setLang(rl, lang, '/?navsim&panel=0');
+        await rl.waitFor(MAP_READY, 60_000, 'térkép');
+        await rl.waitFor(`document.querySelector('.round-btn')`, 10_000, 'gombok');
+        const aria = JSON.parse(readFileSync(join(here, '..', '..', '..', 'packages/app-logic/src/i18n', `${lang}.json`), 'utf8'))['map.report'];
+        await click(rl, `button[aria-label="${aria}"]`).catch(() => undefined);
+        await rl.waitFor(q('.sheet .tiles'), 3000, 'menü').catch(() => undefined);
+        const r = await rl.evaluate(`document.querySelector('.sheet .tiles') ? ${TILE} : null`);
+        if (r) check(`AOS17: Bejelentés ${width} px, ${lang}: a feliratok a csempén belül, szótörés nélkül`, r.spill.length === 0 && r.inSheet, JSON.stringify(r.spill));
+        else check(`AOS17: Bejelentés ${width} px, ${lang}: a menü megnyílik`, false);
+      }
+    }
+    await rl.close();
+
+    // Térképhiba: második választó, a küldött sor alkategóriával, az első koppintáskori helyről
+    const me = await mk(SHOT);
+    await me.goto('/?navsim&panel=0');
+    await me.waitFor(MAP_READY, 60_000, 'térkép');
+    await me.evaluate(`window.__rows = []; const f1 = window.fetch; window.fetch = (...a) => { const u = String(a[0]?.url ?? a[0]); if (/\\/rest\\/v1\\/reports/.test(u) && (a[1]?.method ?? 'GET') === 'POST') { window.__rows.push(JSON.parse(a[1].body)); return Promise.resolve(new Response(JSON.stringify([{ id: 'x1' }]), { status: 201, headers: { 'content-type': 'application/json' } })); } return f1(...a); }; true`);
+    await click(me, 'button[aria-label="Bejelentés"]');
+    await me.waitFor(q('.sheet .tiles'), 5000, 'bejelentés-menü');
+    const tileBox = await me.evaluate(`(() => { const t = [...document.querySelectorAll('.sheet .tile')]; const x = t.find((e) => e.innerText.trim() === 'Térképhiba'); return { found: !!x, labels: t.map((e) => e.innerText.trim()) }; })()`);
+    check('AOS17: a „Hibás szakasz” csempe neve „Térképhiba”', tileBox.found && !tileBox.labels.includes('Hibás szakasz'), tileBox.labels.join('|'));
+    await me.evaluate(`[...document.querySelectorAll('.sheet .tile')].find((e) => e.innerText.trim() === 'Térképhiba').click(); true`);
+    await me.waitFor(q('[data-testid="map-error-list"]'), 3000, 'Térképhiba-választó');
+    const kinds = await me.evaluate(`[...document.querySelectorAll('[data-testid="map-error-list"] button')].map((b) => b.innerText.replace(/\\s+/g, ' ').trim())`);
+    check('AOS17: a második választó hat tétele a kért sorrendben', kinds.join('|') === 'Rossz szakaszhatár kezdő/záró kapu rossz helyen|Rossz sebességhatár|Nem létezik ez a szakasz|Hiányzó szakasz|Rossz kamera-pozíció|Egyéb', kinds.join('|'));
+    if (!CHECK_ONLY) await me.shot(`${DATE}-aos17-web-terkephiba.png`);
+    await click(me, '[data-kind="kamera"]');
+    await me.waitFor(`window.__rows.length === 1 && !${q('.sheet')}`, 5000, 'elküldve').catch(() => undefined);
+    const row = await me.evaluate(`window.__rows[0]?.[0] ?? window.__rows[0] ?? null`);
+    check('AOS17: a sor `szakasz_hiba` típussal és `kamera` alkategóriával megy', row?.type === 'szakasz_hiba' && row?.subtype === 'kamera', JSON.stringify(row));
+    await me.close();
+
+    // Beállítások: zöld jelölés, 320 px-en a zóna-választó, nincs vonal a megosztás és a Részletek között
+    const places = JSON.stringify({ home: { lat: 47.5, lon: 19.04, name: 'Budapest, Kossuth tér 1.', address: '' }, work: { lat: 47.45, lon: 19, name: 'Budaörs, Szabadság út 117.', address: '' }, others: [] });
+    const se = await mk(SHOT);
+    await se.goto('/?navsim&panel=0');
+    await se.evaluate(`localStorage.setItem('nav:saved:v1', ${JSON.stringify(places)}); true`);
+    await size(se, 320, 700);
+    await se.send('Page.navigate', { url: `${BASE}/?navsim&panel=0&sheet=settings` });
+    await se.waitFor(q('.zone-picker'), 30_000, 'zóna-választó');
+    const seg = await se.evaluate(`(() => [...document.querySelectorAll('.zone-picker')].map((z) => { const s = z.querySelector('.segmented').getBoundingClientRect(); const row = z.closest('.list-row').getBoundingClientRect(); const b = [...z.querySelectorAll('button')].map((x) => x.getBoundingClientRect()); return { inside: b.every((x) => x.left >= s.left && x.right <= s.right + 0.5), inRow: s.right <= row.right && s.left >= row.left, equal: Math.abs(b[0].width - b[2].width) < 1, oneLine: new Set(b.map((x) => Math.round(x.top))).size === 1 }; }))()`);
+    check('AOS17: 320 px-en a zóna-szegmensek (az „1 km” is) a háttéren és a soron belül, egyforma szélesek', seg.length === 2 && seg.every((x) => x.inside && x.inRow && x.equal && x.oneLine), JSON.stringify(seg));
+    const look = await se.evaluate(`(() => { const on = ${q('.segmented button[aria-pressed="true"]')}; const sw = ${q('.switch[aria-checked="true"]')}; const share = ${q('[data-testid="heat-details-row"]')}.previousElementSibling; return { seg: getComputedStyle(on).backgroundColor, sw: getComputedStyle(sw).backgroundColor, shareLine: getComputedStyle(share).borderBottomWidth, shareOn: share.querySelector('.switch').getAttribute('aria-checked'), other: getComputedStyle(${q('.list-row')}).borderBottomWidth, pageOverflow: document.documentElement.scrollWidth > innerWidth }; })()`);
+    check('AOS17: a kapcsoló zöld, a kiválasztott szegmens fehér (mint eddig a weben)', look.sw === 'rgb(46, 229, 157)' && look.seg === 'rgb(244, 246, 250)', JSON.stringify(look));
+    check('AOS17: a megosztás alapból BE, és a sora meg a Részletek között nincs vonal (a többi sor között van)', look.shareOn === 'true' && look.shareLine === '0px' && look.other === '1px' && !look.pageOverflow, JSON.stringify(look));
+    await size(se, 390);
+    if (!CHECK_ONLY) {
+      await sleep(600);
+      await se.shot(`${DATE}-aos17-web-beallitasok.png`);
+      await se.evaluate(`document.querySelector('.zone-picker').scrollIntoView({ block: 'center' }); true`);
+      await sleep(400);
+      await se.shot(`${DATE}-aos17-web-beallitasok-zona.png`);
+    }
+    await se.close();
+
+    // migráció: a régi tárolt KI egyszer BE-re vált, utána a kikapcsolás megmarad
+    const mg = await mk('blank');
+    await mg.goto('/?navsim&panel=0&sheet=settings', { adatmegosztas: false });
+    await mg.waitFor(q('[data-testid="heat-details-row"]'), 30_000, 'Beállítások');
+    const SHARE = `${q('[data-testid="heat-details-row"]')}.previousElementSibling.querySelector('.switch')`;
+    const m1 = await mg.evaluate(`${SHARE}.getAttribute('aria-checked')`);
+    await mg.evaluate(`${SHARE}.click(); true`);
+    await sleep(200);
+    await mg.send('Page.reload');
+    await sleep(300);
+    await mg.waitFor(q('[data-testid="heat-details-row"]'), 30_000, 'Beállítások 2');
+    const m2 = await mg.evaluate(`${SHARE}.getAttribute('aria-checked')`);
+    check('AOS17: egyszeri migráció – a régi KI → BE, a felhasználó KI-je újratöltve is megmarad', m1 === 'true' && m2 === 'false', JSON.stringify({ m1, m2 }));
+    await mg.close();
+
+    // törlés: külön kérdés a hőtérképről, 30 nap alapból; visszaállítás a Beállításokból
+    const SEED = `new Promise((res, rej) => { const o = indexedDB.open('atlagsebesseg-trips'); o.onerror = () => rej(o.error); o.onsuccess = () => { const db = o.result; const tx = db.transaction(['trips', 'samples', 'heat', 'heatTrips', 'trashTrips', 'trashHeat', 'trashHeatTrips'], 'readwrite'); for (const s of ['trips', 'samples', 'heat', 'heatTrips', 'trashTrips', 'trashHeat', 'trashHeatTrips']) tx.objectStore(s).clear(); const t0 = Date.now() - 3600000; tx.objectStore('trips').put({ id: 'aos17', startedAt: t0, endedAt: t0 + 600000, distanceM: 5000, movingS: 600, idleS: 0, maxKmh: 60, turns: { left: 0, right: 0, uTurn: 0 }, dirChanges: { left: 0, right: 0, uTurn: 0 }, reroutes: 0, measurements: [], jamS: 0, destination: null, path: [[[19.04, 47.5], [19.05, 47.5]]], samples: 1 }); tx.objectStore('samples').add({ tripId: 'aos17', t: t0, lat: 47.5, lon: 19.04, speedKmh: 40, heading: 0, accuracy: 5, h3: '8a1e03785377fff' }); tx.objectStore('heat').put({ h3: '8a1e03785377fff', count: 2, avgKmh: 40, lastT: t0 }); tx.objectStore('heatTrips').put({ id: 'aos17' }); tx.oncomplete = () => { db.close(); res(true); }; }; })`;
+    const COUNTS = `new Promise((res, rej) => { const o = indexedDB.open('atlagsebesseg-trips'); o.onerror = () => rej(o.error); o.onsuccess = () => { const db = o.result; const names = ['trips', 'samples', 'heat', 'trashTrips', 'trashHeat']; const tx = db.transaction(names); const out = {}; for (const n of names) tx.objectStore(n).count().onsuccess = (e) => (out[n] = e.target.result); tx.oncomplete = () => { db.close(); res(out); }; }; })`;
+    const openLog = async (p) => {
+      await p.send('Page.navigate', { url: `${BASE}/?navsim&panel=0&sheet=trips` });
+      await p.waitFor(q('.trip-delete-all .mini-btn'), 30_000, 'napló');
+      await click(p, '.trip-delete-all .mini-btn');
+      await p.waitFor(q('.delete-all-panel'), 3000, 'párbeszéd');
+    };
+    const dl = await mk(SHOT);
+    await dl.goto('/?navsim&panel=0&sheet=settings');
+    await dl.waitFor(q('.sheet'), 30_000, 'lap');
+    await dl.evaluate(SEED);
+    await openLog(dl);
+    const dialog = await dl.evaluate(`[...document.querySelectorAll('.check-row')].map((c) => c.innerText.replace(/\\s+/g, ' ').trim() + ':' + c.getAttribute('aria-checked'))`);
+    check('AOS17: a párbeszéd külön kérdezi a hőtérképet (alapból nem), a 30 nap alapból bepipálva', /hőtérképet is törlöm:false$/.test(dialog[0]) && /^30 napig visszaállítható.*:true$/.test(dialog[1]), dialog.join(' | '));
+    if (!CHECK_ONLY) {
+      await dl.evaluate(`document.querySelector('.delete-all-panel').scrollIntoView({ block: 'center' }); true`);
+      await sleep(400);
+      await dl.shot(`${DATE}-aos17-web-torles.png`);
+    }
+    await click(dl, '.delete-all-panel .mini-btn.danger');
+    await sleep(500);
+    const c1 = await dl.evaluate(COUNTS);
+    check('AOS17: alapértékekkel az utak a kukába, a hőtérkép és a minták maradnak', c1.trips === 0 && c1.trashTrips === 1 && c1.heat === 1 && c1.trashHeat === 0 && c1.samples === 1, JSON.stringify(c1));
+    await dl.send('Page.navigate', { url: `${BASE}/?navsim&panel=0&sheet=settings` });
+    await dl.waitFor(q('[data-testid="trash-restore"]'), 30_000, 'visszaállítás sor');
+    const rowText = await dl.evaluate(text('[data-testid="trash-restore"]'));
+    check('AOS17: Beállítások – „Törölt adatok visszaállítása” a lejárattal', /^Törölt adatok visszaállítása Lejárat: /.test(rowText), rowText);
+    if (!CHECK_ONLY) {
+      await dl.evaluate(`document.querySelector('[data-testid="trash-restore"]').scrollIntoView({ block: 'center' }); true`);
+      await sleep(400);
+      await dl.shot(`${DATE}-aos17-web-visszaallitas.png`);
+    }
+    await click(dl, '[data-testid="trash-restore"]');
+    await dl.waitFor(`!${q('[data-testid="trash-restore"]')}`, 5000, 'sor eltűnt').catch(() => undefined);
+    const c2 = await dl.evaluate(COUNTS);
+    check('AOS17: visszaállítás után az út visszajön, a kuka üres, a sor eltűnik', c2.trips === 1 && c2.trashTrips === 0 && !(await dl.evaluate(q('[data-testid="trash-restore"]'))), JSON.stringify(c2));
+    // pipa + hőtérkép: kukába és vissza, súlyozott összevonással; pipa nélkül végleges
+    await openLog(dl);
+    await click(dl, '.check-row');
+    await click(dl, '.delete-all-panel .mini-btn.danger');
+    await sleep(500);
+    const c3 = await dl.evaluate(COUNTS);
+    check('AOS17: külön kérésre a hőtérkép is a kukába kerül', c3.heat === 0 && c3.trashHeat === 1 && c3.trashTrips === 1, JSON.stringify(c3));
+    await dl.evaluate(SEED);
+    await openLog(dl);
+    await click(dl, '.check-row:nth-of-type(2)');
+    const finalHint = await dl.evaluate(text('.check-row:nth-of-type(2) .hint'));
+    await click(dl, '.check-row');
+    await click(dl, '.delete-all-panel .mini-btn.danger');
+    await sleep(500);
+    const c4 = await dl.evaluate(COUNTS);
+    await dl.send('Page.navigate', { url: `${BASE}/?navsim&panel=0&sheet=settings` });
+    await dl.waitFor(q('.trips-entry'), 30_000, 'Beállítások');
+    await sleep(500);
+    check('AOS17: pipa nélkül azonnal és véglegesen – nincs kuka, nincs visszaállítás sor', Object.values(c4).every((n) => n === 0) && /véglegesen/.test(finalHint) && !(await dl.evaluate(q('[data-testid="trash-restore"]'))), JSON.stringify({ c4, finalHint }));
+    await dl.close();
   }
 
   // ------------------------------------------------------------------

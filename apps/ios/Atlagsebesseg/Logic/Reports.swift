@@ -75,6 +75,29 @@ nonisolated enum ReportTone: String, Sendable {
     case kezi, hataron, tul, semleges
 }
 
+/// AOS17: a „Térképhiba” második választójának tételei, a lap sorrendjében (a `reports.subtype` értékei; a webes `MAP_ERROR_KINDS`).
+nonisolated enum MapErrorKind: String, CaseIterable, Codable, Sendable, Identifiable {
+    case szakaszhatar, sebesseghatar
+    case nemLetezik = "nem_letezik"
+    case hianyzo, kamera, egyeb
+
+    var id: String { rawValue }
+
+    var label: String {
+        switch self {
+        case .szakaszhatar: t(.reportSubSzakaszhatar)
+        case .sebesseghatar: t(.reportSubSebesseghatar)
+        case .nemLetezik: t(.reportSubNemLetezik)
+        case .hianyzo: t(.reportSubHianyzo)
+        case .kamera: t(.reportSubKamera)
+        case .egyeb: t(.reportSubEgyeb)
+        }
+    }
+
+    /// Csak a szakaszhatárnak van magyarázó sora.
+    var hint: String? { self == .szakaszhatar ? t(.reportSubSzakaszhatarHint) : nil }
+}
+
 /// A `reports` táblába írt sor (a `user_id`-t a szerver adja). A kapu-mezők csak ideiglenes kapunál kerülnek a JSON-ba.
 nonisolated struct ReportInsert: Encodable, Equatable, Sendable {
     var type: ReportType
@@ -82,9 +105,11 @@ nonisolated struct ReportInsert: Encodable, Equatable, Sendable {
     var lat: Double
     var lon: Double
     var headingDeg: Double?
+    /// AOS17: a Térképhiba alkategóriája (`reports.subtype`); csak akkor kerül a JSON-ba, ha van.
+    var subtype: MapErrorKind? = nil
 
     enum CodingKeys: String, CodingKey {
-        case type, lat, lon
+        case type, lat, lon, subtype
         case gateKind = "gate_kind"
         case headingDeg = "heading_deg"
         case road
@@ -97,6 +122,7 @@ nonisolated struct ReportInsert: Encodable, Equatable, Sendable {
         try c.encode(lat, forKey: .lat)
         try c.encode(lon, forKey: .lon)
         try c.encode(headingDeg, forKey: .headingDeg)
+        try c.encodeIfPresent(subtype, forKey: .subtype)
         if type == .ideiglenesKapu {
             try c.encode(gateKind, forKey: .gateKind)
             try c.encodeNil(forKey: .road)
@@ -112,14 +138,14 @@ nonisolated private func normalizedHeading(_ h: Double?) -> Double? {
 }
 
 /// Egy koppintásos bejelentés a jelenlegi helyről (a webes `reportFromFix`). Kapunál irány kell – ha nincs, `nil`.
-nonisolated func reportFromFix(_ choice: ReportChoice, _ fix: GpsFix) -> ReportInsert? {
+nonisolated func reportFromFix(_ choice: ReportChoice, _ fix: GpsFix, subtype: MapErrorKind? = nil) -> ReportInsert? {
     let h = normalizedHeading(fix.heading)
     switch choice {
     case .kapuKezdo, .kapuZaro:
         guard let h else { return nil }
         return ReportInsert(type: .ideiglenesKapu, gateKind: choice == .kapuKezdo ? "kezdo" : "zaro", lat: fix.lat, lon: fix.lon, headingDeg: h)
     default:
-        return ReportInsert(type: ReportType(rawValue: choice.rawValue)!, lat: fix.lat, lon: fix.lon, headingDeg: h)
+        return ReportInsert(type: ReportType(rawValue: choice.rawValue)!, lat: fix.lat, lon: fix.lon, headingDeg: h, subtype: choice == .szakaszHiba ? subtype : nil)
     }
 }
 

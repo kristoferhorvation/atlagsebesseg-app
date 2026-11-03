@@ -59,7 +59,7 @@ select:focus-visible {
   position: fixed;
   inset: 0;
   overflow: hidden;
-  --tone: var(--color-accent);
+  --tone: var(--color-brand);
 }
 
 /* a lustán betöltött mapbox-gl.css `.mapboxgl-map { position: relative }` szabálya ne írja felül */
@@ -258,7 +258,7 @@ select:focus-visible {
 
 .recenter {
   pointer-events: auto;
-  color: var(--color-accent);
+  color: var(--color-brand);
   animation: rise var(--motion-base) var(--motion-ease);
 }
 
@@ -1010,10 +1010,13 @@ button.pill::after {
   inset: -4px;
 }
 
+/* AOS17: az A5-ös méret (2 oszlop, 76 px, 44 px-es ikon, 18 px-es felirat), elválasztás nélkül; a lap belső margójából 7-7 px és a
+   12 / 10 px-es belső térköz, hogy a leghosszabb felirat („Rendőrség”) is a csempén belül maradjon */
 .tiles {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px;
+  margin: 0 -7px;
 }
 
 .tile {
@@ -1023,8 +1026,8 @@ button.pill::after {
   border: 1px solid var(--color-stroke);
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 10px 14px;
+  gap: 10px;
+  padding: 10px 12px;
   text-align: left;
   font-size: 18px;
   font-weight: 600;
@@ -1036,58 +1039,26 @@ button.pill::after {
   grid-column: 1 / -1;
 }
 
-/* AW18: 4 oszlopos rács – a csempék 2 oszlopot foglalnak, az utolsó sorban „Dugó” és „Beállt” kis csempe (ikon a felirat
-   fölött) 1-1 oszlopot, mellettük a kapu-tétel 2-t */
-.tiles-4 {
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  /* a lap belső margójából 7-7 px: a „Rendőrség” / „Átlagmérés” felirat így a csempén belül marad */
-  margin: 0 -7px;
+/* keskeny képernyőn a felirat és a térköz enged, szót nem törünk */
+@media (max-width: 389px) {
+  .tile {
+    gap: 8px;
+    padding: 10px 8px;
+    font-size: clamp(14px, 4.4vw, 18px);
+  }
 }
 
-.tiles-4 .tile,
-.tiles-4 .tile.wide {
-  grid-column: span 2;
+@media (max-width: 340px) {
+  .tile .ic {
+    width: 36px;
+    height: 36px;
+    border-radius: 12px;
+  }
+}
+
+.tile-label {
+  flex: 1;
   min-width: 0;
-  padding: 10px 12px;
-  gap: 10px;
-}
-
-.tiles-4 .tile.small {
-  grid-column: span 1;
-}
-
-/* hosszú szavak (de, pl) elválasztva a csempén belül; az utolsó sor fél szélességű kapu-tétele kisebb betűvel, hogy a
-   menü magassága egyik nyelven se nőjön */
-.tiles-4 .tile {
-  hyphens: auto;
-  -webkit-hyphens: auto;
-  overflow-wrap: anywhere;
-}
-
-.tiles-4 .tile[data-gate] {
-  font-size: 16px;
-  line-height: 1.1;
-}
-
-.tiles-4 .tile[data-gate] .ic {
-  width: 36px;
-  height: 36px;
-  border-radius: 12px;
-}
-
-.tile.small {
-  flex-direction: column;
-  justify-content: center;
-  gap: 4px;
-  padding: 6px 4px;
-  text-align: center;
-  font-size: 15px;
-}
-
-.tile.small .ic {
-  width: 36px;
-  height: 36px;
-  border-radius: 12px;
 }
 
 .tile:disabled {
@@ -1164,6 +1135,11 @@ button.pill::after {
 }
 
 .list-row:last-child {
+  border-bottom: 0;
+}
+
+/* AOS17: a „Részletek” a megosztás sorához tartozik – a főcím, a leírás és a Részletek között nincs vonal */
+.list-row:has(+ [data-testid='heat-details-row']) {
   border-bottom: 0;
 }
 
@@ -1301,6 +1277,7 @@ a.list-row {
 
 .start h1 {
   margin: 0;
+  white-space: nowrap;
   font-size: 44px;
   font-weight: 700;
   letter-spacing: -0.035em;
@@ -1405,7 +1382,7 @@ a.list-row {
   position: absolute;
   inset: 19px;
   border-radius: 50%;
-  background: var(--color-accent);
+  background: var(--color-brand);
   border: 3px solid #fff;
   box-shadow: 0 0 0 7px rgba(122, 134, 255, 0.24), 0 4px 14px rgba(0, 0, 0, 0.5);
 }
@@ -1479,7 +1456,7 @@ a.list-row {
 .sim-bar i {
   display: block;
   height: 100%;
-  background: var(--color-accent);
+  background: var(--color-brand);
   transform-origin: left;
 }
 
@@ -1488,7 +1465,7 @@ a.list-row {
   align-items: center;
   justify-content: space-between;
   font-weight: 650;
-  color: var(--color-accent);
+  color: var(--color-brand);
 }
 
 /* ---------- mozgás ---------- */
@@ -1847,7 +1824,7 @@ a.list-row {
 
 .saved-chip svg {
   flex: none;
-  color: var(--color-accent);
+  color: var(--color-brand);
 }
 
 .saved-chip span {
@@ -1875,7 +1852,7 @@ a.list-row {
   display: grid;
   place-items: center;
   background: var(--color-surface-raised);
-  color: var(--color-accent);
+  color: var(--color-brand);
 }
 
 .place-text {
@@ -1990,7 +1967,7 @@ a.list-row {
   margin-left: auto;
   font-size: 16px;
   font-weight: 620;
-  color: var(--color-accent);
+  color: var(--color-brand);
 }
 
 .route-opt-meta {
@@ -2034,7 +2011,7 @@ a.list-row {
 }
 
 .dest-pin svg {
-  fill: var(--color-accent);
+  fill: var(--color-brand);
   stroke: var(--color-text);
 }
 
@@ -2145,8 +2122,8 @@ button.nav-reroute {
   border-radius: var(--radius-pill);
   font-size: var(--type-body-size);
   font-weight: 620;
-  background: color-mix(in srgb, var(--color-accent) 22%, transparent);
-  border: 1px solid color-mix(in srgb, var(--color-accent) 55%, transparent);
+  background: color-mix(in srgb, var(--color-brand) 22%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-brand) 55%, transparent);
 }
 
 .nav-badge[data-kind='planned'] {
@@ -2706,10 +2683,62 @@ button.nav-reroute {
   margin-top: 14px;
 }
 
-.trip-delete-all .list-row {
+.delete-all-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 14px 16px;
   border-radius: var(--radius-tile);
   background: var(--color-surface-raised);
   border: 1px solid var(--color-stroke);
+}
+
+.delete-all-panel > .label {
+  font-size: 17px;
+  font-weight: 580;
+}
+
+.delete-all-panel .mini-btns {
+  justify-content: flex-end;
+}
+
+.check-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  min-height: 44px;
+  text-align: left;
+}
+
+.check-row .label {
+  display: block;
+  font-size: 16px;
+  font-weight: 560;
+  line-height: 26px;
+}
+
+.check-row .hint {
+  display: block;
+  margin-top: 2px;
+  font-size: 14px;
+  line-height: 1.35;
+  color: var(--color-text-muted);
+}
+
+.check-box {
+  flex: none;
+  width: 26px;
+  height: 26px;
+  border-radius: 8px;
+  display: grid;
+  place-items: center;
+  border: 2px solid var(--color-stroke-strong);
+  color: var(--color-sign-text);
+}
+
+.check-row[aria-checked='true'] .check-box {
+  background: var(--color-accent);
+  border-color: var(--color-accent);
 }
 
 .trip-detail {
@@ -2810,13 +2839,25 @@ button.nav-reroute {
   display: flex;
   flex-direction: column;
   gap: 6px;
-  margin-top: 8px;
+  flex: 0 0 100%;
+  min-width: 0;
+}
+
+/* AOS17: mindhárom szegmens a háttéren belül, 320 px-en is: a választó a sor teljes szélességű, a szegmensek egyenlők */
+.zone-picker .segmented {
+  display: flex;
 }
 
 .zone-picker .segmented button {
+  flex: 1;
+  min-width: 0;
   height: 30px;
-  padding: 0 12px;
+  padding: 0 4px;
   font-size: 14px;
+}
+
+.list-row:has(> .zone-picker) {
+  flex-wrap: wrap;
 }
 
 .heat-details .sheet-note {

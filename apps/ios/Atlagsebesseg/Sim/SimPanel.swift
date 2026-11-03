@@ -36,7 +36,7 @@ struct SimPanel: View {
         .frame(height: 44)
         .overlay(alignment: .bottom) {
             GeometryReader { g in
-                Capsule().fill(Tokens.Colors.accent).frame(width: g.size.width * model.simProgress, height: 2)
+                Capsule().fill(Tokens.Colors.brand).frame(width: g.size.width * model.simProgress, height: 2)
             }
             .frame(height: 2)
         }

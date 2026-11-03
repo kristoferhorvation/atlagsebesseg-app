@@ -159,8 +159,7 @@ struct DriveView: View {
                 .presentationBackground(Tokens.Colors.surfaceStrong)
         }
         .sheet(isPresented: $model.reportSheetOpen) {
-            ReportSheet(fix: view.lastFix, online: model.backend.configured, sending: model.reportSending, gateStarted: model.gateStarted, onPick: { [model] in model.sendReport($0) })
-                .presentationDetents([.large])
+            ReportSheet(fix: view.lastFix, online: model.backend.configured, sending: model.reportSending, gateStarted: model.gateStarted, onPick: { [model] c, sub, fix in model.sendReport(c, subtype: sub, fix: fix) })
                 .presentationBackground(Tokens.Colors.surfaceStrong)
         }
         // AOS15: a Live Activity koppintása a Beállításokat is bezárja (a vezetési nézet látszik)
@@ -168,6 +167,7 @@ struct DriveView: View {
         .sheet(isPresented: $settingsOpen) {
             SettingsSheet(model: model)
                 .presentationDetents([.large, .medium], selection: $settingsDetent)
+                .presentationDragIndicator(.hidden)
                 .presentationBackgroundInteraction(.enabled(upThrough: .medium))
                 .presentationBackground(Tokens.Colors.surfaceStrong)
         }

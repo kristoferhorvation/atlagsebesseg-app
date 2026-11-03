@@ -34,8 +34,8 @@ nonisolated struct Settings: Equatable, Sendable {
     var hoterkep: HeatMode = .sajat
     /// AW20: a hőtérkép módja – gyakoriság / átlagsebesség.
     var hoterkepNezet: HeatView = .gyakorisag
-    /// AW20: névtelen vezetési adatok megosztása a közösségi hőtérképhez (alapból ki).
-    var adatmegosztas = false
+    /// AW20: névtelen vezetési adatok megosztása a közösségi hőtérképhez (AOS17: alapból BE).
+    var adatmegosztas = true
     /// AW20-javítás: az adatvédelmi zóna sugara (m) mentett helyenként (`home`, `work`, további hely azonosítója); hiányzó = 500 m. Csak helyben.
     var zonaM: [String: Int] = [:]
 
@@ -58,7 +58,8 @@ nonisolated struct Settings: Equatable, Sendable {
         if let v = p["megszolitas"] as? String { s.megszolitas = normalizeName(v) }
         if let v = (p["hoterkep"] as? String).flatMap(HeatMode.init(rawValue:)) { s.hoterkep = v }
         if let v = (p["hoterkep_nezet"] as? String).flatMap(HeatView.init(rawValue:)) { s.hoterkepNezet = v }
-        if let v = p["adatmegosztas"] as? Bool { s.adatmegosztas = v }
+        // AOS17: egyszeri migráció – az `adatmegosztas_v2` jelölő nélküli (régi) tárolt érték helyett BE; utána a felhasználó választása marad
+        if p["adatmegosztas_v2"] as? Bool == true, let v = p["adatmegosztas"] as? Bool { s.adatmegosztas = v }
         s.zonaM = parseZoneRadii(p["zona_m"])
         return s
     }
@@ -68,7 +69,7 @@ nonisolated struct Settings: Equatable, Sendable {
             "hatosagi_tures_megjelenitese": hatosagiTuresMegjelenitese, "egyseg": egyseg.rawValue, "terkep": terkep.rawValue,
             "tervezett_meresek": tervezettMeresek, "hangos_utasitasok": hangosUtasitasok,
             "kamera_jelzes": kameraJelzes, "tervezett_jelzes": tervezettJelzes, "jelzes_mod": jelzesMod.rawValue,
-            "megszolitas": megszolitas, "hoterkep": hoterkep.rawValue, "hoterkep_nezet": hoterkepNezet.rawValue, "adatmegosztas": adatmegosztas, "zona_m": zonaM,
+            "megszolitas": megszolitas, "hoterkep": hoterkep.rawValue, "hoterkep_nezet": hoterkepNezet.rawValue, "adatmegosztas": adatmegosztas, "adatmegosztas_v2": true, "zona_m": zonaM,
         ]
         let data = (try? JSONSerialization.data(withJSONObject: obj, options: [.sortedKeys])) ?? Data()
         return String(decoding: data, as: UTF8.self)

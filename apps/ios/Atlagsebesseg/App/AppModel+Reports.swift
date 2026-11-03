@@ -129,8 +129,9 @@ extension AppModel {
     /// megy, mint a weben (AOS14 javítás); sikeres küldés után a kapu-tétel vált (`gateStartedAfter`).
     /// AW18: a „Dugó” / „Beállt” bejelentés közösségi dugó-mintát is ad (`jamSample`; a „Dugóba kerültél?” Igen-je a
     /// session-ből adja, ott `false`).
-    func sendReport(_ choice: ReportChoice, jamSample: Bool = true) {
-        guard let fix = lastFix, let row = reportFromFix(choice, fix) else { return }
+    /// AOS17: a Térképhiba a második választóból jön – az alkategóriával és a lap első koppintásakori hellyel (`fix`).
+    func sendReport(_ choice: ReportChoice, jamSample: Bool = true, subtype: MapErrorKind? = nil, fix tapped: GpsFix? = nil) {
+        guard let fix = tapped ?? lastFix, let row = reportFromFix(choice, fix, subtype: subtype) else { return }
         let label = choice.label
         reportSending = choice
         let done = { [weak self] (id: String?) in

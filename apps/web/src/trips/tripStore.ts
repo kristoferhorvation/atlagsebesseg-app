@@ -1,4 +1,4 @@
-import { mergePasses, normalizeTrip, tripPasses, TRIP, type HeatCell, type HeatPass, type Trip, type TripSample } from '@atlagsebesseg/app-logic';
+import { mergeHeatCells, mergePasses, normalizeTrip, trashExpired, trashExpiresAt, tripPasses, TRIP, type HeatCell, type HeatPass, type Trip, type TripSample } from '@atlagsebesseg/app-logic';
 
 /**
  * AW19: az utak naplójának helyi tárolója – IndexedDB (`atlagsebesseg-trips`, 1. verzió; az iOS-pár a SQLite-os
@@ -6,9 +6,11 @@ import { mergePasses, normalizeTrip, tripPasses, TRIP, type HeatCell, type HeatP
  * (automatikus kulcs, index: `tripId`; 1 Hz GPS-minták a H3-cellával – h3-js, lustán töltve). AW20 (2. verzió): `heat`
  * (kulcs: `h3`; a személyes hőtérkép cellánkénti összesítése: darabszám, átlagsebesség, utolsó idő) és `heatTrips` (kulcs: `id`;
  * melyik út van már beolvasztva – idempotencia). Szerverre innen semmi nem megy (a közösségi feltöltés külön, opt-in).
+ * AOS17 (3. verzió): `trashTrips`, `trashHeat`, `trashHeatTrips` – az „Összes törlése” 30 napig visszaállítható sorai `deletedAt`-tal
+ * (a minták a helyükön maradnak: a `samples` csak út-azonosítóval érhető el, a lejáratkor törlődnek).
  */
 const DB_NAME = 'atlagsebesseg-trips';
-const DB_VERSION = 2;
+const DB_VERSION = 3;
 
 let dbPromise: Promise<IDBDatabase> | null = null;
 
@@ -21,6 +23,9 @@ function open(): Promise<IDBDatabase> {
       if (!db.objectStoreNames.contains('samples')) db.createObjectStore('samples', { autoIncrement: true }).createIndex('tripId', 'tripId');
       if (!db.objectStoreNames.contains('heat')) db.createObjectStore('heat', { keyPath: 'h3' });
       if (!db.objectStoreNames.contains('heatTrips')) db.createObjectStore('heatTrips', { keyPath: 'id' });
+      if (!db.objectStoreNames.contains('trashTrips')) db.createObjectStore('trashTrips', { keyPath: 'id' });
+      if (!db.objectStoreNames.contains('trashHeat')) db.createObjectStore('trashHeat', { keyPath: 'h3' });
+      if (!db.objectStoreNames.contains('trashHeatTrips')) db.createObjectStore('trashHeatTrips', { keyPath: 'id' });
     };
     req.onsuccess = () => resolve(req.result);
     req.onerror = () => reject(req.error);
@@ -108,13 +113,78 @@ export async function deleteTrip(id: string): Promise<void> {
   await done(tx);
 }
 
-export async function deleteAllTrips(): Promise<void> {
+const TRASH_STORES = ['trashTrips', 'trashHeat', 'trashHeatTrips'] as const;
+type Trashed<T> = T & { deletedAt: number };
+
+/**
+ * AOS17: „Összes törlése”. `heat`: a saját hőtérkép is törlődik (külön kérdés). `keep`: 30 napig visszaállítható (a sorok a kukába
+ * kerülnek, az eddigi kuka megmarad); különben azonnal és véglegesen – a korábbi kukával együtt.
+ */
+export async function deleteAllTrips({ heat, keep, now = Date.now() }: { heat: boolean; keep: boolean; now?: number }): Promise<void> {
   const db = await open();
-  const tx = db.transaction(['trips', 'samples', 'heat', 'heatTrips'], 'readwrite');
+  const tx = db.transaction(['trips', 'samples', 'heat', 'heatTrips', ...TRASH_STORES], 'readwrite');
+  if (keep) {
+    const [trips, cells, heatTrips, oldCells] = await Promise.all([
+      result(tx.objectStore('trips').getAll() as IDBRequest<Trip[]>),
+      heat ? result(tx.objectStore('heat').getAll() as IDBRequest<HeatCell[]>) : Promise.resolve([] as HeatCell[]),
+      heat ? result(tx.objectStore('heatTrips').getAll() as IDBRequest<{ id: string }[]>) : Promise.resolve([] as { id: string }[]),
+      result(tx.objectStore('trashHeat').getAll() as IDBRequest<Trashed<HeatCell>[]>),
+    ]);
+    const old = new Map(oldCells.map((c) => [c.h3, c]));
+    for (const trip of trips) tx.objectStore('trashTrips').put({ ...trip, deletedAt: now });
+    for (const c of cells) tx.objectStore('trashHeat').put({ ...mergeHeatCells(c, old.get(c.h3)), deletedAt: now });
+    for (const x of heatTrips) tx.objectStore('trashHeatTrips').put({ id: x.id, deletedAt: now });
+  } else {
+    tx.objectStore('samples').clear();
+    for (const s of TRASH_STORES) tx.objectStore(s).clear();
+  }
   tx.objectStore('trips').clear();
-  tx.objectStore('samples').clear();
-  tx.objectStore('heat').clear();
-  tx.objectStore('heatTrips').clear();
+  if (heat) {
+    tx.objectStore('heat').clear();
+    tx.objectStore('heatTrips').clear();
+  }
+  await done(tx);
+}
+
+/** A kuka lejárt sorainak törlése (az út mintáival együtt); indításkor és a Beállítások megnyitásakor fut. */
+export async function purgeTrash(now = Date.now()): Promise<void> {
+  const db = await open();
+  const [trips, cells, heatTrips] = await Promise.all([
+    result(db.transaction('trashTrips').objectStore('trashTrips').getAll() as IDBRequest<Trashed<Trip>[]>),
+    result(db.transaction('trashHeat').objectStore('trashHeat').getAll() as IDBRequest<Trashed<HeatCell>[]>),
+    result(db.transaction('trashHeatTrips').objectStore('trashHeatTrips').getAll() as IDBRequest<Trashed<{ id: string }>[]>),
+  ]);
+  for (const trip of trips) if (trashExpired(trip.deletedAt, now)) await deleteSamplesOf(db, trip.id);
+  const tx = db.transaction([...TRASH_STORES], 'readwrite');
+  for (const trip of trips) if (trashExpired(trip.deletedAt, now)) tx.objectStore('trashTrips').delete(trip.id);
+  for (const c of cells) if (trashExpired(c.deletedAt, now)) tx.objectStore('trashHeat').delete(c.h3);
+  for (const x of heatTrips) if (trashExpired(x.deletedAt, now)) tx.objectStore('trashHeatTrips').delete(x.id);
+  await done(tx);
+}
+
+/** Meddig állítható vissza a kuka (ms); üres kukánál `null` – ilyenkor a Beállítások sora nem látszik. */
+export async function trashExpiry(now = Date.now()): Promise<number | null> {
+  const db = await open();
+  const rows = await Promise.all(TRASH_STORES.map((s) => result(db.transaction(s).objectStore(s).getAll() as IDBRequest<{ deletedAt: number }[]>)));
+  return trashExpiresAt(rows.flat().map((r) => r.deletedAt), now);
+}
+
+/** A kuka visszaállítása: az utak vissza, a hőtérkép-cellák a törlés óta keletkezettekkel összevonva, a kuka kiürül. */
+export async function restoreTrash(now = Date.now()): Promise<void> {
+  await purgeTrash(now);
+  const db = await open();
+  const tx = db.transaction(['trips', 'heat', 'heatTrips', ...TRASH_STORES], 'readwrite');
+  const [trips, cells, heatTrips, current] = await Promise.all([
+    result(tx.objectStore('trashTrips').getAll() as IDBRequest<Trashed<Trip>[]>),
+    result(tx.objectStore('trashHeat').getAll() as IDBRequest<Trashed<HeatCell>[]>),
+    result(tx.objectStore('trashHeatTrips').getAll() as IDBRequest<Trashed<{ id: string }>[]>),
+    result(tx.objectStore('heat').getAll() as IDBRequest<HeatCell[]>),
+  ]);
+  const live = new Map(current.map((c) => [c.h3, c]));
+  for (const { deletedAt: _d, ...trip } of trips) tx.objectStore('trips').put(trip);
+  for (const { deletedAt: _d, ...c } of cells) tx.objectStore('heat').put(mergeHeatCells(c, live.get(c.h3)));
+  for (const x of heatTrips) tx.objectStore('heatTrips').put({ id: x.id });
+  for (const s of TRASH_STORES) tx.objectStore(s).clear();
   await done(tx);
 }
 
