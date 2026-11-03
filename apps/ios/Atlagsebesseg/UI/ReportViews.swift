@@ -77,10 +77,10 @@ struct ReportSheet: View {
             VStack(spacing: 4) {
                 Icon(name: c.icon, size: 22)
                     .foregroundStyle(c.tone.color)
-                    .frame(width: 34, height: 34)
+                    .frame(width: 36, height: 36)
                     .background(c.tone.color.opacity(0.18), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
                 Text(c.label)
-                    .font(.inter(14, 600))
+                    .font(.inter(15, 600))
                     .foregroundStyle(Tokens.Colors.text)
                     .lineLimit(1)
                     .minimumScaleFactor(0.7)
@@ -102,13 +102,14 @@ struct ReportSheet: View {
         let disabled = !online || fix == nil || sending != nil || (c.isGate && noHeading)
         return Button { onPick(c) } label: {
             // 390 pt szélességen is egy sorban férjen a leghosszabb egyszavas felirat („Rendőrség”) – nincs szó közbeni törés
+            let box: CGFloat = c.isGate ? 36 : 44
             HStack(spacing: 10) {
                 Icon(name: c.icon)
                     .foregroundStyle(c.tone.color)
-                    .frame(width: 40, height: 40)
-                    .background(c.tone.color.opacity(0.18), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                    .frame(width: box, height: box)
+                    .background(c.tone.color.opacity(0.18), in: RoundedRectangle(cornerRadius: c.isGate ? 12 : 14, style: .continuous))
                 Text(c.label)
-                    .font(.inter(18, 600))
+                    .font(.inter(c.isGate ? 16 : 18, 600))
                     .foregroundStyle(Tokens.Colors.text)
                     .lineLimit(2)
                     .minimumScaleFactor(0.85)

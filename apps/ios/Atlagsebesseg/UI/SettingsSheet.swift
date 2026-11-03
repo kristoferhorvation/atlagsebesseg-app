@@ -27,6 +27,8 @@ struct SettingsSheet: View {
                             Text(unitLabel(.mph)).tag(SpeedUnit.mph)
                         }
                         .pickerStyle(.segmented)
+                        Toggle(t(.settingsPlanned), isOn: $model.settings.tervezettMeresek)
+                        Text(t(.settingsPlannedHint)).font(.footnote).foregroundStyle(Tokens.Colors.textMuted)
                         VStack(alignment: .leading, spacing: Tokens.Space.s2) {
                             Text(t(.settingsMap))
                             Picker(t(.settingsMap), selection: $model.settings.terkep) {
@@ -60,8 +62,6 @@ struct SettingsSheet: View {
                             }
                             .contentShape(Rectangle())
                         }
-                        Toggle(t(.settingsPlanned), isOn: $model.settings.tervezettMeresek)
-                        Text(t(.settingsPlannedHint)).font(.footnote).foregroundStyle(Tokens.Colors.textMuted)
                     }
                     // AW15: zászló + a saját nyelvén írt név, ábécérendben; az „Automatikus” legfelül – beágyazott lista, egy koppintás
                     SwiftUI.Section {
@@ -171,6 +171,9 @@ struct SettingsSheet: View {
                 }
                 .scrollContentBackground(.hidden)
                 .navigationDestination(isPresented: $tripsOpen) { TripLogView(model: model) }
+                // AOS16: az Utak naplója alatt a zóna-körök nem látszanak (mint a weben)
+                .onChange(of: tripsOpen) { _, open in model.zonesVisible = !open }
+                .onAppear { if tripsOpen { model.zonesVisible = false } }
                 .navigationDestination(isPresented: $heatDetailsOpen) { HeatDetailsView(model: model) }
                 .onAppear {
                     // `-settingsOpen language|voice`: a nyelvválasztóhoz / a hangos utasításokhoz görget (a képernyőképhez)

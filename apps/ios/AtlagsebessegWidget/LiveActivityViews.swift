@@ -8,20 +8,27 @@ import UIKit
 
 typealias LiveState = DriveActivityAttributes.ContentState
 
+/// A rendszer a 160 pt-nél magasabb lezárt képernyős / kibontott tartalmat levágja (AOS16: LiveActivityTests méri).
+let LIVE_MAX_HEIGHT: CGFloat = 160
+
 /// A lezárt képernyő: bal oldalt a térképkép (ha van), mellette az állapot tartalma; mérés + navigáció esetén a manőver egy
-/// kompakt sorban alul, teljes szélességben.
+/// kompakt sorban alul, teljes szélességben, ilyenkor a kép és az átlag kisebb, hogy minden beférjen a 160 pt-be.
 struct LockScreenView: View {
     let state: LiveState
+    /// A térképkép felülírása (galéria, mérő-teszt); `nil`: az App Group tárolóból.
+    var mapImage: UIImage?
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack(alignment: .center, spacing: 14) {
-                if let v = state.mapVersion, let img = LiveMapImage.load(v) {
-                    MapThumb(image: img, tone: state.measure?.tone.color ?? Tokens.Colors.accent)
+        let dense = state.measure != nil && state.nav != nil
+        let image = mapImage ?? state.mapVersion.flatMap(LiveMapImage.load)
+        VStack(alignment: .leading, spacing: dense ? 6 : 8) {
+            HStack(alignment: .center, spacing: 12) {
+                if let image {
+                    MapThumb(image: image, tone: state.measure?.tone.color ?? Tokens.Colors.accent, size: dense ? 62 : 84)
                 }
                 Group {
                     if let m = state.measure {
-                        MeasureBlock(m: m, figures: false)
+                        MeasureBlock(m: m, figures: false, dense: dense)
                     } else if let n = state.nav {
                         NavBlock(nav: n)
                     } else if let w = state.watch {
@@ -33,16 +40,19 @@ struct LockScreenView: View {
             // a „most · várható · hátra” sor teljes szélességben (a térképkép mellett eltörne)
             if let m = state.measure { MeasureFigures(m: m) }
             if state.measure != nil, let n = state.nav { NavLine(nav: n) }
-            // a térképkép attribúciója (a képről a logó és a felirat kikerült) – halványan, a kártya alján
-            if let a = state.attribution, state.mapVersion != nil {
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 14)
+        // a térképkép attribúciója (a képről a logó és a felirat kikerült) – halványan, az alsó margóban (nem növeli a magasságot)
+        .overlay(alignment: .bottomLeading) {
+            if let a = state.attribution, image != nil {
                 Text(a)
                     .font(.inter(8, 500))
                     .foregroundStyle(Tokens.Colors.textFaint)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.top, -6)
+                    .padding(.leading, 16)
+                    .padding(.bottom, 3)
             }
         }
-        .padding(16)
         .foregroundStyle(Tokens.Colors.text)
     }
 }
@@ -59,10 +69,10 @@ enum LiveMapImage {
 struct MapThumb: View {
     let image: UIImage
     let tone: Color
-    var size: CGFloat = 92
+    var size: CGFloat = 84
 
     var body: some View {
-        let shape = RoundedRectangle(cornerRadius: 18, style: .continuous)
+        let shape = RoundedRectangle(cornerRadius: size >= 80 ? 18 : 14, style: .continuous)
         Image(uiImage: image)
             .resizable()
             .scaledToFill()
@@ -105,7 +115,7 @@ struct WatchBlock: View {
                     Text(w.title).font(.inter(15, 620)).foregroundStyle(Tokens.Colors.textMuted).lineLimit(1)
                 }
                 HStack(alignment: .firstTextBaseline, spacing: 6) {
-                    Text(w.speed).font(.num(54, 720)).tracking(-1.5)
+                    Text(w.speed).font(.num(50, 720)).tracking(-1.5)
                         .foregroundStyle(w.speedOver ? Tokens.StatusColors.tul_gyors : Tokens.Colors.text)
                     Text(w.unit).font(.inter(16, 600)).foregroundStyle(Tokens.Colors.textMuted)
                 }
@@ -117,11 +127,11 @@ struct WatchBlock: View {
                 }
                 // AW19: a futó út, halványan (mint az üres nézet köszöntése alatt)
                 if let c = w.cruise {
-                    Text(c).font(.inter(13, 560)).foregroundStyle(Tokens.Colors.textMuted).lineLimit(1).minimumScaleFactor(0.85)
+                    Text(c).font(.num(13, 560)).foregroundStyle(Tokens.Colors.textMuted).lineLimit(1).minimumScaleFactor(0.85)
                 }
             }
             Spacer(minLength: 0)
-            if let limit = w.limit { Sign(text: limit, size: 56) }
+            if let limit = w.limit { Sign(text: limit, size: 54) }
         }
     }
 }
@@ -167,9 +177,11 @@ struct MeasureBlock: View {
     let m: DriveActivityAttributes.Measure
     /// A „most · várható · hátra” sor a blokkban (a lezárt képernyőn külön, teljes szélességben).
     var figures = true
+    /// Mérés + navigáció: kisebb átlag, a felirat mellette (a 160 pt miatt).
+    var dense = false
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
+        VStack(alignment: .leading, spacing: dense ? 0 : 4) {
             HStack(alignment: .firstTextBaseline, spacing: 8) {
                 Text(m.title).font(.inter(15, 620)).foregroundStyle(Tokens.Colors.textMuted).lineLimit(1)
                 Spacer(minLength: 0)
@@ -178,13 +190,20 @@ struct MeasureBlock: View {
                 }
             }
             HStack(alignment: .center, spacing: 10) {
-                VStack(alignment: .leading, spacing: -2) {
-                    Text(m.avg).font(.num(54, 720)).tracking(-1.5).foregroundStyle(m.tone.color).minimumScaleFactor(0.6).lineLimit(1)
-                    Text(m.avgLabel).font(.inter(14, 560)).foregroundStyle(Tokens.Colors.textMuted).lineLimit(1)
+                if dense {
+                    HStack(alignment: .firstTextBaseline, spacing: 6) {
+                        Text(m.avg).font(.num(38, 720)).tracking(-1).foregroundStyle(m.tone.color).lineLimit(1)
+                        Text(m.avgLabel).font(.inter(13, 560)).foregroundStyle(Tokens.Colors.textMuted).lineLimit(1).minimumScaleFactor(0.8)
+                    }
+                } else {
+                    VStack(alignment: .leading, spacing: -2) {
+                        Text(m.avg).font(.num(50, 720)).tracking(-1.5).foregroundStyle(m.tone.color).minimumScaleFactor(0.6).lineLimit(1)
+                        Text(m.avgLabel).font(.inter(14, 560)).foregroundStyle(Tokens.Colors.textMuted).lineLimit(1)
+                    }
                 }
                 Spacer(minLength: 0)
                 if let limit = m.limit {
-                    Sign(text: limit, size: 54)
+                    Sign(text: limit, size: dense ? 42 : 54)
                 } else if let e = m.elapsed {
                     VStack(alignment: .trailing, spacing: 2) {
                         LiveIcon(name: .stopwatch, size: 18).foregroundStyle(Tokens.Colors.textMuted)
@@ -228,17 +247,18 @@ struct NavLine: View {
 
     var body: some View {
         HStack(spacing: 8) {
-            Glyph(maneuver: nav.maneuver, size: 22).foregroundStyle(Tokens.Colors.accent)
-            Text(nav.distance).font(.num(16, 700)).foregroundStyle(Tokens.Colors.text)
+            Glyph(maneuver: nav.maneuver, size: 20).foregroundStyle(Tokens.Colors.accent)
+            Text(nav.distance).font(.num(16, 700)).foregroundStyle(Tokens.Colors.text).lineLimit(1).fixedSize()
             Text(nav.street).font(.inter(15, 560)).foregroundStyle(Tokens.Colors.textMuted).lineLimit(1)
             Spacer(minLength: 0)
             if let d = nav.delay {
-                Text(d).font(.inter(13, 650)).foregroundStyle(Tokens.Colors.near).lineLimit(1)
+                // a dugó teljesen látszik, az utcanév rövidül
+                Text(d).font(.inter(13, 650)).foregroundStyle(Tokens.Colors.near).lineLimit(1).fixedSize()
             }
-            Text(nav.eta).font(.num(15, 620)).foregroundStyle(Tokens.Colors.textMuted)
+            Text(nav.eta).font(.num(15, 620)).foregroundStyle(Tokens.Colors.textMuted).lineLimit(1).fixedSize()
         }
         .padding(.horizontal, 10)
-        .padding(.vertical, 7)
+        .padding(.vertical, 5)
         .background(Tokens.Colors.surfaceRaised, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
     }
 }
@@ -327,8 +347,16 @@ struct IslandLeading: View {
         VStack(alignment: .leading, spacing: 2) {
             if let m = state.measure {
                 Text(m.title).font(.inter(13, 620)).foregroundStyle(Tokens.Colors.textMuted).lineLimit(1)
-                Text(m.avg).font(.num(44, 720)).tracking(-1).foregroundStyle(m.tone.color).minimumScaleFactor(0.6).lineLimit(1)
-                Text(m.avgLabel).font(.inter(13, 560)).foregroundStyle(Tokens.Colors.textMuted).lineLimit(1)
+                if state.nav != nil {
+                    // mérés + navigáció: a felirat a szám mellé (a kibontott alak is legfeljebb 160 pt)
+                    HStack(alignment: .firstTextBaseline, spacing: 4) {
+                        Text(m.avg).font(.num(34, 720)).tracking(-1).foregroundStyle(m.tone.color).lineLimit(1)
+                        Text(m.avgLabel).font(.inter(13, 560)).foregroundStyle(Tokens.Colors.textMuted).lineLimit(1)
+                    }
+                } else {
+                    Text(m.avg).font(.num(44, 720)).tracking(-1).foregroundStyle(m.tone.color).minimumScaleFactor(0.6).lineLimit(1)
+                    Text(m.avgLabel).font(.inter(13, 560)).foregroundStyle(Tokens.Colors.textMuted).lineLimit(1)
+                }
             } else if let n = state.nav {
                 Glyph(maneuver: n.maneuver, size: 34).foregroundStyle(Tokens.Colors.accent)
                 Text(n.distance).font(.num(30, 720)).foregroundStyle(Tokens.Colors.text).lineLimit(1).minimumScaleFactor(0.7)
@@ -352,7 +380,7 @@ struct IslandTrailing: View {
         VStack(alignment: .trailing, spacing: 3) {
             if let m = state.measure {
                 if let limit = m.limit {
-                    Sign(text: limit, size: 52)
+                    Sign(text: limit, size: state.nav != nil ? 44 : 52)
                 } else if let e = m.elapsed {
                     LiveIcon(name: .stopwatch, size: 18).foregroundStyle(Tokens.Colors.textMuted)
                     Text(e).font(.num(26, 700)).foregroundStyle(Tokens.Colors.text).monospacedDigit()
@@ -370,12 +398,12 @@ struct IslandTrailing: View {
 }
 
 /// Kibontva, alul: mérésnél „Maradj X” + most · várható · hátra, alatta (navigáció mellett) a manőver egy sorban;
-/// navigációnál az utcanév és a dugó; figyelésnél a következő szakasz.
+/// navigációnál az utcanév és a dugó; figyelésnél a következő szakasz és a krúzing-sor.
 struct IslandBottom: View {
     let state: LiveState
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: state.nav != nil ? 5 : 8) {
             if let m = state.measure {
                 if let a = m.advice {
                     Text(a).font(.inter(15, 680)).foregroundStyle(m.tone == .jo ? Tokens.Colors.text : m.tone.color).lineLimit(1)
@@ -388,13 +416,17 @@ struct IslandBottom: View {
                     Spacer(minLength: 0)
                     if let d = n.delay { DelayPill(text: d) }
                 }
-            } else if let next = state.watch?.nextSection {
-                HStack(spacing: 6) {
-                    LiveIcon(name: .kapu_kezdo, size: 16).foregroundStyle(Tokens.Colors.accent)
-                    Text(next).font(.inter(15, 620)).foregroundStyle(Tokens.Colors.text).lineLimit(1)
+            } else if let w = state.watch {
+                if let next = w.nextSection {
+                    HStack(spacing: 6) {
+                        LiveIcon(name: .kapu_kezdo, size: 16).foregroundStyle(Tokens.Colors.accent)
+                        Text(next).font(.inter(15, 620)).foregroundStyle(Tokens.Colors.text).lineLimit(1)
+                    }
                 }
-            } else if let c = state.watch?.cruise {
-                Text(c).font(.inter(14, 560)).foregroundStyle(Tokens.Colors.textMuted).lineLimit(1)
+                // AOS16: a krúzing-sor a következő szakasz mellett is látszik
+                if let c = w.cruise {
+                    Text(c).font(.num(14, 560)).foregroundStyle(Tokens.Colors.textMuted).lineLimit(1).minimumScaleFactor(0.85)
+                }
             }
         }
         .padding(.horizontal, 6)

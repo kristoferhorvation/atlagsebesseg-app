@@ -8,6 +8,7 @@
     "generate": "tsx scripts/generate.ts",
     "secrets": "sh scripts/secrets-from-web-env.sh",
     "project": "xcodegen generate",
+    "testflight": "sh scripts/testflight.sh",
     "test": "vitest run",
     "typecheck": "tsc -p tsconfig.json"
   },

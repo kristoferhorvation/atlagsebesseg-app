@@ -3,5 +3,7 @@
 MAPBOX_ACCESS_TOKEN =
 SUPABASE_URL =
 SUPABASE_ANON_KEY =
+// AOS16: Apple Developer Team ID (aláírás valódi eszközre, TestFlight)
+DEVELOPMENT_TEAM =
 
 #include? "../Secrets.xcconfig"

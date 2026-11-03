@@ -9,8 +9,15 @@ import Foundation
 extension AppModel {
     static let heatOutboxKey = "heat:outbox:v1"
 
+    /// A várakozó feltöltési sorok törlése (a webes `clearHeatOutbox`).
+    static func clearHeatOutbox(_ defaults: UserDefaults = .standard) {
+        defaults.removeObject(forKey: heatOutboxKey)
+    }
+
     func setUpHeat() {
         let args = UserDefaults.standard
+        // mint a weben: kikapcsolt megosztásnál induláskor sem marad várakozó sor
+        if !settings.adatmegosztas { Self.clearHeatOutbox() }
         // képernyőképekhez: `-heat ki|sajat|kozossegi`, `-heatView gyakorisag|atlagsebesseg`
         if let m = args.string(forKey: "heat").flatMap(HeatMode.init(rawValue:)) { settings.hoterkep = m }
         if let v = args.string(forKey: "heatView").flatMap(HeatView.init(rawValue:)) { settings.hoterkepNezet = v }
@@ -37,13 +44,19 @@ extension AppModel {
     /// Hogy a hőtérkép most látszik-e: bekapcsolva, és csak az üres nézeten / krúzingban (nincs navigáció, útvonaltervezés,
     /// szakasz- vagy kézi mérés) – a webes `heatVisible` párja.
     var heatVisible: Bool {
-        settings.hoterkep != .ki && nav == nil && plan == nil && ![.meres, .kezi, .keziEredmeny].contains(view.phase)
+        settings.hoterkep != .ki && nav == nil && plan == nil && ![.meres, .kozeledik, .kezi, .keziEredmeny].contains(view.phase)
+    }
+
+    /// A réteg kész: látható, van nézet, és közösségi módban megjött az első válasz (a webes `heat !== null`).
+    var heatReady: Bool {
+        heatVisible && heatHasViewport && (settings.hoterkep == .sajat || heatGlobalLoaded)
     }
 
     /// A térkép látható része megváltozott (kamera-mozdulat): közösségi módban új téglalapnál lekérés.
     func setHeatViewport(_ vp: HeatViewport) {
         heatViewport = vp
-        if settings.hoterkep == .kozossegi { fetchHeatGlobal() }
+        if !heatHasViewport { heatHasViewport = true }
+        fetchHeatGlobal()
     }
 
     /// Az adatvédelmi zónák: minden mentett hely körül, helyenként a `zona_m` szerinti sugárral (alapból 500 m).
@@ -68,8 +81,8 @@ extension AppModel {
             let r = heatIndex.points(vp, settings.hoterkepNezet)
             return (r.points, r.grey)
         case .kozossegi:
-            let box = vp.bbox
-            return (globalPoints(heatGlobalRows.filter { $0.lat >= box.south && $0.lat <= box.north && $0.lon >= box.west && $0.lon <= box.east }, settings.hoterkepNezet), [])
+            // a lekért téglalap már tartalmazza a ráhagyást (+25%), mint a weben: a nézet szélén a folt nem vágódik el
+            return (globalPoints(heatGlobalRows, settings.hoterkepNezet), [])
         }
     }
 
@@ -91,39 +104,43 @@ extension AppModel {
         focusZone(id)
     }
 
+    /// Közösségi módban a látható téglalap sorai (csak látható rétegnél; a webes `useHeat` lekérése). A kész válaszra a
+    /// gyorsítótár felel: ugyanaz a téglalap 10 perc után újra lekérődik.
     func fetchHeatGlobal() {
-        guard let vp = heatViewport else { return }
+        guard settings.hoterkep == .kozossegi, heatVisible, let vp = heatViewport else { return }
         let res = heatResForZoom(vp.zoom)
         let box = heatQueryBox(vp.bbox)
         let key = heatQueryKey(box, res)
-        if key == heatGlobalKey { return }
-        heatGlobalKey = key
         if let seed = heatSeedList {
-            heatGlobalRows = heatSeedGlobal(seed, geo: H3Geo(), res: res)
-            heatVersion += 1
+            if key != heatGlobalKey { showHeatGlobal(heatSeedGlobal(seed, geo: H3Geo(), res: res), key) }
             return
         }
         if let rows = heatGlobalCache.get(key) {
-            heatGlobalRows = rows
-            heatVersion += 1
+            if key != heatGlobalKey { showHeatGlobal(rows, key) }
             return
         }
-        guard backend.configured, sim == nil else { return }
+        guard backend.configured, sim == nil, key != heatGlobalPending else { return }
+        heatGlobalPending = key
         Task { [weak self] in
             guard let self else { return }
+            defer { if self.heatGlobalPending == key { self.heatGlobalPending = nil } }
             do {
                 let rows = try await self.backend.heatGlobal(in: box, res: res)
                 self.heatGlobalCache.set(key, rows)
-                if self.heatGlobalKey == key {
-                    self.heatGlobalRows = rows
-                    self.heatVersion += 1
-                }
+                // közben újabb téglalapot kértünk: az érvényes marad, ez csak a gyorsítótárba kerül
+                if self.heatGlobalPending == key { self.showHeatGlobal(rows, key) }
             } catch {
                 // a következő mozdulat újra próbál
-                if self.heatGlobalKey == key { self.heatGlobalKey = nil }
                 NSLog("HEAT global fetch failed: %@", String(describing: error))
             }
         }
+    }
+
+    private func showHeatGlobal(_ rows: [HeatGlobalRow], _ key: String) {
+        heatGlobalKey = key
+        heatGlobalRows = rows
+        if !heatGlobalLoaded { heatGlobalLoaded = true }
+        heatVersion += 1
     }
 
     /// Egy lezárt út beolvasztása a hőtérképbe, és (bekapcsolt megosztásnál) a feltöltés-várólistába.

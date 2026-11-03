@@ -8,12 +8,15 @@ dst="$here/Secrets.xcconfig"
 [ -f "$src" ] || { echo "nincs: $src" >&2; exit 1; }
 val() { sed -n "s/^$1=//p" "$src" | tail -n 1 | sed 's/^"//; s/"$//'; }
 umask 077
+# AOS16: a Team ID nem a webes .env-ből jön – az újragenerálás megtartja
+team="$(sed -n 's/^DEVELOPMENT_TEAM = *//p' "$dst" 2>/dev/null | tail -n 1)"
 {
   echo "// GENERÁLT (scripts/secrets-from-web-env.sh) – gitignore-ban, ne commitold."
   echo "MAPBOX_ACCESS_TOKEN = $(val VITE_MAPBOX_TOKEN)"
   # az xcconfig-ban a // megjegyzés: https:// → https:/$()/
   echo "SUPABASE_URL = $(val VITE_SUPABASE_URL | sed 's#//#/$()/#')"
   echo "SUPABASE_ANON_KEY = $(val VITE_SUPABASE_ANON_KEY)"
+  echo "DEVELOPMENT_TEAM = $team"
 } > "$dst"
 for k in MAPBOX_ACCESS_TOKEN SUPABASE_URL SUPABASE_ANON_KEY; do
   if grep -q "^$k = .\+" "$dst"; then echo "$k: kitöltve"; else echo "$k: ÜRES"; fi

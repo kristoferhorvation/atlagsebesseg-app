@@ -32,6 +32,8 @@ struct StatusPills: View {
     let geo: GeoStatus
     let accuracy: Double?
     var compact = false
+    /// AOS16: nincs szerver-adat (a webes „offline” pill, semleges pont).
+    var offline = false
     var onGps: (() -> Void)?
     var onSearch: (() -> Void)?
     /// AOS14: a köszöntő felirat az üres nézeten, a kereső-gomb sora alatt (nem a térkép közepén).
@@ -109,6 +111,22 @@ struct StatusPills: View {
             .disabled(onGps == nil)
             .padding(.vertical, -10)
             .accessibilityLabel(p.text)
+            if offline {
+                HStack(spacing: Tokens.Space.s2) {
+                    Circle().fill(Tokens.StatusColors.semleges).frame(width: 8, height: 8)
+                    if !compact {
+                        Text(t(.pillOffline))
+                            .font(.inter(Tokens.Typography.caption.size, 580))
+                            .foregroundStyle(Tokens.Colors.textMuted)
+                            .lineLimit(1)
+                    }
+                }
+                .padding(.horizontal, compact ? 14 : 13)
+                .frame(height: 36)
+                .pillBackground()
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(t(.pillOffline))
+            }
             Spacer(minLength: 0)
             // AW16: a kereső kerek gombja a GPS-pill sorában, a jobb szélre zárva (mint az alsó kerek gombok)
             if let onSearch {
@@ -618,6 +636,9 @@ struct NavBottomBar: View {
             if showSpeed {
                 VStack(spacing: 0) {
                     Text(String(speedIn(currentKmh ?? 0, unit) ?? 0)).font(.num(34, 720))
+                        // a háromjegyű sebesség a 64 pt-es oszlopban sem törhet két sorba
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.75)
                         .foregroundStyle(over ? Tokens.Colors.over : Tokens.Colors.text)
                     Text(unitLabel(unit)).font(.inter(13, 560)).foregroundStyle(Tokens.Colors.textMuted)
                 }

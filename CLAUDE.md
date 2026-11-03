@@ -410,6 +410,15 @@ Gyökér: `npm test` és `npm run typecheck` minden csomagra; `npm run test:all`
     `-mapLat`, `-mapLon`, `-settingsOpen heatDetails`, `-settingsDetent medium`.
   - **iOS-javítás:** a `TripStore` user_version 2 migrációja minden indításnál újra lefutott (`duplicate column name: limit_kmh`), mert az
     `ALTER` hibája miatt a verzió nem állt át – most csak hiányzó oszlopnál fut, és a verziót külön lépésben állítja.
+- **AOS16 (2026-11-03), paritás-audit AW17–AW20, iOS a web szerint:** gombsor jobbra zárva, a tábla és a „Vissza a helyemre” külön sorban, Beállítások +
+  stopper a webes feltétellel (`!driving`, nem kézi eredmény); a tábla befejezve / megszakadt / kézi eredmény alatt is; kompakt ajánlatnál a pillek és
+  a gombsor maradnak; hőtérkép: `kozeledik` alatt rejtve, a módváltó felül a krúzing-sor alatt és csak kész rétegnél (`heatReady`), webes rétegértékek,
+  közösségi lekérés csak látható rétegnél, módváltáskor is, 10 perc után újra; a feltöltési sor a megosztás kikapcsolásakor és induláskor törlődik;
+  „Összes törlése” a kirajzolt hőtérképet is üríti (web is); a Részletek lap „Haza” / „Munka” a szótárból; a napló alatt nincs zóna-kör; Beállítások
+  sorrend; napló-térkép címkék; csempeméretek; követő kamera mérés közben 5 s után vissza (`Logic/Follow.swift`, a `followReducer` párja); offline pill;
+  szakasz-kiemelés csak mérés / közeledés alatt; háromjegyű sebesség egy sorban. **Web:** zónára álláskor kikapcsol a követés (`useFollow.release`), az
+  útvonalválasztóban nincs kereső-gomb és köszöntés. **Live Activity:** a lezárt képernyő és a kibontott Island mind az öt állapotban ≤ 160 pt
+  (`LiveActivityTests`), Islanden a krúzing-sor a következő szakasz mellett is; `-liveGallery figyel|nav|meres|meresnav|kezi` (mintaadat, csak `-livePreview` mellett).
 - **Paritási tartozás (AW12 + AW13 → iOS) lezárva az AOS12-ben (2026-10-29):** a `NavigationTests.swift` újra a
   `navigation.test.ts` teljes párja (86 = 86 `it`, azonos névvel), a webes `navSim.test.ts` 6 esete a `SimTests.swift`-ben.
   A közös Budapest→Győr fixtúra **AOS13-ban teljesen újra felvéve** méteres hangegységgel (`voice_units=metric`, mindkét
@@ -422,6 +431,21 @@ Gyökér: `npm test` és `npm run typecheck` minden csomagra; `npm run test:all`
   `-alt worth|maybe|not|aftergate|off` (a webes `?alt=`; az adat a generált navsim-fixtúrából: `sectionEndM`, `alts`),
   `-geoHelp YES` (a tiltott-lap a képernyőképhez). AW17: `-navPick N` (az útvonalválasztóban az N. útvonal kiválasztva),
   `-settingsOpen voice` (a Beállítások a hangos utasításoknál).
+
+## TestFlight (AOS16)
+- **Parancs:** `npm run ios:testflight` (build-szám +1, archive, feltöltés az Xcode Apple ID-jával); `-- --no-upload`: próba, számnövelés és
+  feltöltés nélkül; `ASC_KEY_ID` + `ASC_ISSUER_ID` (+ `ASC_KEY_PATH`): API-kulcsos mód. Napló: `apps/ios/build/testflight/<verzió>-<build>/`.
+- **Beállítások:** Team ID a gitignore-olt `Secrets.xcconfig`-ban (`DEVELOPMENT_TEAM`, az `npm run secrets` megtartja); a `project.yml`-ben
+  automatikus aláírás, egy helyen a `MARKETING_VERSION` és a `CURRENT_PROJECT_VERSION` (az Info.plist ezekből; mindkét target). Csak `generic/platform=iOS`.
+- **Miért aláírás nélküli az archive:** az automatikus aláírás archive-kor fejlesztői profilt kérne, ahhoz regisztrált eszköz kell, kézi disztribúciós
+  identitást pedig nem fogad el. Ezért `CODE_SIGNING_ALLOWED=NO`, utána ad-hoc `codesign` az entitlementekkel, a végleges aláírást az export adja.
+  Valódi iPhone-ra futtatáshoz (Debug) az eszközt egyszer csatlakoztatni kell, az Xcode ekkor regisztrálja.
+- **Képességek:** App Group `group.hu.atlagsebesseg.app` mindkét target entitlementjében; Location background és Live Activities az Info.plist-ben
+  (`UIBackgroundModes`, `NSSupportsLiveActivities`), nem entitlement. Az `ITSAppUsesNonExemptEncryption: false` miatt az export compliance kérdés nem jön.
+- **Ikon:** nem lehet alfa-csatornája (RGB PNG), különben a feltöltést elutasítják.
+- **Nyitott (2026-11-03):** az első feltöltés `App Store Connect Credentials Error` (`Actor/relationships/providerId`) hibával állt meg, kézi teendő:
+  `apps/ios/README.md` › TestFlight. A Beállítások szimulátor-sora Release-ben is megvan, és a szimulátor az éles Supabase-re küld bejelentést (AOS14):
+  külső tesztelők előtt le kell zárni.
 
 ## Web–iOS paritás (Kristof, 2026-10-30)
 - **A web a referencia:** minden webes funkció iOS-re is megy ugyanabban vagy a következő AOS-körben, kivéve a platformspecifikusat

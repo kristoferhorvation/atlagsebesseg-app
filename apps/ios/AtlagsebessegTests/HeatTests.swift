@@ -621,3 +621,19 @@ struct ZoneLocalOnlyTests {
         #expect(Set(keys) == ["avg_speed", "count", "dow", "h3", "h3_r8", "hour", "lat", "lon"])
     }
 }
+
+// AOS16: a megosztás kikapcsolása törli a várakozó sorokat (a webes `clearHeatOutbox`).
+@Suite("feltöltési sor")
+struct HeatOutboxClearTests {
+    @Test("a törlés a sort kiüríti, és a kikapcsolás a beállítás-váltáskor és induláskor is töröl")
+    func torles() throws {
+        let d = try #require(UserDefaults(suiteName: "aos16-heat-outbox"))
+        d.set("[{}]", forKey: AppModel.heatOutboxKey)
+        AppModel.clearHeatOutbox(d)
+        #expect(d.string(forKey: AppModel.heatOutboxKey) == nil)
+        let app = try String(contentsOf: Repo.iosDir.appendingPathComponent("Atlagsebesseg/App/AppModel.swift"), encoding: .utf8)
+        let heat = try String(contentsOf: Repo.iosDir.appendingPathComponent("Atlagsebesseg/App/AppModel+Heat.swift"), encoding: .utf8)
+        #expect(app.contains("if !settings.adatmegosztas { Self.clearHeatOutbox() }"))
+        #expect(heat.contains("if !settings.adatmegosztas { Self.clearHeatOutbox() }"))
+    }
+}

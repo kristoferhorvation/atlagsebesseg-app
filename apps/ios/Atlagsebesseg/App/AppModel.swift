@@ -17,6 +17,8 @@ final class AppModel {
             navSession?.setUnit(settings.egyseg)
             navSession?.setVoice(settings.hangosUtasitasok)
             if !settings.hangosUtasitasok { player.stopSpeaking() }
+            // AOS16: a megosztás kikapcsolásakor a várakozó sorok törlődnek (a már nem kért adat nem megy fel utólag)
+            if !settings.adatmegosztas { Self.clearHeatOutbox() }
         }
     }
 
@@ -36,6 +38,8 @@ final class AppModel {
     /// A tervezett mérés, amelynek vonalán / zónájában a pozíció van (a felső sáv).
     private(set) var activePlanned: PlannedCheck?
     private(set) var serverStatus: String = "–"
+    /// AOS16: nincs szerver-adat, a beépítettel megyünk (a webes „offline” pill; szimulátorban nincs).
+    var isOffline: Bool { sim == nil && serverStatus == "offline" }
     /// Nő, ha a szakasz- vagy kameralista változik (a térkép csak ekkor építi újra a rétegeit).
     private(set) var dataVersion = 0
     /// A kamera a pozíciót követi; a felhasználó mozdulata elengedi, a „Vissza a helyemre” visszaadja.
@@ -153,6 +157,11 @@ final class AppModel {
     /// A legutóbb megkapott közösségi sorok (a mostani téglalapra).
     @ObservationIgnored var heatGlobalRows: [HeatGlobalRow] = []
     @ObservationIgnored var heatGlobalKey: String?
+    /// AOS16: a futó közösségi lekérés kulcsa (ugyanarra nem indul másik; a kész válasz után ugyanaz a kulcs újra kérhet).
+    @ObservationIgnored var heatGlobalPending: String?
+    /// AOS16: a módváltó csak kész rétegnél látszik (a webes `heat !== null`).
+    var heatHasViewport = false
+    var heatGlobalLoaded = false
     /// Nő, ha a hőtérkép tartalma változott (új út, érkezett közösségi adat) – a térkép ebből tudja, hogy újra kell töltenie.
     var heatVersion = 0
     /// `-heatSeed YES`: mesterséges, több utas adat a szimulátorban (a közösségi mód is ebből, hálózat nélkül).

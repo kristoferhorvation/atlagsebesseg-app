@@ -294,7 +294,7 @@ struct TripMapView: View {
                     .lineEmissiveStrength(1)
             }
         }
-        .mapStyle(.standard(theme: .monochrome, lightPreset: StandardLightPreset(rawValue: preset.rawValue), showPointOfInterestLabels: false))
+        .mapStyle(.standard(theme: .monochrome, lightPreset: StandardLightPreset(rawValue: preset.rawValue), showPointOfInterestLabels: false, showTransitLabels: false, showPedestrianRoads: false))
         .ornamentOptions(OrnamentOptions(
             scaleBar: ScaleBarViewOptions(visibility: .hidden),
             compass: CompassViewOptions(visibility: .hidden),

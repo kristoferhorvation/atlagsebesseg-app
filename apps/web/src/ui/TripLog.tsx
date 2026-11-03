@@ -42,6 +42,7 @@ export function TripLogSheet({
   now,
   initialTripId,
   onClose,
+  onDeletedAll,
 }: {
   unit: SpeedUnit;
   /** Nő, ha új út került a naplóba (újratöltés). */
@@ -51,6 +52,7 @@ export function TripLogSheet({
   /** A szimulátor / képernyőkép: rögtön ennek az útnak a részlete (`?tripOpen=first`). */
   initialTripId?: string | null;
   onClose: () => void;
+  onDeletedAll: () => void;
 }) {
   const [trips, setTrips] = useState<Trip[] | null>(null);
   const [period, setPeriod] = useState<TripPeriod>('het');
@@ -131,7 +133,10 @@ export function TripLogSheet({
                   className="mini-btn danger"
                   onClick={() => {
                     setConfirmAll(false);
-                    void deleteAllTrips().then(reload);
+                    void deleteAllTrips().then(() => {
+                      reload();
+                      onDeletedAll();
+                    });
                   }}
                 >
                   {t('trips.delete')}

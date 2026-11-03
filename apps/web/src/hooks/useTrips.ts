@@ -118,5 +118,7 @@ export function useTrips(now: () => number, nav: NavView | null, view: SessionVi
     });
   }, [rec, result, view.section]);
 
-  return { cruise, version, onFix, tick, stop, checkpoint };
+  // AOS16: az „Összes törlése” után a hőtérkép is újratöltődik (a `version` a `useHeat` újraolvasását indítja)
+  const touch = useCallback(() => setVersion((v) => v + 1), []);
+  return { cruise, version, onFix, tick, stop, checkpoint, touch };
 }

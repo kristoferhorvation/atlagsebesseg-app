@@ -789,6 +789,7 @@ try {
   await sleep(1000);
   const pk1 = await pk.evaluate(`(() => { const o = [...document.querySelectorAll('.route-opt')]; return { tags: o.map((x) => x.querySelector('.route-opt-tag').innerText.trim()), times: o.map((x) => x.querySelector('b').innerText.trim()), checked: o.map((x) => x.getAttribute('aria-checked')), label: ${text('.route-label')} }; })()`);
   check('AW18: a „Leggyorsabb” címke és az előválasztás a gyorsabb (2.) útvonalon, nem a Directions 0. útvonalán', pk1.tags.join('|') === 'Alternatíva 1|Leggyorsabb' && pk1.checked.join('|') === 'false|true', JSON.stringify(pk1));
+  check('AOS16: az útvonalválasztóban nincs kereső-gomb és köszöntés (csak az üres nézeten)', await pk.evaluate(`!document.querySelector('.top-search') && !document.querySelector('.greeting')`));
   await pk.evaluate(`document.querySelectorAll('.route-opt')[0].click(); true`);
   await pk.waitFor(`/−1 perc/.test(${text('.route-label')})`, 10_000, 'címke a gyorsabbon').catch(() => undefined);
   const pk2 = await pk.evaluate(`({ label: ${text('.route-label')}, times: [...document.querySelectorAll('.route-opt b')].map((x) => x.innerText.trim()) })`);
@@ -1125,6 +1126,18 @@ try {
     }
     check('nincs kezeletlen JS-kivétel (AW20 hőtérkép)', [hs, hc, ho, hn, hg, hk, hp, hdt].every((x) => x.logs.length === 0), [hs, hc, ho, hn, hg, hk, hp, hdt].flatMap((x) => x.logs).join(' | '));
     await hdt.close();
+
+    // AOS16: az „Összes törlése” után a kirajzolt saját hőtérkép is azonnal ürül (nem csak a következő út végén)
+    const hx = await mk(SHOT);
+    await hx.goto('/?navsim&panel=0&heat=sajat&sheet=trips');
+    await hx.waitFor(MAP_READY, 60_000, 'térkép');
+    await hx.waitFor(heatIs(`h.n > 0`), 60_000, 'saját hőtérkép');
+    await click(hx, '.trip-delete-all .mini-btn');
+    await hx.waitFor(q('.trip-delete-all .mini-btn.danger'), 3000, 'megerősítés');
+    await click(hx, '.trip-delete-all .mini-btn.danger');
+    await hx.waitFor(heatIs(`h.n === 0`), 15_000, 'üres hőtérkép');
+    check('AOS16: „Összes törlése” után a saját hőtérkép azonnal üres', (await hx.evaluate(HEAT_STATE)).n === 0);
+    await hx.close();
   }
 
 
@@ -1163,6 +1176,8 @@ try {
     await z.evaluate(`[...document.querySelectorAll('.zone-picker[data-zone="home"] button')].find((b) => b.innerText.trim() === '1 km').click(); true`);
     await sleep(1800);
     const big = await z.evaluate(`(() => ({ grey: ${HEAT_STATE}.grey, stored: JSON.parse(localStorage.getItem('settings:v1')).zona_m }))()`);
+    // AOS16: a kamera a zónára áll: a követés kikapcsol, a „Vissza a helyemre” gomb megjelenik (nem ragad a zónán)
+    check('AOS16: zónára álláskor megjelenik a „Vissza a helyemre” gomb', await z.evaluate(`!!document.querySelector('.recenter')`));
     if (!CHECK_ONLY) await z.shot(`${DATE}-aw20j-zona-a-terkepen.png`);
     await z.evaluate(`[...document.querySelectorAll('.zone-picker[data-zone="home"] button')].find((b) => b.innerText.trim() === '200 m').click(); true`);
     await sleep(1800);

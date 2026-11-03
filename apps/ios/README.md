@@ -79,6 +79,21 @@ A `-simSeek` alatti ugrás közben jelzés nem szól (csak az állapot frissül)
 gyakorlatilag megállítja a lejátszást – a képernyőképekhez.
 A minták `CLLocation`-ként jönnek, így a mérés ugyanazon az úton fut, mint valódi GPS-sel.
 
+## TestFlight (AOS16)
+
+```sh
+npm run ios:testflight                  # a gyökérből: build-szám +1, archive, feltöltés az Xcode Apple ID-jával
+npm run ios:testflight -- --no-upload   # próba: archive + helyi export, feltöltés és számnövelés nélkül
+ASC_KEY_ID=… ASC_ISSUER_ID=… npm run ios:testflight   # API-kulccsal (ASC_KEY_PATH, alapból ~/.appstoreconnect/private_keys/AuthKey_<ID>.p8)
+```
+
+A Team ID a `Secrets.xcconfig`-ban (`DEVELOPMENT_TEAM`), a verzió és a build-szám a `project.yml`-ben. A kimenet és a naplók:
+`build/testflight/<verzió>-<build>/`. Sikeres feltöltés után a `project.yml` build-számát commitold.
+
+Első feltöltés előtt, kézzel, az [App Store Connectben](https://appstoreconnect.apple.com): belépés az Apple ID-val, a feltételek
+elfogadása, majd Apps › + › New App: iOS, név `Átlagsebesség`, elsődleges nyelv magyar, Bundle ID `hu.atlagsebesseg.app`, SKU
+`atlagsebesseg-ios`, User Access: Full Access.
+
 ## Telepítés a saját iPhone-ra (Kristof)
 
 1. Terminálban: `cd ~/Desktop/atlagsebesseg-app/apps/ios && npm run secrets && xcodegen generate`,

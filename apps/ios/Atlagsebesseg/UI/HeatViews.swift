@@ -98,8 +98,8 @@ struct HeatDetailsView: View {
     /// A zónával rendelkező helyek (a zóna-azonosító: `home`, `work`, a további helyeknél a hely azonosítója).
     private var placeList: [(id: String, name: String)] {
         var out: [(String, String)] = []
-        if let h = model.saved.home { out.append(("home", h.name)) }
-        if let w = model.saved.work { out.append(("work", w.name)) }
+        if model.saved.home != nil { out.append(("home", t(.navPlaceHome))) }
+        if model.saved.work != nil { out.append(("work", t(.navPlaceWork))) }
         out.append(contentsOf: model.saved.others.map { ($0.id, $0.name) })
         return out
     }

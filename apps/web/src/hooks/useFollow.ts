@@ -1,4 +1,4 @@
-import { useEffect, useReducer } from 'react';
+import { useCallback, useEffect, useReducer } from 'react';
 import { FOLLOW_INITIAL, followReducer, type FollowEvent, type FollowState } from '@atlagsebesseg/app-logic';
 import type { WebMapAdapter } from '../map';
 
@@ -16,5 +16,7 @@ export function useFollow(map: WebMapAdapter, measuring: boolean) {
     return () => clearInterval(id);
   }, [state.following, measuring]);
   useEffect(() => map.followUser(state.following), [map, state.following]);
-  return { following: state.following, recenter: () => dispatch({ type: 'recenter' }) };
+  // AOS16: a kamerát az app vitte el (zóna megmutatása): mint a mozdulatnál, kikapcsol, és megjelenik a „Vissza a helyemre”
+  const release = useCallback(() => dispatch({ type: 'gesture', at: Date.now() }), []);
+  return { following: state.following, recenter: () => dispatch({ type: 'recenter' }), release };
 }

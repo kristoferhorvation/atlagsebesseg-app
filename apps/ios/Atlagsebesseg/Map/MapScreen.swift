@@ -36,12 +36,14 @@ struct MapScreen: View {
     @State private var lastCenter: CLLocationCoordinate2D?
     @State private var lastFixAt: Double = 0
     @State private var cameraSeq = 0
+    @State private var lastGestureAt: Double = 0
+    @State private var gesturing = false
 
     private var view: SessionView { model.view }
     private var tone: Tone { toneOf(view) }
     private var activeId: String? {
         switch view.phase {
-        case .meres, .kozeledik, .befejezve: view.section?.id
+        case .meres, .kozeledik: view.section?.id
         default: nil
         }
     }
@@ -64,15 +66,15 @@ struct MapScreen: View {
             HeatmapLayer(id: "heat-layer", source: "heat")
                 .slot(.middle)
                 .heatmapWeight(Exp(.get) { "weight" })
-                .heatmapIntensity(Exp(.interpolate) { Exp(.linear); Exp(.zoom); 6; 0.9; 12; 1.6; 17; 2.8 })
-                .heatmapRadius(Exp(.interpolate) { Exp(.linear); Exp(.zoom); 6; 12; 11; 20; 14; 36; 17; 84 })
-                .heatmapOpacity(0.85)
+                .heatmapIntensity(Exp(.interpolate) { Exp(.linear); Exp(.zoom); 6; 0.7; 12; 1.1; 16; 1.5 })
+                .heatmapRadius(Exp(.interpolate) { Exp(.exponential) { 1.6 }; Exp(.zoom); 6; 7; 10; 13; 12; 20; 14; 32; 16; 58; 18; 110 })
+                .heatmapOpacity(0.88)
                 .heatmapColor(Self.heatColorRamp(model.settings.hoterkepNezet))
             // AW20-javítás: a zónában lévő cellák szürkén (nem színezve) – a hőtérkép fölött, a zóna-körök alatt
             GeoJSONSource(id: "heat-grey").data(.featureCollection(heatGreyFC))
             CircleLayer(id: "heat-grey-layer", source: "heat-grey")
                 .slot(.middle)
-                .circleRadius(Exp(.interpolate) { Exp(.linear); Exp(.zoom); 6; 2; 11; 5; 14; 12; 17; 30 })
+                .circleRadius(Exp(.interpolate) { Exp(.exponential) { 1.6 }; Exp(.zoom); 6; 2; 10; 4; 12; 8; 14; 14; 16; 26; 18; 48 })
                 .circleColor(UIColor(Tokens.Colors.heatGrey))
                 .circleBlur(0.6)
                 .circleOpacity(1)
@@ -275,7 +277,17 @@ struct MapScreen: View {
             logo: LogoViewOptions(position: .topLeading, margins: CGPoint(x: 12, y: 4)),
             attributionButton: AttributionButtonOptions(position: .topTrailing, margins: CGPoint(x: 12, y: 4))
         ))
-        .gestureHandlers(MapGestureHandlers(onBegin: { _ in follow = false }))
+        .gestureHandlers(MapGestureHandlers(
+            onBegin: { _ in
+                follow = false
+                gesturing = true
+                lastGestureAt = Date().timeIntervalSince1970 * 1000
+            },
+            onEnd: { _, _ in
+                gesturing = false
+                lastGestureAt = Date().timeIntervalSince1970 * 1000
+            }
+        ))
         // a térkép üres részére koppintva a nyitott kártya bezárul (a webes `onReportTap(null)`)
         .onMapTapGesture { _ in model.mapTapped() }
         // érintésre váltás az alternatív útvonalra (a vonalon is, nem csak a címkén)
@@ -322,6 +334,16 @@ struct MapScreen: View {
             guard let fix else { return }
             if follow { recenter(fix, animated: true) }
             if Int(fix.timestamp / 1000) % 10 == 0 { rebuildCameras(around: fix) }
+        }
+        // AOS16: mérés közben 5 s tétlenség után magától visszaáll (`followReducer`, a webes `useFollow`; valós órával)
+        .task(id: !follow && (view.phase == .meres || view.phase == .kezi)) {
+            guard !follow, view.phase == .meres || view.phase == .kezi else { return }
+            while !Task.isCancelled {
+                try? await Task.sleep(for: .milliseconds(500))
+                if gesturing { lastGestureAt = Date().timeIntervalSince1970 * 1000 }
+                let s = FollowState(following: follow, lastGestureAt: lastGestureAt)
+                if followReducer(s, .tick(at: Date().timeIntervalSince1970 * 1000, measuring: true)).following { follow = true }
+            }
         }
         .onChange(of: follow) { _, on in
             if on, let fix = view.lastFix { recenter(fix, animated: true) }
@@ -470,8 +492,8 @@ struct MapScreen: View {
             Exp(.linear)
             Exp(.heatmapDensity)
             0; rgba(lo, 0)
-            0.1; rgba(lo, 0.55)
-            0.5; rgba(mid, 0.75)
+            0.12; rgba(lo, 0.5)
+            0.45; rgba(mid, 0.8)
             1; rgba(hi, 0.95)
         }
     }

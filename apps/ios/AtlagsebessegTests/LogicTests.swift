@@ -253,3 +253,44 @@ struct FontTests {
         #expect(hero?[0x6F70_737A] == 32)
     }
 }
+
+// AOS16: a packages/app-logic/test/feed.test.ts `followReducer` blokkjának párja (azonos nevekkel).
+@Suite("followReducer (követés ki/be)")
+struct FollowReducerTests {
+    private let initial = FollowState(following: true, lastGestureAt: 0)
+    private func run(_ events: [FollowEvent], _ s: FollowState? = nil) -> FollowState {
+        events.reduce(s ?? initial) { followReducer($0, $1) }
+    }
+
+    @Test("mozdulat kikapcsolja, a gomb visszakapcsolja")
+    func kiBe() {
+        let off = run([.gesture(at: 1000)])
+        #expect(!off.following)
+        #expect(run([.recenter], off).following)
+    }
+
+    @Test("mérés közben 5 s tétlenség után magától visszaáll")
+    func vissza() {
+        let off = run([.gesture(at: 1000)])
+        #expect(!run([.tick(at: 5999, measuring: true)], off).following)
+        #expect(run([.tick(at: 6000, measuring: true)], off).following)
+    }
+
+    @Test("a folytatódó mozdulat újraindítja a tétlenség-órát")
+    func folytatodo() {
+        let s = run([.gesture(at: 1000), .gesture(at: 4000), .tick(at: 6500, measuring: true)])
+        #expect(!s.following)
+        #expect(run([.tick(at: 9000, measuring: true)], s).following)
+    }
+
+    @Test("mérésen kívül csak a gombra áll vissza")
+    func merésenKivul() {
+        #expect(!run([.gesture(at: 1000), .tick(at: 60_000, measuring: false)]).following)
+    }
+
+    @Test("követés közben a tick és a gomb nem változtat (ugyanaz az objektum – nincs újrarenderelés)")
+    func kovetesKozben() {
+        #expect(followReducer(initial, .tick(at: 99_999, measuring: true)) == initial)
+        #expect(followReducer(initial, .recenter) == initial)
+    }
+}

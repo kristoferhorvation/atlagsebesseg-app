@@ -66,6 +66,9 @@ extension AppModel {
     func deleteAllTrips() {
         tripStore.deleteAll()
         reloadTrips()
+        // AOS16: a kirajzolt hőtérkép is ürül (az `upsert` nem vesz ki cellát, az újraindításig látszana)
+        heatIndex.setAll(heatSeedList ?? [])
+        heatVersion += 1
     }
 
     /// Az üres nézet állapotsora („Krúzing · 12,4 km · 23 perc”), amíg az út tart.

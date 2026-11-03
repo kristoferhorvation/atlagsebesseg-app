@@ -745,14 +745,16 @@ function Drive({ map }: { map: WebMapAdapter }) {
     const id = setTimeout(() => setZonePeek(false), 6000);
     return () => clearTimeout(id);
   }, [zonePeek]);
+  const releaseFollow = follow.release;
   const showZone = useCallback(
     (z: HeatZone) => {
       setZonePeek(true);
+      releaseFollow();
       const dLat = z.radiusM / 111_195;
       const dLon = dLat / Math.max(0.2, Math.cos((z.lat * Math.PI) / 180));
       map.fitRoute({ points: [{ lat: z.lat + dLat, lon: z.lon + dLon }, { lat: z.lat - dLat, lon: z.lon - dLon }], padTop: 80, padBottom: Math.round(window.innerHeight * 0.55) });
     },
-    [map],
+    [map, releaseFollow],
   );
   // szimulátor / képernyőkép: `?heat=ki|sajat|kozossegi`, `?heatView=gyakorisag|atlagsebesseg`
   useEffect(() => {
@@ -769,7 +771,7 @@ function Drive({ map }: { map: WebMapAdapter }) {
   return (
     <>
       <StatusPills
-        onSearch={nav.view || driving || view.phase === 'kezi_eredmeny' ? undefined : () => nav.openSearch()}
+        onSearch={nav.view || nav.plan || driving || view.phase === 'kezi_eredmeny' ? undefined : () => nav.openSearch()}
         greeting={reportAlert ? undefined : greetingText(settings.megszolitas)}
         cruise={trips.cruise ? cruiseStatusText(trips.cruise, settings.egyseg) : undefined}
         geo={SIM_MODE ? 'aktiv' : geo}
@@ -980,6 +982,7 @@ function Drive({ map }: { map: WebMapAdapter }) {
           lightPreset={mapLightPreset('visszafogott', lightPreset)}
           now={now()}
           initialTripId={TRIP_OPEN}
+          onDeletedAll={trips.touch}
           onClose={() => setSheet(null)}
         />
       )}

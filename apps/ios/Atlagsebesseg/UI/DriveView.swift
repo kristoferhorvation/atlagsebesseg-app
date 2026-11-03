@@ -35,9 +35,11 @@ struct DriveView: View {
     }
     private var unit: SpeedUnit { model.settings.egyseg }
     /// A bal alsó sebességhatár-tábla navigációban, amikor a mérőkártya saját táblája nem látszik (mint a weben).
-    private var navSign: Bool { model.nav != nil && (view.phase == .nincsSzakasz || model.manualPillCollapsed) }
-    /// Mérés közbeni, kompakt „Gyorsabb út” ajánlat: a mérőkártya + egysoros sáv fölött, a 45 mp alatt a gombsor és a
-    /// pillek nélkül (a nagy mérőkártya mellett különben nem fér ki).
+    private var navSign: Bool {
+        model.nav != nil && ([.nincsSzakasz, .befejezve, .megszakadt, .keziEredmeny].contains(view.phase) || model.manualPillCollapsed)
+    }
+    /// Mérés közbeni, kompakt „Gyorsabb út” ajánlat: a mérőkártya + egysoros sáv fölött. AOS16: a gombsor és a pillek maradnak
+    /// (mint a weben; mérés + ajánlat mellett a mérőkártya úgyis egysoros, AW17).
     private var compactOffer: AlternativeOffer? { model.nav?.offer.flatMap { $0.compact ? $0 : nil } }
     /// Egysoros navigációs sáv a mérőkártya fölött a teljes felső kártya helyett (mérés közben mindig).
     private var stepStrip: Bool {
@@ -86,16 +88,20 @@ struct DriveView: View {
                     SearchPanel(model: model)
                         .transition(.opacity.combined(with: .offset(y: -12)))
                 } else {
-                    if compactOffer == nil {
-                        StatusPills(
-                            geo: model.geo,
-                            accuracy: view.lastFix?.accuracy,
-                            compact: driving || model.nav != nil,
-                            onGps: model.gpsPillTapped,
-                            onSearch: emptyView ? { model.openSearch() } : nil,
-                            greeting: emptyView && alert == nil ? greetingText(model.settings.megszolitas) : nil,
-                            cruise: emptyView && alert == nil ? model.cruiseText : nil
-                        )
+                    StatusPills(
+                        geo: model.geo,
+                        accuracy: view.lastFix?.accuracy,
+                        compact: driving || model.nav != nil,
+                        offline: model.isOffline,
+                        onGps: model.gpsPillTapped,
+                        onSearch: emptyView ? { model.openSearch() } : nil,
+                        greeting: emptyView && alert == nil ? greetingText(model.settings.megszolitas) : nil,
+                        cruise: emptyView && alert == nil ? model.cruiseText : nil
+                    )
+                    // AW20: hőtérkép-mód (Gyakoriság | Átlagsebesség) és jelmagyarázat – a krúzing-sor alatt, csak kész rétegnél (mint a weben)
+                    if model.heatReady {
+                        HeatSwitch(model: model)
+                            .transition(.opacity.combined(with: .offset(y: -12)))
                     }
                     if let nav = model.nav, !measuringLayout {
                         // sáv-módban is elrendezve (nulla magasságú keretben, rejtve), hogy a teljes kártya alja mérhető
@@ -171,6 +177,9 @@ struct DriveView: View {
             if !open { settingsDetent = .large }
         }
         .onChange(of: model.zoneFocusSeq) { settingsDetent = .medium }
+        // AOS16: közösségi módban a réteg megjelenésekor és módváltáskor is lekérés (nem csak a következő kamera-mozdulatnál)
+        .onChange(of: model.heatVisible) { model.fetchHeatGlobal() }
+        .onChange(of: model.settings.hoterkep) { model.fetchHeatGlobal() }
         .onAppear { model.zonesVisible = settingsOpen }
     }
 
@@ -224,39 +233,39 @@ struct DriveView: View {
                 .id(cam.id)
                 .transition(.opacity.combined(with: .offset(y: 12)))
         }
-        // AW20: hőtérkép-mód (Gyakoriság | Átlagsebesség) és jelmagyarázat – csak az üres nézeten / krúzingban
-        if model.heatVisible, compactOffer == nil, model.shownReport == nil, model.shownCamera == nil {
-            HeatSwitch(model: model)
-                .transition(.opacity.combined(with: .offset(y: 12)))
-        }
-        if compactOffer == nil {
+        // AOS16: mint a weben – a bal alsó tábla és a „Vissza a helyemre” külön sorban a gombsor fölött
+        let recenter = !model.follow && view.lastFix != nil
+        if navSign || recenter {
             HStack(alignment: .bottom, spacing: Tokens.Space.s3) {
                 if navSign, let nav = model.nav {
                     LimitSign(kmh: nav.limitKmh, unit: unit, small: true)
-                } else {
-                    Button { settingsOpen = true } label: { Icon(name: .sliders, size: 26) }
-                        .buttonStyle(RoundButtonStyle())
-                        .accessibilityLabel(t(.mapSettings))
                 }
                 Spacer()
-                if model.manualPillCollapsed {
-                    ManualMini(view: view, unit: unit, onExpand: model.tapManualPill)
-                }
-                if !model.follow && view.lastFix != nil {
-                    Button { model.follow = true } label: { Icon(name: .crosshair, size: 26) }
+                if recenter {
+                    Button { model.follow = true } label: { Icon(name: .crosshair, size: 28) }
                         .buttonStyle(RoundButtonStyle())
                         .accessibilityLabel(t(.mapRecenter))
                 }
-                if view.phase == .nincsSzakasz || view.phase == .kozeledik {
-                    Button { model.startManual() } label: { Icon(name: .stopwatch, size: 26) }
-                        .buttonStyle(RoundButtonStyle())
-                        .accessibilityLabel(t(.mapManualStart))
-                }
-                // AOS14: a Bejelentés menü (mint a weben: mindig a sor jobb szélén)
-                Button { model.reportSheetOpen = true } label: { Icon(name: .report, size: 28) }
-                    .buttonStyle(RoundButtonStyle())
-                    .accessibilityLabel(t(.mapReport))
             }
+        }
+        // a gombsor jobbra zárva; Beállítások és stopper mérés / közeledés / kézi eredmény közben nincs (a webes feltétel)
+        HStack(alignment: .bottom, spacing: Tokens.Space.s3) {
+            Spacer()
+            if model.manualPillCollapsed {
+                ManualMini(view: view, unit: unit, onExpand: model.tapManualPill)
+            }
+            if !driving && view.phase != .keziEredmeny {
+                Button { settingsOpen = true } label: { Icon(name: .sliders, size: 26) }
+                    .buttonStyle(RoundButtonStyle())
+                    .accessibilityLabel(t(.mapSettings))
+                Button { model.startManual() } label: { Icon(name: .stopwatch, size: 26) }
+                    .buttonStyle(RoundButtonStyle())
+                    .accessibilityLabel(t(.mapManualStart))
+            }
+            // AOS14: a Bejelentés menü (mint a weben: mindig a sor jobb szélén)
+            Button { model.reportSheetOpen = true } label: { Icon(name: .report, size: 28) }
+                .buttonStyle(RoundButtonStyle())
+                .accessibilityLabel(t(.mapReport))
         }
         if let nav = model.nav, hudCardHidden {
             if stripShown { strip(nav) }
