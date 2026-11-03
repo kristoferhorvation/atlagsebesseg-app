@@ -111,7 +111,7 @@ biztonsági zóna fölött lebeg.
   státusz színével, mellette az egység és alatta „max X” / „nem hozható” a státusz színében · „most / várható” 28 px · kis
   tábla), az ajánlat eltűnése után visszanő. **AW17-javítás:** egysoros kártyánál a külön „Lassíts · max X” / „Maradj X
   alatt” sáv NEM jelenik meg (a max érték a kártyán van); a teljes kártyával a sáv visszajön (`slowDownBarShown`). A kompakt ajánlat egy szöveg:
-  „Kijárat 56 · 2,5 km · −7 perc gyorsabb” (keskeny képernyőn tördelve, nem levágva). A manőverkártya „Utána” sora csak
+  „Kijárat 56 · 2,5 km · −7 perc gyorsabb” (keskeny képernyőn tördelve, nem levágva; ha a szöveg a gombok mellett nem kapna 120 px-et, a gombok alá kerülnek). A manőverkártya „Utána” sora csak
   5 km-en belüli következő manővernél látszik.
 - **Útvonalválasztó címke (AW17):** a „+N perc” buborék helye képernyő-pontban, az aktuális zoomon számolódik
   (`placeAltLabel`): az alternatíva saját (nem közös) szakaszának a kiválasztottól messze eső pontja mellé, fölé / alá / balra

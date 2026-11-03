@@ -51,6 +51,10 @@ enum LiveActivitySamples {
 struct LiveActivityPreview: View {
     let model: AppModel
 
+    private static let small = UIScreen.main.bounds.height < 700
+    /// A rendszer a Live Activity-t a képernyőnél kisebb szélességben rajzolja; legfeljebb 374 pt.
+    private static let cardWidth = min(374, UIScreen.main.bounds.width - 16)
+
     private var sample: LiveState? {
         let name = UserDefaults.standard.string(forKey: "liveGallery")
         return LiveActivitySamples.all.first { $0.name == name }?.state
@@ -60,13 +64,14 @@ struct LiveActivityPreview: View {
         ZStack(alignment: .top) {
             LinearGradient(colors: [Color(white: 0.16), Color(white: 0.05)], startPoint: .top, endPoint: .bottom).ignoresSafeArea()
             if let state = sample ?? model.liveState {
-                VStack(spacing: 16) {
-                    compactIsland(state).padding(.top, 11)
-                    Text("9:41").font(.num(86, 600)).foregroundStyle(.white.opacity(0.92)).padding(.top, 10)
+                // AOS17-javítás: kis képernyőn (SE: 375 × 667) is minden látszik: kisebb óra és térköz, a kártyák a képernyőn belül
+                VStack(spacing: Self.small ? 8 : 16) {
+                    compactIsland(state).padding(.top, Self.small ? 4 : 11)
+                    Text("9:41").font(.num(Self.small ? 34 : 86, 600)).foregroundStyle(.white.opacity(0.92)).padding(.top, Self.small ? 0 : 10)
                     caption("Lezárt képernyő (mock)")
                     LockScreenView(state: state, mapImage: sample == nil ? nil : LiveActivitySamples.mapImage)
                         .background(Tokens.Colors.bg.opacity(0.92), in: RoundedRectangle(cornerRadius: 24, style: .continuous))
-                        .frame(width: 374)
+                        .frame(width: Self.cardWidth)
                     caption("Dynamic Island – kibontva (mock)")
                     expandedIsland(state)
                     caption("Dynamic Island – szűk alak (fent) és minimális: ")
@@ -107,7 +112,7 @@ struct LiveActivityPreview: View {
         .padding(.horizontal, 18)
         .padding(.top, 18)
         .padding(.bottom, 16)
-        .frame(width: 370)
+        .frame(width: Self.cardWidth)
         .background(.black, in: RoundedRectangle(cornerRadius: 44, style: .continuous))
     }
 

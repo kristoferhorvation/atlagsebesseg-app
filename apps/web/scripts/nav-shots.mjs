@@ -32,7 +32,7 @@
 import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { closeChrome, launchChrome, openPage, sleep } from './cdp.mjs';
+import { closeChrome, launchChrome, openPage, sleep, VIEW_H } from './cdp.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const BASE = process.env.SHOTS_BASE ?? 'http://localhost:5173';
@@ -177,7 +177,7 @@ try {
   };
   await sampleThen();
   const sign = await p.evaluate(`(() => { const e = ${q('.sign-slot .sign')}; if (!e) return null; const r = e.getBoundingClientRect(); return { txt: e.innerText, left: r.left, bottom: r.bottom }; })()`);
-  check('a sebességhatár-tábla a bal alsó sarokban (maxspeed-annotációból)', !!sign && sign.left < 40 && sign.bottom > 600, JSON.stringify(sign));
+  check('a sebességhatár-tábla a bal alsó sarokban (maxspeed-annotációból)', !!sign && sign.left < 40 && sign.bottom > VIEW_H * 0.6, JSON.stringify(sign));
 
   // letérés → újratervezés
   for (let i = 0; i < 20 && !(await p.evaluate(`${q('.nav-top')}?.dataset.busy === 'true'`)); i++) {
@@ -805,8 +805,10 @@ try {
   await tr.waitFor(q('.nav-delay'), 120_000, '+N perc dugó');
   const tr1 = await tr.evaluate(`({ text: ${text('.nav-delay')}, color: getComputedStyle(${q('.nav-delay')}).color, voice: (window.__navVoice ?? []).filter((v) => v.kind === 'traffic').map((v) => v.text), sameLine: (() => { const d = ${q('.nav-delay')}.getBoundingClientRect(); const b = ${q('.nav-bottom-eta b')}.getBoundingClientRect(); const e = ${q('.nav-end')}.getBoundingClientRect(); return d.bottom <= b.top + 2 && Math.abs(d.left - b.left) < 2 && d.right <= e.right && d.width > 60; })() })`);
   check('AW18: a friss forgalmi lekérés után „+N perc dugó” borostyánban közvetlenül az érkezési idő fölött (teljesen látszik), hanggal', /^\+\d+ perc dugó$/.test(tr1.text) && tr1.color === 'rgb(255, 178, 36)' && tr1.sameLine && tr1.voice.some((v) => /^Dugó az útvonalon, az érkezés \d+ perccel később\.$/.test(v)), JSON.stringify(tr1));
-  await tr.waitFor(q('.nav-top .jam-ask-row'), 240_000, 'Dugóba kerültél?');
-  const tr2 = await tr.evaluate(`(() => { const top = ${q('.nav-top:not(.report-alert)')}; const row = top.querySelector('.jam-ask-row'); return { q: row.querySelector('.report-alert-q').innerText.trim(), btns: [...row.querySelectorAll('.btn')].map((b) => b.innerText.trim()), below: row.getBoundingClientRect().top >= top.querySelector('.nav-main').getBoundingClientRect().bottom - 1, amber: top.dataset.camera, voice: (window.__navVoice ?? []).filter((v) => /Dugóba kerültél/.test(v.text)).length, jam: (window.__navJam ?? []).map((x) => x.kind), pins: document.querySelectorAll('.report-pin').length }; })()`);
+  // kis képernyőn a felső kártya sávvá zsugorodik, a kérdés önálló kártyán látszik: mindig a látható sort mérjük
+  const JAM_ROW = `[...document.querySelectorAll('.nav-top .jam-ask-row')].find((e) => e.innerText.trim())`;
+  await tr.waitFor(JAM_ROW, 240_000, 'Dugóba kerültél?');
+  const tr2 = await tr.evaluate(`(() => { const row = ${JAM_ROW}; const top = row.closest('.nav-top'); return { q: row.querySelector('.report-alert-q').innerText.trim(), btns: [...row.querySelectorAll('.btn')].map((b) => b.innerText.trim()), below: !top.querySelector('.nav-main') || row.getBoundingClientRect().top >= top.querySelector('.nav-main').getBoundingClientRect().bottom - 1, amber: top.dataset.camera, voice: (window.__navVoice ?? []).filter((v) => /Dugóba kerültél/.test(v.text)).length, jam: (window.__navJam ?? []).map((x) => x.kind), pins: document.querySelectorAll('.report-pin').length }; })()`);
   check('AW18: dugóba lépéskor „Dugóba kerültél? Igen / Nem” a manőverkártya alatt (a „Még ott van?” helyén), hang egyszer, érzékelt minta', tr2.q === 'Dugóba kerültél?' && tr2.btns.join('|') === 'Igen|Nem' && tr2.below && tr2.amber === 'true' && tr2.voice === 1 && tr2.jam.includes('erzekelt'), JSON.stringify(tr2));
   await tr.evaluate(`window.__toasts = []; new MutationObserver(() => { const t = document.querySelector('.toast'); if (t) window.__toasts.push(t.innerText.trim()); }).observe(document.body, { childList: true, subtree: true }); true`);
   await tr.evaluate(`${q('.jam-ask-row .btn')}.click(); true`);

@@ -7,6 +7,8 @@ import { join } from 'node:path';
 
 export const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const SEND_TIMEOUT_MS = 180_000;
+/** A nézet mérete (`NAV_VIEW=375x667`); alapból a közepes (390 × 844). Lásd CLAUDE.md › Három képernyőméret. */
+export const [VIEW_W, VIEW_H] = (process.env.NAV_VIEW ?? '390x844').split('x').map(Number);
 const CHROME = process.env.CHROME ?? '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
 
 /** `photo`: képkészítő mód – az éles megjelenés, ezért nincs GPU-kompozitálás-kikapcsolás (DPR 3-nál az nagyon lassú). */
@@ -90,7 +92,7 @@ export async function openPage({ port, base, outDir, map = 'blank' }) {
     });
   await send('Page.enable');
   await send('Runtime.enable');
-  await send('Emulation.setDeviceMetricsOverride', { width: 390, height: 844, deviceScaleFactor: map === 'photo' ? 3 : 1, mobile: true });
+  await send('Emulation.setDeviceMetricsOverride', { width: VIEW_W, height: VIEW_H, deviceScaleFactor: map === 'photo' ? 3 : 1, mobile: true });
   if (map !== 'photo') await send('Page.addScriptToEvaluateOnNewDocument', { source: `window.__mapTest = ${JSON.stringify(map)};` });
   await send('Emulation.setTouchEmulationEnabled', { enabled: true, maxTouchPoints: 5 });
   await send('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-color-scheme', value: 'dark' }, ...(map === 'photo' ? [] : [{ name: 'prefers-reduced-motion', value: 'reduce' }])] });

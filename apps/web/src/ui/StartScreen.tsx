@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef, useState } from 'react';
+import { useLayoutEffect, useRef } from 'react';
 import { t } from '@atlagsebesseg/app-logic';
 import { Icon } from './Icon';
 
@@ -11,14 +11,14 @@ export function StartScreen({ onStart }: { onStart: () => void }) {
   const showInstallHint = isIos() && !isStandalone();
   // AOS17: a cím soha nem törik és nem vágódik le: ha nem fér ki egy sorban (DE: „Durchschnittstempo”), a betű kisebb
   const titleRef = useRef<HTMLHeadingElement>(null);
-  const [titleSize, setTitleSize] = useState<number | undefined>(undefined);
   useLayoutEffect(() => {
     const fit = () => {
       const el = titleRef.current;
       if (!el) return;
       el.style.fontSize = '';
       const full = parseFloat(getComputedStyle(el).fontSize);
-      setTitleSize(el.scrollWidth > el.clientWidth ? (full * el.clientWidth) / el.scrollWidth : undefined);
+      // közvetlenül a DOM-ra: azonos értékű state-nél a React nem írná vissza a fent törölt méretet
+      if (el.scrollWidth > el.clientWidth) el.style.fontSize = `${(full * el.clientWidth) / el.scrollWidth}px`;
     };
     fit();
     void document.fonts?.ready.then(fit);
@@ -29,9 +29,7 @@ export function StartScreen({ onStart }: { onStart: () => void }) {
     <div className="start">
       <img className="start-mark" src="/icons/icon-192.png" alt="" />
       <div>
-        <h1 ref={titleRef} style={{ fontSize: titleSize }}>
-          {t('app.name')}
-        </h1>
+        <h1 ref={titleRef}>{t('app.name')}</h1>
         <p style={{ marginTop: 10 }}>{t('start.tagline')}</p>
       </div>
       <ul>

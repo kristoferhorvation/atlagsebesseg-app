@@ -326,7 +326,7 @@ export function OfferCard({ offer, onAccept, onDecline }: { offer: AlternativeOf
         <div className="nav-offer-head">
           <div className="title nav-offer-title num">{altOfferCompactText(offer)}</div>
         </div>
-        {buttons}
+        <div className="nav-offer-actions">{buttons}</div>
       </section>
     );
   }

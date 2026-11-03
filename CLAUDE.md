@@ -468,6 +468,12 @@ Gyökér: `npm test` és `npm run typecheck` minden csomagra; `npm run test:all`
 - Paritás-körben az iOS igazodik a webhez, a webhez nem nyúl, csak kifejezett hibánál.
 - **Kör közben nem állunk meg kérdezni (Kristof, 2026-11-03):** döntünk, és a záró jelentés „Megváltozott UI” blokkjában utólag tájékoztatunk. Kérdés csak visszafordíthatatlan dolognál (adat törlése, élő tábla átnevezése).
 
+## Három képernyőméret (Kristof, 2026-11-03)
+- Minden UI-változást **három képernyőméreten** ellenőrzünk és screenshotolunk, web + iOS: **kicsi** (iPhone SE 3. gen / 375×667, a weben 320 px széles is), **közepes** (iPhone 17 Pro / 390), **nagy** (iPhone 17 Pro Max / 430).
+- Mindhárom eszköz telepítve az iOS-szimulátorban; a nav-shots mindhárom szélességen fut (`npm run nav-shots:views -w @atlagsebesseg/web`: 320×667, 375×667, 390×844, 430×932; képek: `npm run view-shots`, 320×568-on is; iOS: UDID-vel, „iPhone SE (3rd generation)”, „iPhone 17 Pro”, „iPhone 17 Pro Max”, iOS 27.0). Ami bármelyiken törik, kilóg vagy elcsúszik, az **hiba**.
+- A `view-shots` mér is, és hibakóddal áll le: kezdőképernyő mind a 6 nyelven (egy soros cím, görgetés nélkül kifér), mérőkártya és kompakt ajánlat HU és DE felirattal. A leghosszabb feliratú nyelv (DE) nélkül a szélességi hibák rejtve maradnak.
+- `xcodebuild test` frissen létrehozott szimulátoron: előbb `simctl boot` + `simctl bootstatus -b` + kb. 90 s, különben az AppTests el sem indul (a `core-swift` 89 tesztje ettől még lefut, de a teljes eredmény `TEST FAILED`).
+
 ## Kör-rendszer
 - Kör-számozás (2026-10-29-től): **AW<n>** = web, **AOS<n>** = iOS; a sorszám az eddigi A1–A10-et folytatja
   (az első ilyen kör a web AW11 és a vele párhuzamos iOS-navigáció AOS11). Az A1–A10 sorok neve marad.

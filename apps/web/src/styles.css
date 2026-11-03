@@ -449,6 +449,42 @@ select:focus-visible {
   margin-right: auto;
 }
 
+/* keskeny kijelzőn a tábla kilógna a kártyából (a német felirat a leghosszabb): kisebb tábla, 320 px-en kisebb térköz és számok is (AOS17-javítás) */
+@media (max-width: 389px) {
+  .meter-compact .sign.sm {
+    width: 62px;
+    height: 62px;
+    border-width: 6px;
+    font-size: 23px;
+  }
+}
+
+@media (max-width: 340px) {
+  .card.compact:has(.meter-compact) {
+    padding: 12px;
+  }
+
+  .meter-compact {
+    gap: 4px;
+  }
+
+  .meter-compact .compact-speed,
+  .meter-compact .meter-num {
+    font-size: 24px;
+  }
+
+  .meter-compact-side {
+    margin-left: 4px;
+  }
+
+  .meter-compact .sign.sm {
+    width: 50px;
+    height: 50px;
+    border-width: 5px;
+    font-size: 19px;
+  }
+}
+
 /* AOS13: a mérés eredménye navigáció közben egy sorban */
 .compact-speed.tone {
   color: var(--tone);
@@ -561,6 +597,24 @@ select:focus-visible {
   line-height: 1.05;
   letter-spacing: -0.03em;
   color: var(--color-text);
+}
+
+/* 320 px-en a teljes mérőkártyán a „várható” a kártya széléig érne */
+@media (max-width: 340px) {
+  .meter-line {
+    gap: 10px;
+  }
+
+  .meter-line .meter-num {
+    font-size: 38px;
+  }
+
+  .meter-line .sign.sm {
+    width: 62px;
+    height: 62px;
+    border-width: 6px;
+    font-size: 23px;
+  }
 }
 
 .meter-num[data-over='true'] {
@@ -1039,20 +1093,11 @@ button.pill::after {
   grid-column: 1 / -1;
 }
 
-/* keskeny képernyőn a felirat és a térköz enged, szót nem törünk */
+/* keskeny képernyőn a térköz enged; ami így sem fér ki, annak a felirata kisebb (ReportSheet), szót nem törünk */
 @media (max-width: 389px) {
   .tile {
     gap: 8px;
     padding: 10px 8px;
-    font-size: clamp(14px, 4.4vw, 18px);
-  }
-}
-
-@media (max-width: 340px) {
-  .tile .ic {
-    width: 36px;
-    height: 36px;
-    border-radius: 12px;
   }
 }
 
@@ -1261,8 +1306,8 @@ a.list-row {
   inset: 0;
   display: flex;
   flex-direction: column;
-  justify-content: flex-end;
   gap: 22px;
+  overflow-y: auto;
   padding: calc(env(safe-area-inset-top) + 24px) 20px calc(env(safe-area-inset-bottom) + 20px);
   background: linear-gradient(rgba(6, 7, 10, 0.1), rgba(6, 7, 10, 0.94) 52%);
   animation: fade var(--motion-slow) var(--motion-ease);
@@ -1273,6 +1318,34 @@ a.list-row {
   height: 76px;
   border-radius: 20px;
   box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
+  flex: none;
+  /* alulra zár, de a tartalom felül nem vágódhat le: ha nem fér ki, görgethető (a flex-end a teteje felé kilógna) */
+  margin-top: auto;
+}
+
+/* alacsony kijelzőn (320 × 568) a jel és a térközök kisebbek, hogy a hosszú német szöveggel is kiférjen */
+@media (max-height: 620px) {
+  .start {
+    gap: 14px;
+  }
+
+  .start-mark {
+    width: 48px;
+    height: 48px;
+    border-radius: 13px;
+  }
+
+  .start p {
+    font-size: 17px;
+  }
+
+  .start ul {
+    gap: 8px;
+  }
+
+  .start li {
+    font-size: 15px;
+  }
 }
 
 .start h1 {
@@ -2409,12 +2482,21 @@ button.nav-reroute {
   flex-direction: row;
   align-items: center;
   gap: 8px;
+  flex-wrap: wrap;
   padding: 8px 10px 8px 16px;
   border-radius: 22px;
 }
 
+/* a cím legalább 120 px-et kap: ha a gombok (nyelvfüggő szélesség) mellett nem férne ki, a gombok a szöveg alá kerülnek,
+   és ott kitöltik a sort; szó közben nem törünk (AOS17-javítás) */
 .nav-offer-compact .nav-offer-head {
-  flex: 1;
+  flex: 1000 1 120px;
+}
+
+.nav-offer-actions {
+  flex: 1 1 auto;
+  display: flex;
+  gap: 8px;
 }
 
 .nav-offer-compact .nav-offer-title {
@@ -2430,7 +2512,7 @@ button.nav-reroute {
 
 /* a gombok a tartalmuk szélességén: a `.btn` 100%-os szélessége a sorban nullára nyomná a címet és a lehajtót (AW13) */
 .nav-offer-compact .btn {
-  flex: none;
+  flex: 1 0 auto;
   width: auto;
   padding: 0 14px;
 }
