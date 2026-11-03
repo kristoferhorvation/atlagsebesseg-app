@@ -1,8 +1,8 @@
 #!/bin/sh
 # AOS16: TestFlight-build – build-szám növelése, archive (Release, generic iOS), export és feltöltés az App Store Connectbe.
 #   npm run ios:testflight                 az Xcode-ban bejelentkezett Apple ID-val
-#   ASC_KEY_ID=… ASC_ISSUER_ID=… npm run ios:testflight
-#                                          API-kulccsal (a kulcs: ASC_KEY_PATH, alapból ~/.appstoreconnect/private_keys/AuthKey_<ID>.p8)
+#   ASC_KEY_ID + ASC_ISSUER_ID a Secrets.xcconfigban (vagy környezeti változóként) -> API-kulccsal, Xcode-bejelentkezés nélkül
+#                                          (a kulcs: ASC_KEY_PATH, alapból apps/ios/secrets/AuthKey_<ID>.p8, utána ~/.appstoreconnect/private_keys/)
 #   npm run ios:testflight -- --no-upload  archive + helyi export, feltöltés és build-szám növelés nélkül (próba)
 set -eu
 here="$(cd "$(dirname "$0")/.." && pwd)"
@@ -17,10 +17,13 @@ if [ -z "$team" ]; then
   exit 1
 fi
 
-# hitelesítés (az exporthoz): API-kulcs, ha meg van adva, különben az Xcode fiókja
+# hitelesítés (az exporthoz): API-kulcs, ha meg van adva (környezet vagy Secrets.xcconfig), különben az Xcode fiókja
+ASC_KEY_ID="${ASC_KEY_ID:-$(sed -n 's/^ASC_KEY_ID = *//p' Secrets.xcconfig 2>/dev/null | tail -n 1)}"
+ASC_ISSUER_ID="${ASC_ISSUER_ID:-$(sed -n 's/^ASC_ISSUER_ID = *//p' Secrets.xcconfig 2>/dev/null | tail -n 1)}"
 set -- -allowProvisioningUpdates
 if [ -n "${ASC_KEY_ID:-}" ] && [ -n "${ASC_ISSUER_ID:-}" ]; then
-  key="${ASC_KEY_PATH:-$HOME/.appstoreconnect/private_keys/AuthKey_$ASC_KEY_ID.p8}"
+  key="${ASC_KEY_PATH:-$here/secrets/AuthKey_$ASC_KEY_ID.p8}"
+  [ -f "$key" ] || key="$HOME/.appstoreconnect/private_keys/AuthKey_$ASC_KEY_ID.p8"
   [ -f "$key" ] || { echo "Nincs meg az API-kulcs: $key" >&2; exit 1; }
   set -- "$@" -authenticationKeyID "$ASC_KEY_ID" -authenticationKeyIssuerID "$ASC_ISSUER_ID" -authenticationKeyPath "$key"
   echo "Hitelesítés: App Store Connect API-kulcs"
