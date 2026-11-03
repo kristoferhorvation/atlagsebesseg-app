@@ -22,7 +22,7 @@ settings:
     LOCALIZATION_PREFERS_STRING_CATALOGS: YES
     # AOS16: a verzió egy helyen, mindkét targetre (a build-számot az `npm run ios:testflight` növeli)
     MARKETING_VERSION: "0.1.0"
-    CURRENT_PROJECT_VERSION: "3"
+    CURRENT_PROJECT_VERSION: "4"
     # a DEVELOPMENT_TEAM a Secrets.xcconfig-ból jön (Config/App.xcconfig) – itt ne állítsd, a projekt-beállítás felülírná
     CODE_SIGN_STYLE: Automatic
 
