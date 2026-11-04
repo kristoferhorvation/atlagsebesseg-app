@@ -7,37 +7,37 @@
         "cs" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Průměrná rychlost"
+            "value" : "Rychlost Nav"
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Durchschnittstempo"
+            "value" : "Tempo Nav"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Average Speed"
+            "value" : "Avg Speed Nav"
           }
         },
         "hu" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Átlagsebesség"
+            "value" : "Átlagsebesség Nav"
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Średnia prędkość"
+            "value" : "Prędkość Nav"
           }
         },
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Priemerná rýchlosť"
+            "value" : "Rýchlosť Nav"
           }
         }
       }

@@ -185,7 +185,7 @@ final class SimLocationSource: LocationSource {
 
     /// Indulás előtt: egyetlen álló fix a megadott helyen (a webes `simIdleFix`), lejátszás nélkül.
     func hold(at p: LatLon) {
-        clockMs = Date().timeIntervalSince1970 * 1000
+        clockMs = Parity.wallMs()
         onStatus?(.sim)
         onLocation?(CLLocation(
             coordinate: CLLocationCoordinate2D(latitude: p.lat, longitude: p.lon), altitude: 0, horizontalAccuracy: 5, verticalAccuracy: -1,
@@ -198,12 +198,14 @@ final class SimLocationSource: LocationSource {
 
     func start() {
         index = 0
-        offsetMs = (Date().timeIntervalSince1970 * 1000).rounded()
+        offsetMs = Parity.wallMs().rounded()
         startMs = offsetMs
         clockMs = offsetMs
         onStatus?(.sim)
         // ugrás a `seek` hányadig (egy adott állapot azonnali megnézéséhez, mint a webes `?seek=`)
-        let until = Int((seek * Double(fixture.samples.count)).rounded(.down))
+        // AOS18: `-simAt N` a webes `?at=N` párja (pontos mintaindex)
+        let args = UserDefaults.standard
+        let until = args.object(forKey: "simAt") != nil ? args.integer(forKey: "simAt") : Int((seek * Double(fixture.samples.count)).rounded(.down))
         index = windows.last { $0 <= until } ?? 0
         // az óra az ugrás kezdőmintájához igazodik (a lejátszás ideje a mostani pillanattól folytatódik)
         if index > 0 { offsetMs -= fixture.samples[index].t }
@@ -217,6 +219,8 @@ final class SimLocationSource: LocationSource {
 
     func play() {
         timer?.invalidate()
+        // AOS18: paritás-módban a kért mintán marad (a webes képeken is áll a lejátszó)
+        guard !Parity.on else { return }
         timer = Timer.scheduledTimer(withTimeInterval: 1 / speed, repeats: true) { [weak self] _ in
             MainActor.assumeIsolated { self?.step() }
         }

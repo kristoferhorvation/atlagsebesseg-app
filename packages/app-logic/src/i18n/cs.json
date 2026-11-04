@@ -340,6 +340,7 @@
   "nav.man.arrive": "Cíl",
   "nav.man.depart": "Start",
   "ios.locationUsage": "Tvoje poloha je potřeba k rozpoznání úseků a měření průměrné rychlosti – i při zamčené obrazovce, dokud aplikace měří.",
+  "ios.displayName": "Rychlost Nav",
   "ios.geo.denied": "zamítnuto (Nastavení → Soukromí → Polohové služby)",
   "ios.start.tip.background": "Měří i při zamčené obrazovce – během měření displej nezhasne",
 
@@ -434,7 +435,7 @@
   "heat.details.no.title": "Co se neodešle",
   "heat.details.no.body": "Trasa, přesný čas, jakýkoli identifikátor (jméno, zařízení, účet), okolí uložených míst a prvních a posledních 300 m každé jízdy.",
   "heat.details.zones.title": "Chráněné zóny",
-  "heat.details.zones.body": "Kolem každého uloženého místa (Domov, Práce, další) je zóna, ve výchozím stavu 500 m. Buňky v zónách se nikdy neodešlou a na tvé vlastní teplotní mapě jsou šedé. Zóny a uložená místa jsou uložena jen v tomto zařízení.",
+  "heat.details.zones.body": "Kolem každého uloženého místa (Domov, Práce, další) je zóna, ve výchozím stavu 200 m. Buňky v zónách se nikdy neodešlou a na tvé vlastní teplotní mapě jsou šedé. Zóny a uložená místa jsou uložena jen v tomto zařízení.",
   "heat.details.noPlaces": "Zatím nejsou uložena žádná místa – můžeš je přidat v nastavení.",
   "heat.zone.label": "Chráněná zóna",
   "heat.zone.hint": "Buňky v zóně se neodešlou a na tvé vlastní teplotní mapě jsou šedé.",

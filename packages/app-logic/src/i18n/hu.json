@@ -340,6 +340,7 @@
   "nav.man.arrive": "Cél",
   "nav.man.depart": "Indulás",
   "ios.locationUsage": "A mérőszakaszok felismeréséhez és az átlagsebesség méréséhez kell a helyzeted – zárolt képernyővel is, amíg az app mér.",
+  "ios.displayName": "Átlagsebesség Nav",
   "ios.geo.denied": "tiltva (Beállítások → Adatvédelem → Helymeghatározás)",
   "ios.start.tip.background": "Zárolt képernyővel is mér – a kijelző mérés közben ébren marad",
 
@@ -434,7 +435,7 @@
   "heat.details.no.title": "Ami nem megy fel",
   "heat.details.no.body": "Az útvonal, a pontos idő, bármilyen azonosító (név, eszköz, fiók), a mentett helyek környéke, és az utak első és utolsó 300 m-e.",
   "heat.details.zones.title": "Védett zónák",
-  "heat.details.zones.body": "Minden mentett hely (Haza, Munka, egyéb) körül zóna van, alapból 500 m. A zónákban lévő cellák sosem mennek fel, a saját hőtérképen szürkén jelennek meg. A zónák és a mentett helyek csak ezen a készüléken tárolódnak.",
+  "heat.details.zones.body": "Minden mentett hely (Haza, Munka, egyéb) körül zóna van, alapból 200 m. A zónákban lévő cellák sosem mennek fel, a saját hőtérképen szürkén jelennek meg. A zónák és a mentett helyek csak ezen a készüléken tárolódnak.",
   "heat.details.noPlaces": "Még nincs mentett hely – a Beállításokban adhatsz hozzá.",
   "heat.zone.label": "Adatvédelmi zóna",
   "heat.zone.hint": "A zónában a cellák nem kerülnek fel, és szürkék a saját hőtérképen.",

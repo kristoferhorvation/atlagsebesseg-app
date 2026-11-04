@@ -64,7 +64,7 @@ struct TripLogView: View {
             }
             if model.trips.isEmpty {
                 SwiftUI.Section {
-                    Text(t(.tripsEmpty)).font(.footnote).foregroundStyle(Tokens.Colors.textMuted)
+                    Text(t(.tripsEmpty)).css(Tokens.FontSize.f15, Tokens.FontWeight.w400).foregroundStyle(Tokens.Colors.textMuted)
                 }
             } else {
                 SwiftUI.Section {
@@ -82,7 +82,7 @@ struct TripLogView: View {
                     // AOS17: külön kérdés a saját hőtérképről, „30 napig visszaállítható” alapból bepipálva (a webes `delete-all-panel`)
                     if confirmAll {
                         VStack(alignment: .leading, spacing: 14) {
-                            Text(t(.tripsDeleteAllConfirm)).font(.inter(17, 580))
+                            Text(t(.tripsDeleteAllConfirm)).font(.inter(Tokens.FontSize.f17, Tokens.FontWeight.w580))
                             CheckRow(label: t(.tripsDeleteAllHeat), isOn: $deleteHeat)
                             CheckRow(label: t(.tripsDeleteAllKeep), hint: t(keepTrash ? .tripsDeleteAllKeepHint : .tripsDeleteAllFinalHint), isOn: $keepTrash)
                             HStack(spacing: Tokens.Space.s2) {
@@ -108,7 +108,7 @@ struct TripLogView: View {
                 }
             }
             SwiftUI.Section {
-                Text(t(.tripsLocal)).font(.footnote).foregroundStyle(Tokens.Colors.textMuted)
+                Text(t(.tripsLocal)).css(Tokens.FontSize.f15, Tokens.FontWeight.w400).foregroundStyle(Tokens.Colors.textMuted)
             }
         }
         .scrollContentBackground(.hidden)
@@ -124,9 +124,9 @@ struct TripLogView: View {
 
     private func stat(_ label: String, _ value: String, big: Bool = false) -> some View {
         VStack(alignment: .leading, spacing: 2) {
-            Text(label).font(.inter(13, 560)).foregroundStyle(Tokens.Colors.textMuted)
+            Text(label).font(.inter(Tokens.FontSize.f13, Tokens.FontWeight.w560)).foregroundStyle(Tokens.Colors.textMuted)
             Text(value)
-                .font(.num(big ? 26 : 17, big ? 700 : 620))
+                .font(.num(big ? Tokens.FontSize.f26 : Tokens.FontSize.f17, big ? Tokens.FontWeight.w700 : Tokens.FontWeight.w620))
                 .foregroundStyle(Tokens.Colors.text)
                 .lineLimit(1)
                 .minimumScaleFactor(0.7)
@@ -143,13 +143,13 @@ struct TripRowView: View {
         let p = tripRowParts(trip, unit)
         HStack {
             VStack(alignment: .leading, spacing: 2) {
-                Text(tripDateText(trip.startedAt)).font(.inter(14, 520)).foregroundStyle(Tokens.Colors.textMuted)
-                Text(p.title).font(.inter(17, 600)).foregroundStyle(Tokens.Colors.text).lineLimit(1)
-                Text("\(p.distance) · \(p.duration) · \(p.avg)").font(.num(15, 560)).foregroundStyle(Tokens.Colors.textMuted)
-                Text(p.turns).font(.num(15, 560)).foregroundStyle(Tokens.Colors.textMuted)
+                Text(tripDateText(trip.startedAt)).font(.inter(Tokens.FontSize.f14, Tokens.FontWeight.w520)).foregroundStyle(Tokens.Colors.textMuted)
+                Text(p.title).font(.inter(Tokens.FontSize.f17, Tokens.FontWeight.w600)).foregroundStyle(Tokens.Colors.text).lineLimit(1)
+                Text("\(p.distance) · \(p.duration) · \(p.avg)").font(.num(Tokens.FontSize.f15, Tokens.FontWeight.w560)).foregroundStyle(Tokens.Colors.textMuted)
+                Text(p.turns).font(.num(Tokens.FontSize.f15, Tokens.FontWeight.w560)).foregroundStyle(Tokens.Colors.textMuted)
             }
             Spacer(minLength: Tokens.Space.s2)
-            Image(systemName: "chevron.right").font(.footnote).foregroundStyle(Tokens.Colors.textFaint)
+            Icon(name: .chevronRight, size: 20).foregroundStyle(Tokens.Colors.textFaint)
         }
         .contentShape(Rectangle())
     }
@@ -192,20 +192,20 @@ struct TripDetailView: View {
             }
             SwiftUI.Section(t(.tripsDChecks)) {
                 if trip.measurements.isEmpty {
-                    Text(t(.tripsDNoChecks)).font(.footnote).foregroundStyle(Tokens.Colors.textMuted)
+                    Text(t(.tripsDNoChecks)).css(Tokens.FontSize.f15, Tokens.FontWeight.w400).foregroundStyle(Tokens.Colors.textMuted)
                 }
                 ForEach(trip.measurements, id: \.at) { m in
                     HStack {
                         VStack(alignment: .leading, spacing: 2) {
                             Text(m.name).lineLimit(1)
                             Text("\(clockText(m.at)) · \(t(.tripsCheckLimit, ["v": tripSpeedText(m.limitKmh, unit)]))")
-                                .font(.footnote).foregroundStyle(Tokens.Colors.textMuted)
+                                .css(Tokens.FontSize.f15, Tokens.FontWeight.w400).foregroundStyle(Tokens.Colors.textMuted)
                         }
                         Spacer(minLength: Tokens.Space.s2)
                         VStack(alignment: .trailing, spacing: 2) {
-                            Text(tripSpeedText(m.avgKmh, unit)).font(.num(17, 650))
+                            Text(tripSpeedText(m.avgKmh, unit)).font(.num(Tokens.FontSize.f17, Tokens.FontWeight.w650))
                                 .foregroundStyle(m.tooFast ? Tokens.StatusColors.tul : Tokens.StatusColors.jo)
-                            Text(t(m.tooFast ? .tripsCheckFast : .tripsCheckOk)).font(.footnote).foregroundStyle(Tokens.Colors.textMuted)
+                            Text(t(m.tooFast ? .tripsCheckFast : .tripsCheckOk)).css(Tokens.FontSize.f15, Tokens.FontWeight.w400).foregroundStyle(Tokens.Colors.textMuted)
                         }
                     }
                 }
@@ -237,7 +237,7 @@ struct TripSpeedLegend: View {
             Capsule()
                 .fill(LinearGradient(colors: [Tokens.Colors.tripSlow, Tokens.Colors.tripMid, Tokens.Colors.tripFast], startPoint: .leading, endPoint: .trailing))
                 .frame(height: 6)
-            Text(t(hasLimit ? .tripsMapLegendLimit : .tripsMapLegendAbs)).font(.footnote).foregroundStyle(Tokens.Colors.textMuted)
+            Text(t(hasLimit ? .tripsMapLegendLimit : .tripsMapLegendAbs)).css(Tokens.FontSize.f15, Tokens.FontWeight.w400).foregroundStyle(Tokens.Colors.textMuted)
         }
         .accessibilityElement(children: .combine)
     }

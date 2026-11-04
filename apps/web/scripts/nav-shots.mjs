@@ -1162,12 +1162,12 @@ try {
       await sleep(3500);
       await z.shot(`${DATE}-aw20j-szurke-cellak.png`);
     }
-    // Beállítások: a zóna halvány körei látszanak; a mentett helyek alatt a 200 m / 500 m / 1 km választó (alap 500 m)
+    // Beállítások: a zóna halvány körei látszanak; a mentett helyek alatt a 200 m / 500 m / 1 km választó (AOS18: alap 200 m)
     await click(z, '.round-btn[aria-label="Beállítások"]');
     await z.waitFor(q('.zone-picker'), 10_000, 'zóna-választó');
     await z.waitFor(heatIs(`h.zones === 2`), 10_000, 'zóna-körök');
     const zp = await z.evaluate(`(() => ({ pickers: [...document.querySelectorAll('.zone-picker')].map((e) => e.dataset.zone + ':' + [...e.querySelectorAll('button')].map((b) => b.innerText.trim() + (b.getAttribute('aria-pressed') === 'true' ? '*' : '')).join('|')), h: ${HEAT_STATE} }))()`);
-    check('AW20j: Beállítások – a zónák halvány körei a térképen (2 mentett hely), helyenként 200 m | 500 m* | 1 km választó (alap 500 m)', zp.h.zones === 2 && zp.pickers.join(' ; ') === 'home:200 m|500 m*|1 km ; work:200 m|500 m*|1 km', JSON.stringify(zp));
+    check('AW20j: Beállítások – a zónák halvány körei a térképen (2 mentett hely), helyenként 200 m* | 500 m | 1 km választó (AOS18: alap 200 m)', zp.h.zones === 2 && zp.pickers.join(' ; ') === 'home:200 m*|500 m|1 km ; work:200 m*|500 m|1 km', JSON.stringify(zp));
     await z.evaluate(`document.querySelector('.zone-picker[data-zone="home"]').scrollIntoView({ block: 'center' }); true`);
     await z.evaluate(`[...document.querySelectorAll('.zone-picker[data-zone="home"] button')].find((b) => b.innerText.trim() === '1 km').click(); true`);
     await sleep(1800);
@@ -1315,7 +1315,7 @@ try {
     await se.send('Page.navigate', { url: `${BASE}/?navsim&panel=0&sheet=settings` });
     await se.waitFor(q('.zone-picker'), 30_000, 'zóna-választó');
     const seg = await se.evaluate(`(() => [...document.querySelectorAll('.zone-picker')].map((z) => { const s = z.querySelector('.segmented').getBoundingClientRect(); const row = z.closest('.list-row').getBoundingClientRect(); const b = [...z.querySelectorAll('button')].map((x) => x.getBoundingClientRect()); return { inside: b.every((x) => x.left >= s.left && x.right <= s.right + 0.5), inRow: s.right <= row.right && s.left >= row.left, equal: Math.abs(b[0].width - b[2].width) < 1, oneLine: new Set(b.map((x) => Math.round(x.top))).size === 1 }; }))()`);
-    check('AOS17: 320 px-en a zóna-szegmensek (az „1 km” is) a háttéren és a soron belül, egyforma szélesek', seg.length === 2 && seg.every((x) => x.inside && x.inRow && x.equal && x.oneLine), JSON.stringify(seg));
+    check('AOS17, AOS18: 320 px-en a zóna-szegmensek (az „1 km” is) a háttéren és a soron belül, egy sorban (a választó a tartalma széles, balra zárt)', seg.length === 2 && seg.every((x) => x.inside && x.inRow && x.oneLine), JSON.stringify(seg));
     const look = await se.evaluate(`(() => { const on = ${q('.segmented button[aria-pressed="true"]')}; const sw = ${q('.switch[aria-checked="true"]')}; const share = ${q('[data-testid="heat-details-row"]')}.previousElementSibling; return { seg: getComputedStyle(on).backgroundColor, sw: getComputedStyle(sw).backgroundColor, shareLine: getComputedStyle(share).borderBottomWidth, shareOn: share.querySelector('.switch').getAttribute('aria-checked'), other: getComputedStyle(${q('.list-row')}).borderBottomWidth, pageOverflow: document.documentElement.scrollWidth > innerWidth }; })()`);
     check('AOS17: a kapcsoló zöld, a kiválasztott szegmens fehér (mint eddig a weben)', look.sw === 'rgb(46, 229, 157)' && look.seg === 'rgb(244, 246, 250)', JSON.stringify(look));
     check('AOS17: a megosztás alapból BE, és a sora meg a Részletek között nincs vonal (a többi sor között van)', look.shareOn === 'true' && look.shareLine === '0px' && look.other === '1px' && !look.pageOverflow, JSON.stringify(look));

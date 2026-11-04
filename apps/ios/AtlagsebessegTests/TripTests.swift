@@ -493,7 +493,7 @@ struct TripIOSTests {
         let state = liveActivityState(SessionView(), nav: nil, unit: .kmh, cruise: cruiseFiguresText(v, unit: .kmh, lang: .hu), dirChanges: cruiseDirChangesText(v, lang: .hu), lang: .hu)
         #expect(state?.watch?.cruise == "12,4 km · 23 perc · 37 km/h")
         #expect(state?.watch?.dirChanges == "Irányváltások: 7")
-        #expect(liveActivityState(SessionView(), nav: nil, unit: .kmh, lang: .hu)?.watch?.cruise == nil)
+        #expect(liveActivityState(SessionView(), nav: nil, unit: .kmh, lang: .hu)?.watch?.cruise == "0 km · 0 perc")
     }
 
     @Test("a kis térkép kamerája: az út közepe, és a befoglaló kifér")

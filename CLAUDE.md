@@ -84,8 +84,8 @@ Gyökér: `npm test` és `npm run typecheck` minden csomagra; `npm run test:all`
   (`Generated/AppLogicConstants.swift`), a manőver-ikonok a webes `ManeuverIcon.tsx`-ből (`Generated/ManeuverIcons.swift`).
   Az `RouteFetcher` szinkron indul és `Task`-ot ad (a költségvédelem azonnal érvényes, mint a weben a Promise első
   lépése); a tesztek a `settle()`-lel várják be a választ (a webes `flush()`).
-- Navigációs UI (AOS11): a kereső **pill** felül, a GPS-pill jobb oldalán (csak az üres nézeten; AOS12: a „Kijelző ébren”
-  pill iOS-en nincs); érintésre teljes szélességű keresőmező nyílik a térkép tetején (billentyűzet, mentett címek
+- Navigációs UI (AOS11): a kereső **pill** felül, a GPS-pill jobb oldalán (csak az üres nézeten; ~~AOS12: a „Kijelző ébren”
+  pill iOS-en nincs~~ – AOS18: ugyanott van, mint a weben); érintésre teljes szélességű keresőmező nyílik a térkép tetején (billentyűzet, mentett címek
   chip-sora, az utolsó 10 cím), alul nincs kereső (Kristof, 2026-10-29). **Alternatív útvonal (AW11, AOS12-ben portolva):**
   a kiválasztott `route` 7 pt + 2 × 2 pt `routeCasing`, az alternatíva 5 pt `routeAltDay`/`routeAltNight` + 1,5 pt
   kontúr (nappal / hajnal 55/45 sötét, éjjel / alkony 70/30 világos), „+/− perc” címke (`altLabels`; AW17 óta a helye
@@ -459,6 +459,14 @@ Gyökér: `npm test` és `npm run typecheck` minden csomagra; `npm run test:all`
 - **A web a referencia:** minden webes funkció iOS-re is megy ugyanabban vagy a következő AOS-körben, kivéve a platformspecifikusat
   (CarPlay, Live Activity, böngésző-engedély és hasonló). Paritás-hiány = **tartozás**: a CLAUDE.md-ben jelöljük, és a
   zárójelentésben felsoroljuk, amíg nem zárul.
+
+## Paritás-harness (AOS18, Kristof, 2026-11-03)
+- **Új iOS-UI csak a webes komponens fájl-hivatkozásával és spec-jével** készül: a nézet kommentje nevezze meg a webes elemet (`styles.css` osztály / `apps/web/src/ui/*.tsx`), a `docs/parity/specs/<komponens>.json` tartalmazza (`packages/parity/scripts/specs.mjs` lista, `npm run parity:specs`), és az `AtlagsebessegTests/ParityTests.swift` assertáljon rá.
+- **SwiftUI-alapértelmezés tilos:** rendszer-árnyék (`.shadow` helyett `BoxShadow`, a `Tokens.Shadow`-ból), alap Mapbox puck (`Puck`), natív segmented picker (`Segmented`), alap Button-stílus, rendszer-betű (`.css` / `.inter`), rendszer-sheet a vezetési nézet lapjainál (`AppSheet`). A CSS `border` a dobozhoz adódik (`Glass`: 1 pt belül), a sormagasság a `.css(line:)`-ból jön.
+- **Literál szín / árnyék / sarok / betűméret / -súly / átlátszóság az `apps/ios`-ban tilos** (`ParityLintTests`, whitelist: `LiveActivity/LiveMap.swift`, a Mapbox-stílus azonosítói és a térképkép CPU-palettája; a `Sim/` és a `Generated/` kivétel). Új érték a `packages/design-tokens`-be kerül, utána `npm run generate -w @atlagsebesseg/ios`.
+- **`npm run parity` a kör-záró ellenőrzés része** (`packages/parity`, Playwright + pixelmatch): 18 állapot × 3 méret (SE 375×667 @2, 17 Pro 402×874 @3, Pro Max 440×956 @3), a web ugyanazzal a biztonsági zónával, rögzített órával és álló lejátszással; a térkép helyett mindkét oldalon a `parityBackdrop` szín (iOS: `-parity YES -parityNow <ms>`, `Sim/Parity.swift`), a rendszer-elemek maszkolva, a szándékos platform-eltérések szelektorral (`mask`). Küszöb: `diff-core.mjs` `THRESHOLDS` (a kép ≤ 4%, a legrosszabb 24 pt-es csempe ≤ 18%, ±2 pt-en belüli illesztéssel; mért érzékenység: 8 pt-es elcsúszástól bukik); önellenőrzés: egy kerek gomb 12 pt-es elcsúsztatásának buknia kell. A csempe-küszöböt csak a `sweep`-szerű méréssel (zaj és érzékenység együtt) szabad állítani. Diff-képek: `docs/parity/diff/`, a kör nem zárható bukó diffel. Kapcsolók: `--device`, `--state`, `--skip-web`, `--skip-ios`, `--skip-build`. A teljes futás ~25 perc: háttérben, PID-re várva (`pgrep -f` a saját figyelőt is megtalálja), a szerkesztés a futás web-fázisában tilos (HMR).
+- iOS-indítás a kapuhoz: `-simAt N` (a webes `?at=N`), `-parityNoFollow YES`, `-settingsOpen top|zone`.
+- A kép-kapu a térképi réteget nem méri: a `Puck`, a „+N perc” címke és a kamera a specekből, a tokenekből és a valódi térképes képekből (`docs/screenshots/*-aos18-*`) ellenőrizendő.
 
 ## Jóváhagyott UI (Kristof, 2026-11-03)
 - Minden felhasználónak látszó szöveg, ikon-/csempe-/betűméret és elrendezés, amit egy kör záró jelentésében elfogadtak, **befagyasztott**.

@@ -36,7 +36,7 @@ nonisolated struct Settings: Equatable, Sendable {
     var hoterkepNezet: HeatView = .gyakorisag
     /// AW20: névtelen vezetési adatok megosztása a közösségi hőtérképhez (AOS17: alapból BE).
     var adatmegosztas = true
-    /// AW20-javítás: az adatvédelmi zóna sugara (m) mentett helyenként (`home`, `work`, további hely azonosítója); hiányzó = 500 m. Csak helyben.
+    /// AW20-javítás: az adatvédelmi zóna sugara (m) mentett helyenként (`home`, `work`, további hely azonosítója); hiányzó = 200 m. Csak helyben.
     var zonaM: [String: Int] = [:]
 
     static let `default` = Settings()

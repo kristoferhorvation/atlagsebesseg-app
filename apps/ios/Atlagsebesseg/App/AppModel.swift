@@ -31,6 +31,8 @@ final class AppModel {
     var geoHelpOpen = false
     /// Az alsó kártya-csoport felső éle a képernyőn (pt) – a követő kamera ehhez igazítja a pozíció helyét (AW12).
     var hudTop: CGFloat = 0
+    /// A legfelső alsó kártya (mérőkártya, nélküle az érkezés-sáv) felső éle – navigációban ehhez igazodik a pozíció (a webes `.hud > .card`).
+    var navCardTop: CGFloat = 0
     private(set) var sections: [Section] = BundledData.sections
     private(set) var cameras: [FixedCamera] = BundledData.cameras
     /// Az összes betöltött tervezett mérés (a megjelenítéshez: `plannedShown`).
@@ -228,6 +230,8 @@ final class AppModel {
             selectedCameraId = args.string(forKey: "cameraOpen")
             // `-manual 0` navigáció nélkül (AOS15): kézi mérés indul (a Live Activity kézi állapotának képéhez)
             if navStage == nil, args.object(forKey: "manual") != nil { startManual() }
+            // `-parityNoFollow YES` (AOS18): a követés kikapcsolva – a „Vissza a helyemre” gomb látszik (a térkép elhúzásának párja)
+            if args.bool(forKey: "parityNoFollow") { follow = false }
         }
     }
 
@@ -269,7 +273,7 @@ final class AppModel {
         guard let fixture = try? SimFixture.load(scenario) else { return }
         simSections = fixture.sections
         simCameras = fixture.cameras.map(\.camera)
-        let t0 = (Date().timeIntervalSince1970 * 1000).rounded()
+        let t0 = Parity.wallMs().rounded()
         simPlanned = fixture.planned.map { $0.check(at: t0) }
         loadSimReports(fixture, t0: t0)
         resetAlerts()
@@ -422,6 +426,7 @@ final class AppModel {
 
     /// AOS15-javítás: előtérbe kerüléskor a lejárt (8 óra) vagy hiányzó Live Activity futó GPS-szel magától újraindul.
     func appBecameActive() {
+        consumeLiveNav()
         refreshLiveMap()
         liveActivity.resume(liveState)
         flushHeatOutbox()
@@ -433,7 +438,7 @@ final class AppModel {
         let fix = view.lastFix
         let next = nav == nil ? nextSectionAheadM(fix, sections) : nil
         let shown = liveMapShown(liveMap.stamp, version: liveMap.version, pos: fix.map { LatLon(lat: $0.lat, lon: $0.lon) })
-        return liveActivityState(view, nav: nav, unit: settings.egyseg, gps: started, nextSectionM: next, mapVersion: shown, cruise: cruise.map { cruiseFiguresText($0, unit: settings.egyseg) }, dirChanges: cruise.map { cruiseDirChangesText($0) })
+        return liveActivityState(view, nav: nav, unit: settings.egyseg, gps: started, nextSectionM: next, mapVersion: shown, cruise: cruise.map { cruiseFiguresText($0, unit: settings.egyseg) }, dirChanges: cruise.map { cruiseDirChangesText($0) }, savedHome: saved.home != nil, savedWork: saved.work != nil)
     }
 
     /// AOS15: új térképkép, ha esedékes – manővernél / állapotváltáskor azonnal, különben ≤ 30 s-enként és > 100 m mozgásnál.
@@ -469,6 +474,17 @@ final class AppModel {
 
     /// AOS15: a Live Activity koppintása (`atlagsebesseg://live/<cél>`) – az app a vezetési nézetre nyílik: a lapok és a
     /// kereső bezárulnak, a térkép újra követi a pozíciót (mérésnél a mérőkártya, navigációnál a manőver látszik).
+    /// AOS18: a Live Activity „Haza” / „Munka” gombja: a navigáció azonnal indul oda, az útvonalválasztó kihagyásával. Futó navigáció alatt a gombok nem látszanak.
+    func consumeLiveNav() {
+        guard let dest = LiveNavRouter.take(), nav == nil else { return }
+        guard let place = dest == LiveNavRouter.home ? saved.home : dest == LiveNavRouter.work ? saved.work : nil else { return }
+        searchOpen = false
+        reportSheetOpen = false
+        liveLinkSeq += 1
+        navStage = "nav"
+        requestPlan(place)
+    }
+
     func openLink(_ url: URL) {
         guard url.scheme == "atlagsebesseg", url.host == "live" else { return }
         reportSheetOpen = false

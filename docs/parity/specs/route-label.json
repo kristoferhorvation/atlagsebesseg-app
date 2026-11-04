@@ -1,0 +1,69 @@
+{
+  "component": "route-label",
+  "webFile": "apps/web/src/map/MapboxWebAdapter.tsx",
+  "device": {
+    "w": 402,
+    "h": 874,
+    "dpr": 3
+  },
+  "parts": {
+    "root": {
+      "selector": ".route-label",
+      "box": {
+        "x": 12.09,
+        "y": 265,
+        "w": 79.81,
+        "h": 56
+      },
+      "style": {
+        "fontSize": "12px",
+        "fontWeight": "400",
+        "lineHeight": "20px",
+        "letterSpacing": "normal",
+        "color": "rgb(244, 246, 250)",
+        "backgroundColor": "rgba(0, 0, 0, 0)",
+        "backgroundImage": "none",
+        "borderTopWidth": "0px",
+        "borderTopColor": "rgb(244, 246, 250)",
+        "borderTopLeftRadius": "0px",
+        "paddingTop": "0px",
+        "paddingRight": "0px",
+        "paddingBottom": "0px",
+        "paddingLeft": "0px",
+        "rowGap": "normal",
+        "columnGap": "normal",
+        "boxShadow": "none",
+        "opacity": "1"
+      }
+    },
+    "bubble": {
+      "selector": ".route-label-bubble",
+      "box": {
+        "x": 12.09,
+        "y": 279,
+        "w": 79.81,
+        "h": 28
+      },
+      "style": {
+        "fontSize": "15px",
+        "fontWeight": "650",
+        "lineHeight": "18px",
+        "letterSpacing": "normal",
+        "color": "rgb(11, 12, 16)",
+        "backgroundColor": "rgb(255, 255, 255)",
+        "backgroundImage": "none",
+        "borderTopWidth": "1px",
+        "borderTopColor": "rgb(26, 33, 48)",
+        "borderTopLeftRadius": "999px",
+        "paddingTop": "4px",
+        "paddingRight": "8px",
+        "paddingBottom": "4px",
+        "paddingLeft": "8px",
+        "rowGap": "normal",
+        "columnGap": "normal",
+        "boxShadow": "rgba(0, 0, 0, 0.35) 0px 3px 8px 0px",
+        "opacity": "1"
+      }
+    }
+  }
+}

@@ -7,24 +7,25 @@ struct HeatSwitch: View {
 
     var body: some View {
         let view = model.settings.hoterkepNezet
-        VStack(alignment: .leading, spacing: Tokens.Space.s1) {
+        // a webes `.heat-switch`: `.segmented.glass` (a `.segmented` háttere nyer: fehér 8%), 2 pt belső margó, a kiválasztott fehér, sötét felirattal
+        VStack(alignment: .leading, spacing: 6) {
             HStack(spacing: 0) {
                 segment(.gyakorisag, .heatViewFrequency, selected: view == .gyakorisag)
                 segment(.atlagsebesseg, .heatViewSpeed, selected: view == .atlagsebesseg)
             }
-            .padding(3)
-            .glass(radius: 22)
+            .padding(2)
+            .glass(radius: Tokens.Radius.r12, fill: Tokens.Colors.fill08)
             .accessibilityElement(children: .contain)
             .accessibilityLabel(t(.heatViewAria))
             HStack(spacing: Tokens.Space.s2) {
-                Capsule()
+                RoundedRectangle(cornerRadius: Tokens.Radius.r3, style: .continuous)
                     .fill(LinearGradient(colors: ramp(view), startPoint: .leading, endPoint: .trailing))
-                    .frame(width: 56, height: 5)
+                    .frame(width: 56, height: 6)
                 Text(t(view == .gyakorisag ? .heatLegendFrequency : .heatLegendSpeed))
-                    .font(.inter(Tokens.Typography.caption.size, 500))
+                    .css(Tokens.FontSize.f12, Tokens.FontWeight.w560)
                     .foregroundStyle(Tokens.Colors.textMuted)
             }
-            .padding(.leading, Tokens.Space.s3)
+            .padding(.leading, Tokens.Space.s1)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }
@@ -36,12 +37,12 @@ struct HeatSwitch: View {
     private func segment(_ v: HeatView, _ key: L10nKey, selected: Bool) -> some View {
         Button { model.settings.hoterkepNezet = v } label: {
             Text(t(key))
-                .font(.inter(Tokens.Typography.caption.size, 620))
-                .foregroundStyle(selected ? Tokens.Colors.text : Tokens.Colors.textMuted)
+                .css(Tokens.FontSize.f14, Tokens.FontWeight.w620)
+                .foregroundStyle(selected ? Tokens.Colors.signText : Tokens.Colors.textMuted)
                 .padding(.horizontal, Tokens.Space.s3)
-                .frame(minHeight: 36)
-                .background(selected ? Tokens.Colors.surfaceRaised : .clear, in: Capsule())
-                .contentShape(Capsule())
+                .frame(height: 30)
+                .background(selected ? Tokens.Colors.text : .clear, in: RoundedRectangle(cornerRadius: Tokens.Radius.r9, style: .continuous))
+                .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
         .accessibilityAddTraits(selected ? .isSelected : [])
@@ -55,12 +56,14 @@ struct ZoneRadiusRow: View {
     let id: String
 
     var body: some View {
-        VStack(alignment: .leading, spacing: Tokens.Space.s1) {
-            Text(t(.heatZoneLabel)).font(.footnote).foregroundStyle(Tokens.Colors.textMuted)
-            // AOS17: mindhárom szegmens a háttéren belül, 320 pt-en is (a sor teljes szélességében)
-            Segmented(options: [(200, t(.heatZone200)), (500, t(.heatZone500)), (1000, t(.heatZone1000))], selection: Binding(get: { model.zoneRadius(id) }, set: { model.setZoneRadius(id, $0) }), compact: true)
+        // AOS18: a webes `.zone-picker` – a név + gombok sora alatt, kisebb, balra zárt, a tartalma széles (web és iOS azonos)
+        VStack(alignment: .leading, spacing: 6) {
+            Text(t(.heatZoneLabel)).css(Tokens.FontSize.f14, Tokens.FontWeight.w400, line: 1.35).foregroundStyle(Tokens.Colors.textMuted).padding(.top, 3)
+            Segmented(options: [(200, t(.heatZone200)), (500, t(.heatZone500)), (1000, t(.heatZone1000))], selection: Binding(get: { model.zoneRadius(id) }, set: { model.setZoneRadius(id, $0) }), stretch: false, compact: true)
                 .accessibilityLabel(t(.heatZoneLabel))
         }
+        .id("zone-\(id)")
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 }
 
@@ -68,27 +71,34 @@ struct ZoneRadiusRow: View {
 /// (a webes `HeatDetails` párja).
 struct HeatDetailsView: View {
     @Bindable var model: AppModel
+    var onClose: () -> Void = {}
 
     var body: some View {
-        Form {
-            SwiftUI.Section(t(.heatDetailsUpTitle)) { Text(t(.heatDetailsUpBody)) }
-            SwiftUI.Section(t(.heatDetailsNoTitle)) { Text(t(.heatDetailsNoBody)) }
-            SwiftUI.Section(t(.heatDetailsZonesTitle)) {
-                Text(t(.heatDetailsZonesBody))
+        // a webes `HeatDetailsSheet`: lap-fej, csoportcímek, kártyás sorok
+        VStack(alignment: .leading, spacing: 0) {
+            SheetHead(title: t(.heatDetailsTitle), onClose: onClose)
+            GroupLabel(text: t(.heatDetailsUpTitle))
+            ListCard { RowText(label: t(.heatDetailsUpBody)).listRow() }
+            GroupLabel(text: t(.heatDetailsNoTitle))
+            ListCard { RowText(label: t(.heatDetailsNoBody)).listRow() }
+            GroupLabel(text: t(.heatDetailsZonesTitle))
+            ListCard {
+                RowText(label: t(.heatDetailsZonesBody)).listRow()
                 let places = placeList
                 if places.isEmpty {
-                    Text(t(.heatDetailsNoPlaces)).font(.footnote).foregroundStyle(Tokens.Colors.textMuted)
+                    RowDivider()
+                    RowText(label: t(.heatDetailsNoPlaces)).listRow()
                 }
                 ForEach(places, id: \.id) { p in
-                    VStack(alignment: .leading, spacing: Tokens.Space.s1) {
-                        Text(p.name).lineLimit(1)
+                    RowDivider()
+                    VStack(alignment: .leading, spacing: 14) {
+                        Text(p.name).css(Tokens.FontSize.f17, Tokens.FontWeight.w580).foregroundStyle(Tokens.Colors.text).lineLimit(1)
                         ZoneRadiusRow(model: model, id: p.id)
                     }
+                    .listRow()
                 }
             }
         }
-        .navigationTitle(t(.heatDetailsTitle))
-        .navigationBarTitleDisplayMode(.inline)
     }
 
     /// A zónával rendelkező helyek (a zóna-azonosító: `home`, `work`, a további helyeknél a hely azonosítója).

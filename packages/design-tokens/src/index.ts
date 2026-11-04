@@ -56,6 +56,14 @@ export const color = {
   signRing: '#E5303F',
   signFace: '#FFFFFF',
   signText: '#0B0C10',
+  /** AOS18: a webes `rgba(255,255,255,x)` kitöltések (szegmens tok, kis gomb, gomb) és a pill / lap háttere. */
+  fill08: 'rgba(255,255,255,0.08)',
+  fill09: 'rgba(255,255,255,0.09)',
+  fill10: 'rgba(255,255,255,0.10)',
+  pillSurface: 'rgba(16,18,24,0.6)',
+  sheetBackdrop: 'rgba(0,0,0,0.45)',
+  /** AOS18: a paritás-kapu képein a térkép helyén álló egyszínű háttér (`npm run parity`, csak képkészítéshez). */
+  parityBackdrop: '#4A5568',
 } as const;
 
 export type ColorToken = keyof typeof color;
@@ -102,12 +110,37 @@ export const space = { 1: 4, 2: 8, 3: 12, 4: 16, 5: 20, 6: 24, 8: 32, 10: 40, 12
 
 export const radius = { button: 14, tile: 22, card: 32, pill: 999 } as const;
 
+/**
+ * AOS18: az iOS literál-tilalmához (AppTests-őr): a webes `styles.css` méretei tokenként. A `f20` = 20 px; a típus-lépcső (`type`) a szerep, ez a skála.
+ * Új méret csak ide kerülhet; a web a saját CSS-ét megtartja, a paritás-kapu veti össze a kettőt.
+ */
+export const fontSize = { f8: 8, f12: 12, f13: 13, f14: 14, f15: 15, f16: 16, f17: 17, f18: 18, f19: 19, f20: 20, f22: 22, f23: 23, f24: 24, f26: 26, f28: 28, f30: 30, f32: 32, f34: 34, f36: 36, f38: 38, f40: 40, f44: 44, f46: 46, f50: 50, f64: 64 } as const;
+
+export const fontWeight = { w400: 400, w500: 500, w520: 520, w540: 540, w560: 560, w580: 580, w600: 600, w620: 620, w640: 640, w650: 650, w680: 680, w700: 700, w720: 720, w760: 760 } as const;
+
+/** AOS18: a komponensek saját sarkai (`styles.css`); a `radius` a szerepek. */
+export const radiusScale = { r3: 3, r8: 8, r9: 9, r10: 10, r12: 12, r14: 14, r16: 16, r18: 18, r20: 20, r22: 22, r24: 24, r26: 26, r28: 28, r999: 999 } as const;
+
+/** AOS18: az átlátszóságok skálája (`o45` = 45%). */
+export const opacity = { o09: 0.09, o10: 0.1, o12: 0.12, o14: 0.14, o16: 0.16, o17: 0.17, o18: 0.18, o22: 0.22, o24: 0.24, o25: 0.25, o28: 0.28, o35: 0.35, o40: 0.4, o45: 0.45, o50: 0.5, o55: 0.55, o60: 0.6, o70: 0.7, o72: 0.72, o78: 0.78, o85: 0.85, o90: 0.9, o92: 0.92, o94: 0.94 } as const;
+
+/** AOS18: a tónus-színű fények CSS-elmosása (px): `text-shadow` a nagy számon, a progress kitöltése, a pill pontja, a bejelentés-jelölő. */
+export const glow = { hero: 40, progress: 18, dot: 10, reportPin: 14 } as const;
+
 export const size = { touch: 56, roundButton: 64, progress: 10, tile: 76 } as const;
 
-export const blur = { glass: 28 } as const;
+export const blur = { glass: 28, backdrop: 3 } as const;
 
 export const shadow = {
   card: '0 24px 60px -12px rgba(0,0,0,0.65), 0 2px 8px rgba(0,0,0,0.35)',
+  /** AOS18: a többi webes `box-shadow` (styles.css), hogy az iOS ugyanezekből rajzoljon. */
+  sign: '0 8px 24px rgba(0,0,0,0.45)',
+  knob: '0 2px 6px rgba(0,0,0,0.35)',
+  startMark: '0 12px 40px rgba(0,0,0,0.5)',
+  cameraPin: '0 4px 10px rgba(0,0,0,0.45)',
+  routeLabel: '0 3px 8px rgba(0,0,0,0.35)',
+  puck: '0 4px 14px rgba(0,0,0,0.5)',
+  reportPin: '0 6px 18px rgba(0,0,0,0.5)',
 } as const;
 
 export const motion = {
@@ -121,7 +154,7 @@ export const motion = {
   easePoints: [0.2, 0.8, 0.2, 1],
 } as const;
 
-export const tokens = { color, statusColor, font, type, space, radius, size, blur, shadow, motion } as const;
+export const tokens = { color, statusColor, font, type, space, radius, radiusScale, fontSize, fontWeight, opacity, glow, size, blur, shadow, motion } as const;
 
 const kebab = (s: string) => s.replace(/[A-Z]/g, (c) => `-${c.toLowerCase()}`);
 
@@ -212,7 +245,15 @@ export function toSwift(): string {
   L.push('    }', '', '    enum Space {');
   for (const [k, v] of Object.entries(space)) L.push(`        static let ${swiftName(k)}: CGFloat = ${num(v)}`);
   L.push('    }', '', '    enum Radius {');
-  for (const [k, v] of Object.entries(radius)) L.push(`        static let ${k}: CGFloat = ${num(v)}`);
+  for (const [k, v] of Object.entries({ ...radius, ...radiusScale })) L.push(`        static let ${k}: CGFloat = ${num(v)}`);
+  L.push('    }', '', '    /// Betűméret (pt) és -súly (AOS18: az iOS-en literál tilos, AppTests-őr).', '    enum FontSize {');
+  for (const [k, v] of Object.entries(fontSize)) L.push(`        static let ${k}: CGFloat = ${num(v)}`);
+  L.push('    }', '', '    enum FontWeight {');
+  for (const [k, v] of Object.entries(fontWeight)) L.push(`        static let ${k}: CGFloat = ${num(v)}`);
+  L.push('    }', '', '    enum Opacity {');
+  for (const [k, v] of Object.entries(opacity)) L.push(`        static let ${k}: Double = ${num(v)}`);
+  L.push('    }', '', '    /// A SwiftUI `shadow(radius:)` a CSS-elmosás fele.', '    enum Glow {');
+  for (const [k, v] of Object.entries(glow)) L.push(`        static let ${k}: CGFloat = ${num(v / 2)}`);
   L.push('    }', '', '    enum Size {');
   for (const [k, v] of Object.entries(size)) L.push(`        static let ${k}: CGFloat = ${num(v)}`);
   L.push('    }', '', '    enum Blur {');

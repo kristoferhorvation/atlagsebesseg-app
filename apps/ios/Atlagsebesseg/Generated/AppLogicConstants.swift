@@ -138,7 +138,7 @@ nonisolated enum HEAT {
     static let querySnapDeg = 0.05
     static let queryLimit = 5000.0
     static let outboxMax = 2000.0
-    static let zoneDefaultM = 500.0
+    static let zoneDefaultM = 200.0
     static let zoneMarginM = 70.0
     static let zoneMarginCoarseM = 470.0
     static let serverMinRows = 3.0

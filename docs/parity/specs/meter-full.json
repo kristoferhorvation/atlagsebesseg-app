@@ -1,0 +1,243 @@
+{
+  "component": "meter-full",
+  "webFile": "apps/web/src/ui/Hud.tsx",
+  "device": {
+    "w": 402,
+    "h": 874,
+    "dpr": 3
+  },
+  "parts": {
+    "root": {
+      "selector": ".hud > .card",
+      "box": {
+        "x": 12,
+        "y": 322.05,
+        "w": 378,
+        "h": 411.95
+      },
+      "style": {
+        "fontSize": "20px",
+        "fontWeight": "400",
+        "lineHeight": "normal",
+        "letterSpacing": "normal",
+        "color": "rgb(244, 246, 250)",
+        "backgroundColor": "rgba(14, 16, 22, 0.72)",
+        "backgroundImage": "linear-gradient(color(srgb 1 0.698039 0.141176 / 0.09), color(srgb 1 0.698039 0.141176 / 0.09))",
+        "borderTopWidth": "1px",
+        "borderTopColor": "rgba(255, 255, 255, 0.08)",
+        "borderTopLeftRadius": "32px",
+        "paddingTop": "22px",
+        "paddingRight": "22px",
+        "paddingBottom": "22px",
+        "paddingLeft": "22px",
+        "rowGap": "14px",
+        "columnGap": "14px",
+        "boxShadow": "rgba(0, 0, 0, 0.65) 0px 24px 60px -12px, rgba(0, 0, 0, 0.35) 0px 2px 8px 0px, rgba(255, 255, 255, 0.06) 0px 1px 0px 0px inset",
+        "opacity": "1"
+      }
+    },
+    "chip": {
+      "selector": ".hud > .card .chip",
+      "box": {
+        "x": 35,
+        "y": 345.05,
+        "w": 178.44,
+        "h": 40
+      },
+      "style": {
+        "fontSize": "20px",
+        "fontWeight": "640",
+        "lineHeight": "normal",
+        "letterSpacing": "-0.1px",
+        "color": "rgb(255, 178, 36)",
+        "backgroundColor": "color(srgb 1 0.698039 0.141176 / 0.17)",
+        "backgroundImage": "none",
+        "borderTopWidth": "0px",
+        "borderTopColor": "rgb(255, 178, 36)",
+        "borderTopLeftRadius": "999px",
+        "paddingTop": "0px",
+        "paddingRight": "16px",
+        "paddingBottom": "0px",
+        "paddingLeft": "11px",
+        "rowGap": "8px",
+        "columnGap": "8px",
+        "boxShadow": "none",
+        "opacity": "1"
+      }
+    },
+    "hero": {
+      "selector": ".hud > .card .hero",
+      "box": {
+        "x": 27.41,
+        "y": 401.05,
+        "w": 339.59,
+        "h": 151.95
+      },
+      "style": {
+        "fontSize": "168.84px",
+        "fontWeight": "680",
+        "lineHeight": "151.956px",
+        "letterSpacing": "-7.5978px",
+        "color": "rgb(255, 178, 36)",
+        "backgroundColor": "rgba(0, 0, 0, 0)",
+        "backgroundImage": "none",
+        "borderTopWidth": "0px",
+        "borderTopColor": "rgb(255, 178, 36)",
+        "borderTopLeftRadius": "0px",
+        "paddingTop": "0px",
+        "paddingRight": "0px",
+        "paddingBottom": "0px",
+        "paddingLeft": "0px",
+        "rowGap": "normal",
+        "columnGap": "normal",
+        "boxShadow": "none",
+        "opacity": "1"
+      }
+    },
+    "unit": {
+      "selector": ".hud > .card .hero-unit",
+      "box": {
+        "x": 35,
+        "y": 561,
+        "w": 332,
+        "h": 26
+      },
+      "style": {
+        "fontSize": "20px",
+        "fontWeight": "500",
+        "lineHeight": "26px",
+        "letterSpacing": "normal",
+        "color": "rgba(244, 246, 250, 0.64)",
+        "backgroundColor": "rgba(0, 0, 0, 0)",
+        "backgroundImage": "none",
+        "borderTopWidth": "0px",
+        "borderTopColor": "rgba(244, 246, 250, 0.64)",
+        "borderTopLeftRadius": "0px",
+        "paddingTop": "0px",
+        "paddingRight": "0px",
+        "paddingBottom": "0px",
+        "paddingLeft": "0px",
+        "rowGap": "normal",
+        "columnGap": "normal",
+        "boxShadow": "none",
+        "opacity": "1"
+      }
+    },
+    "sign": {
+      "selector": ".hud > .card .sign",
+      "box": {
+        "x": 35,
+        "y": 601,
+        "w": 72,
+        "h": 72
+      },
+      "style": {
+        "fontSize": "26px",
+        "fontWeight": "760",
+        "lineHeight": "normal",
+        "letterSpacing": "-1.3px",
+        "color": "rgb(11, 12, 16)",
+        "backgroundColor": "rgb(255, 255, 255)",
+        "backgroundImage": "none",
+        "borderTopWidth": "7px",
+        "borderTopColor": "rgb(229, 48, 63)",
+        "borderTopLeftRadius": "50%",
+        "paddingTop": "0px",
+        "paddingRight": "0px",
+        "paddingBottom": "0px",
+        "paddingLeft": "0px",
+        "rowGap": "normal",
+        "columnGap": "normal",
+        "boxShadow": "rgba(0, 0, 0, 0.45) 0px 8px 24px 0px",
+        "opacity": "1"
+      }
+    },
+    "num": {
+      "selector": ".hud > .card .meter-num",
+      "box": {
+        "x": 121,
+        "y": 624.91,
+        "w": 54.25,
+        "h": 46.19
+      },
+      "style": {
+        "fontSize": "44px",
+        "fontWeight": "700",
+        "lineHeight": "46.2px",
+        "letterSpacing": "-1.32px",
+        "color": "rgb(244, 246, 250)",
+        "backgroundColor": "rgba(0, 0, 0, 0)",
+        "backgroundImage": "none",
+        "borderTopWidth": "0px",
+        "borderTopColor": "rgb(244, 246, 250)",
+        "borderTopLeftRadius": "0px",
+        "paddingTop": "0px",
+        "paddingRight": "0px",
+        "paddingBottom": "0px",
+        "paddingLeft": "0px",
+        "rowGap": "normal",
+        "columnGap": "normal",
+        "boxShadow": "none",
+        "opacity": "1"
+      }
+    },
+    "progress": {
+      "selector": ".hud > .card .progress",
+      "box": {
+        "x": 35,
+        "y": 694,
+        "w": 234,
+        "h": 10
+      },
+      "style": {
+        "fontSize": "20px",
+        "fontWeight": "400",
+        "lineHeight": "normal",
+        "letterSpacing": "normal",
+        "color": "rgb(244, 246, 250)",
+        "backgroundColor": "rgba(255, 255, 255, 0.09)",
+        "backgroundImage": "none",
+        "borderTopWidth": "0px",
+        "borderTopColor": "rgb(244, 246, 250)",
+        "borderTopLeftRadius": "999px",
+        "paddingTop": "0px",
+        "paddingRight": "0px",
+        "paddingBottom": "0px",
+        "paddingLeft": "0px",
+        "rowGap": "normal",
+        "columnGap": "normal",
+        "boxShadow": "none",
+        "opacity": "1"
+      }
+    },
+    "progressLabel": {
+      "selector": ".hud > .card .progress-label",
+      "box": {
+        "x": 283,
+        "y": 687,
+        "w": 84,
+        "h": 24
+      },
+      "style": {
+        "fontSize": "20px",
+        "fontWeight": "620",
+        "lineHeight": "normal",
+        "letterSpacing": "normal",
+        "color": "rgba(244, 246, 250, 0.64)",
+        "backgroundColor": "rgba(0, 0, 0, 0)",
+        "backgroundImage": "none",
+        "borderTopWidth": "0px",
+        "borderTopColor": "rgba(244, 246, 250, 0.64)",
+        "borderTopLeftRadius": "0px",
+        "paddingTop": "0px",
+        "paddingRight": "0px",
+        "paddingBottom": "0px",
+        "paddingLeft": "0px",
+        "rowGap": "normal",
+        "columnGap": "normal",
+        "boxShadow": "none",
+        "opacity": "1"
+      }
+    }
+  }
+}

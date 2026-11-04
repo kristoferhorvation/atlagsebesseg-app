@@ -39,7 +39,7 @@ export const HEAT = {
   /** A feltöltésre váró sorok maximuma (offline gyűjtés). */
   outboxMax: 2000,
   /** Adatvédelmi zóna: alapsugár (m) és a választható sugarak. */
-  zoneDefaultM: 500,
+  zoneDefaultM: 200,
   /** A cella középpontja ennyivel (m) a zónasugáron túl is még „a zónában” van (a res-10 cella éle ~66 m; res 8: ~460 m). */
   zoneMarginM: 70,
   zoneMarginCoarseM: 470,
@@ -67,7 +67,7 @@ export function parseZoneRadii(raw: unknown): Record<string, number> {
   return out;
 }
 
-/** Minden mentett hely (Haza, Munka, további) körül egy zóna; a sugár helyenként állítható, alapból 500 m. */
+/** Minden mentett hely (Haza, Munka, további) körül egy zóna; a sugár helyenként állítható, alapból 200 m (AOS18). */
 export function heatZones(saved: SavedPlaces, radii: Readonly<Record<string, number>>): HeatZone[] {
   const at = (id: string, p: { lat: number; lon: number }): HeatZone => ({ id, lat: p.lat, lon: p.lon, radiusM: ZONE_RADII.includes(radii[id] ?? 0) ? radii[id]! : HEAT.zoneDefaultM });
   return [...(saved.home ? [at('home', saved.home)] : []), ...(saved.work ? [at('work', saved.work)] : []), ...saved.others.map((p) => at(p.id, p))];

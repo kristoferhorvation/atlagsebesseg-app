@@ -1,0 +1,156 @@
+{
+  "component": "manual-card",
+  "webFile": "apps/web/src/ui/Hud.tsx",
+  "device": {
+    "w": 402,
+    "h": 874,
+    "dpr": 3
+  },
+  "parts": {
+    "root": {
+      "selector": ".hud > .card",
+      "box": {
+        "x": 12,
+        "y": 460.05,
+        "w": 378,
+        "h": 367.95
+      },
+      "style": {
+        "fontSize": "20px",
+        "fontWeight": "400",
+        "lineHeight": "normal",
+        "letterSpacing": "normal",
+        "color": "rgb(244, 246, 250)",
+        "backgroundColor": "rgba(14, 16, 22, 0.72)",
+        "backgroundImage": "none",
+        "borderTopWidth": "1px",
+        "borderTopColor": "rgba(255, 255, 255, 0.08)",
+        "borderTopLeftRadius": "32px",
+        "paddingTop": "22px",
+        "paddingRight": "22px",
+        "paddingBottom": "22px",
+        "paddingLeft": "22px",
+        "rowGap": "14px",
+        "columnGap": "14px",
+        "boxShadow": "rgba(0, 0, 0, 0.65) 0px 24px 60px -12px, rgba(0, 0, 0, 0.35) 0px 2px 8px 0px, rgba(255, 255, 255, 0.06) 0px 1px 0px 0px inset",
+        "opacity": "1"
+      }
+    },
+    "chip": {
+      "selector": ".hud > .card .chip",
+      "box": {
+        "x": 35,
+        "y": 483.05,
+        "w": 212.61,
+        "h": 40
+      },
+      "style": {
+        "fontSize": "20px",
+        "fontWeight": "640",
+        "lineHeight": "normal",
+        "letterSpacing": "-0.1px",
+        "color": "rgb(122, 134, 255)",
+        "backgroundColor": "color(srgb 0.478431 0.52549 1 / 0.17)",
+        "backgroundImage": "none",
+        "borderTopWidth": "0px",
+        "borderTopColor": "rgb(122, 134, 255)",
+        "borderTopLeftRadius": "999px",
+        "paddingTop": "0px",
+        "paddingRight": "16px",
+        "paddingBottom": "0px",
+        "paddingLeft": "11px",
+        "rowGap": "8px",
+        "columnGap": "8px",
+        "boxShadow": "none",
+        "opacity": "1"
+      }
+    },
+    "time": {
+      "selector": ".hud > .card .title",
+      "box": {
+        "x": 306.81,
+        "y": 486.95,
+        "w": 60.19,
+        "h": 32.19
+      },
+      "style": {
+        "fontSize": "28px",
+        "fontWeight": "620",
+        "lineHeight": "32.2px",
+        "letterSpacing": "-0.42px",
+        "color": "rgba(244, 246, 250, 0.64)",
+        "backgroundColor": "rgba(0, 0, 0, 0)",
+        "backgroundImage": "none",
+        "borderTopWidth": "0px",
+        "borderTopColor": "rgba(244, 246, 250, 0.64)",
+        "borderTopLeftRadius": "0px",
+        "paddingTop": "0px",
+        "paddingRight": "0px",
+        "paddingBottom": "0px",
+        "paddingLeft": "0px",
+        "rowGap": "normal",
+        "columnGap": "normal",
+        "boxShadow": "none",
+        "opacity": "1"
+      }
+    },
+    "hero": {
+      "selector": ".hud > .card .hero",
+      "box": {
+        "x": 27.41,
+        "y": 539.05,
+        "w": 339.59,
+        "h": 151.95
+      },
+      "style": {
+        "fontSize": "168.84px",
+        "fontWeight": "680",
+        "lineHeight": "151.956px",
+        "letterSpacing": "-7.5978px",
+        "color": "rgb(122, 134, 255)",
+        "backgroundColor": "rgba(0, 0, 0, 0)",
+        "backgroundImage": "none",
+        "borderTopWidth": "0px",
+        "borderTopColor": "rgb(122, 134, 255)",
+        "borderTopLeftRadius": "0px",
+        "paddingTop": "0px",
+        "paddingRight": "0px",
+        "paddingBottom": "0px",
+        "paddingLeft": "0px",
+        "rowGap": "normal",
+        "columnGap": "normal",
+        "boxShadow": "none",
+        "opacity": "1"
+      }
+    },
+    "stop": {
+      "selector": ".hud > .card .btn.danger",
+      "box": {
+        "x": 35,
+        "y": 745,
+        "w": 332,
+        "h": 60
+      },
+      "style": {
+        "fontSize": "20px",
+        "fontWeight": "620",
+        "lineHeight": "normal",
+        "letterSpacing": "normal",
+        "color": "rgb(255, 255, 255)",
+        "backgroundColor": "rgb(255, 77, 97)",
+        "backgroundImage": "none",
+        "borderTopWidth": "0px",
+        "borderTopColor": "rgb(255, 255, 255)",
+        "borderTopLeftRadius": "18px",
+        "paddingTop": "0px",
+        "paddingRight": "0px",
+        "paddingBottom": "0px",
+        "paddingLeft": "0px",
+        "rowGap": "10px",
+        "columnGap": "10px",
+        "boxShadow": "none",
+        "opacity": "1"
+      }
+    }
+  }
+}

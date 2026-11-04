@@ -35,6 +35,7 @@ nonisolated func nextSectionAheadM(_ fix: GpsFix?, _ sections: [Section], maxM: 
 /// accent színben és az idő, limit nélkül. `nextSectionM`: a következő ismert szakasz (navigáció nélkül, `nextSectionAheadM`).
 nonisolated func liveActivityState(
     _ view: SessionView, nav: NavView?, unit: SpeedUnit, gps: Bool = true, nextSectionM: Double? = nil, mapVersion: Int? = nil, cruise: String? = nil, dirChanges: String? = nil,
+    savedHome: Bool = false, savedWork: Bool = false,
     lang: Lang? = nil
 ) -> DriveActivityAttributes.ContentState? {
     guard gps else { return nil }
@@ -109,8 +110,11 @@ nonisolated func liveActivityState(
             limit: nil,
             speedOver: false,
             nextSection: nextSectionM.map { t(.iosLiveNextSection, ["d": dist($0, unit, lang)], lang: lang) },
-            cruise: cruise,
-            dirChanges: dirChanges
+            // AOS18: a „figyel” állapot soha nem üres: mozgás előtt „0 km · 0 perc”
+            cruise: cruise ?? cruiseIdleText(unit, lang: lang),
+            dirChanges: dirChanges,
+            homeLabel: savedHome ? t(.navPlaceHome, lang: lang) : nil,
+            workLabel: savedWork ? t(.navPlaceWork, lang: lang) : nil
         )
     }
     return .init(measure: measure, nav: navState, watch: watch, mapVersion: mapVersion, attribution: mapVersion.map { _ in t(.iosLiveAttribution, lang: lang) })

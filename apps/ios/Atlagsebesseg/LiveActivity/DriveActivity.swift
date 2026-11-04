@@ -1,4 +1,5 @@
 import ActivityKit
+import AppIntents
 import Foundation
 
 // AOS14: a Live Activity (lezárt képernyő + Dynamic Island) adatai. Az app és a widget-kiterjesztés is fordítja
@@ -81,6 +82,9 @@ nonisolated struct DriveActivityAttributes: ActivityAttributes {
         var cruise: String? = nil
         /// AOS17: „Irányváltások: 7” – a futó út irányváltásai.
         var dirChanges: String? = nil
+        /// AOS18: a „Haza” / „Munka” gomb felirata, ha a hely mentve van (navigáció közben a teljes „figyel” blokk, vele a gombok is eltűnnek).
+        var homeLabel: String? = nil
+        var workLabel: String? = nil
     }
 }
 
@@ -89,6 +93,43 @@ extension DriveActivityAttributes.ContentState {
     nonisolated var link: URL {
         let target = measure != nil ? "measure" : nav != nil ? "nav" : "map"
         return URL(string: "atlagsebesseg://live/\(target)")!
+    }
+}
+
+/// AOS18: a Live Activity „Haza” / „Munka” gombja: az app előtérbe jön, és a navigáció azonnal indul oda. A kérés az App Group tárolón is átmegy, ha az app
+/// a hívás pillanatában még nem futna; a `LiveNavRouter.take()` veszi fel.
+struct StartNavIntent: AppIntent {
+    static let title: LocalizedStringResource = "Start navigation"
+    static let openAppWhenRun = true
+    static let isDiscoverable = false
+
+    @Parameter(title: "Destination") var dest: String
+
+    init() {}
+    init(dest: String) { self.dest = dest }
+
+    func perform() async throws -> some IntentResult {
+        LiveNavRouter.request(dest)
+        return .result()
+    }
+}
+
+nonisolated enum LiveNavRouter {
+    static let home = "home"
+    static let work = "work"
+    static let notification = Notification.Name("hu.atlagsebesseg.liveNav")
+    private static let key = "live.pendingDest"
+
+    static func request(_ dest: String) {
+        UserDefaults(suiteName: LiveMapStore.group)?.set(dest, forKey: key)
+        NotificationCenter.default.post(name: notification, object: nil)
+    }
+
+    /// A várakozó kérés felvétele (egyszer adja vissza).
+    static func take() -> String? {
+        let d = UserDefaults(suiteName: LiveMapStore.group)
+        defer { d?.removeObject(forKey: key) }
+        return d?.string(forKey: key)
     }
 }
 

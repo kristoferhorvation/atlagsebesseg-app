@@ -164,7 +164,7 @@ struct SimTests {
 /// A navigációs szimulátor lejátszása a munkamenettel, a `fromWindow` ablaktól: mérés a szimulált szakaszon (a pozíció a
 /// kapui között), az alternatíva-figyelés válaszát a szimulátor adja a kért kategóriával (`-alt`).
 @MainActor
-private func playNav(_ alt: NavSim.AltMode, _ fromWindow: Int) async throws -> (views: [(view: NavView, measuring: Bool)], voice: [String]) {
+func playNav(_ alt: NavSim.AltMode, _ fromWindow: Int) async throws -> (views: [(view: NavView, measuring: Bool)], voice: [String]) {
     let fixture = try SimFixture.load(.navsim)
     let nav = try #require(fixture.nav)
     let main = try #require(try NavSim.mainRoutes().first)

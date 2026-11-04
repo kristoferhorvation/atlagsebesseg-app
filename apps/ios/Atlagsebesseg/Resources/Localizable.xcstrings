@@ -2467,37 +2467,37 @@
         "cs" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Kolem každého uloženého místa (Domov, Práce, další) je zóna, ve výchozím stavu 500 m. Buňky v zónách se nikdy neodešlou a na tvé vlastní teplotní mapě jsou šedé. Zóny a uložená místa jsou uložena jen v tomto zařízení."
+            "value" : "Kolem každého uloženého místa (Domov, Práce, další) je zóna, ve výchozím stavu 200 m. Buňky v zónách se nikdy neodešlou a na tvé vlastní teplotní mapě jsou šedé. Zóny a uložená místa jsou uložena jen v tomto zařízení."
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Um jeden gespeicherten Ort (Zuhause, Arbeit, weitere) liegt eine Zone, standardmäßig 500 m. Zellen in einer Zone werden nie gesendet und erscheinen auf deiner eigenen Heatmap grau. Zonen und gespeicherte Orte liegen nur auf diesem Gerät."
+            "value" : "Um jeden gespeicherten Ort (Zuhause, Arbeit, weitere) liegt eine Zone, standardmäßig 200 m. Zellen in einer Zone werden nie gesendet und erscheinen auf deiner eigenen Heatmap grau. Zonen und gespeicherte Orte liegen nur auf diesem Gerät."
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Every saved place (Home, Work, others) has a zone around it, 500 m by default. Cells inside a zone are never sent and show in grey on your own heatmap. Zones and saved places are stored on this device only."
+            "value" : "Every saved place (Home, Work, others) has a zone around it, 200 m by default. Cells inside a zone are never sent and show in grey on your own heatmap. Zones and saved places are stored on this device only."
           }
         },
         "hu" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Minden mentett hely (Haza, Munka, egyéb) körül zóna van, alapból 500 m. A zónákban lévő cellák sosem mennek fel, a saját hőtérképen szürkén jelennek meg. A zónák és a mentett helyek csak ezen a készüléken tárolódnak."
+            "value" : "Minden mentett hely (Haza, Munka, egyéb) körül zóna van, alapból 200 m. A zónákban lévő cellák sosem mennek fel, a saját hőtérképen szürkén jelennek meg. A zónák és a mentett helyek csak ezen a készüléken tárolódnak."
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Wokół każdego zapisanego miejsca (Dom, Praca, inne) jest strefa, domyślnie 500 m. Komórki w strefach nigdy nie są wysyłane, a na Twojej własnej mapie cieplnej są szare. Strefy i zapisane miejsca są przechowywane tylko na tym urządzeniu."
+            "value" : "Wokół każdego zapisanego miejsca (Dom, Praca, inne) jest strefa, domyślnie 200 m. Komórki w strefach nigdy nie są wysyłane, a na Twojej własnej mapie cieplnej są szare. Strefy i zapisane miejsca są przechowywane tylko na tym urządzeniu."
           }
         },
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Okolo každého uloženého miesta (Domov, Práca, ďalšie) je zóna, predvolene 500 m. Bunky v zónach sa nikdy neodošlú a na tvojej vlastnej teplotnej mape sú sivé. Zóny a uložené miesta sú uložené len v tomto zariadení."
+            "value" : "Okolo každého uloženého miesta (Domov, Práca, ďalšie) je zóna, predvolene 200 m. Bunky v zónach sa nikdy neodošlú a na tvojej vlastnej teplotnej mape sú sivé. Zóny a uložené miesta sú uložené len v tomto zariadení."
           }
         }
       }
@@ -4753,6 +4753,47 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Plánovaná kontrola – {place}"
+          }
+        }
+      }
+    },
+    "ios.displayName" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rychlost Nav"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tempo Nav"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Avg Speed Nav"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Átlagsebesség Nav"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Prędkość Nav"
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rýchlosť Nav"
           }
         }
       }

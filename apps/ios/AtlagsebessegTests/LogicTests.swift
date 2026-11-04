@@ -241,16 +241,16 @@ struct BundledDataTests {
 
 @Suite("Inter betű")
 struct FontTests {
-    @Test("a beépített InterVariable.ttf töltődik be, a token pontos súlyával és optikai méretével")
+    @Test("a beépített InterVariable.ttf töltődik be, a token pontos súlyával és a webes (14-es) optikai mérettel")
     func inter() throws {
         let f = UIFont.inter(20, 680)
         #expect(f.familyName == Tokens.Fonts.family)
         let axes = try #require(f.fontDescriptor.object(forKey: UIFontDescriptor.AttributeName(rawValue: kCTFontVariationAttribute as String)) as? [Int: Double])
         #expect(axes[0x7767_6874] == 680)
-        #expect(axes[0x6F70_737A] == 20)
-        // a hős-szám 196 pt-nál az optikai méret a tengely tetején (32) marad
+        #expect(axes[0x6F70_737A] == 14)
+        // AOS18: a webes betűfájlnak nincs `opsz` tengelye: a hős-szám is 14-es optikai mérettel
         let hero = UIFont.inter(196, 680).fontDescriptor.object(forKey: UIFontDescriptor.AttributeName(rawValue: kCTFontVariationAttribute as String)) as? [Int: Double]
-        #expect(hero?[0x6F70_737A] == 32)
+        #expect(hero?[0x6F70_737A] == 14)
     }
 }
 

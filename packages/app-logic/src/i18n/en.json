@@ -340,6 +340,7 @@
   "nav.man.arrive": "Destination",
   "nav.man.depart": "Start",
   "ios.locationUsage": "Your location is needed to detect sections and measure your average speed – also with the screen locked while the app is measuring.",
+  "ios.displayName": "Avg Speed Nav",
   "ios.geo.denied": "denied (Settings → Privacy → Location Services)",
   "ios.start.tip.background": "Keeps measuring with the screen locked – the display stays on while measuring",
 
@@ -434,7 +435,7 @@
   "heat.details.no.title": "What is not sent",
   "heat.details.no.body": "The route, the exact time, any identifier (name, device, account), the area around saved places, and the first and last 300 m of every trip.",
   "heat.details.zones.title": "Privacy zones",
-  "heat.details.zones.body": "Every saved place (Home, Work, others) has a zone around it, 500 m by default. Cells inside a zone are never sent and show in grey on your own heatmap. Zones and saved places are stored on this device only.",
+  "heat.details.zones.body": "Every saved place (Home, Work, others) has a zone around it, 200 m by default. Cells inside a zone are never sent and show in grey on your own heatmap. Zones and saved places are stored on this device only.",
   "heat.details.noPlaces": "No saved places yet – you can add some in Settings.",
   "heat.zone.label": "Privacy zone",
   "heat.zone.hint": "Cells inside the zone are not sent and show in grey on your own heatmap.",

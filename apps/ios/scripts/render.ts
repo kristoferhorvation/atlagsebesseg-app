@@ -25,7 +25,7 @@ export function renderAll(): Map<string, string> {
   out.set('Atlagsebesseg/Resources/Localizable.xcstrings', xcstrings(Object.keys(DICTIONARIES.hu) as TKey[], (k) => k));
   out.set(
     'Atlagsebesseg/Resources/InfoPlist.xcstrings',
-    xcstrings(['app.name', 'ios.locationUsage'], (k) => ({ 'app.name': 'CFBundleDisplayName', 'ios.locationUsage': 'NSLocationWhenInUseUsageDescription' })[k as string]!),
+    xcstrings(['ios.displayName', 'ios.locationUsage'], (k) => ({ 'ios.displayName': 'CFBundleDisplayName', 'ios.locationUsage': 'NSLocationWhenInUseUsageDescription' })[k as string]!),
   );
   out.set('Atlagsebesseg/Generated/L10nKey.swift', l10nKeys());
   // a webes Icon.tsx szerint a `play` és a `stop` kitöltött

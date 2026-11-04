@@ -1,6 +1,7 @@
 import AtlagsebessegCore
 import MapboxMaps
 import SwiftUI
+import UIKit
 
 /// A térkép (Mapbox Standard): szakaszok vonalként (az aktív a tónus színében, a megtett rész telítetten),
 /// tervezett mérések halvány sárga vonalként / zónaként (a webes A7 kinézet), kamerák ikonként a láthatósági
@@ -21,6 +22,10 @@ struct MapScreen: View {
     @State private var zonesFC = FeatureCollection(features: [])
     /// A térkép aktuális elforgatása (fok) – a saját pozíció nyila ehhez képest mutat a haladási irányba.
     @State private var mapBearing: Double = 0
+    /// A térkép dőlése: a pozíció-jelölő a térképpel együtt fekszik (a webes `pitchAlignment: 'map'`).
+    @State private var mapPitch: Double = 0
+    /// Az utolsó ismert haladási irány (irány nélküli fixnél a jelölő ezt tartja, mint a weben).
+    @State private var lastHeading: Double = 0
     @State private var routesFC = FeatureCollection(features: [])
     /// AW20: a hőtérkép pontjai (súllyal); navigáció / mérés közben üres.
     @State private var heatFC = FeatureCollection(features: [])
@@ -207,14 +212,18 @@ struct MapScreen: View {
             // az alternatív útvonal címkéje: „+4 perc” / „−3 perc”; koppintásra erre vált
             ForEvery(altLabels) { label in
                 MapViewAnnotation(coordinate: altLabelAt[label.id] ?? CLLocationCoordinate2D(latitude: label.at.lat, longitude: label.at.lon)) {
+                    // a webes `.route-label`: fehér pill, fekete szöveg, 56 pt-es érintési cél; a középpontja a `placeAltLabel` szerinti hely
                     Button { model.selectRoute(label.index) } label: {
                         Text(label.text)
-                            .font(.num(15, 680))
-                            .foregroundStyle(Tokens.Colors.text)
-                            .padding(.horizontal, Tokens.Space.s3)
-                            .frame(height: 34)
-                            .background(Tokens.Colors.surfaceStrong, in: Capsule())
-                            .overlay(Capsule().strokeBorder(altColor, lineWidth: 2))
+                            .css(Tokens.Typography.caption.size, Tokens.FontWeight.w650, line: 1.2, num: true)
+                            .foregroundStyle(Tokens.Colors.signText)
+                            .lineLimit(1)
+                            .fixedSize()
+                            .padding(.horizontal, Tokens.Space.s2)
+                            .padding(.vertical, Tokens.Space.s1)
+                            .background(Tokens.Colors.signFace, in: Capsule())
+                            .overlay(Capsule().strokeBorder(Tokens.Colors.routeAltCasingDay, lineWidth: 1.5))
+                            .background(BoxShadow(shape: Capsule(), layers: Tokens.Shadow.routeLabel))
                             .frame(minWidth: Tokens.Size.touch, minHeight: Tokens.Size.touch)
                             .contentShape(Rectangle())
                     }
@@ -261,8 +270,8 @@ struct MapScreen: View {
 
             if let fix = view.lastFix {
                 MapViewAnnotation(coordinate: CLLocationCoordinate2D(latitude: fix.lat, longitude: fix.lon)) {
-                    // a nyíl a képernyőhöz képest forog: haladási irány − térkép-elforgatás (kézzel forgatva is)
-                    Puck(heading: fix.heading.map { $0 - mapBearing }, tone: tone)
+                    // a webes `.puck`: a kúp a haladási irányba mutat, a képernyőhöz képest: irány − térkép-elforgatás (kézzel forgatva is)
+                    Puck(rotation: (fix.heading ?? lastHeading) - mapBearing, pitch: mapPitch)
                 }
                 .allowOverlap(true)
             }
@@ -276,8 +285,8 @@ struct MapScreen: View {
         .ornamentOptions(OrnamentOptions(
             scaleBar: ScaleBarViewOptions(visibility: .hidden),
             compass: CompassViewOptions(visibility: .hidden),
-            logo: LogoViewOptions(position: .topLeading, margins: CGPoint(x: 12, y: 4)),
-            attributionButton: AttributionButtonOptions(position: .topTrailing, margins: CGPoint(x: 12, y: 4))
+            logo: LogoViewOptions(position: .topLeading, margins: CGPoint(x: Tokens.Space.s2, y: Tokens.Space.s1)),
+            attributionButton: AttributionButtonOptions(position: .topTrailing, margins: CGPoint(x: Tokens.Space.s2, y: Tokens.Space.s1), tintColor: UIColor(Tokens.Colors.textMuted))
         ))
         .gestureHandlers(MapGestureHandlers(
             onBegin: { _ in
@@ -303,6 +312,7 @@ struct MapScreen: View {
         .onCameraChanged { e in
             let b = e.cameraState.bearing
             if abs(angleDiffDeg(b, mapBearing)) >= 0.5 { mapBearing = b }
+            if abs(e.cameraState.pitch - mapPitch) >= 0.5 { mapPitch = e.cameraState.pitch }
             // AOS14: a látható téglalap a bejelentések lekéréséhez (csempe-rácsra kerekítve – kis mozdulat nem kér újra)
             if let m = proxy.map {
                 let r = m.coordinateBounds(for: CameraOptions(cameraState: e.cameraState))
@@ -331,10 +341,18 @@ struct MapScreen: View {
         .onChange(of: model.zonesVisible) { rebuildZones() }
         .onChange(of: model.zoneFocusSeq) { focusZone() }
         .onChange(of: routeKey) { rebuildRoutes() }
-        .onChange(of: model.fitVersion) { fitRoutes() }
+        .onChange(of: model.fitVersion) { fitRoutes(proxy.map) }
+        // a tervezés vége (indítás vagy mégse): a kamera visszaáll a követésre (mint a weben)
+        .onChange(of: model.plan == nil) { _, closed in
+            guard closed else { return }
+            follow = true
+            if let fix = view.lastFix { recenter(fix, animated: true) }
+        }
         .onChange(of: view.lastFix) { _, fix in
             guard let fix else { return }
-            if follow { recenter(fix, animated: true) }
+            if let h = fix.heading { lastHeading = h }
+            // AOS18: az útvonalválasztó alatt a bounds-fit marad, a követés nem írja felül (a webes `fitRoute` megállítja a követést)
+            if follow, model.plan == nil { recenter(fix, animated: true) }
             if Int(fix.timestamp / 1000) % 10 == 0 { rebuildCameras(around: fix) }
         }
         // AOS16: mérés közben 5 s tétlenség után magától visszaáll (`followReducer`, a webes `useFollow`; valós órával)
@@ -348,10 +366,10 @@ struct MapScreen: View {
             }
         }
         .onChange(of: follow) { _, on in
-            if on, let fix = view.lastFix { recenter(fix, animated: true) }
+            if on, model.plan == nil, let fix = view.lastFix { recenter(fix, animated: true) }
         }
         // a kártya méretváltásakor a pozíció helye is követi (időalapú simítással)
-        .onChange(of: model.hudTop) {
+        .onChange(of: model.navCardTop) {
             if follow, model.nav != nil, let fix = view.lastFix { recenter(fix, animated: true) }
         }
     }
@@ -386,7 +404,7 @@ struct MapScreen: View {
         let kmh = (fix.speed ?? 0) * 3.6
         let zoom = zoomShown.map { $0 + (navFollowZoom(kmh) - $0) * 0.35 } ?? navFollowZoom(kmh)
         zoomShown = zoom
-        let wanted = model.hudTop > 0 ? max(0.18, min(NAV_FOLLOW.focusY, (model.hudTop - NAV_FOLLOW.focusGapPx) / h)) : NAV_FOLLOW.focusY
+        let wanted = model.navCardTop > 0 ? max(0.18, min(NAV_FOLLOW.focusY, (model.navCardTop - NAV_FOLLOW.focusGapPx) / h)) : NAV_FOLLOW.focusY
         // időalapú simítás (a frissítések ütemétől független)
         let now = Date().timeIntervalSince1970 * 1000
         let dt = focusAt > 0 ? min(1000, now - focusAt) : 1000
@@ -394,7 +412,7 @@ struct MapScreen: View {
         focusShown += (wanted - focusShown) * (1 - exp(-dt / Self.focusTauMs))
         let bearing = fix.heading ?? mapBearing
         let (top, bottom) = (max(0, 2 * focusShown * h - h), max(0, h - 2 * focusShown * h))
-        move(center, animated: animated, split: true) { Viewport.camera(center: $0, zoom: zoom, bearing: bearing, pitch: 58).padding(.top, top).padding(.bottom, bottom) }
+        move(center, animated: animated, split: true) { Viewport.camera(center: $0, zoom: zoom, bearing: bearing, pitch: idleFollowPitch).padding(.top, top).padding(.bottom, bottom) }
     }
 
     /// A kamera a célra: navigációban (`split`) az irány `NAV_FOLLOW.bearingMs` alatt áll be, a pozíció a fixek közti
@@ -549,14 +567,14 @@ struct MapScreen: View {
             return
         }
         let screen = UIScreen.main.bounds.size
-        let viewport = (w: Double(screen.width), h: Double(screen.height * 0.5))
+        let viewport = (w: Double(screen.width), h: Double(screen.height) - Self.fitPadBottom)
         func proj(_ pts: [LatLon]) -> [Px] {
             m.points(for: pts.map { CLLocationCoordinate2D(latitude: $0.lat, longitude: $0.lon) }).map { Px(x: Double($0.x), y: Double($0.y)) }
         }
         var next: [String: CLLocationCoordinate2D] = [:]
         for l in altLabels {
-            // a buborék mérete: 34 pt magas, a szöveg szélessége (15 pt-es számok) + 2 × 12 pt
-            let label = (w: Double(l.text.count) * 9 + 26, h: 34.0)
+            // a buborék mérete: 15 pt-es, táblázatos szöveg + 2 × 8 pt margó + 2 × 1,5 pt él; 1,2-es sor + 2 × 4 pt + 2 × 1,5 pt
+            let label = (w: Double(l.text.count) * 8.6 + 19, h: 29.0)
             guard let place = placeAltLabel(
                 own: proj(l.own), base: proj(l.basePath), alt: proj(l.altPath), divergence: proj([l.divergence])[0], label: label, viewport: viewport
             ) else { continue }
@@ -567,16 +585,27 @@ struct MapScreen: View {
         }
     }
 
-    /// Tervezéskor a térkép az összes útvonalra igazodik (a kártya fölötti részre).
-    private func fitRoutes() {
+    /// Tervezéskor a térkép az összes útvonalra igazodik (a webes `fitRoute`: padTop 120, padBottom 400, oldalt 36, maxZoom 15, felülnézet, 900 ms).
+    private func fitRoutes(_ map: MapboxMap?) {
         guard let p = model.plan, p.status == .ready else { return }
         let coords = p.routes.flatMap { $0.points }.map { CLLocationCoordinate2D(latitude: $0.lat, longitude: $0.lon) }
         guard coords.count >= 2 else { return }
-        let h = UIScreen.main.bounds.height
-        withViewportAnimation(.easeOut(duration: Tokens.Motion.slow)) {
-            viewport = .overview(geometry: LineString(coords), bearing: 0, pitch: 0, geometryPadding: EdgeInsets(top: 150, leading: 48, bottom: h * 0.5, trailing: 48))
+        let insets = UIEdgeInsets(top: Self.fitPadTop, left: Self.fitPadSide, bottom: Self.fitPadBottom, right: Self.fitPadSide)
+        let flat = CameraOptions(bearing: 0, pitch: 0)
+        withViewportAnimation(.easeInOut(duration: Self.fitSeconds)) {
+            if let cam = try? map?.camera(for: coords, camera: flat, coordinatesPadding: insets, maxZoom: Self.fitMaxZoom, offset: nil), let center = cam.center {
+                viewport = .camera(center: center, zoom: cam.zoom, bearing: 0, pitch: 0)
+            } else {
+                viewport = .overview(geometry: LineString(coords), bearing: 0, pitch: 0, geometryPadding: SwiftUI.EdgeInsets(top: Self.fitPadTop, leading: Self.fitPadSide, bottom: Self.fitPadBottom, trailing: Self.fitPadSide))
+            }
         }
     }
+
+    private static let fitPadTop = 120.0
+    private static let fitPadBottom = 400.0
+    private static let fitPadSide = 36.0
+    private static let fitMaxZoom = 15.0
+    private static let fitSeconds = 0.9
 
     // MARK: rétegadat
 
@@ -660,9 +689,9 @@ private struct CameraPin: View {
         Icon(name: camera.type.icon, size: 18)
             .foregroundStyle(Tokens.Colors.text)
             .frame(width: 32, height: 32)
-            .background(Tokens.Colors.surfaceStrong, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
-            .overlay(RoundedRectangle(cornerRadius: 10, style: .continuous).strokeBorder(selected ? Tokens.Colors.textMuted : Tokens.Colors.textFaint, lineWidth: 1.5))
-            .shadow(color: .black.opacity(0.45), radius: 5, y: 4)
+            .background(Tokens.Colors.surfaceStrong, in: RoundedRectangle(cornerRadius: Tokens.Radius.r10, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: Tokens.Radius.r10, style: .continuous).strokeBorder(selected ? Tokens.Colors.textMuted : Tokens.Colors.textFaint, lineWidth: 1.5))
+            .background(BoxShadow(shape: RoundedRectangle(cornerRadius: Tokens.Radius.r10, style: .continuous), layers: Tokens.Shadow.cameraPin))
             .scaleEffect(selected ? 1.2 : 1)
             .frame(width: Tokens.Size.touch, height: Tokens.Size.touch)
             .contentShape(Rectangle())
@@ -671,25 +700,44 @@ private struct CameraPin: View {
     }
 }
 
-/// Saját pozíció: tónusszínű nyíl a haladási irányban (irány nélkül pont). A `heading` a képernyőhöz képest
-/// értendő (a térkép elforgatása már le van vonva), így követéskor felfelé, kézzel forgatott térképen is az
-/// útirányba mutat.
-private struct Puck: View {
-    let heading: Double?
-    let tone: Tone
+/// Saját pozíció (a webes `.puck`, DESIGN.md): `brand` pont 3 pt-es fehér éllel, 7 pt-es halóval és puha árnyékkal, előtte az irányt mutató, halványuló kúp.
+/// A jelölő a térképpel együtt forog és dől (a webes `rotationAlignment` / `pitchAlignment: 'map'`); nem a Mapbox alap-nyila.
+struct Puck: View {
+    let rotation: Double
+    let pitch: Double
+
+    private let side: CGFloat = 60
+    private let dot: CGFloat = 22
+    private let halo: CGFloat = 7
 
     var body: some View {
         ZStack {
-            Circle().fill(tone.color.opacity(0.25)).frame(width: 44, height: 44)
-            Circle().fill(Tokens.Colors.text).frame(width: 24, height: 24)
-            if heading != nil {
-                Icon(name: .arrowUp, size: 18)
-                    .foregroundStyle(Tokens.Colors.bg)
-                    .rotationEffect(.degrees(heading ?? 0))
-            } else {
-                Circle().fill(tone.color).frame(width: 14, height: 14)
-            }
+            PuckCone()
+                .fill(LinearGradient(colors: [Tokens.Colors.brand.opacity(Tokens.Opacity.o60), Tokens.Colors.brand.opacity(0)], startPoint: .bottom, endPoint: .top))
+                .frame(width: 52, height: 48)
+                .offset(y: -24)
+            Circle().fill(Tokens.Colors.brand.opacity(Tokens.Opacity.o24)).frame(width: dot + 2 * halo, height: dot + 2 * halo)
+            Circle()
+                .fill(Tokens.Colors.brand)
+                .overlay(Circle().strokeBorder(Tokens.Colors.signFace, lineWidth: 3))
+                .frame(width: dot, height: dot)
+                .background(BoxShadow(shape: Circle(), layers: Tokens.Shadow.puck))
         }
+        .frame(width: side, height: side)
+        .rotationEffect(.degrees(rotation))
+        .rotation3DEffect(.degrees(pitch), axis: (x: 1, y: 0, z: 0), perspective: 0)
         .accessibilityHidden(true)
+    }
+}
+
+/// A webes `clip-path: polygon(50% 100%, 0 0, 100% 0)`.
+private nonisolated struct PuckCone: Shape {
+    func path(in r: CGRect) -> Path {
+        var p = Path()
+        p.move(to: CGPoint(x: r.midX, y: r.maxY))
+        p.addLine(to: CGPoint(x: r.minX, y: r.minY))
+        p.addLine(to: CGPoint(x: r.maxX, y: r.minY))
+        p.closeSubpath()
+        return p
     }
 }

@@ -340,6 +340,7 @@
   "nav.man.arrive": "Cel",
   "nav.man.depart": "Start",
   "ios.locationUsage": "Twoja lokalizacja jest potrzebna do rozpoznawania odcinków i mierzenia średniej prędkości – także przy zablokowanym ekranie, dopóki aplikacja mierzy.",
+  "ios.displayName": "Prędkość Nav",
   "ios.geo.denied": "odmowa (Ustawienia → Prywatność → Usługi lokalizacji)",
   "ios.start.tip.background": "Mierzy także przy zablokowanym ekranie – podczas pomiaru ekran nie gaśnie",
 
@@ -434,7 +435,7 @@
   "heat.details.no.title": "Czego nie wysyłamy",
   "heat.details.no.body": "Trasy, dokładnego czasu, żadnego identyfikatora (imię, urządzenie, konto), okolic zapisanych miejsc ani pierwszych i ostatnich 300 m każdego przejazdu.",
   "heat.details.zones.title": "Strefy ochronne",
-  "heat.details.zones.body": "Wokół każdego zapisanego miejsca (Dom, Praca, inne) jest strefa, domyślnie 500 m. Komórki w strefach nigdy nie są wysyłane, a na Twojej własnej mapie cieplnej są szare. Strefy i zapisane miejsca są przechowywane tylko na tym urządzeniu.",
+  "heat.details.zones.body": "Wokół każdego zapisanego miejsca (Dom, Praca, inne) jest strefa, domyślnie 200 m. Komórki w strefach nigdy nie są wysyłane, a na Twojej własnej mapie cieplnej są szare. Strefy i zapisane miejsca są przechowywane tylko na tym urządzeniu.",
   "heat.details.noPlaces": "Nie ma jeszcze zapisanych miejsc – możesz je dodać w ustawieniach.",
   "heat.zone.label": "Strefa ochronna",
   "heat.zone.hint": "Komórki w strefie nie są wysyłane i są szare na Twojej własnej mapie cieplnej.",

@@ -414,9 +414,9 @@ describe('adatvédelmi zónák', () => {
   const pass = (h3: string, t = T0): HeatPass => ({ h3, avgKmh: 50, t, fromStartM: 5000, toEndM: 5000 });
   const cell = (h3: string, count = 1): HeatCell => ({ h3, count, avgKmh: 50, lastT: 0 });
 
-  it('a mentett helyek körül zóna van, alapból 500 m, helyenként állítható', () => {
+  it('a mentett helyek körül zóna van, alapból 200 m, helyenként állítható', () => {
     const z = heatZones(saved, { work: 1000 });
-    expect(z.map((x) => [x.id, x.radiusM])).toEqual([['home', 500], ['work', 1000], ['o1', 500]]);
+    expect(z.map((x) => [x.id, x.radiusM])).toEqual([['home', 200], ['work', 1000], ['o1', 200]]);
     expect(heatZones({ home: null, work: null, others: [] }, {})).toEqual([]);
   });
 
@@ -426,7 +426,7 @@ describe('adatvédelmi zónák', () => {
     expect(parseZoneRadii([200])).toEqual({});
     expect(parseSettings(JSON.stringify({ zona_m: { home: 1000, work: 5 } })).zona_m).toEqual({ home: 1000 });
     expect(parseSettings(null).zona_m).toEqual({});
-    expect(heatZones(saved, { home: 777 })[0]!.radiusM).toBe(500);
+    expect(heatZones(saved, { home: 777 })[0]!.radiusM).toBe(200);
   });
 
   it('a zónában lévő cellák sosem kerülnek a feltöltésbe, a zónán kívüliek igen', () => {

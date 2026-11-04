@@ -13,24 +13,24 @@ struct PlannedBand: View {
             PulseDot()
             if check.isZone {
                 Text(plannedZoneText(check))
-                    .font(.inter(Tokens.Typography.body.size, 620))
+                    .font(.inter(Tokens.Typography.body.size, Tokens.FontWeight.w620))
                     .foregroundStyle(Tokens.Colors.text)
                     .lineLimit(compact ? 1 : 3)
             } else if compact {
                 (Text(t(.plannedLine)).foregroundColor(Tokens.Colors.planned) + Text(" · ") + meta)
-                    .font(.inter(Tokens.Typography.body.size, 620))
+                    .font(.inter(Tokens.Typography.body.size, Tokens.FontWeight.w620))
                     .lineLimit(1)
                     .minimumScaleFactor(0.8)
             } else {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(t(.plannedLine))
-                        .font(.inter(22, 650))
+                        .font(.inter(Tokens.FontSize.f22, Tokens.FontWeight.w650))
                         .tracking(Tokens.Typography.title.trackingPt)
                         .foregroundStyle(Tokens.Colors.planned)
                         .lineLimit(1)
                         .minimumScaleFactor(0.8)
                     meta
-                        .font(.inter(Tokens.Typography.body.size, 560))
+                        .font(.inter(Tokens.Typography.body.size, Tokens.FontWeight.w560))
                         .monospacedDigit()
                         .lineLimit(1)
                         .minimumScaleFactor(0.8)
@@ -41,8 +41,8 @@ struct PlannedBand: View {
         .padding(.leading, compact ? 12 : 16)
         .padding(.trailing, compact ? 14 : 20)
         .padding(.vertical, compact ? 8 : 12)
-        .glass(radius: 24)
-        .overlay(RoundedRectangle(cornerRadius: 24, style: .continuous).strokeBorder(Tokens.Colors.planned.opacity(0.45), lineWidth: 1))
+        .glass(radius: Tokens.Radius.r24)
+        .overlay(RoundedRectangle(cornerRadius: Tokens.Radius.r24, style: .continuous).strokeBorder(Tokens.Colors.planned.opacity(Tokens.Opacity.o45), lineWidth: 1))
         .accessibilityElement(children: .combine)
         .accessibilityLabel(plannedBandText(check, unit: unit))
     }
@@ -90,7 +90,7 @@ struct AlertBanner: View {
             case .planned: Circle().fill(Tokens.Colors.planned).frame(width: 14, height: 14)
             }
             Text(event.text)
-                .font(.inter(Tokens.Typography.body.size, 650))
+                .font(.inter(Tokens.Typography.body.size, Tokens.FontWeight.w650))
                 .foregroundStyle(Tokens.Colors.text)
                 .lineLimit(2)
                 .minimumScaleFactor(0.8)
@@ -99,7 +99,7 @@ struct AlertBanner: View {
         .padding(.leading, Tokens.Space.s4)
         .padding(.trailing, Tokens.Space.s5)
         .frame(minHeight: 56)
-        .glass(radius: 28, fill: Tokens.Colors.surfaceStrong)
+        .glass(radius: Tokens.Radius.r28, fill: Tokens.Colors.surfaceStrong)
         .accessibilityElement(children: .combine)
         .accessibilityAddTraits(.updatesFrequently)
     }

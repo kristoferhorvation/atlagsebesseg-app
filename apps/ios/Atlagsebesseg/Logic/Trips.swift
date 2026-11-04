@@ -561,6 +561,11 @@ nonisolated func cruiseFiguresText(_ v: CruiseView, unit: SpeedUnit, lang: Lang?
     return "\(distText(v.distanceM, unit, lang: lang)) · \(formatTripDuration(v.elapsedS, lang: lang)) · \(avg)"
 }
 
+/// AOS18: a Live Activity krúzing-sora indulás előtt: „0 km · 0 perc”.
+nonisolated func cruiseIdleText(_ unit: SpeedUnit, lang: Lang? = nil) -> String {
+    "0 \(unit == .mph ? "mi" : "km") · \(t(.navDurMin, ["n": "0"], lang: lang))"
+}
+
 /// AOS17: „Irányváltások: 7” – a futó út irányváltásainak száma.
 nonisolated func cruiseDirChangesText(_ v: CruiseView, lang: Lang? = nil) -> String {
     "\(t(.tripsStatDirChanges, lang: lang)): \(v.dirChanges)"

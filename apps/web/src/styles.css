@@ -2925,16 +2925,16 @@ button.nav-reroute {
   min-width: 0;
 }
 
-/* AOS17: mindhárom szegmens a háttéren belül, 320 px-en is: a választó a sor teljes szélességű, a szegmensek egyenlők */
+/* AOS18: kisebb, balra zárt választó a név + gombok sora alatt; a tartalma széles, így mindhárom szegmens a háttéren belül marad (320 px-en is) */
 .zone-picker .segmented {
-  display: flex;
+  align-self: flex-start;
+  max-width: 100%;
 }
 
 .zone-picker .segmented button {
-  flex: 1;
   min-width: 0;
   height: 30px;
-  padding: 0 4px;
+  padding: 0 12px;
   font-size: 14px;
 }
 

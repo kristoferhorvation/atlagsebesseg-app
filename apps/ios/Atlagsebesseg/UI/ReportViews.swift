@@ -24,7 +24,7 @@ struct ReportSheet: View {
     /// AOS14 javítás: az „Átlagmérés eleje” elküldve – az egyetlen kapu-tétel most „Átlagmérés vége”.
     let gateStarted: Bool
     let onPick: (ReportChoice, MapErrorKind?, GpsFix?) -> Void
-    @Environment(\.dismiss) private var dismiss
+    let onClose: () -> Void
 
     private var noHeading: Bool { fix != nil && fix?.heading == nil }
     private var note: String {
@@ -36,44 +36,30 @@ struct ReportSheet: View {
 
     /// AOS17: a „Térképhiba” második választója nyitva – a küldés az első koppintáskori helyről megy.
     @State private var mapErrorFix: GpsFix?
-    /// AOS17: a lap a tartalma magas (mint a weben), alul, nem teljes képernyős.
-    @State private var contentHeight: CGFloat = 480
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: Tokens.Space.s3) {
-                HStack {
-                    Text(mapErrorFix == nil ? t(.reportTitle) : ReportChoice.szakaszHiba.label).typeStyle(Tokens.Typography.title).foregroundStyle(Tokens.Colors.text)
-                    Spacer()
-                    Button { dismiss() } label: { Icon(name: .close, size: 22) }
-                        .buttonStyle(.plain)
-                        .foregroundStyle(Tokens.Colors.textMuted)
-                        .frame(width: Tokens.Size.touch, height: Tokens.Size.touch)
-                        .accessibilityLabel(t(.commonClose))
-                }
+            VStack(alignment: .leading, spacing: 0) {
+                SheetHead(title: mapErrorFix == nil ? t(.reportTitle) : ReportChoice.szakaszHiba.label, onClose: onClose)
                 if let fix = mapErrorFix {
                     mapErrorList(fix)
                 } else {
                     let menu = reportMenu(gateStarted: gateStarted)
-                    LazyVGrid(columns: [GridItem(.flexible(), spacing: Tokens.Space.s2), GridItem(.flexible(), spacing: Tokens.Space.s2)], spacing: Tokens.Space.s2) {
-                        ForEach(menu.filter { !$0.isGate }) { tile($0) }
+                    VStack(spacing: Tokens.Space.s2) {
+                        LazyVGrid(columns: [GridItem(.flexible(), spacing: Tokens.Space.s2), GridItem(.flexible(), spacing: Tokens.Space.s2)], spacing: Tokens.Space.s2) {
+                            ForEach(menu.filter { !$0.isGate }) { tile($0) }
+                        }
+                        // az egy kapu-tétel teljes szélességben; elküldött „eleje” után ugyanez a sor „vége” (AOS14 javítás)
+                        ForEach(menu.filter(\.isGate)) { tile($0) }
                     }
-                    // az egy kapu-tétel teljes szélességben; elküldött „eleje” után ugyanez a sor „vége” (AOS14 javítás)
-                    ForEach(menu.filter(\.isGate)) { tile($0) }
-                    Text(note)
-                        .font(.inter(Tokens.Typography.caption.size, 500))
-                        .foregroundStyle(Tokens.Colors.textMuted)
-                        .padding(.horizontal, 6)
-                        .fixedSize(horizontal: false, vertical: true)
+                    .padding(.horizontal, -7)
+                    GreedyText(text: note, font: .inter(Tokens.Typography.caption.size, Tokens.FontWeight.w400), lineHeight: 19)
+                        .padding(EdgeInsets(top: 12, leading: 6, bottom: 2, trailing: 6))
                 }
             }
-            .padding(.horizontal, 9)
-            .padding(.top, Tokens.Space.s3)
-            .padding(.bottom, Tokens.Space.s2)
-            .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { contentHeight = $0 }
+            .padding(EdgeInsets(top: 20, leading: 16, bottom: 16, trailing: 16))
         }
         .scrollBounceBehavior(.basedOnSize)
-        .presentationDetents([.height(contentHeight)])
         // `-reportMapError YES` (képernyőkép, `-reportOpen YES` mellett): rögtön a második választó
         .onAppear { if UserDefaults.standard.bool(forKey: "reportMapError") { mapErrorFix = fix } }
     }
@@ -104,26 +90,30 @@ struct ReportSheet: View {
     /// ha nem fér ki, a betű enged.
     private func tile(_ c: ReportChoice) -> some View {
         let disabled = !online || fix == nil || sending != nil || (c.isGate && noHeading)
+        // a webes `@media (max-width: 389px)`: keskeny kijelzőn a térköz enged
+        let narrow = UIScreen.main.bounds.width < 390
         return Button {
             if c == .szakaszHiba { mapErrorFix = fix } else { onPick(c, nil, nil) }
         } label: {
-            HStack(spacing: 10) {
+            HStack(spacing: narrow ? Tokens.Space.s2 : 10) {
                 Icon(name: c.icon)
                     .foregroundStyle(c.tone.color)
                     .frame(width: 44, height: 44)
-                    .background(c.tone.color.opacity(0.18), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                    .background(c.tone.color.opacity(Tokens.Opacity.o18), in: RoundedRectangle(cornerRadius: Tokens.Radius.r14, style: .continuous))
                 Text(c.label)
-                    .font(.inter(18, 600))
+                    .css(Tokens.FontSize.f18, Tokens.FontWeight.w600, line: 1.2)
                     .foregroundStyle(Tokens.Colors.text)
                     .lineLimit(c.label.contains(" ") ? 2 : 1)
                     .minimumScaleFactor(0.7)
                     .multilineTextAlignment(.leading)
-                Spacer(minLength: 0)
+                    // a webes `.tile-label { flex: 1 }`
+                    .frame(maxWidth: .infinity, alignment: .leading)
             }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 10)
+            // a CSS-keret (1 pt) a belső margóhoz adódik
+            .padding(.horizontal, narrow ? 9 : 13)
+            .padding(.vertical, 11)
             .frame(maxWidth: .infinity, minHeight: Tokens.Size.tile, alignment: .leading)
-            .background(sending == c ? c.tone.color.opacity(0.22) : Tokens.Colors.surfaceRaised, in: RoundedRectangle(cornerRadius: Tokens.Radius.tile, style: .continuous))
+            .background(sending == c ? c.tone.color.opacity(Tokens.Opacity.o22) : Tokens.Colors.surfaceRaised, in: RoundedRectangle(cornerRadius: Tokens.Radius.tile, style: .continuous))
             .overlay(RoundedRectangle(cornerRadius: Tokens.Radius.tile, style: .continuous).strokeBorder(Tokens.Colors.stroke, lineWidth: 1))
             .contentShape(Rectangle())
         }
@@ -152,10 +142,10 @@ struct ReportCard: View {
                 Icon(name: c.icon, size: 28)
                     .foregroundStyle(c.tone.color)
                     .frame(width: 52, height: 52)
-                    .background(c.tone.color.opacity(0.18), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+                    .background(c.tone.color.opacity(Tokens.Opacity.o18), in: RoundedRectangle(cornerRadius: Tokens.Radius.r16, style: .continuous))
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(c.label).font(.inter(22, 640)).foregroundStyle(Tokens.Colors.text).lineLimit(1)
-                    Text(timeAgo(now - report.createdAt)).font(.inter(Tokens.Typography.body.size - 3, 500)).foregroundStyle(Tokens.Colors.textMuted)
+                    Text(c.label).font(.inter(Tokens.FontSize.f22, Tokens.FontWeight.w640)).foregroundStyle(Tokens.Colors.text).lineLimit(1)
+                    Text(timeAgo(now - report.createdAt)).font(.inter(Tokens.Typography.body.size - 3, Tokens.FontWeight.w500)).foregroundStyle(Tokens.Colors.textMuted)
                 }
                 Spacer(minLength: 0)
                 Button(action: onClose) { Icon(name: .close, size: 22) }
@@ -166,7 +156,7 @@ struct ReportCard: View {
                     .accessibilityLabel(t(.commonClose))
             }
             if report.own {
-                Text(t(.reportCardOwn)).font(.inter(Tokens.Typography.body.size - 3, 500)).foregroundStyle(Tokens.Colors.textMuted)
+                Text(t(.reportCardOwn)).font(.inter(Tokens.Typography.body.size - 3, Tokens.FontWeight.w500)).foregroundStyle(Tokens.Colors.textMuted)
             } else {
                 HStack(spacing: Tokens.Space.s2) {
                     voteButton(true, icon: .check, text: t(.reportCardConfirm), tone: c.tone)
@@ -189,7 +179,7 @@ struct ReportCard: View {
         }
         .buttonStyle(WideButtonStyle())
         .overlay(
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
+            RoundedRectangle(cornerRadius: Tokens.Radius.r18, style: .continuous)
                 .fill(tone.color.opacity(voted == confirm ? 0.28 : 0))
                 .allowsHitTesting(false)
         )
@@ -215,11 +205,11 @@ struct CameraCard: View {
                 Icon(name: camera.type.icon, size: 26)
                     .foregroundStyle(Tokens.Colors.textMuted)
                     .frame(width: 52, height: 52)
-                    .background(Tokens.Colors.surfaceRaised, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                    .background(Tokens.Colors.surfaceRaised, in: RoundedRectangle(cornerRadius: Tokens.Radius.r12, style: .continuous))
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(label).font(.inter(22, 640)).foregroundStyle(Tokens.Colors.text).lineLimit(1).minimumScaleFactor(0.8)
+                    Text(label).font(.inter(Tokens.FontSize.f22, Tokens.FontWeight.w640)).foregroundStyle(Tokens.Colors.text).lineLimit(1).minimumScaleFactor(0.8)
                     if !detail.isEmpty {
-                        Text(detail).font(.inter(Tokens.Typography.body.size - 3, 500)).foregroundStyle(Tokens.Colors.textMuted).lineLimit(1)
+                        Text(detail).font(.inter(Tokens.Typography.body.size - 3, Tokens.FontWeight.w500)).foregroundStyle(Tokens.Colors.textMuted).lineLimit(1)
                     }
                 }
                 Spacer(minLength: 0)
@@ -231,11 +221,11 @@ struct CameraCard: View {
                     .accessibilityLabel(t(.commonClose))
             }
             Text(cameraCardMeta(headingDeg: camera.headingDeg, at: LatLon(lat: camera.lat, lon: camera.lon), fix: fix, unit))
-                .font(.inter(Tokens.Typography.body.size - 3, 600))
+                .font(.inter(Tokens.Typography.body.size - 3, Tokens.FontWeight.w600))
                 .foregroundStyle(Tokens.Colors.text)
             HStack(spacing: 8) {
                 if camera.verified { Icon(name: .check, size: 18).foregroundStyle(Tokens.Colors.ok) }
-                Text(cameraSourceText(camera)).font(.inter(Tokens.Typography.body.size - 3, 500)).foregroundStyle(Tokens.Colors.textMuted)
+                Text(cameraSourceText(camera)).font(.inter(Tokens.Typography.body.size - 3, Tokens.FontWeight.w500)).foregroundStyle(Tokens.Colors.textMuted)
             }
         }
         .padding(16)
@@ -268,13 +258,13 @@ struct ReportAlertRow: View {
                 Icon(name: c.icon, size: 40)
                 if ask {
                     VStack(alignment: .leading, spacing: 0) {
-                        Text(c.label).font(.inter(Tokens.Typography.body.size, 640)).lineLimit(1)
-                        Text(t(.reportPromptQuestion)).font(.num(Tokens.Typography.title.size, 700)).tracking(-0.3).lineLimit(1)
+                        Text(c.label).font(.inter(Tokens.Typography.body.size, Tokens.FontWeight.w640)).lineLimit(1)
+                        Text(t(.reportPromptQuestion)).font(.num(Tokens.Typography.title.size, Tokens.FontWeight.w700)).tracking(-0.3).lineLimit(1)
                     }
                 } else {
                     let d = formatDistance(alert.prompt.distanceM, unit)
                     Text(t(.reportAlertAhead, ["label": c.label, "d": "\(d.value) \(d.unit)"]))
-                        .font(.num(Tokens.Typography.title.size, 700)).tracking(-0.3).lineLimit(1).minimumScaleFactor(0.8)
+                        .font(.num(Tokens.Typography.title.size, Tokens.FontWeight.w700)).tracking(-0.3).lineLimit(1).minimumScaleFactor(0.8)
                 }
             }
             if ask {
@@ -295,10 +285,10 @@ struct ReportAlertRow: View {
                 Icon(name: icon)
                 Text(text)
             }
-            .font(.inter(Tokens.Typography.body.size, 640))
+            .font(.inter(Tokens.Typography.body.size, Tokens.FontWeight.w640))
             .frame(maxWidth: .infinity, minHeight: Tokens.Size.touch)
             .foregroundStyle(Tokens.Colors.bg)
-            .background(Tokens.Colors.bg.opacity(0.16), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+            .background(Tokens.Colors.bg.opacity(Tokens.Opacity.o16), in: RoundedRectangle(cornerRadius: Tokens.Radius.r18, style: .continuous))
             .contentShape(Rectangle())
         }
         .buttonStyle(PressScaleStyle())
@@ -320,8 +310,8 @@ struct JamAskRow: View {
                 Icon(name: .dugo, size: 40)
                 // AW18-javítás: a „Dugó” cím a kérdés fölött, mint a weben és a „Még ott van?” sorban
                 VStack(alignment: .leading, spacing: 0) {
-                    Text(t(.reportTypeDugo)).font(.inter(Tokens.Typography.body.size, 640)).lineLimit(1)
-                    Text(t(.navJamQuestion)).font(.num(Tokens.Typography.title.size, 700)).tracking(-0.3).lineLimit(1).minimumScaleFactor(0.8)
+                    Text(t(.reportTypeDugo)).font(.inter(Tokens.Typography.body.size, Tokens.FontWeight.w640)).lineLimit(1)
+                    Text(t(.navJamQuestion)).font(.num(Tokens.Typography.title.size, Tokens.FontWeight.w700)).tracking(-0.3).lineLimit(1).minimumScaleFactor(0.8)
                 }
             }
             HStack(spacing: Tokens.Space.s2) {
@@ -340,10 +330,10 @@ struct JamAskRow: View {
                 Icon(name: icon)
                 Text(text)
             }
-            .font(.inter(Tokens.Typography.body.size, 640))
+            .font(.inter(Tokens.Typography.body.size, Tokens.FontWeight.w640))
             .frame(maxWidth: .infinity, minHeight: Tokens.Size.touch)
             .foregroundStyle(Tokens.Colors.bg)
-            .background(Tokens.Colors.bg.opacity(0.16), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+            .background(Tokens.Colors.bg.opacity(Tokens.Opacity.o16), in: RoundedRectangle(cornerRadius: Tokens.Radius.r18, style: .continuous))
             .contentShape(Rectangle())
         }
         .buttonStyle(PressScaleStyle())
@@ -361,7 +351,7 @@ struct JamAskCard: View {
         JamAskRow(onAnswer: onAnswer, sending: sending)
             .padding(Tokens.Space.s4)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .glass(radius: 28, fill: Tokens.Colors.near)
+            .glass(radius: Tokens.Radius.r28, fill: Tokens.Colors.near)
     }
 }
 
@@ -375,7 +365,7 @@ struct ReportAlertCard: View {
         ReportAlertRow(alert: alert, unit: unit)
             .padding(Tokens.Space.s4)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .glass(radius: 28, fill: Tokens.Colors.near)
+            .glass(radius: Tokens.Radius.r28, fill: Tokens.Colors.near)
             .animation(.easeOut(duration: Tokens.Motion.base), value: alert.prompt.phase)
     }
 }
@@ -398,8 +388,8 @@ struct ReportPin: View {
                 }
             }
             .overlay(Circle().strokeBorder(c.tone.color, lineWidth: 2))
-            .shadow(color: c.tone.color.opacity(0.4), radius: 7)
-            .shadow(color: .black.opacity(0.5), radius: 9, y: 6)
+            .shadow(color: c.tone.color.opacity(Tokens.Opacity.o40), radius: Tokens.Glow.reportPin)
+            .background(BoxShadow(shape: Circle(), layers: Tokens.Shadow.reportPin))
             .scaleEffect(selected ? 1.18 : 1)
             .frame(width: Tokens.Size.touch, height: Tokens.Size.touch)
             .contentShape(Circle())
@@ -416,13 +406,13 @@ struct ToastView: View {
         HStack(spacing: Tokens.Space.s2) {
             Icon(name: toast.icon, size: 22).foregroundStyle(toast.color)
             Text(toast.text)
-                .font(.inter(Tokens.Typography.body.size - 3, 600))
+                .font(.inter(Tokens.Typography.body.size - 3, Tokens.FontWeight.w600))
                 .foregroundStyle(Tokens.Colors.text)
                 .lineLimit(2)
         }
         .padding(.horizontal, Tokens.Space.s4)
         .padding(.vertical, 12)
-        .glass(radius: 22)
+        .glass(radius: Tokens.Radius.r22)
         .accessibilityElement(children: .combine)
     }
 }

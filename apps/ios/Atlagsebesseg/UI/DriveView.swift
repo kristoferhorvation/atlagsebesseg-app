@@ -12,8 +12,9 @@ struct DriveView: View {
     @Bindable var model: AppModel
     /// `-settingsOpen language` (AW15): a Beállítások nyitva, a nyelvválasztónál (a képernyőképhez).
     @State private var settingsOpen = UserDefaults.standard.string(forKey: "settingsOpen") != nil
-    /// AW20-javítás: a Beállítások lap magassága – zónasugár váltásakor félmagas, hogy a zóna-kör a térképen látsszon (`-settingsDetent medium`: rögtön).
-    @State private var settingsDetent: PresentationDetent = UserDefaults.standard.string(forKey: "settingsDetent") == "medium" ? .medium : .large
+    /// AW20-javítás, AOS18: zónasugár váltásakor a lap 6 s-ra 38%-ra húzódik (a webes `peek`), hogy a zóna-kör a térképen látsszon; a görgetési pozíció marad.
+    @State private var zonePeek = UserDefaults.standard.string(forKey: "settingsDetent") == "medium"
+    @State private var hudFloatH: CGFloat = 0
     /// A teljes felső lépés-kártya alja (globális, pont) – sáv-módban is mérve, a rejtett kártyán.
     @State private var navCardBottom: CGFloat?
     /// Az alsó kártya-csoport teteje a navigációs sáv NÉLKÜL (a sáv megjelenése így nem kapcsolja vissza a kártyát).
@@ -38,9 +39,6 @@ struct DriveView: View {
     private var navSign: Bool {
         model.nav != nil && ([.nincsSzakasz, .befejezve, .megszakadt, .keziEredmeny].contains(view.phase) || model.manualPillCollapsed)
     }
-    /// Mérés közbeni, kompakt „Gyorsabb út” ajánlat: a mérőkártya + egysoros sáv fölött. AOS16: a gombsor és a pillek maradnak
-    /// (mint a weben; mérés + ajánlat mellett a mérőkártya úgyis egysoros, AW17).
-    private var compactOffer: AlternativeOffer? { model.nav?.offer.flatMap { $0.compact ? $0 : nil } }
     /// Egysoros navigációs sáv a mérőkártya fölött a teljes felső kártya helyett (mérés közben mindig).
     private var stepStrip: Bool {
         navStepStrip(NavStepLayout(
@@ -54,25 +52,44 @@ struct DriveView: View {
 
     var body: some View {
         ZStack(alignment: .bottom) {
-            MapScreen(model: model, follow: $model.follow)
+            if Parity.on {
+                Tokens.Colors.parityBackdrop.ignoresSafeArea()
+            } else {
+                MapScreen(model: model, follow: $model.follow)
+            }
+            // a webes `.scrim-top` / `.scrim-bottom` (kompakt kártyánál az alsó kisebb)
+            ScrimTop()
+            ScrimBottom(compact: compactCard)
+                .ignoresSafeArea()
+            if !model.destSearchOpen {
+                statusPills(.pills).padding(.top, simTop).padding(.horizontal, Tokens.Space.s3)
+                    .frame(maxHeight: .infinity, alignment: .top)
+            }
 
-            VStack(spacing: Tokens.Space.s3) {
-                if model.sim != nil && model.simPanel { SimPanel(model: model) }
-                Spacer()
-                if !model.destSearchOpen {
-                    if let plan = model.plan {
-                        RoutePickerCard(model: model, plan: plan)
-                            .transition(.move(edge: .bottom).combined(with: .opacity))
-                    } else {
-                        // a záradék az ehhez az elrendezéshez tartozó sáv-állapotot látja (nem a következő renderét)
-                        let strip = stripShown, stripSpace = stripH + Tokens.Space.s2
-                        VStack(spacing: Tokens.Space.s3) { hud }
-                            .onGeometryChange(for: CGFloat.self) { $0.frame(in: .global).minY } action: {
-                                model.hudTop = $0
-                                hudTopNoStrip = $0 + (strip ? stripSpace : 0)
-                            }
+            if model.sim != nil && model.simPanel {
+                VStack { SimPanel(model: model); Spacer() }.padding(.horizontal, Tokens.Space.s3)
+            }
+            // a webes `.hud { bottom: 0 }`: alulra zárva, ha nem fér ki, felfelé lóg (SE) – a `VStack` + `Spacer` középre tolná, és az alja levágódna
+            Color.clear.overlay(alignment: .bottom) {
+                Group {
+                    if !model.destSearchOpen {
+                        if let plan = model.plan {
+                            RoutePickerCard(model: model, plan: plan)
+                                .transition(.move(edge: .bottom).combined(with: .opacity))
+                        } else {
+                            // a záradék az ehhez az elrendezéshez tartozó sáv-állapotot látja (nem a következő renderét)
+                            let strip = stripShown, stripSpace = stripH + Tokens.Space.s3, floatSpace = hudFloatH > 0 ? hudFloatH + Tokens.Space.s3 : 0
+                            VStack(spacing: Tokens.Space.s3) { hud }
+                                // a webes `.slowdown` és `.hud-float`: a HUD fölött lebegnek, a magasságát nem növelik (a gombsor a kártya fölött 12 pt-re marad)
+                                .overlay(alignment: .top) { floats }
+                                .onGeometryChange(for: CGFloat.self) { $0.frame(in: .global).minY } action: {
+                                    model.hudTop = $0
+                                    hudTopNoStrip = $0 - floatSpace + (strip ? stripSpace : 0)
+                                }
+                        }
                     }
                 }
+                .fixedSize(horizontal: false, vertical: true)
             }
             .padding(.horizontal, Tokens.Space.s3)
             .padding(.bottom, Tokens.Space.s3)
@@ -82,105 +99,156 @@ struct DriveView: View {
             .animation(.easeOut(duration: Tokens.Motion.base), value: model.shownCamera?.id)
         }
         // külön, felülre igazított réteg: a magas kártya sem tolja fel (a Mapbox-logó és az attribúció látszik)
-        .overlay(alignment: .top) {
-            VStack(spacing: Tokens.Space.s2) {
-                if model.destSearchOpen {
-                    SearchPanel(model: model)
-                        .transition(.opacity.combined(with: .offset(y: -12)))
-                } else {
-                    StatusPills(
-                        geo: model.geo,
-                        accuracy: view.lastFix?.accuracy,
-                        compact: driving || model.nav != nil,
-                        offline: model.isOffline,
-                        onGps: model.gpsPillTapped,
-                        onSearch: emptyView ? { model.openSearch() } : nil,
-                        greeting: emptyView && alert == nil ? greetingText(model.settings.megszolitas) : nil,
-                        cruise: emptyView && alert == nil ? model.cruiseText : nil
-                    )
-                    // AW20: hőtérkép-mód (Gyakoriság | Átlagsebesség) és jelmagyarázat – a krúzing-sor alatt, csak kész rétegnél (mint a weben)
-                    if model.heatReady {
-                        HeatSwitch(model: model)
-                            .transition(.opacity.combined(with: .offset(y: -12)))
-                    }
-                    if let nav = model.nav, !measuringLayout {
-                        // sáv-módban is elrendezve (nulla magasságú keretben, rejtve), hogy a teljes kártya alja mérhető
-                        // maradjon: ebből dől el, mikor fér ki újra. A rejtett kártyán is ott a bejelentés és a dugó-kérdés
-                        // (mint a weben), különben a mért magasság kisebb, a kártya visszajönne, és a sor nem férne ki.
-                        NavTopCard(view: nav, unit: unit, report: alert, onJamAnswer: jamAnswer, jamSending: model.reportSending != nil, onRetry: retry)
-                            .fixedSize(horizontal: false, vertical: true)
-                            .onGeometryChange(for: CGFloat.self) { $0.frame(in: .global).maxY } action: { navCardBottom = $0 }
-                            .opacity(stepStrip ? 0 : 1)
-                            .frame(height: stepStrip ? 0 : nil, alignment: .top)
-                            .allowsHitTesting(!stepStrip)
-                            .accessibilityHidden(stepStrip)
-                            .transition(.opacity.combined(with: .offset(y: -12)))
-                    }
-                    // AOS14: navigáció nélkül (vagy ha a felső kártya nem látszik) a közeledő bejelentés kártyája önállóan, ugyanott
-                    // AW18: ha a felső kártya nem látszik (sáv-mód / mérés), a „Dugóba kerültél?” önálló borostyán kártyán, ugyanott
-                    if standaloneJamAsk {
-                        JamAskCard(onAnswer: jamAnswer, sending: model.reportSending != nil)
-                            .transition(.opacity.combined(with: .offset(y: -12)))
-                    } else if let alert, !(model.nav != nil && !measuringLayout && !stepStrip) {
-                        ReportAlertCard(alert: alert, unit: unit)
-                            .transition(.opacity.combined(with: .offset(y: -12)))
-                    }
-                    Group {
-                        if let p = model.activePlanned {
-                            PlannedBand(check: p, compact: measuring, unit: unit)
-                                .transition(.opacity.combined(with: .offset(y: -12)))
-                        }
-                        if let a = model.alert {
-                            AlertBanner(event: a)
-                                .transition(.opacity.combined(with: .offset(y: -12)))
-                        }
-                        if let toast = model.toast {
-                            ToastView(toast: toast)
-                                .transition(.opacity.combined(with: .offset(y: -12)))
-                        }
-                    }
-                    .allowsHitTesting(false)
-                }
+        .overlay(alignment: .top) { top }
+        // a webes `.sheet-backdrop { backdrop-filter: blur(3px) }` (a zóna megmutatásakor nincs)
+        .blur(radius: (settingsOpen && !zonePeek) || model.reportSheetOpen ? Tokens.Blur.backdrop / 2 : 0)
+        .overlay {
+            if settingsOpen {
+                SettingsSheet(model: model, peek: zonePeek, onPeekEnd: { zonePeek = false }, onClose: { settingsOpen = false })
+                    .zIndex(2)
             }
-            .padding(.top, model.sim != nil && model.simPanel ? 96 : 44)
-            .padding(.horizontal, Tokens.Space.s3)
-            .animation(.easeOut(duration: Tokens.Motion.slow), value: model.activePlanned?.id)
-            .animation(.easeOut(duration: Tokens.Motion.base), value: model.alert)
-            .animation(.easeOut(duration: Tokens.Motion.base), value: model.toast)
-            .animation(.easeOut(duration: Tokens.Motion.base), value: model.reportPromptState?.id)
-            .animation(.easeOut(duration: Tokens.Motion.base), value: model.destSearchOpen)
-            .animation(.easeOut(duration: Tokens.Motion.base), value: measuringLayout)
-            .animation(.easeOut(duration: Tokens.Motion.base), value: stepStrip)
         }
+        .overlay {
+            if model.reportSheetOpen {
+                AppSheet(onClose: { model.reportSheetOpen = false }) {
+                    ReportSheet(fix: view.lastFix, online: model.backend.configured, sending: model.reportSending, gateStarted: model.gateStarted, onPick: { [model] c, sub, fix in model.sendReport(c, subtype: sub, fix: fix) }, onClose: { model.reportSheetOpen = false })
+                }
+                .zIndex(2)
+            }
+        }
+        .animation(.easeOut(duration: Tokens.Motion.base), value: settingsOpen)
+        .animation(.easeOut(duration: Tokens.Motion.base), value: model.reportSheetOpen)
         .environment(\.strongGlass, strongGlassFor(model.settings.terkep, mapLightPreset(model.settings.terkep, lightPresetAt(model.lightNowMs(), view.lastFix))))
         .sheet(isPresented: $model.geoHelpOpen) {
             GeoBlockedSheet()
                 .presentationDetents([.medium])
                 .presentationBackground(Tokens.Colors.surfaceStrong)
         }
-        .sheet(isPresented: $model.reportSheetOpen) {
-            ReportSheet(fix: view.lastFix, online: model.backend.configured, sending: model.reportSending, gateStarted: model.gateStarted, onPick: { [model] c, sub, fix in model.sendReport(c, subtype: sub, fix: fix) })
-                .presentationBackground(Tokens.Colors.surfaceStrong)
-        }
         // AOS15: a Live Activity koppintása a Beállításokat is bezárja (a vezetési nézet látszik)
         .onChange(of: model.liveLinkSeq) { settingsOpen = false }
-        .sheet(isPresented: $settingsOpen) {
-            SettingsSheet(model: model)
-                .presentationDetents([.large, .medium], selection: $settingsDetent)
-                .presentationDragIndicator(.hidden)
-                .presentationBackgroundInteraction(.enabled(upThrough: .medium))
-                .presentationBackground(Tokens.Colors.surfaceStrong)
-        }
-        // AW20-javítás: a zóna-körök látszanak, amíg a Beállítások (és a Részletek lap) nyitva van; sugárváltáskor félmagas lap
+        // AW20-javítás: a zóna-körök látszanak, amíg a Beállítások (és a Részletek lap) nyitva van; sugárváltáskor a lap lejjebb húzódik
         .onChange(of: settingsOpen) { _, open in
             model.zonesVisible = open
-            if !open { settingsDetent = .large }
+            if !open { zonePeek = false }
         }
-        .onChange(of: model.zoneFocusSeq) { settingsDetent = .medium }
+        .onChange(of: model.zoneFocusSeq) { zonePeek = true }
+        .task(id: zonePeek ? model.zoneFocusSeq : -1) {
+            guard zonePeek else { return }
+            try? await Task.sleep(for: .seconds(6))
+            if !Task.isCancelled { zonePeek = false }
+        }
         // AOS16: közösségi módban a réteg megjelenésekor és módváltáskor is lekérés (nem csak a következő kamera-mozdulatnál)
         .onChange(of: model.heatVisible) { model.fetchHeatGlobal() }
         .onChange(of: model.settings.hoterkep) { model.fetchHeatGlobal() }
         .onAppear { model.zonesVisible = settingsOpen }
+    }
+
+    /// A webes `.app:has(.card.compact)`: az egysoros alapkártya vagy az érkezés-sáv (az is `.card.compact`) mellett az alsó sötétítés kisebb; a rejtett HUD
+    /// az útvonalválasztó alatt is számít.
+    private var compactCard: Bool { model.nav != nil || view.phase == .nincsSzakasz }
+
+    /// A felső réteg a webes abszolút helyekkel (a biztonsági zónához képest): pillek + 40, felső kártya + 84, önálló bejelentés + 112, hőtérkép-váltó + 202,
+    /// tervezett mérés + 96 (kompakt 92, felső kártya mellett 262), toast + 88.
+    private var top: some View {
+        ZStack(alignment: .top) {
+            if model.destSearchOpen {
+                SearchPanel(model: model)
+                    .padding(.top, Tokens.Space.s10 + Tokens.Space.s1)
+                    .transition(.opacity.combined(with: .offset(y: -12)))
+            } else {
+                statusPills(.above)
+                // AW20: hőtérkép-mód (Gyakoriság | Átlagsebesség) és jelmagyarázat – a krúzing-sor alatt, csak kész rétegnél (mint a weben)
+                if model.heatReady {
+                    HeatSwitch(model: model)
+                        .padding(.top, 202)
+                        .transition(.opacity.combined(with: .offset(y: -12)))
+                }
+                if let nav = model.nav, !measuringLayout {
+                    // sáv-módban is elrendezve (nulla magasságú keretben, rejtve), hogy a teljes kártya alja mérhető
+                    // maradjon: ebből dől el, mikor fér ki újra. A rejtett kártyán is ott a bejelentés és a dugó-kérdés
+                    // (mint a weben), különben a mért magasság kisebb, a kártya visszajönne, és a sor nem férne ki.
+                    NavTopCard(view: nav, unit: unit, report: alert, onJamAnswer: jamAnswer, jamSending: model.reportSending != nil, onRetry: retry)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .onGeometryChange(for: CGFloat.self) { $0.frame(in: .global).maxY } action: { navCardBottom = $0 }
+                        .opacity(stepStrip ? 0 : 1)
+                        .frame(height: stepStrip ? 0 : nil, alignment: .top)
+                        .allowsHitTesting(!stepStrip)
+                        .accessibilityHidden(stepStrip)
+                        .padding(.top, 84)
+                        .transition(.opacity.combined(with: .offset(y: -12)))
+                }
+                // AOS14: navigáció nélkül (vagy ha a felső kártya nem látszik) a közeledő bejelentés kártyája önállóan, ugyanott
+                // AW18: ha a felső kártya nem látszik (sáv-mód / mérés), a „Dugóba kerültél?” önálló borostyán kártyán, ugyanott
+                if standaloneJamAsk {
+                    JamAskCard(onAnswer: jamAnswer, sending: model.reportSending != nil)
+                        .padding(.top, 112)
+                        .transition(.opacity.combined(with: .offset(y: -12)))
+                } else if let alert, !(model.nav != nil && !measuringLayout && !stepStrip) {
+                    ReportAlertCard(alert: alert, unit: unit)
+                        .padding(.top, 112)
+                        .transition(.opacity.combined(with: .offset(y: -12)))
+                }
+                VStack(spacing: Tokens.Space.s2) {
+                    if let p = model.activePlanned {
+                        PlannedBand(check: p, compact: measuring, unit: unit)
+                            .transition(.opacity.combined(with: .offset(y: -12)))
+                    }
+                    // csak iOS-en van (A10): a paritás-kép a webes elrendezést méri
+                    if let a = model.alert, !Parity.on {
+                        AlertBanner(event: a)
+                            .transition(.opacity.combined(with: .offset(y: -12)))
+                    }
+                }
+                .padding(.top, model.nav != nil && !measuringLayout && !stepStrip ? 262 : measuring ? 92 : 96)
+                .allowsHitTesting(false)
+                if let toast = model.toast {
+                    ToastView(toast: toast)
+                        .padding(.top, 88)
+                        .allowsHitTesting(false)
+                        .transition(.opacity.combined(with: .offset(y: -12)))
+                }
+            }
+        }
+        .padding(.top, simTop)
+        .padding(.horizontal, Tokens.Space.s3)
+        .animation(.easeOut(duration: Tokens.Motion.slow), value: model.activePlanned?.id)
+        .animation(.easeOut(duration: Tokens.Motion.base), value: model.alert)
+        .animation(.easeOut(duration: Tokens.Motion.base), value: model.toast)
+        .animation(.easeOut(duration: Tokens.Motion.base), value: model.reportPromptState?.id)
+        .animation(.easeOut(duration: Tokens.Motion.base), value: model.destSearchOpen)
+        .animation(.easeOut(duration: Tokens.Motion.base), value: measuringLayout)
+        .animation(.easeOut(duration: Tokens.Motion.base), value: stepStrip)
+    }
+
+    /// A szimulátor-panel a felső réteget lejjebb tolja.
+    private var simTop: CGFloat { model.sim != nil && model.simPanel ? 56 : 0 }
+
+    private func statusPills(_ part: StatusPills.Part) -> some View {
+        StatusPills(
+            geo: model.geo,
+            accuracy: view.lastFix?.accuracy,
+            compact: driving || model.nav != nil,
+            offline: model.isOffline,
+            onGps: model.gpsPillTapped,
+            onSearch: emptyView ? { model.openSearch() } : nil,
+            greeting: emptyView && alert == nil ? greetingText(model.settings.megszolitas) : nil,
+            cruise: emptyView && alert == nil ? model.cruiseText : nil,
+            part: part
+        )
+    }
+
+    /// A `.slowdown` (a HUD teteje fölött 4 pt-re, középen) és a `.hud-float` (12 pt-re, mérés közben 84 pt-tel feljebb, hogy a sáv helye szabad maradjon).
+    private var floats: some View {
+        ZStack(alignment: .bottom) {
+            if view.phase == .meres, slowDownBarShown(navMeterCompact(view.phase, offer: model.nav?.offer != nil)) {
+                SlowDownBar(view: view, unit: unit)
+                    .padding(.bottom, Tokens.Space.s1)
+            }
+            VStack(spacing: Tokens.Space.s3) { float }
+                .padding(.bottom, view.phase == .meres ? Tokens.Space.s3 + 84 : Tokens.Space.s3)
+                .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { hudFloatH = max(0, $0 - (view.phase == .meres ? Tokens.Space.s3 + 84 : Tokens.Space.s3)) }
+        }
+        .frame(height: 0, alignment: .bottom)
     }
 
     /// AW18: a „Dugóba kerültél?” válasza és az újratervezés azonnali újrapróbája.
@@ -207,9 +275,9 @@ struct DriveView: View {
     /// AOS14: az üres nézet (nincs navigáció, tervezés, mérés) – a kereső-gomb és a köszöntés ilyenkor látszik.
     private var emptyView: Bool { model.nav == nil && model.plan == nil && !driving && view.phase != .keziEredmeny }
 
-    /// Az alsó rész: ajánlat, bejelentés-kártya, gombok, és a mérőkártya / érkezés-sáv.
-    @ViewBuilder private var hud: some View {
-        if let offer = model.nav?.offer, !offer.compact {
+    /// A `.hud-float` tartalma: a teljes ajánlat, a koppintott jelölő kártyája, a tábla és a „Vissza a helyemre”. A kompakt ajánlat is itt (mint a weben).
+    @ViewBuilder private var float: some View {
+        if let offer = model.nav?.offer {
             OfferCard(offer: offer, onAccept: model.acceptOffer, onDecline: model.declineOffer)
                 .transition(.opacity.combined(with: .offset(y: 12)))
         }
@@ -239,15 +307,22 @@ struct DriveView: View {
             HStack(alignment: .bottom, spacing: Tokens.Space.s3) {
                 if navSign, let nav = model.nav {
                     LimitSign(kmh: nav.limitKmh, unit: unit, small: true)
+                    Spacer()
                 }
-                Spacer()
                 if recenter {
-                    Button { model.follow = true } label: { Icon(name: .crosshair, size: 28) }
+                    // a webes `.recenter`: `brand` színű célkereszt; csak akkor látszik, ha nem a pozíción áll a kamera
+                    Button { model.follow = true } label: { Icon(name: .crosshair, size: 28).foregroundStyle(Tokens.Colors.brand) }
                         .buttonStyle(RoundButtonStyle())
                         .accessibilityLabel(t(.mapRecenter))
                 }
+                // a webes `.recenter-row { justify-content: space-between }`: tábla nélkül a gomb a bal szélen
+                if !navSign { Spacer() }
             }
         }
+    }
+
+    /// Az alsó rész (a webes `.hud`): gombsor, lépés-sáv, mérőkártya, érkezés-sáv – 12 pt-es térközzel.
+    @ViewBuilder private var hud: some View {
         // a gombsor jobbra zárva; Beállítások és stopper mérés / közeledés / kézi eredmény közben nincs (a webes feltétel)
         HStack(alignment: .bottom, spacing: Tokens.Space.s3) {
             Spacer()
@@ -262,47 +337,33 @@ struct DriveView: View {
                     .buttonStyle(RoundButtonStyle())
                     .accessibilityLabel(t(.mapManualStart))
             }
-            // AOS14: a Bejelentés menü (mint a weben: mindig a sor jobb szélén)
-            Button { model.reportSheetOpen = true } label: { Icon(name: .report, size: 28) }
+            // AOS14: a Bejelentés menü (mint a weben: mindig a sor jobb szélén); a webes `.round-btn.report`: borostyán ikon
+            Button { model.reportSheetOpen = true } label: { Icon(name: .report, size: 28).foregroundStyle(Tokens.Colors.near) }
                 .buttonStyle(RoundButtonStyle())
                 .accessibilityLabel(t(.mapReport))
         }
-        if let nav = model.nav, hudCardHidden {
-            if stripShown { strip(nav) }
-        } else {
-            // a „Lassíts” sáv a navigációs sáv fölé kerül (nem takarja el a lépést)
-            ZStack(alignment: .top) {
-                VStack(spacing: Tokens.Space.s2) {
-                    if let offer = compactOffer {
-                        OfferCard(offer: offer, onAccept: model.acceptOffer, onDecline: model.declineOffer)
-                            .transition(.opacity.combined(with: .offset(y: 12)))
-                    }
-                    if let nav = model.nav, stripShown { strip(nav) }
-                    MeterCard(
-                        view: view,
-                        settings: model.settings,
-                        gpsReady: view.lastFix != nil,
-                        onStopManual: model.stopManual,
-                        onDismiss: model.dismiss,
-                        compact: navResultCompact(view.phase, navigating: model.nav != nil),
-                        meterCompact: navMeterCompact(view.phase, offer: model.nav?.offer != nil),
-                        onCollapseManual: collapseManual
-                    )
-                }
-                // AW17-javítás: egysoros mérőkártyánál (mérés + ajánlat) nincs külön sáv – a max érték a kártyában
-                if slowDownBarShown(navMeterCompact(view.phase, offer: model.nav?.offer != nil)) {
-                    SlowDownBar(view: view, unit: unit)
-                        .alignmentGuide(.top) { $0[.bottom] + 4 }
-                }
-            }
-            .animation(.easeOut(duration: Tokens.Motion.base), value: view.phase)
-            .animation(.easeOut(duration: Tokens.Motion.base), value: model.nav?.offer != nil)
+        if let nav = model.nav, stripShown { strip(nav) }
+        if !hudCardHidden {
+            MeterCard(
+                view: view,
+                settings: model.settings,
+                gpsReady: view.lastFix != nil,
+                onStopManual: model.stopManual,
+                onDismiss: model.dismiss,
+                compact: navResultCompact(view.phase, navigating: model.nav != nil),
+                meterCompact: navMeterCompact(view.phase, offer: model.nav?.offer != nil),
+                onCollapseManual: collapseManual
+            )
+            .id(view.phase)
+            .transition(.opacity.combined(with: .offset(y: 14)))
+            .onGeometryChange(for: CGFloat.self) { $0.frame(in: .global).minY } action: { model.navCardTop = $0 }
         }
         if let nav = model.nav {
             NavBottomBar(
                 view: nav, unit: unit, currentKmh: view.currentKmh, showSpeed: navBottomShowsSpeed(view.phase),
                 over: navSpeedOver(view.currentKmh, nav.limitKmh), onEnd: model.endNav
             )
+            .onGeometryChange(for: CGFloat.self) { $0.frame(in: .global).minY } action: { if hudCardHidden { model.navCardTop = $0 } }
         }
     }
 

@@ -41,7 +41,7 @@ nonisolated func parseZoneRadii(_ raw: Any?) -> [String: Int] {
     return out
 }
 
-/// Minden mentett hely (Haza, Munka, további) körül egy zóna; a sugár helyenként állítható, alapból 500 m.
+/// Minden mentett hely (Haza, Munka, további) körül egy zóna; a sugár helyenként állítható, alapból 200 m.
 nonisolated func heatZones(_ saved: SavedPlaces, _ radii: [String: Int]) -> [HeatZone] {
     func at(_ id: String, _ p: Place) -> HeatZone {
         let r = radii[id].flatMap { ZONE_RADII.contains($0) ? $0 : nil } ?? Int(HEAT.zoneDefaultM)

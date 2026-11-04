@@ -526,11 +526,11 @@ struct HeatZoneTests {
     private let zone = HeatZone(id: "home", lat: 47.01, lon: 19.01, radiusM: 200)
     private func pass(_ h3: String, _ t: Double = T0) -> HeatPass { HeatPass(h3: h3, avgKmh: 50, t: t, fromStartM: 5000, toEndM: 5000) }
 
-    @Test("a mentett helyek körül zóna van, alapból 500 m, helyenként állítható")
+    @Test("a mentett helyek körül zóna van, alapból 200 m, helyenként állítható")
     func alap() {
         let z = heatZones(Self.saved, ["work": 1000])
         #expect(z.map(\.id) == ["home", "work", "o1"])
-        #expect(z.map(\.radiusM) == [500, 1000, 500])
+        #expect(z.map(\.radiusM) == [200, 1000, 200])
         #expect(heatZones(SavedPlaces(home: nil, work: nil, others: []), [:]).isEmpty)
     }
 
@@ -541,7 +541,7 @@ struct HeatZoneTests {
         #expect(parseZoneRadii([200]).isEmpty)
         #expect(Settings.parse(#"{"zona_m":{"home":1000,"work":5}}"#).zonaM == ["home": 1000])
         #expect(Settings.parse(nil).zonaM.isEmpty)
-        #expect(heatZones(Self.saved, ["home": 777])[0].radiusM == 500)
+        #expect(heatZones(Self.saved, ["home": 777])[0].radiusM == 200)
     }
 
     @Test("a zónában lévő cellák sosem kerülnek a feltöltésbe, a zónán kívüliek igen")

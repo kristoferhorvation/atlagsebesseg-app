@@ -340,6 +340,7 @@
   "nav.man.arrive": "Ziel",
   "nav.man.depart": "Start",
   "ios.locationUsage": "Dein Standort wird gebraucht, um Messabschnitte zu erkennen und deine Durchschnittsgeschwindigkeit zu messen – auch bei gesperrtem Bildschirm, solange die App misst.",
+  "ios.displayName": "Tempo Nav",
   "ios.geo.denied": "verweigert (Einstellungen → Datenschutz → Ortungsdienste)",
   "ios.start.tip.background": "Misst auch bei gesperrtem Bildschirm – während der Messung bleibt die Anzeige an",
 
@@ -434,7 +435,7 @@
   "heat.details.no.title": "Was nicht gesendet wird",
   "heat.details.no.body": "Die Route, die genaue Zeit, jede Kennung (Name, Gerät, Konto), die Umgebung gespeicherter Orte sowie die ersten und letzten 300 m jeder Fahrt.",
   "heat.details.zones.title": "Schutzzonen",
-  "heat.details.zones.body": "Um jeden gespeicherten Ort (Zuhause, Arbeit, weitere) liegt eine Zone, standardmäßig 500 m. Zellen in einer Zone werden nie gesendet und erscheinen auf deiner eigenen Heatmap grau. Zonen und gespeicherte Orte liegen nur auf diesem Gerät.",
+  "heat.details.zones.body": "Um jeden gespeicherten Ort (Zuhause, Arbeit, weitere) liegt eine Zone, standardmäßig 200 m. Zellen in einer Zone werden nie gesendet und erscheinen auf deiner eigenen Heatmap grau. Zonen und gespeicherte Orte liegen nur auf diesem Gerät.",
   "heat.details.noPlaces": "Noch keine gespeicherten Orte – du kannst in den Einstellungen welche hinzufügen.",
   "heat.zone.label": "Schutzzone",
   "heat.zone.hint": "Zellen in der Zone werden nicht gesendet und erscheinen auf deiner eigenen Heatmap grau.",

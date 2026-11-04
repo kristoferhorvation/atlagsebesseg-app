@@ -38,7 +38,7 @@ struct L10nTests {
         let bundle = try #require(L10n.bundle(for: lang))
         let dict = try Repo.dictionary(lang)
         #expect(bundle.localizedString(forKey: "NSLocationWhenInUseUsageDescription", value: nil, table: "InfoPlist") == dict["ios.locationUsage"])
-        #expect(bundle.localizedString(forKey: "CFBundleDisplayName", value: nil, table: "InfoPlist") == dict["app.name"])
+        #expect(bundle.localizedString(forKey: "CFBundleDisplayName", value: nil, table: "InfoPlist") == dict["ios.displayName"])
     }
 
     @Test("AW15: a nyelvválasztó zászlóval, a saját nyelvén írt név szerint ábécérendben")
@@ -128,4 +128,57 @@ struct LiteralGuardTests {
             #expect(hits.isEmpty, "szó szerinti felirat: \(rel): \(hits)")
         }
     }
+}
+
+/// AOS18 (1.1): az apps/ios-ban literál szín / árnyék / sarok / betűméret tilos, minden a generált tokenekből (`packages/design-tokens`), és a SwiftUI
+/// alapértelmezései (rendszer-árnyék, alap Mapbox puck, natív segmented picker, alap gombstílus) sem kerülhetnek vissza. Új iOS-UI: CLAUDE.md › Paritás.
+@Suite("paritás-lint: nincs literál dizájn-érték az iOS-kódban")
+struct ParityLintTests {
+    /// A térképkép CPU-s színpalettája (`LIVE_MAP_PALETTE`) és a Static Images API URL-jének Mapbox-stílus azonosítói nem UI-tokenek.
+    static let whitelist = ["LiveActivity/LiveMap.swift"]
+
+    private func hits(_ pattern: String) -> [String] {
+        LiteralGuardTests.sources().filter { !Self.whitelist.contains($0.rel) }.flatMap { rel, text in
+            LiteralGuardTests.stripComments(text).split(separator: "\n").enumerated()
+                .filter { _, line in line.range(of: pattern, options: .regularExpression) != nil }
+                .map { "\(rel):\($0.offset + 1): \($0.element.trimmingCharacters(in: .whitespaces))" }
+        }
+    }
+
+    @Test("betűméret és -súly csak tokenből", arguments: [
+        #"\.(inter|num|css)\(\s*[\d.]+"#,
+        #"\.(inter|num|css)\([^,()]+,\s*[\d.]+"#,
+        #"\.font\(\.(largeTitle|title|title2|title3|headline|subheadline|body|callout|footnote|caption|caption2)\b"#,
+        #"\.system\(size:"#,
+    ])
+    func betu(pattern: String) { #expect(hits(pattern).isEmpty, "\(hits(pattern))") }
+
+    @Test("szín csak tokenből", arguments: [
+        #"\bColor\.(white|black|red|blue|green|gray|yellow|orange|pink|purple|primary|secondary)\b"#,
+        #"\bColor\(\s*(\.sRGB|red:|white:|hue:|\.display|uiColor|")"#,
+        #"\bUIColor\((red|white|hue|displayP3):"#,
+        #"(fill|foregroundStyle|foregroundColor|background|tint)\(\s*\.(white|black|red|blue|green|gray|yellow|orange)\b"#,
+        #"\.(white|black)\.opacity\("#,
+    ])
+    func szin(pattern: String) { #expect(hits(pattern).isEmpty, "\(hits(pattern))") }
+
+    @Test("árnyék és sarok csak tokenből", arguments: [
+        #"\.shadow\([^)]*radius:\s*[\d.]+"#,
+        #"\.shadow\(\s*color:\s*\.(black|white)"#,
+        #"cornerRadius:\s*[\d.]+"#,
+        #"glass\(radius:\s*[\d.]+"#,
+    ])
+    func arnyek(pattern: String) { #expect(hits(pattern).isEmpty, "\(hits(pattern))") }
+
+    @Test("átlátszóság csak tokenből")
+    func atlatszosag() { #expect(hits(#"\.opacity\(0?\.\d+\)"#).isEmpty, "\(hits(#"\.opacity\(0?\.\d+\)"#))") }
+
+    @Test("SwiftUI / Mapbox alapértelmezés tilos", arguments: [
+        #"\.pickerStyle\("#,
+        #"\.buttonStyle\(\.(automatic|bordered|borderedProminent|borderless)\)"#,
+        #"\.toggleStyle\(\.(automatic|switch|button)\)"#,
+        #"\b(Puck2D|Puck3D|puck2D|puck3D|\.puckType)\b"#,
+        #"\bUISegmentedControl\b"#,
+    ])
+    func alap(pattern: String) { #expect(hits(pattern).isEmpty, "\(hits(pattern))") }
 }

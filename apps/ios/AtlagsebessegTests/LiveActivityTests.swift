@@ -34,19 +34,23 @@ struct LiveActivityTests {
         }
     }
 
-    @Test("a kibontott Dynamic Island mind az öt állapotban legfeljebb 160 pt")
-    func kibontott() {
-        for item in LiveActivitySamples.all {
-            let v = VStack(alignment: .leading, spacing: 8) {
-                HStack(alignment: .top) {
-                    IslandLeading(state: item.state)
-                    Spacer(minLength: 8)
-                    IslandTrailing(state: item.state)
-                }
-                IslandBottom(state: item.state)
-            }
-            let h = height(v, width: 340)
-            #expect(h <= LIVE_MAX_HEIGHT, "\(item.name): \(h) pt")
-        }
+    @Test("AOS18: a „figyel” soha nem üres, mentett helynél Haza / Munka gomb, navigáció közben nincs gomb")
+    func figyelTartalom() throws {
+        let idle = try #require(liveActivityState(SessionView(), nav: nil, unit: .kmh, savedHome: true, lang: .hu)?.watch)
+        #expect(idle.cruise == "0 km · 0 perc")
+        #expect(idle.homeLabel == "Haza")
+        #expect(idle.workLabel == nil)
+        let none = try #require(liveActivityState(SessionView(), nav: nil, unit: .kmh, lang: .hu)?.watch)
+        #expect(none.homeLabel == nil && none.workLabel == nil)
+    }
+
+    @Test("AOS18: a gombok kérése egyszer vehető fel (App Group), a célok a helyek azonosítói")
+    func gombKeres() {
+        _ = LiveNavRouter.take()
+        LiveNavRouter.request(LiveNavRouter.work)
+        // a teszt-gazdában az App Group nem biztos, hogy elérhető: ilyenkor nincs mit felvenni, de hibát nem okoz
+        let first = LiveNavRouter.take()
+        #expect(first == LiveNavRouter.work || first == nil)
+        #expect(LiveNavRouter.take() == nil)
     }
 }

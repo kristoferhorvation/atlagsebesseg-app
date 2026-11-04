@@ -1,0 +1,156 @@
+{
+  "component": "pills",
+  "webFile": "apps/web/src/ui/StatusPills.tsx",
+  "device": {
+    "w": 402,
+    "h": 874,
+    "dpr": 3
+  },
+  "parts": {
+    "root": {
+      "selector": ".pills",
+      "box": {
+        "x": 12,
+        "y": 102,
+        "w": 306,
+        "h": 36
+      },
+      "style": {
+        "fontSize": "20px",
+        "fontWeight": "400",
+        "lineHeight": "normal",
+        "letterSpacing": "normal",
+        "color": "rgb(244, 246, 250)",
+        "backgroundColor": "rgba(0, 0, 0, 0)",
+        "backgroundImage": "none",
+        "borderTopWidth": "0px",
+        "borderTopColor": "rgb(244, 246, 250)",
+        "borderTopLeftRadius": "0px",
+        "paddingTop": "0px",
+        "paddingRight": "0px",
+        "paddingBottom": "0px",
+        "paddingLeft": "0px",
+        "rowGap": "8px",
+        "columnGap": "8px",
+        "boxShadow": "none",
+        "opacity": "1"
+      }
+    },
+    "gps": {
+      "selector": ".pills .pill:nth-child(1)",
+      "box": {
+        "x": 12,
+        "y": 102,
+        "w": 122.98,
+        "h": 36
+      },
+      "style": {
+        "fontSize": "15px",
+        "fontWeight": "580",
+        "lineHeight": "normal",
+        "letterSpacing": "normal",
+        "color": "rgba(244, 246, 250, 0.64)",
+        "backgroundColor": "rgba(16, 18, 24, 0.6)",
+        "backgroundImage": "none",
+        "borderTopWidth": "1px",
+        "borderTopColor": "rgba(255, 255, 255, 0.08)",
+        "borderTopLeftRadius": "999px",
+        "paddingTop": "0px",
+        "paddingRight": "13px",
+        "paddingBottom": "0px",
+        "paddingLeft": "11px",
+        "rowGap": "8px",
+        "columnGap": "8px",
+        "boxShadow": "none",
+        "opacity": "1"
+      }
+    },
+    "wake": {
+      "selector": ".pills .pill:nth-child(2)",
+      "box": {
+        "x": 142.98,
+        "y": 102,
+        "w": 146.42,
+        "h": 36
+      },
+      "style": {
+        "fontSize": "15px",
+        "fontWeight": "580",
+        "lineHeight": "normal",
+        "letterSpacing": "normal",
+        "color": "rgba(244, 246, 250, 0.64)",
+        "backgroundColor": "rgba(16, 18, 24, 0.6)",
+        "backgroundImage": "none",
+        "borderTopWidth": "1px",
+        "borderTopColor": "rgba(255, 255, 255, 0.08)",
+        "borderTopLeftRadius": "999px",
+        "paddingTop": "0px",
+        "paddingRight": "13px",
+        "paddingBottom": "0px",
+        "paddingLeft": "11px",
+        "rowGap": "8px",
+        "columnGap": "8px",
+        "boxShadow": "none",
+        "opacity": "1"
+      }
+    },
+    "text": {
+      "selector": ".pills .pill-text",
+      "box": {
+        "x": 50,
+        "y": 110.5,
+        "w": 70.98,
+        "h": 19
+      },
+      "style": {
+        "fontSize": "15px",
+        "fontWeight": "580",
+        "lineHeight": "normal",
+        "letterSpacing": "normal",
+        "color": "rgba(244, 246, 250, 0.64)",
+        "backgroundColor": "rgba(0, 0, 0, 0)",
+        "backgroundImage": "none",
+        "borderTopWidth": "0px",
+        "borderTopColor": "rgba(244, 246, 250, 0.64)",
+        "borderTopLeftRadius": "0px",
+        "paddingTop": "0px",
+        "paddingRight": "0px",
+        "paddingBottom": "0px",
+        "paddingLeft": "0px",
+        "rowGap": "normal",
+        "columnGap": "normal",
+        "boxShadow": "none",
+        "opacity": "1"
+      }
+    },
+    "icon": {
+      "selector": ".pills .pill svg",
+      "box": {
+        "x": 24,
+        "y": 111,
+        "w": 18,
+        "h": 18
+      },
+      "style": {
+        "fontSize": "15px",
+        "fontWeight": "580",
+        "lineHeight": "normal",
+        "letterSpacing": "normal",
+        "color": "rgb(46, 229, 157)",
+        "backgroundColor": "rgba(0, 0, 0, 0)",
+        "backgroundImage": "none",
+        "borderTopWidth": "0px",
+        "borderTopColor": "rgb(46, 229, 157)",
+        "borderTopLeftRadius": "0px",
+        "paddingTop": "0px",
+        "paddingRight": "0px",
+        "paddingBottom": "0px",
+        "paddingLeft": "0px",
+        "rowGap": "normal",
+        "columnGap": "normal",
+        "boxShadow": "none",
+        "opacity": "1"
+      }
+    }
+  }
+}

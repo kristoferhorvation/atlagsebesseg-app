@@ -34,3 +34,4 @@ apps/ios/*.xcodeproj/
 apps/ios/build/
 apps/ios/DerivedData/
 xcuserdata/
+packages/parity/.work/

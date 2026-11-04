@@ -1,0 +1,98 @@
+{
+  "component": "gps-marker",
+  "webFile": "apps/web/src/map/MapboxWebAdapter.tsx",
+  "device": {
+    "w": 402,
+    "h": 874,
+    "dpr": 3
+  },
+  "parts": {
+    "root": {
+      "selector": ".puck",
+      "box": {
+        "x": 171,
+        "y": 391,
+        "w": 60,
+        "h": 30
+      },
+      "style": {
+        "fontSize": "12px",
+        "fontWeight": "400",
+        "lineHeight": "20px",
+        "letterSpacing": "normal",
+        "color": "rgb(244, 246, 250)",
+        "backgroundColor": "rgba(0, 0, 0, 0)",
+        "backgroundImage": "none",
+        "borderTopWidth": "0px",
+        "borderTopColor": "rgb(244, 246, 250)",
+        "borderTopLeftRadius": "0px",
+        "paddingTop": "0px",
+        "paddingRight": "0px",
+        "paddingBottom": "0px",
+        "paddingLeft": "0px",
+        "rowGap": "normal",
+        "columnGap": "normal",
+        "boxShadow": "none",
+        "opacity": "1"
+      }
+    },
+    "dot": {
+      "selector": ".puck-dot",
+      "box": {
+        "x": 190,
+        "y": 400.5,
+        "w": 22,
+        "h": 11
+      },
+      "style": {
+        "fontSize": "12px",
+        "fontWeight": "400",
+        "lineHeight": "20px",
+        "letterSpacing": "normal",
+        "color": "rgb(244, 246, 250)",
+        "backgroundColor": "rgb(122, 134, 255)",
+        "backgroundImage": "none",
+        "borderTopWidth": "3px",
+        "borderTopColor": "rgb(255, 255, 255)",
+        "borderTopLeftRadius": "50%",
+        "paddingTop": "0px",
+        "paddingRight": "0px",
+        "paddingBottom": "0px",
+        "paddingLeft": "0px",
+        "rowGap": "normal",
+        "columnGap": "normal",
+        "boxShadow": "rgba(122, 134, 255, 0.24) 0px 0px 0px 7px, rgba(0, 0, 0, 0.5) 0px 4px 14px 0px",
+        "opacity": "1"
+      }
+    },
+    "cone": {
+      "selector": ".puck-cone",
+      "box": {
+        "x": 175,
+        "y": 382,
+        "w": 52,
+        "h": 24
+      },
+      "style": {
+        "fontSize": "12px",
+        "fontWeight": "400",
+        "lineHeight": "20px",
+        "letterSpacing": "normal",
+        "color": "rgb(244, 246, 250)",
+        "backgroundColor": "rgba(0, 0, 0, 0)",
+        "backgroundImage": "linear-gradient(to top, rgba(122, 134, 255, 0.6), rgba(122, 134, 255, 0))",
+        "borderTopWidth": "0px",
+        "borderTopColor": "rgb(244, 246, 250)",
+        "borderTopLeftRadius": "0px",
+        "paddingTop": "0px",
+        "paddingRight": "0px",
+        "paddingBottom": "0px",
+        "paddingLeft": "0px",
+        "rowGap": "normal",
+        "columnGap": "normal",
+        "boxShadow": "none",
+        "opacity": "1"
+      }
+    }
+  }
+}

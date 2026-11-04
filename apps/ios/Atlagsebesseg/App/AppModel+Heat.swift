@@ -21,6 +21,8 @@ extension AppModel {
         // képernyőképekhez: `-heat ki|sajat|kozossegi`, `-heatView gyakorisag|atlagsebesseg`
         if let m = args.string(forKey: "heat").flatMap(HeatMode.init(rawValue:)) { settings.hoterkep = m }
         if let v = args.string(forKey: "heatView").flatMap(HeatView.init(rawValue:)) { settings.hoterkepNezet = v }
+        // AOS18: paritás-módban nincs térkép, ami a látható részt küldené
+        if Parity.on { heatHasViewport = true }
         // `-heatSeed YES`: mesterséges, több utas adat (a közösségi mód is ebből, hálózat nélkül) – a saját utak helyett
         if args.bool(forKey: "heatSeed") {
             let cells = heatSeedCells(cellOf: tripCell)
@@ -59,7 +61,7 @@ extension AppModel {
         fetchHeatGlobal()
     }
 
-    /// Az adatvédelmi zónák: minden mentett hely körül, helyenként a `zona_m` szerinti sugárral (alapból 500 m).
+    /// Az adatvédelmi zónák: minden mentett hely körül, helyenként a `zona_m` szerinti sugárral (alapból 200 m).
     var heatZoneList: [HeatZone] { heatZones(saved, settings.zonaM) }
 
     /// A zónák az indexbe (csak változáskor számolódik újra a felosztás).

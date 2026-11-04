@@ -23,7 +23,7 @@ enum LiveActivitySamples {
     )
     static let watch = DriveActivityAttributes.Watch(
         title: "Figyel", speed: "87", unit: "km/h", limit: nil, speedOver: false, nextSection: "Szakasz 3,2 km múlva",
-        cruise: "124,6 km · 1 óra 23 perc · 90 km/h", dirChanges: "Irányváltások: 17"
+        cruise: "124,6 km · 1 óra 23 perc · 90 km/h", dirChanges: "Irányváltások: 17", homeLabel: "Haza", workLabel: "Munka"
     )
     private static let att = "© Mapbox © OpenStreetMap"
     static let all: [(name: String, state: LiveState)] = [
@@ -99,21 +99,11 @@ struct LiveActivityPreview: View {
         .background(.black, in: Capsule())
     }
 
-    /// A kibontott alak: két oszlop (bal: a fő szám, jobb: tábla / érkezés), alatta a részletek – térképkép nélkül.
+    /// A kibontott alak: ugyanaz, mint a lezárt képernyő (AOS18).
     private func expandedIsland(_ s: LiveState) -> some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack(alignment: .top) {
-                IslandLeading(state: s)
-                Spacer(minLength: 8)
-                IslandTrailing(state: s)
-            }
-            IslandBottom(state: s)
-        }
-        .padding(.horizontal, 18)
-        .padding(.top, 18)
-        .padding(.bottom, 16)
-        .frame(width: Self.cardWidth)
-        .background(.black, in: RoundedRectangle(cornerRadius: 44, style: .continuous))
+        LockScreenView(state: s, mapImage: sample == nil ? nil : LiveActivitySamples.mapImage)
+            .frame(width: Self.cardWidth)
+            .background(.black, in: RoundedRectangle(cornerRadius: 44, style: .continuous))
     }
 
     private func minimalIsland(_ s: LiveState) -> some View {

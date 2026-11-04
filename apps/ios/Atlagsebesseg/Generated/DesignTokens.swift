@@ -80,6 +80,18 @@ enum Tokens {
         static let signFace = Color(.sRGB, red: 1, green: 1, blue: 1, opacity: 1)
         /// `#0B0C10`
         static let signText = Color(.sRGB, red: 0.043137, green: 0.047059, blue: 0.062745, opacity: 1)
+        /// `rgba(255,255,255,0.08)`
+        static let fill08 = Color(.sRGB, red: 1, green: 1, blue: 1, opacity: 0.08)
+        /// `rgba(255,255,255,0.09)`
+        static let fill09 = Color(.sRGB, red: 1, green: 1, blue: 1, opacity: 0.09)
+        /// `rgba(255,255,255,0.10)`
+        static let fill10 = Color(.sRGB, red: 1, green: 1, blue: 1, opacity: 0.1)
+        /// `rgba(16,18,24,0.6)`
+        static let pillSurface = Color(.sRGB, red: 0.062745, green: 0.070588, blue: 0.094118, opacity: 0.6)
+        /// `rgba(0,0,0,0.45)`
+        static let sheetBackdrop = Color(.sRGB, red: 0, green: 0, blue: 0, opacity: 0.45)
+        /// `#4A5568`
+        static let parityBackdrop = Color(.sRGB, red: 0.290196, green: 0.333333, blue: 0.407843, opacity: 1)
     }
 
     /// Státusz → szín (a nagy szám, a progress és az aktív szakasz vonala).
@@ -125,6 +137,101 @@ enum Tokens {
         static let tile: CGFloat = 22
         static let card: CGFloat = 32
         static let pill: CGFloat = 999
+        static let r3: CGFloat = 3
+        static let r8: CGFloat = 8
+        static let r9: CGFloat = 9
+        static let r10: CGFloat = 10
+        static let r12: CGFloat = 12
+        static let r14: CGFloat = 14
+        static let r16: CGFloat = 16
+        static let r18: CGFloat = 18
+        static let r20: CGFloat = 20
+        static let r22: CGFloat = 22
+        static let r24: CGFloat = 24
+        static let r26: CGFloat = 26
+        static let r28: CGFloat = 28
+        static let r999: CGFloat = 999
+    }
+
+    /// Betűméret (pt) és -súly (AOS18: az iOS-en literál tilos, AppTests-őr).
+    enum FontSize {
+        static let f8: CGFloat = 8
+        static let f12: CGFloat = 12
+        static let f13: CGFloat = 13
+        static let f14: CGFloat = 14
+        static let f15: CGFloat = 15
+        static let f16: CGFloat = 16
+        static let f17: CGFloat = 17
+        static let f18: CGFloat = 18
+        static let f19: CGFloat = 19
+        static let f20: CGFloat = 20
+        static let f22: CGFloat = 22
+        static let f23: CGFloat = 23
+        static let f24: CGFloat = 24
+        static let f26: CGFloat = 26
+        static let f28: CGFloat = 28
+        static let f30: CGFloat = 30
+        static let f32: CGFloat = 32
+        static let f34: CGFloat = 34
+        static let f36: CGFloat = 36
+        static let f38: CGFloat = 38
+        static let f40: CGFloat = 40
+        static let f44: CGFloat = 44
+        static let f46: CGFloat = 46
+        static let f50: CGFloat = 50
+        static let f64: CGFloat = 64
+    }
+
+    enum FontWeight {
+        static let w400: CGFloat = 400
+        static let w500: CGFloat = 500
+        static let w520: CGFloat = 520
+        static let w540: CGFloat = 540
+        static let w560: CGFloat = 560
+        static let w580: CGFloat = 580
+        static let w600: CGFloat = 600
+        static let w620: CGFloat = 620
+        static let w640: CGFloat = 640
+        static let w650: CGFloat = 650
+        static let w680: CGFloat = 680
+        static let w700: CGFloat = 700
+        static let w720: CGFloat = 720
+        static let w760: CGFloat = 760
+    }
+
+    enum Opacity {
+        static let o09: Double = 0.09
+        static let o10: Double = 0.1
+        static let o12: Double = 0.12
+        static let o14: Double = 0.14
+        static let o16: Double = 0.16
+        static let o17: Double = 0.17
+        static let o18: Double = 0.18
+        static let o22: Double = 0.22
+        static let o24: Double = 0.24
+        static let o25: Double = 0.25
+        static let o28: Double = 0.28
+        static let o35: Double = 0.35
+        static let o40: Double = 0.4
+        static let o45: Double = 0.45
+        static let o50: Double = 0.5
+        static let o55: Double = 0.55
+        static let o60: Double = 0.6
+        static let o70: Double = 0.7
+        static let o72: Double = 0.72
+        static let o78: Double = 0.78
+        static let o85: Double = 0.85
+        static let o90: Double = 0.9
+        static let o92: Double = 0.92
+        static let o94: Double = 0.94
+    }
+
+    /// A SwiftUI `shadow(radius:)` a CSS-elmosás fele.
+    enum Glow {
+        static let hero: CGFloat = 20
+        static let progress: CGFloat = 9
+        static let dot: CGFloat = 5
+        static let reportPin: CGFloat = 7
     }
 
     enum Size {
@@ -136,12 +243,34 @@ enum Tokens {
 
     enum Blur {
         static let glass: CGFloat = 28
+        static let backdrop: CGFloat = 3
     }
 
     enum Shadow {
         static let card: [ShadowLayer] = [
             ShadowLayer(x: 0, y: 24, blur: 60, spread: -12, color: Color(.sRGB, red: 0, green: 0, blue: 0, opacity: 0.65)),
             ShadowLayer(x: 0, y: 2, blur: 8, spread: 0, color: Color(.sRGB, red: 0, green: 0, blue: 0, opacity: 0.35)),
+        ]
+        static let sign: [ShadowLayer] = [
+            ShadowLayer(x: 0, y: 8, blur: 24, spread: 0, color: Color(.sRGB, red: 0, green: 0, blue: 0, opacity: 0.45)),
+        ]
+        static let knob: [ShadowLayer] = [
+            ShadowLayer(x: 0, y: 2, blur: 6, spread: 0, color: Color(.sRGB, red: 0, green: 0, blue: 0, opacity: 0.35)),
+        ]
+        static let startMark: [ShadowLayer] = [
+            ShadowLayer(x: 0, y: 12, blur: 40, spread: 0, color: Color(.sRGB, red: 0, green: 0, blue: 0, opacity: 0.5)),
+        ]
+        static let cameraPin: [ShadowLayer] = [
+            ShadowLayer(x: 0, y: 4, blur: 10, spread: 0, color: Color(.sRGB, red: 0, green: 0, blue: 0, opacity: 0.45)),
+        ]
+        static let routeLabel: [ShadowLayer] = [
+            ShadowLayer(x: 0, y: 3, blur: 8, spread: 0, color: Color(.sRGB, red: 0, green: 0, blue: 0, opacity: 0.35)),
+        ]
+        static let puck: [ShadowLayer] = [
+            ShadowLayer(x: 0, y: 4, blur: 14, spread: 0, color: Color(.sRGB, red: 0, green: 0, blue: 0, opacity: 0.5)),
+        ]
+        static let reportPin: [ShadowLayer] = [
+            ShadowLayer(x: 0, y: 6, blur: 18, spread: 0, color: Color(.sRGB, red: 0, green: 0, blue: 0, opacity: 0.5)),
         ]
     }
 

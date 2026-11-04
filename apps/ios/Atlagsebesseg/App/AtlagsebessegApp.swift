@@ -24,6 +24,8 @@ struct AtlagsebessegApp: App {
             .tint(Tokens.Colors.accent)
             // AOS15: a Live Activity koppintása a megfelelő nézetre nyit
             .onOpenURL { model.openLink($0) }
+            // AOS18: a Live Activity „Haza” / „Munka” gombja, ha az app már fut
+            .onReceive(NotificationCenter.default.publisher(for: LiveNavRouter.notification)) { _ in model.consumeLiveNav() }
             // AOS15-javítás: a lejárt / hiányzó Live Activity előtérben újraindul
             .onChange(of: scenePhase) { _, phase in
                 if phase == .active { model.appBecameActive() }

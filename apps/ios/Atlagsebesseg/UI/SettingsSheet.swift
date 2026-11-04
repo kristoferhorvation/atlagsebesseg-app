@@ -7,46 +7,53 @@ import SwiftUI
 /// nyílik, választás után a lap ugyanott, nyitva marad.
 struct SettingsSheet: View {
     @Bindable var model: AppModel
-    @Environment(\.dismiss) private var dismiss
+    var peek = false
+    var onPeekEnd: () -> Void = {}
+    let onClose: () -> Void
     /// AW19: az utak naplója nyitva (`-settingsOpen trips`: rögtön, a képernyőképhez).
     @State private var tripsOpen = UserDefaults.standard.string(forKey: "settingsOpen") == "trips"
     /// AW20-javítás: az adatmegosztás „Részletek” lapja (`-settingsOpen heatDetails`: rögtön, a képernyőképhez).
     @State private var heatDetailsOpen = UserDefaults.standard.string(forKey: "settingsOpen") == "heatDetails"
 
     var body: some View {
-        NavigationStack {
+        AppSheet(peek: peek, onClose: onClose) {
             ScrollViewReader { scroll in
                 ScrollView {
                     VStack(alignment: .leading, spacing: 0) {
-                        head
-                        GroupLabel(text: t(.settingsGroupDisplay))
-                        displayCard
-                        GroupLabel(text: t(.iosSettingsGroupAlerts))
-                        alertsCard
-                        tripsCard.padding(.top, 18).id(Self.tripsAnchor)
-                        GroupLabel(text: t(.settingsGroupPlaces))
-                        placesCard
-                        GroupLabel(text: t(.settingsGroupStatus))
-                        statusCard
-                        GroupLabel(text: t(.settingsGroupDev))
-                        devCard
-                        Text(t(.settingsAttribution))
-                            .font(.inter(Tokens.Typography.caption.size, 500))
-                            .foregroundStyle(Tokens.Colors.textMuted)
-                            .padding(EdgeInsets(top: 12, leading: 6, bottom: 2, trailing: 6))
-                            .fixedSize(horizontal: false, vertical: true)
+                        if heatDetailsOpen {
+                            HeatDetailsView(model: model, onClose: { heatDetailsOpen = false })
+                        } else {
+                            SheetHead(title: t(.settingsTitle), onClose: onClose)
+                            GroupLabel(text: t(.settingsGroupDisplay))
+                            displayCard
+                            // a jelzések csak iOS-en vannak: a paritás-kép a webes lapot méri
+                            if !Parity.on {
+                                GroupLabel(text: t(.iosSettingsGroupAlerts))
+                                alertsCard
+                            }
+                            tripsCard.padding(.top, 18).id(Self.tripsAnchor)
+                            GroupLabel(text: t(.settingsGroupPlaces))
+                            placesCard
+                            GroupLabel(text: t(.settingsGroupStatus))
+                            statusCard
+                            GroupLabel(text: t(.settingsGroupDev))
+                            devCard
+                            Text(t(.settingsAttribution))
+                                .css(Tokens.Typography.caption.size, Tokens.FontWeight.w400)
+                                .foregroundStyle(Tokens.Colors.textMuted)
+                                .padding(EdgeInsets(top: 12, leading: 6, bottom: 2, trailing: 6))
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
                     }
                     .padding(EdgeInsets(top: 20, leading: 16, bottom: 16, trailing: 16))
                 }
-                .toolbar(.hidden, for: .navigationBar)
-                .navigationDestination(isPresented: $tripsOpen) { TripLogView(model: model) }
-                // AOS16: az Utak naplója alatt a zóna-körök nem látszanak (mint a weben)
-                .onChange(of: tripsOpen) { _, open in
-                    model.zonesVisible = !open
-                    if !open { model.refreshTrash() }
+                .scrollBounceBehavior(.basedOnSize)
+                // AOS18: sugár-választáskor a lap nem gördül fel: a pozíció marad, a választó látható marad (a webes `scrollIntoView({ block: 'nearest' })`)
+                .onChange(of: model.zoneFocusSeq) {
+                    guard let z = model.zoneFocus else { return }
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) { scroll.scrollTo("zone-\(z.id)", anchor: .center) }
                 }
-                .onAppear { if tripsOpen { model.zonesVisible = false } }
-                .navigationDestination(isPresented: $heatDetailsOpen) { HeatDetailsView(model: model) }
+                .simultaneousGesture(DragGesture(minimumDistance: 8).onChanged { _ in if peek { onPeekEnd() } })
                 .onAppear {
                     model.refreshTrash()
                     // `-settingsOpen language|voice`: a nyelvválasztóhoz / a hangos utasításokhoz görget (a képernyőképhez)
@@ -55,42 +62,31 @@ struct SettingsSheet: View {
                     case "voice": scroll.scrollTo(Self.voiceAnchor, anchor: .top)
                     case "heat": scroll.scrollTo(Self.heatAnchor, anchor: .top)
                     case "places": scroll.scrollTo(Self.placesAnchor, anchor: .top)
+                    case "zone": scroll.scrollTo("zone-home", anchor: .center)
                     case "restore": scroll.scrollTo(Self.tripsAnchor, anchor: .center)
                     default: break
                     }
                 }
-                // a mentett hely keresője a lap fölött; bezárva (választás vagy mégse) a lap ugyanott marad
-                .fullScreenCover(isPresented: Binding(get: { model.placeSearchOpen }, set: { if !$0 { model.closeSearch() } })) {
-                    VStack(spacing: 0) {
-                        SearchPanel(model: model)
-                        Spacer(minLength: 0)
-                    }
-                    .padding(.horizontal, Tokens.Space.s3)
-                    .padding(.top, Tokens.Space.s2)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-                    .background(Tokens.Colors.bg.ignoresSafeArea())
-                }
             }
         }
-    }
-
-    /// A lap feje (`.sheet-head`): cím balra, kerek bezáró gomb jobbra.
-    private var head: some View {
-        HStack {
-            Text(t(.settingsTitle)).typeStyle(Tokens.Typography.title).foregroundStyle(Tokens.Colors.text)
-            Spacer()
-            Button { dismiss() } label: {
-                Icon(name: .close, size: 22)
-                    .foregroundStyle(Tokens.Colors.textMuted)
-                    .frame(width: 48, height: 48)
-                    .background(Color.white.opacity(0.08), in: Circle())
-                    .frame(width: Tokens.Size.touch, height: Tokens.Size.touch)
-                    .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
-            .accessibilityLabel(t(.commonClose))
+        // AW19: az utak naplója saját lapon (a rendszer-lapon belüli navigációval); AOS16: alatta a zóna-körök nem látszanak
+        .sheet(isPresented: $tripsOpen, onDismiss: { model.zonesVisible = true; model.refreshTrash() }) {
+            NavigationStack { TripLogView(model: model) }
+                .presentationBackground(Tokens.Colors.surfaceStrong)
         }
-        .padding(EdgeInsets(top: 0, leading: 6, bottom: 0, trailing: 2))
+        .onChange(of: tripsOpen) { _, open in if open { model.zonesVisible = false } }
+        .onAppear { if tripsOpen { model.zonesVisible = false } }
+        // a mentett hely keresője a lap fölött; bezárva (választás vagy mégse) a lap ugyanott marad
+        .fullScreenCover(isPresented: Binding(get: { model.placeSearchOpen }, set: { if !$0 { model.closeSearch() } })) {
+            VStack(spacing: 0) {
+                SearchPanel(model: model)
+                Spacer(minLength: 0)
+            }
+            .padding(.horizontal, Tokens.Space.s3)
+            .padding(.top, Tokens.Space.s2)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+            .background(Tokens.Colors.bg.ignoresSafeArea())
+        }
     }
 
     /// A webes „Kijelző” lista, azonos sorrendben.
@@ -139,13 +135,13 @@ struct SettingsSheet: View {
                     }
                 } label: {
                     Text(languageSummary)
-                        .font(.inter(15, 620))
+                        .font(.inter(Tokens.FontSize.f15, Tokens.FontWeight.w620))
                         .lineLimit(1)
                         .minimumScaleFactor(0.8)
                         .foregroundStyle(Tokens.Colors.text)
                         .padding(.horizontal, 12)
                         .frame(minHeight: 40)
-                        .background(Color.white.opacity(0.08), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                        .background(Tokens.Colors.fill08, in: RoundedRectangle(cornerRadius: Tokens.Radius.r12, style: .continuous))
                 }
                 .accessibilityLabel(t(.settingsLanguage))
             }
@@ -156,14 +152,14 @@ struct SettingsSheet: View {
             VStack(alignment: .leading, spacing: 10) {
                 RowText(label: t(.settingsName), hint: t(.settingsNameHint))
                 TextField(t(.settingsNamePlaceholder), text: name)
-                    .font(.inter(17, 620))
+                    .font(.inter(Tokens.FontSize.f17, Tokens.FontWeight.w620))
                     .textContentType(.givenName)
                     .autocorrectionDisabled()
                     .submitLabel(.done)
                     .onSubmit { model.settings.megszolitas = normalizeName(model.settings.megszolitas) }
                     .padding(.horizontal, 12)
                     .frame(minHeight: 48)
-                    .background(Color.white.opacity(0.08), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                    .background(Tokens.Colors.fill08, in: RoundedRectangle(cornerRadius: Tokens.Radius.r12, style: .continuous))
             }
             .listRow()
             RowDivider()
@@ -216,7 +212,7 @@ struct SettingsSheet: View {
             slotRow(t(.navPlaceWork), model.saved.work, .work)
             RowDivider()
             ForEach(model.saved.others) { p in
-                VStack(alignment: .leading, spacing: Tokens.Space.s2) {
+                VStack(alignment: .leading, spacing: 14) {
                     HStack(spacing: 14) {
                         placeText(p.name, p.address)
                         Button(t(.navPlaceRemove)) { model.removeSavedOther(p.id) }.buttonStyle(MiniButtonStyle())
@@ -250,9 +246,9 @@ struct SettingsSheet: View {
 
     private func statusRow(_ label: String, _ value: String) -> some View {
         HStack(spacing: 14) {
-            Text(label).font(.inter(17, 580)).foregroundStyle(Tokens.Colors.text)
+            Text(label).font(.inter(Tokens.FontSize.f17, Tokens.FontWeight.w580)).foregroundStyle(Tokens.Colors.text)
             Spacer(minLength: 0)
-            Text(value).font(.inter(15, 400)).foregroundStyle(Tokens.Colors.textMuted).multilineTextAlignment(.trailing)
+            Text(value).font(.inter(Tokens.FontSize.f15, Tokens.FontWeight.w400)).foregroundStyle(Tokens.Colors.textMuted).multilineTextAlignment(.trailing)
         }
         .listRow()
     }
@@ -261,7 +257,7 @@ struct SettingsSheet: View {
         ListCard {
             Button {
                 if model.sim == nil { model.startSim(.lassit) } else { model.exitSim() }
-                dismiss()
+                onClose()
             } label: {
                 RowText(label: model.sim == nil ? t(.settingsSimEnter) : t(.settingsSimExit), hint: t(.settingsSimHint))
                     .listRow()
@@ -286,15 +282,19 @@ struct SettingsSheet: View {
 
     /// Haza / Munka: a mentett hely neve (vagy „nincs beállítva”), Beállítás és Törlés.
     private func slotRow(_ label: String, _ place: Place?, _ slot: PlaceSlot) -> some View {
-        VStack(alignment: .leading, spacing: Tokens.Space.s2) {
+        VStack(alignment: .leading, spacing: 14) {
             HStack(spacing: 14) {
                 placeText(label, place?.name ?? t(.navPlaceUnset))
-                Button(t(.navPlaceSet)) { pick(slot) }.buttonStyle(MiniButtonStyle())
-                if place != nil {
-                    Button(t(.navPlaceRemove)) { model.clearSaved(slot) }.buttonStyle(MiniButtonStyle())
+                // a webes `.mini-btns`: 8 pt-es térköz
+                HStack(spacing: Tokens.Space.s2) {
+                    Button(t(.navPlaceSet)) { pick(slot) }.buttonStyle(MiniButtonStyle())
+                    if place != nil {
+                        Button(t(.navPlaceRemove)) { model.clearSaved(slot) }.buttonStyle(MiniButtonStyle())
+                    }
                 }
+                .fixedSize()
             }
-            // AW20-javítás: a beállított helyhez adatvédelmi zóna (alapból 500 m); a beállítatlan sor nem kap szegmenst
+            // AW20-javítás: a beállított helyhez adatvédelmi zóna (AOS18: alapból 200 m); a beállítatlan sor nem kap szegmenst
             if place != nil { ZoneRadiusRow(model: model, id: slot == .home ? "home" : "work") }
         }
         .listRow()

@@ -19,7 +19,9 @@
     "import:official": "npm run import:official --workspace @atlagsebesseg/data --",
     "import:cameras": "npm run import:cameras --workspace @atlagsebesseg/data --",
     "planned:fetch": "npm run planned:fetch --workspace @atlagsebesseg/data --",
-    "ios:testflight": "sh apps/ios/scripts/testflight.sh"
+    "ios:testflight": "sh apps/ios/scripts/testflight.sh",
+    "parity": "tsx packages/parity/scripts/parity.mjs",
+    "parity:specs": "tsx packages/parity/scripts/specs.mjs"
   },
   "engines": {
     "node": ">=20",

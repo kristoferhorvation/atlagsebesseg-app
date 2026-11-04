@@ -55,25 +55,25 @@ struct SlowDownBar: View {
         .foregroundStyle(tone.color)
         .padding(.leading, Tokens.Space.s5)
         .padding(.trailing, 26)
-        .frame(height: Tokens.Size.tile)
-        .background(Tokens.Colors.surfaceStrong, in: Capsule())
-        .background(.ultraThinMaterial, in: Capsule())
+        .frame(height: Tokens.Size.tile - 2)
+        .glass(radius: Tokens.Size.tile / 2, fill: Tokens.Colors.surfaceStrong)
     }
 
-    /// A szám a mondat közepén (nyelvenként más a szórend): nagy, fehér.
+    /// A szám a mondat közepén (nyelvenként más a szórend): nagy, fehér. A webes `.slowdown-label`: `inline-flex`, alapvonalra, 6 pt-es térköz.
     private func sentence(_ key: L10nKey, _ x: Int) -> some View {
-        let parts = L10n.template(key).components(separatedBy: "{x}")
-        let before = parts.first ?? ""
-        let after = parts.count > 1 ? parts[1] : ""
-        return (Text(before) + Text(String(x)).font(.num(44, 700)).foregroundColor(Tokens.Colors.text) + Text(after))
-            .modifier(SlowLabel())
+        let parts = t(key, ["x": "\u{1}"]).components(separatedBy: "\u{1}").map { $0.trimmingCharacters(in: .whitespaces) }
+        return HStack(alignment: .firstTextBaseline, spacing: 6) {
+            if let before = parts.first, !before.isEmpty { Text(before).modifier(SlowLabel()) }
+            Text(String(x)).css(Tokens.FontSize.f44, Tokens.FontWeight.w700, tracking: -0.03, num: true).foregroundStyle(Tokens.Colors.text)
+            if parts.count > 1, !parts[1].isEmpty { Text(parts[1]).modifier(SlowLabel()) }
+        }
     }
 }
 
 private struct SlowLabel: ViewModifier {
     func body(content: Content) -> some View {
         content
-            .font(.inter(Tokens.Typography.title.size, 680))
+            .font(.inter(Tokens.Typography.title.size, Tokens.FontWeight.w680))
             .tracking(Tokens.Typography.title.trackingPt)
             .lineLimit(1)
             .minimumScaleFactor(0.7)
