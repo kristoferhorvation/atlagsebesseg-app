@@ -55,6 +55,26 @@ describe('szótárak: minden kulcs mind a 6 nyelven', () => {
     });
   }
 
+  /** AW21: szándékosan a magyarral azonos értékek (márkanév, mértékegység, szám, rövidítés, közös szó). Más kulcs nem lehet azonos. */
+  const SAME_AS_HU: Record<string, string[]> = {
+    '*': ['pill.gps.accuracy', 'pill.gps.active', 'settings.gps', 'report.alert.ahead', 'ios.live.attribution', 'heat.zone.200', 'heat.zone.500', 'heat.zone.1000'],
+    en: ['slowdown.compactMax', 'planned.max', 'planned.maxApprox', 'date.range.day', 'date.range.month', 'date.range.months'],
+    cs: ['slowdown.compactMax', 'planned.max', 'planned.maxApprox'],
+    sk: ['date.month.1', 'date.month.5', 'date.month.6', 'date.month.7', 'date.month.8', 'date.month.10', 'date.month.11', 'date.month.12', 'sections.status.cache', 'nav.picker.alt'],
+  };
+  for (const lang of LANGUAGES.filter((l) => l !== 'hu')) {
+    it(`AW21: ${lang}: egyetlen szöveg sem egyezik a hu.json értékével (kivéve a szándékosan azonosakat)`, () => {
+      const ok = new Set([...SAME_AS_HU['*']!, ...(SAME_AS_HU[lang] ?? [])]);
+      const same = Object.entries(DICTIONARIES.hu).filter(([k, v]) => (DICTIONARIES[lang] as Record<string, string>)[k] === v && !ok.has(k)).map(([k]) => k);
+      expect(same, `${lang}: a magyar szöveg maradt benne`).toEqual([]);
+    });
+
+    it(`AW21: ${lang}: nincs magyar ékezetes betű (ő, ű) a szövegben`, () => {
+      const bad = Object.entries(DICTIONARIES[lang] as Record<string, string>).filter(([, v]) => /[őŐűŰ]/.test(v)).map(([k]) => k);
+      expect(bad).toEqual([]);
+    });
+  }
+
   it('minden nyelvben megvan a 12 hónap és a 3 dátum-minta', () => {
     for (const lang of LANGUAGES) {
       for (let m = 1; m <= 12; m++) expect((DICTIONARIES[lang] as Record<string, string>)[`date.month.${m}`], `${lang} hónap ${m}`).toBeTruthy();
@@ -66,7 +86,7 @@ describe('t(): paraméterek, tartalék', () => {
   it('„Maradj {x} alatt” – paraméterezve', () => {
     expect(t('slowdown.stay', { x: 90 })).toBe('Maradj 90 alatt');
     expect(t('slowdown.stay', { x: 90 }, 'en')).toBe('Stay under 90');
-    expect(t('slowdown.stay', { x: 90 }, 'pl')).toBe('Zostań poniżej 90');
+    expect(t('slowdown.stay', { x: 90 }, 'pl')).toBe('Jedź poniżej 90');
   });
 
   it('hiányzó paraméter a helyén marad, ismeretlen kulcs a kulcs maga', () => {
@@ -172,10 +192,10 @@ describe('formázás nyelv szerint', () => {
     expect(sectionSourceLabel({ source: 'osm' })).toBe('Source: OpenStreetMap');
     expect(cameraLabel('red_light')).toBe('Red-light camera');
     expect(cameraSourceText({ verified: false, type: 'speed', sourceDate: '2026-10-28', country: 'HU' })).toBe('OpenStreetMap · unverified (2026-10-28)');
-    expect(cameraWarning('DE')).toBe('In Germany the driver may not use this feature');
+    expect(cameraWarning('DE')).toBe('Drivers may not use this feature in Germany');
     expect(plannedLimitText({ speedLimitKmh: 90, limitSource: 'kresz_default' })).toBe('max ~90');
-    expect(reportVisual({ type: 'ideiglenes_kapu', gateKind: 'zaro' }).label).toBe('Average check end');
-    expect(REPORT_CHOICES.map((c) => reportChoiceLabel(c.id))).toEqual(['Police', 'Speed camera', 'Accident', 'Obstacle', 'Road closed', 'Map error', 'Traffic', 'Standstill', 'Average check start', 'Average check end']);
+    expect(reportVisual({ type: 'ideiglenes_kapu', gateKind: 'zaro' }).label).toBe('Section end');
+    expect(REPORT_CHOICES.map((c) => reportChoiceLabel(c.id))).toEqual(['Police', 'Speed camera', 'Accident', 'Hazard', 'Road closed', 'Map error', 'Traffic', 'Standstill', 'Section start', 'Section end']);
     setLanguage('pl');
     expect(timeAgo(2 * 3600_000)).toBe('2 godz. temu');
   });

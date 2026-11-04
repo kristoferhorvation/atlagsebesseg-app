@@ -330,12 +330,15 @@ struct DriveView: View {
             Button { model.reportSheetOpen = true } label: { Icon(name: .report, size: 28).foregroundStyle(Tokens.Colors.near) }
                 .buttonStyle(RoundButtonStyle())
                 .accessibilityLabel(t(.mapReport))
-            // AOS18-javítás: a webes `.actions .recenter`: mindig a gombsor jobb szélén, táblától és mérőkártyától függetlenül; csak ha nem a pozíción áll a kamera
-            if !model.follow && view.lastFix != nil {
-                Button { model.follow = true } label: { Icon(name: .crosshair, size: 28).foregroundStyle(Tokens.Colors.brand) }
-                    .buttonStyle(RoundButtonStyle())
-                    .accessibilityLabel(t(.mapRecenter))
+            // AW21: a webes `.recenter-slot`: a gombnak saját, mindig fenntartott helye van a sor jobb szélén; rejtve a hely üres, a többi gomb nem mozdul
+            ZStack {
+                if !model.follow && view.lastFix != nil {
+                    Button { model.follow = true } label: { Icon(name: .crosshair, size: 28).foregroundStyle(Tokens.Colors.brand) }
+                        .buttonStyle(RoundButtonStyle())
+                        .accessibilityLabel(t(.mapRecenter))
+                }
             }
+            .frame(width: Tokens.Size.roundButton, height: Tokens.Size.roundButton)
         }
         if let nav = model.nav, stripShown { strip(nav) }
         if !hudCardHidden {

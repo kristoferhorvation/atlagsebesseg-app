@@ -33,6 +33,9 @@ const apply = () => {
   if (typeof document !== 'undefined') {
     document.documentElement.lang = getLanguage();
     document.title = template('app.name');
+    // AW21: a link-előnézet leírása és a kezdőképernyő-név is az app nyelvén (a statikus index.html csak az induló érték)
+    document.querySelector('meta[name="description"]')?.setAttribute('content', template('app.description'));
+    document.querySelector('meta[name="apple-mobile-web-app-title"]')?.setAttribute('content', template('ios.displayName'));
   }
 };
 apply();

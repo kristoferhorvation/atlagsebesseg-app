@@ -7,7 +7,7 @@
         "cs" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Rychlost Nav"
+            "value" : "Prům. rychlost"
           }
         },
         "de" : {
@@ -48,7 +48,7 @@
         "cs" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Tvoje poloha je potřeba k rozpoznání úseků a měření průměrné rychlosti – i při zamčené obrazovce, dokud aplikace měří."
+            "value" : "K rozpoznání úseků a měření průměrné rychlosti potřebujeme tvou polohu – i při zamčené obrazovce, dokud aplikace měří."
           }
         },
         "de" : {
@@ -60,7 +60,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Your location is needed to detect sections and measure your average speed – also with the screen locked while the app is measuring."
+            "value" : "Your location is used to detect sections and measure your average speed, including while the screen is locked and the app is measuring."
           }
         },
         "hu" : {

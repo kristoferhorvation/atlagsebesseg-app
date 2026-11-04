@@ -16,6 +16,7 @@
   "start.sim": "Kipróbálom GPS nélkül (szimulátor)",
 
   "pill.gps.off": "GPS ki",
+  "pill.sim": "Szimulátor",
   "pill.gps.searching": "GPS keresése…",
   "pill.gps.accuracy": "GPS ±{m} m",
   "pill.gps.active": "GPS",
@@ -341,6 +342,8 @@
   "nav.man.depart": "Indulás",
   "ios.locationUsage": "A mérőszakaszok felismeréséhez és az átlagsebesség méréséhez kell a helyzeted – zárolt képernyővel is, amíg az app mér.",
   "ios.displayName": "Átlagsebesség",
+  "ios.intent.startNav": "Navigáció indítása",
+  "ios.intent.destination": "Cél",
   "ios.geo.denied": "tiltva (Beállítások → Adatvédelem → Helymeghatározás)",
   "ios.start.tip.background": "Zárolt képernyővel is mér – a kijelző mérés közben ébren marad",
 

@@ -112,7 +112,7 @@
     {
       "device": "se",
       "state": "eredmeny",
-      "overall": 0.0083,
+      "overall": 0.0081,
       "tile": 0.1146,
       "tileAt": {
         "x": 216,
@@ -167,7 +167,7 @@
     {
       "device": "se",
       "state": "nav-meres",
-      "overall": 0.0049,
+      "overall": 0.005,
       "tile": 0.0556,
       "tileAt": {
         "x": 216,
@@ -340,7 +340,7 @@
     {
       "device": "pro",
       "state": "eredmeny",
-      "overall": 0.0105,
+      "overall": 0.0102,
       "tile": 0.0486,
       "tileAt": {
         "x": 240,
@@ -417,7 +417,7 @@
     {
       "device": "pro",
       "state": "meres-de",
-      "overall": 0.0027,
+      "overall": 0.0028,
       "tile": 0.0729,
       "tileAt": {
         "x": 72,

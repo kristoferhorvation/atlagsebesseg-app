@@ -6,9 +6,11 @@
 //
 //   npm run dev -w @atlagsebesseg/web              # másik terminálban
 //   npm run i18n:check -w @atlagsebesseg/web
+import { readFileSync } from 'node:fs';
 import { mkdtemp } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { closeChrome, spawnGuardedChrome, startWatchdog } from './chrome-guard.mjs';
 
 const BASE = process.env.SHOTS_BASE ?? 'http://localhost:5173';
@@ -99,7 +101,7 @@ const LANG = `document.documentElement.lang`;
 const TITLE = `document.querySelector('.start h1')?.textContent`;
 const BAND = `document.querySelector('.planned-band')?.innerText.replace(/\\s+/g, ' ').trim()`;
 
-startWatchdog(5, 'i18n-check'); // kemény időkorlát (SHOTS_TIMEOUT_MIN felülírja)
+startWatchdog(15, 'i18n-check'); // kemény időkorlát (SHOTS_TIMEOUT_MIN felülírja)
 const { proc, profile } = await launch();
 try {
   // 1. kezdő nyelv a készülék nyelvéből
@@ -162,6 +164,53 @@ try {
     const text = await z.evaluate(BAND);
     check(`zóna-sáv (${lang})`, re.test(text) && (await z.evaluate(`document.querySelector('.planned-band').dataset.zone`)) === 'true', text);
     z.close();
+  }
+
+  // 4. AW21: minden képernyő / állapot minden nyelven – egyetlen megjelenő szöveg sem lehet a hu.json értéke (kivéve a szótárban
+  //    szándékosan azonosakat), és ő / ű betű sincs a nem magyar nyelvű szövegben.
+  const dict = (l) => JSON.parse(readFileSync(join(dirname(fileURLToPath(import.meta.url)), '..', '..', '..', 'packages', 'app-logic', 'src', 'i18n', `${l}.json`), 'utf8'));
+  const huDict = dict('hu');
+  const SCREENS = [
+    ['kezdőképernyő', '/', null],
+    ['térkép + mérőkártya', '/?navsim&panel=0', '.card'],
+    ['Beállítások', '/?navsim&panel=0&sheet=settings', '.sheet .title'],
+    ['Utak naplója', '/?navsim&panel=0&sheet=trips', '.sheet .title'],
+    ['Részletek (adatmegosztás)', '/?navsim&panel=0&sheet=heatDetails', '.sheet .title'],
+    ['Bejelentés lap', '/?navsim&panel=0', '.card', '.round-btn.report', '.sheet .tiles'],
+    ['navigáció + ajánlat', '/?navsim&stage=nav&alt=worth&panel=0&speed=7&at=60', '.nav-top'],
+    ['navigáció + dugó', '/?navsim&stage=nav&traffic&panel=0&speed=7&at=60', '.nav-top'],
+  ];
+  const collect = `(() => {
+    const out = new Set();
+    const add = (t) => { const v = (t ?? '').replace(/\\s+/g, ' ').trim(); if (v) out.add(v); };
+    document.querySelectorAll('body *').forEach((e) => { if (e.children.length === 0) add(e.textContent); });
+    document.querySelectorAll('[aria-label],[title],[placeholder],[alt]').forEach((e) => ['aria-label', 'title', 'placeholder', 'alt'].forEach((a) => add(e.getAttribute(a))));
+    document.querySelectorAll('select option').forEach((o) => add(o.textContent));
+    return [...out];
+  })()`;
+  for (const lang of ['en', 'de', 'sk', 'cs', 'pl']) {
+    const own = dict(lang);
+    const huOnly = new Set(Object.entries(huDict).filter(([k, v]) => own[k] !== v && /\p{L}{3}/u.test(v) && v.length >= 4).map(([, v]) => v));
+    for (const [name, path, ready, click, after] of SCREENS) {
+      const q = await openPage(`${lang}-${lang.toUpperCase()},${lang}`);
+      try {
+        await q.goto(path, { 'lang:v1': lang });
+        if (ready) await q.waitFor(`document.querySelector(${JSON.stringify(ready)})`, 90_000, `${name} (${lang})`);
+        else await q.waitFor(`document.querySelector('.start')`);
+        if (click) {
+          await q.evaluate(`document.querySelector(${JSON.stringify(click)}).click(); true`);
+          await q.waitFor(`document.querySelector(${JSON.stringify(after)})`, 15_000, `${name} lap`);
+        }
+        await sleep(800);
+        const texts = await q.evaluate(collect);
+        const bad = texts.filter((t) => huOnly.has(t) || /[őűŐŰ]/.test(t));
+        check(`${lang}: ${name} – nincs magyar szöveg`, bad.length === 0, bad.length ? `magyar: ${JSON.stringify(bad)}` : `${texts.length} szöveg`);
+      } catch (e) {
+        check(`${lang}: ${name} – nincs magyar szöveg`, false, String(e.message ?? e));
+      } finally {
+        await q.close();
+      }
+    }
   }
 } finally {
   await closeChrome({ proc, profile }).catch(() => undefined);

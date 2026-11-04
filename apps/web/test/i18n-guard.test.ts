@@ -39,3 +39,30 @@ describe('nincs szótáron kívüli felirat a webes kódban', () => {
     });
   }
 });
+
+/** AW21: a feliratok logikája az app-logic-ban van – ott sincs magyar felirat (a hibaüzenet-kivételek a `throw` / `Error(` sorok: belső, nem jelenik meg). */
+describe('nincs szótáron kívüli felirat az app-logic kódban', () => {
+  const LOGIC = join(__dirname, '..', '..', '..', 'packages', 'app-logic', 'src');
+  for (const file of files(LOGIC)) {
+    const rel = relative(LOGIC, file);
+    if (rel.startsWith('i18n/') || rel.includes('/fixtures/') || /\.test\.tsx?$/.test(rel)) continue;
+    it(rel, () => {
+      const hits = stripComments(readFileSync(file, 'utf8'))
+        .split('\n')
+        .map((line, i) => ({ line: line.trim(), n: i + 1 }))
+        .filter((x) => /[áéíóöőúüűÁÉÍÓÖŐÚÜŰ]/.test(x.line) && !/\b(throw|Error\()/.test(x.line));
+      expect(hits, 'magyar felirat az app-logicban – a szótárba való').toEqual([]);
+    });
+  }
+});
+
+describe('AW21: a nyelv az app nyelve, nem a böngészőé / nem beégetett hu', () => {
+  for (const file of [...files(SRC), ...files(join(__dirname, '..', '..', '..', 'packages', 'app-logic', 'src'))]) {
+    if (/\.test\.tsx?$/.test(file) || /\/(sim)\//.test(file) || file.endsWith('SimPanel.tsx')) continue;
+    it(relative(join(__dirname, '..', '..', '..'), file), () => {
+      const src = stripComments(readFileSync(file, 'utf8'));
+      expect(src).not.toMatch(/toLocale(Date|Time)?String\(\s*(undefined|['"]hu)/);
+      expect(src).not.toMatch(/Intl\.\w+\(\s*['"]hu/);
+    });
+  }
+});

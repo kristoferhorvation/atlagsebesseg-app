@@ -10,13 +10,14 @@
     "build": "vite build",
     "preview": "vite preview",
     "icons": "node scripts/make-icons.mjs",
-    "test": "vitest run",
+    "test": "eslint src && vitest run",
     "typecheck": "tsc -p tsconfig.json && tsc -p tsconfig.node.json",
     "shots": "node scripts/shots.mjs",
     "nav-shots": "node scripts/nav-shots.mjs",
     "nav-shots:views": "for v in 320x667 375x667 390x844 430x932; do echo \"== $v\"; NAV_VIEW=$v node scripts/nav-shots.mjs --check-only ; done",
     "view-shots": "node scripts/view-shots.mjs",
-    "i18n:check": "node scripts/i18n-check.mjs"
+    "i18n:check": "node scripts/i18n-check.mjs",
+    "lint": "eslint src"
   },
   "dependencies": {
     "@atlagsebesseg/app-logic": "*",
@@ -35,7 +36,9 @@
     "@types/react": "~19.3.0",
     "@types/react-dom": "19.3.0",
     "@vitejs/plugin-react": "6.1.2",
+    "eslint": "9.39.5",
     "typescript": "~6.0.3",
+    "typescript-eslint": "8.72.1",
     "vite": "^8.3.4",
     "vite-plugin-mkcert": "2.1.0",
     "vitest": "^4.0.0"

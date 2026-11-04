@@ -866,12 +866,14 @@ function Drive({ map }: { map: WebMapAdapter }) {
           <button className="round-btn glass report" onClick={() => setSheet('report')} aria-label={t('map.report')}>
             <Icon name="report" size={28} />
           </button>
-          {/* AOS18-javítás: a „Vissza a helyemre” mindig ugyanott: a gombsor jobb szélén, táblától és mérőkártyától függetlenül */}
-          {!follow.following && (
-            <button className="round-btn glass recenter" onClick={follow.recenter} aria-label={t('map.recenter')}>
-              <Icon name="crosshair" size={28} />
-            </button>
-          )}
+          {/* AW21: a „Vissza a helyemre” SAJÁT, mindig fenntartott helye a gombsor jobb szélén; rejtett gombnál a hely üres marad, a többi gomb nem mozdul */}
+          <div className="recenter-slot">
+            {!follow.following && (
+              <button className="round-btn glass recenter" onClick={follow.recenter} aria-label={t('map.recenter')}>
+                <Icon name="crosshair" size={28} />
+              </button>
+            )}
+          </div>
         </div>
         {nav.view && (measuringLayout || stepStrip) && <NavStrip view={nav.view} unit={settings.egyseg} />}
         {hudCardShown && (

@@ -33,6 +33,32 @@ struct L10nTests {
         }
     }
 
+    /// AW21: szándékosan a magyarral azonos értékek (márkanév, mértékegység, szám, rövidítés, közös szó) – a webes `i18n.test.ts` `SAME_AS_HU` párja.
+    static let sameAsHu: [Lang: Set<String>] = {
+        let all: Set<String> = ["pill.gps.accuracy", "pill.gps.active", "settings.gps", "report.alert.ahead", "ios.live.attribution", "heat.zone.200", "heat.zone.500", "heat.zone.1000"]
+        let maxKeys: Set<String> = ["slowdown.compactMax", "planned.max", "planned.maxApprox"]
+        return [
+            .en: all.union(maxKeys).union(["date.range.day", "date.range.month", "date.range.months"]),
+            .de: all, .pl: all,
+            .cs: all.union(maxKeys),
+            .sk: all.union(["date.month.1", "date.month.5", "date.month.6", "date.month.7", "date.month.8", "date.month.10", "date.month.11", "date.month.12", "sections.status.cache", "nav.picker.alt"]),
+        ]
+    }()
+
+    @Test("AW21: a lefordított csomagból renderelve egyetlen szöveg sem egyezik a hu értékével, és nincs ő / ű (kivéve a szándékosan azonosakat)", arguments: Lang.allCases.filter { $0 != .hu })
+    func nincsMagyarMasNyelven(lang: Lang) throws {
+        let bundle = try #require(L10n.bundle(for: lang))
+        let huBundle = try #require(L10n.bundle(for: .hu))
+        let allowed = Self.sameAsHu[lang] ?? []
+        for key in L10nKey.allCases {
+            let value = L10n.template(key, in: bundle)
+            if value == L10n.template(key, in: huBundle) {
+                #expect(allowed.contains(key.rawValue), "magyar szöveg maradt: \(lang.rawValue) \(key.rawValue) = \(value)")
+            }
+            #expect(value.range(of: "[őűŐŰ]", options: .regularExpression) == nil, "magyar betű: \(lang.rawValue) \(key.rawValue) = \(value)")
+        }
+    }
+
     @Test("a helyhozzáférés szövege és az app neve nyelvenként (InfoPlist.xcstrings)", arguments: Lang.allCases)
     func infoPlist(lang: Lang) throws {
         let bundle = try #require(L10n.bundle(for: lang))
@@ -122,9 +148,18 @@ struct LiteralGuardTests {
 
     @Test("nincs szó szerinti felirat a nézetekben (Text/Button/Toggle/… szöveg-literállal)")
     func nincsLiteral() {
-        let pattern = #"\b(Text|Label|Button|Toggle|Picker|LabeledContent|navigationTitle|Section|accessibilityLabel)\(\s*"\p{L}"#
+        // AW21: kiterjesztve – több nézet-forma, `Text(verbatim:)`, névvel adott felirat-argumentum (`title:` / `label:` / `message:` …),
+        // AppIntent-feliratok; a szótár-kulcs (`ios.intent.x`, szóköz nélkül, pontos) szabad
+        let patterns = [
+            #"\b(Text|Label|Button|Toggle|Picker|LabeledContent|navigationTitle|Section|accessibilityLabel|accessibilityHint|TextField|SecureField|Link|Menu|ShareLink|help|alert|confirmationDialog)\(\s*"\p{L}"#,
+            #"\bText\(\s*verbatim:\s*"\p{L}"#,
+            #"\b(title|label|message|placeholder|prompt|subtitle|hint|text)\s*:\s*"[\p{Lu}][\p{L}]*[ ,.!?…]"#,
+            #"LocalizedStringResource\s*=\s*"[^"]*\s"#,
+        ]
         for (rel, text) in Self.sources() {
-            let hits = Self.stripComments(text).split(separator: "\n").filter { $0.range(of: pattern, options: .regularExpression) != nil }
+            let hits = Self.stripComments(text).split(separator: "\n").filter { line in
+                patterns.contains { line.range(of: $0, options: .regularExpression) != nil }
+            }
             #expect(hits.isEmpty, "szó szerinti felirat: \(rel): \(hits)")
         }
     }

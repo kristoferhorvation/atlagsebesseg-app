@@ -39,9 +39,19 @@ final class AppModel {
     private(set) var planned: [PlannedCheck] = []
     /// A tervezett mérés, amelynek vonalán / zónájában a pozíció van (a felső sáv).
     private(set) var activePlanned: PlannedCheck?
-    private(set) var serverStatus: String = "–"
+    enum ServerStatus: Equatable { case unknown, loading, offline, counts(Int, Int) }
+    private(set) var serverStatus: ServerStatus = .unknown
+    /// A Beállítások „Szerver” sorának szövege a szótárból (a webes `sections.status.*`).
+    var serverStatusText: String {
+        switch serverStatus {
+        case .unknown: return "–"
+        case .loading: return t(.sectionsStatusLoading)
+        case .offline: return t(.sectionsStatusOffline)
+        case .counts(let s, let c): return "\(s) · \(c)"
+        }
+    }
     /// AOS16: nincs szerver-adat, a beépítettel megyünk (a webes „offline” pill; szimulátorban nincs).
-    var isOffline: Bool { sim == nil && serverStatus == "offline" }
+    var isOffline: Bool { sim == nil && serverStatus == .offline }
     /// Nő, ha a szakasz- vagy kameralista változik (a térkép csak ekkor építi újra a rétegeit).
     private(set) var dataVersion = 0
     /// A kamera a pozíciót követi; a felhasználó mozdulata elengedi, a „Vissza a helyemre” visszaadja.
@@ -203,7 +213,7 @@ final class AppModel {
         }
         session = TrackingSession(sections, now: { [weak self] in self?.nowMs() ?? Date().timeIntervalSince1970 * 1000 })
         view = session.view()
-        serverStatus = backend.configured ? "…" : "offline"
+        serverStatus = backend.configured ? .loading : .offline
         setUpNavigation()
         setUpReports()
         reloadTrips()
@@ -595,7 +605,7 @@ final class AppModel {
         serverSections = s.items
         serverCameras = c.items
         serverPlanned = p.items
-        serverStatus = s.missing > 0 && s.fromCache == 0 ? "offline" : "\(s.items.count) · \(c.items.count)"
+        serverStatus = s.missing > 0 && s.fromCache == 0 ? .offline : .counts(s.items.count, c.items.count)
         rebuildData()
     }
 

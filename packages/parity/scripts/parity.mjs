@@ -114,7 +114,8 @@ if (!argv.includes('--no-selfcheck')) {
   const d = DEVICES[key.split('-')[0]];
   const img = readPng(join(WORK, 'web', `${key}.png`));
   const moved = { width: img.width, height: img.height, data: Buffer.from(img.data) };
-  const box = { x: d.w - 76, y: d.h - d.bottom - 150, w: 76, h: 76 };
+  // AW21: a jobb szélen a „Vissza a helyemre” fenntartott (üres) helye van – a Bejelentés-gomb 76 pt-tel balra áll
+  const box = { x: d.w - 12 - 64 - 12 - 64 - 6, y: d.h - d.bottom - 150, w: 76, h: 76 };
   const shift = 12 * d.dpr;
   for (let y = box.y * d.dpr; y < (box.y + box.h) * d.dpr; y++) {
     for (let x = box.x * d.dpr; x < (box.x + box.w) * d.dpr; x++) {

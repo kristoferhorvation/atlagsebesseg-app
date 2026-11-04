@@ -171,6 +171,11 @@ struct ParityTests {
         let source = try String(contentsOf: Repo.iosDir.appendingPathComponent("Atlagsebesseg/UI/DriveView.swift"), encoding: .utf8)
         let floatBody = try #require(source.range(of: "private var float: some View")).upperBound
         let hudBody = try #require(source.range(of: "private var hud: some View")).lowerBound
+        // AW21: fenntartott hely – a hely a gomb nélkül is ott van (a Bejelentés x-e nem függ a Vissza láthatóságától)
+        let slot = try s.part("slot").box
+        #expect(slot.w == b.w && slot.x == b.x && slot.y == b.y, "a fenntartott hely pontosan a gomb helye")
+        #expect(slot.x - (try s.part("report").box.x + (try s.part("report").box.w)) == Tokens.Space.s3, "a Bejelentés és a hely közt 12 pt")
+        #expect(source.contains(".frame(width: Tokens.Size.roundButton, height: Tokens.Size.roundButton)"), "a hely fix méretű")
         #expect(!source[floatBody..<hudBody].contains("mapRecenter"), "a gomb nem kerülhet vissza a lebegő rétegbe (ott a helye a táblától és a mérőkártyától függene)")
     }
 

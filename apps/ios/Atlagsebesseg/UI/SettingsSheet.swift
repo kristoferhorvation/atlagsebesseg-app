@@ -238,7 +238,7 @@ struct SettingsSheet: View {
             RowDivider()
             statusRow(t(.settingsSections), String(model.sections.count))
             RowDivider()
-            statusRow(t(.settingsServer), model.serverStatus)
+            statusRow(t(.settingsServer), model.serverStatusText)
             RowDivider()
             statusRow(t(.settingsRequests), String(model.requestsToday))
         }

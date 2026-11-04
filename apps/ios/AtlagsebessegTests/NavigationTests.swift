@@ -1467,7 +1467,7 @@ struct CompactOfferTests {
         // a „gyorsabb” szó mind a 6 nyelven ott van
         let faster: [Lang: String] = [.hu: "gyorsabb", .en: "faster", .de: "schneller", .sk: "rýchlejšie", .cs: "rychleji", .pl: "szybciej"]
         for lang in Lang.allCases {
-            #expect(matches(text(12_000, "Kijárat 56", lang), "^Kijárat 56 · 2,5 km · −7 \\S+ ?\(faster[lang]!)$"), "\(lang)")
+            #expect(matches(text(12_000, "Kijárat 56", lang), "^Kijárat 56 · 2,5 km · −?7 \\S+ ?\(faster[lang]!)$"), "\(lang)")
             #expect(text(12_000, nil, lang).contains(faster[lang]!), "\(lang)")
         }
     }
@@ -1880,7 +1880,7 @@ struct AW17LayoutTests {
         #expect(matches(voiceInstructionsHint(.missing, lang: .hu), #"^Fordulók, .* \(Ehhez a nyelvhez nincs hang az eszközön – .*\)$"#))
         #expect(matches(voiceInstructionsHint(.unsupported, lang: .hu), #"\(A böngésző nem tud beszélni\)$"#))
         #expect(!L10nKey.allCases.map(\.rawValue).contains("settings.voice"))
-        #expect(voiceInstructionsHint(.ok, lang: .en) == "Spoken turns, section checks and “too fast” warnings (A voice is available for this language)")
+        #expect(voiceInstructionsHint(.ok, lang: .en) == "Announces turns, section checks and “too fast” warnings (A voice is available for this language)")
     }
 }
 

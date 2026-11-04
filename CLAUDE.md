@@ -410,7 +410,7 @@ Gyökér: `npm test` és `npm run typecheck` minden csomagra; `npm run test:all`
     `-mapLat`, `-mapLon`, `-settingsOpen heatDetails`, `-settingsDetent medium`.
   - **iOS-javítás:** a `TripStore` user_version 2 migrációja minden indításnál újra lefutott (`duplicate column name: limit_kmh`), mert az
     `ALTER` hibája miatt a verzió nem állt át – most csak hiányzó oszlopnál fut, és a verziót külön lépésben állítja.
-- **AOS16 (2026-11-03), paritás-audit AW17–AW20, iOS a web szerint:** gombsor jobbra zárva, a tábla és a „Vissza a helyemre” külön sorban (AOS18-javítás óta a „Vissza a helyemre” a gombsor jobb szélén, a tábla marad), Beállítások +
+- **AOS16 (2026-11-03), paritás-audit AW17–AW20, iOS a web szerint:** gombsor jobbra zárva, a tábla és a „Vissza a helyemre” külön sorban (AOS18-javítás óta a „Vissza a helyemre” a gombsor jobb szélén, a tábla marad; AW21 óta a gombnak saját, MINDIG fenntartott helye van – `.recenter-slot`, rejtve üres, a Bejelentés stb. nem mozdul), Beállítások +
   stopper a webes feltétellel (`!driving`, nem kézi eredmény); a tábla befejezve / megszakadt / kézi eredmény alatt is; kompakt ajánlatnál a pillek és
   a gombsor maradnak; hőtérkép: `kozeledik` alatt rejtve, a módváltó felül a krúzing-sor alatt és csak kész rétegnél (`heatReady`), webes rétegértékek,
   közösségi lekérés csak látható rétegnél, módváltáskor is, 10 perc után újra; a feltöltési sor a megosztás kikapcsolásakor és induláskor törlődik;
@@ -480,6 +480,13 @@ Gyökér: `npm test` és `npm run typecheck` minden csomagra; `npm run test:all`
   blokk: régi → új, indokkal.
 - Paritás-körben az iOS igazodik a webhez, a webhez nem nyúl, csak kifejezett hibánál.
 - **Kör közben nem állunk meg kérdezni (Kristof, 2026-11-03):** döntünk, és a záró jelentés „Megváltozott UI” blokkjában utólag tájékoztatunk. Kérdés csak visszafordíthatatlan dolognál (adat törlése, élő tábla átnevezése).
+
+## Szótár és fordítás (AW21, 2026-11-04)
+- **Glosszárium és tegezés:** `docs/i18n/glossary.md` (az app tegez: DE „du”, SK/CS/PL „ty”, EN „you”); a lektorálás régi→új táblái: `docs/i18n/review-2026-11-04.md`. Új vagy módosított felirat ehhez igazodik.
+- **Hiányzó kulcsnál a webes `t()` magyar szöveget ad** (`DICTIONARIES.hu[key]`), az iOS a nyers kulcsot – ezért a kulcs-teljesség mellett őr védi, hogy egy nem magyar szöveg se legyen azonos a `hu.json`-nal (`i18n.test.ts` `SAME_AS_HU` ↔ `L10nTests.nincsMagyarMasNyelven`; új, szándékosan azonos érték mindkét listába kerül).
+- **UI-literál tilos:** weben ESLint (`npm run lint -w @atlagsebesseg/web`, a `npm test` része; `eslint.config.js`: JSX-szöveg és `aria-label` / `title` / `placeholder` / `alt` literál, `toLocale*String('hu…')`) + az `i18n-guard` az `app-logic`-ra is; iOS-en a `LiteralGuardTests.nincsLiteral` több nézet-formára és `title:` / `label:` stb. argumentumra.
+- **Minden képernyő × minden nyelv (web):** `npm run i18n:check` 4. blokkja 8 képernyőt nyit 5 nyelven, és bukik, ha a megjelenő szöveg a hu.json értéke vagy ő/ű betűt tartalmaz. iOS-en a lefordított csomagból ugyanez kulcsszinten (a nézetek a `t()`-n át renderelnek, a literál-lint védi a többit).
+- **Nyitott (AW21):** a `manifest.webmanifest` statikus magyar; a Mapbox-térképfeliratok az eszköz nyelvén jelennek meg (nem az app nyelvén); a widget `CFBundleDisplayName` nincs lokalizálva.
 
 ## Három képernyőméret (Kristof, 2026-11-03)
 - Minden UI-változást **három képernyőméreten** ellenőrzünk és screenshotolunk, web + iOS: **kicsi** (iPhone SE 3. gen / 375×667, a weben 320 px széles is), **közepes** (iPhone 17 Pro / 390), **nagy** (iPhone 17 Pro Max / 430).

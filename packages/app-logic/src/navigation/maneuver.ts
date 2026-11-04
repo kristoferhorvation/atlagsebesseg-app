@@ -1,4 +1,4 @@
-import { formatNumber, t } from '../i18n';
+import { formatNumber, getLanguage, LOCALES, t } from '../i18n';
 
 /** A manőver-ikon családja (a platform saját rajzot társít hozzá). */
 export type ManeuverIcon =
@@ -45,7 +45,7 @@ export function formatTripDuration(seconds: number): string {
 
 /** Napszak a nyelv szerint („14:32”), a készülék időzónájában. */
 export function formatClock(ms: number): string {
-  return new Date(ms).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+  return new Date(ms).toLocaleTimeString(LOCALES[getLanguage()], { hour: '2-digit', minute: '2-digit' });
 }
 
 /** Egész percek (a „−7 perc” felirathoz). */

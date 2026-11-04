@@ -256,6 +256,13 @@ select:focus-visible {
   pointer-events: none;
 }
 
+.recenter-slot {
+  flex: none;
+  width: var(--size-round-button);
+  height: var(--size-round-button);
+  pointer-events: none;
+}
+
 .recenter {
   pointer-events: auto;
   align-self: flex-end;

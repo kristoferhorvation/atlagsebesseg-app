@@ -36,6 +36,35 @@
         "opacity": "1"
       }
     },
+    "slot": {
+      "selector": ".actions .recenter-slot",
+      "box": {
+        "x": 326,
+        "y": 678,
+        "w": 64,
+        "h": 64
+      },
+      "style": {
+        "fontSize": "20px",
+        "fontWeight": "400",
+        "lineHeight": "normal",
+        "letterSpacing": "normal",
+        "color": "rgb(244, 246, 250)",
+        "backgroundColor": "rgba(0, 0, 0, 0)",
+        "backgroundImage": "none",
+        "borderTopWidth": "0px",
+        "borderTopColor": "rgb(244, 246, 250)",
+        "borderTopLeftRadius": "0px",
+        "paddingTop": "0px",
+        "paddingRight": "0px",
+        "paddingBottom": "0px",
+        "paddingLeft": "0px",
+        "rowGap": "normal",
+        "columnGap": "normal",
+        "boxShadow": "none",
+        "opacity": "1"
+      }
+    },
     "button": {
       "selector": ".actions .recenter",
       "box": {

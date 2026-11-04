@@ -47,7 +47,7 @@ export function StatusPills({
   cruise?: string;
 }) {
   const pills: Pill[] = [];
-  if (simMode) pills.push({ key: 'sim', tone: 'kezi', icon: 'play', text: 'Szimulátor' });
+  if (simMode) pills.push({ key: 'sim', tone: 'kezi', icon: 'play', text: t('pill.sim') });
   else {
     const gps: Record<GeoStatus, Omit<Pill, 'key'>> = {
       ki: { tone: 'semleges', icon: 'gps', text: t('pill.gps.off') },

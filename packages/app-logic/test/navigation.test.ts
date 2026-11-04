@@ -1352,7 +1352,7 @@ describe('AW13: kétsoros kompakt ajánlat', () => {
     const faster: Record<string, string> = { hu: 'gyorsabb', en: 'faster', de: 'schneller', sk: 'rýchlejšie', cs: 'rychleji', pl: 'szybciej' };
     for (const lang of LANGUAGES) {
       setLanguage(lang);
-      expect(altOfferCompactText(o), lang).toMatch(new RegExp(`^Kijárat 56 · 2,5 km · −7 \\S+ ?${faster[lang]}$`));
+      expect(altOfferCompactText(o), lang).toMatch(new RegExp(`^Kijárat 56 · 2,5 km · −?7 \\S+ ?${faster[lang]}$`));
       expect(altOfferCompactText({ ...o, exitName: null }), lang).toContain(faster[lang]!);
     }
   });
@@ -1727,7 +1727,7 @@ describe('AW17: elrendezés, „Utána” 5 km-en belül, tábla és mérés, Be
     expect(voiceInstructionsHint('unsupported')).toMatch(/\(A böngésző nem tud beszélni\)$/);
     expect(DICTIONARIES.hu).not.toHaveProperty('settings.voice');
     setLanguage('en');
-    expect(voiceInstructionsHint('ok')).toBe('Spoken turns, section checks and “too fast” warnings (A voice is available for this language)');
+    expect(voiceInstructionsHint('ok')).toBe('Announces turns, section checks and “too fast” warnings (A voice is available for this language)');
   });
 });
 

@@ -99,11 +99,11 @@ extension DriveActivityAttributes.ContentState {
 /// AOS18: a Live Activity „Haza” / „Munka” gombja: az app előtérbe jön, és a navigáció azonnal indul oda. A kérés az App Group tárolón is átmegy, ha az app
 /// a hívás pillanatában még nem futna; a `LiveNavRouter.take()` veszi fel.
 struct StartNavIntent: AppIntent {
-    static let title: LocalizedStringResource = "Start navigation"
+    static let title: LocalizedStringResource = "ios.intent.startNav"
     static let openAppWhenRun = true
     static let isDiscoverable = false
 
-    @Parameter(title: "Destination") var dest: String
+    @Parameter(title: "ios.intent.destination") var dest: String
 
     init() {}
     init(dest: String) { self.dest = dest }

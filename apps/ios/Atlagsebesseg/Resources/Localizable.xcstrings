@@ -19,7 +19,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Section speed control: live average, limit and colour code while you drive."
+            "value" : "Section average-speed checks: live average, limit and colour code as you drive."
           }
         },
         "hu" : {
@@ -89,13 +89,13 @@
         "cs" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Pevná kamera: {label}"
+            "value" : "Pevný radar: {label}"
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Feste Kamera: {label}"
+            "value" : "Fester Blitzer: {label}"
           }
         },
         "en" : {
@@ -113,13 +113,13 @@
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Stała kamera: {label}"
+            "value" : "Stały fotoradar: {label}"
           }
         },
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Pevná kamera: {label}"
+            "value" : "Pevný radar: {label}"
           }
         }
       }
@@ -136,7 +136,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Misst beide Richtungen"
+            "value" : "Misst in beide Richtungen"
           }
         },
         "en" : {
@@ -154,7 +154,7 @@
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Mierzy oba kierunki"
+            "value" : "Mierzy w obu kierunkach"
           }
         },
         "sk" : {
@@ -177,7 +177,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Misst eine Richtung"
+            "value" : "Misst in eine Richtung"
           }
         },
         "en" : {
@@ -195,7 +195,7 @@
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Mierzy jeden kierunek"
+            "value" : "Mierzy w jednym kierunku"
           }
         },
         "sk" : {
@@ -224,7 +224,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Measures the opposite direction"
+            "value" : "Measures oncoming traffic"
           }
         },
         "hu" : {
@@ -236,7 +236,7 @@
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Mierzy przeciwny kierunek"
+            "value" : "Mierzy w przeciwnym kierunku"
           }
         },
         "sk" : {
@@ -259,7 +259,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Misst deine Richtung"
+            "value" : "Misst in deiner Fahrtrichtung"
           }
         },
         "en" : {
@@ -277,7 +277,7 @@
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Mierzy twój kierunek"
+            "value" : "Mierzy w twoim kierunku"
           }
         },
         "sk" : {
@@ -417,7 +417,7 @@
         "cs" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Pevný seznam ORFK VÉDA (2015) · porovnáno s OSM"
+            "value" : "Pevné radary – seznam ORFK VÉDA (2015) · porovnáno s OSM"
           }
         },
         "de" : {
@@ -447,7 +447,7 @@
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Pevný zoznam ORFK VÉDA (2015) · porovnané s OSM"
+            "value" : "ORFK – pevné body VÉDA (2015) · porovnané s OSM"
           }
         }
       }
@@ -546,7 +546,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Abschnittskontroll-Tor"
+            "value" : "Messpunkt"
           }
         },
         "en" : {
@@ -564,7 +564,7 @@
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Brama pomiaru odcinkowego"
+            "value" : "Bramka pomiaru odcinkowego"
           }
         },
         "sk" : {
@@ -704,7 +704,7 @@
         "cs" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Rozumím"
+            "value" : "OK"
           }
         },
         "de" : {
@@ -734,7 +734,7 @@
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Dobre"
+            "value" : "OK"
           }
         }
       }
@@ -1202,7 +1202,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Sept."
+            "value" : "Sep."
           }
         },
         "en" : {
@@ -1401,7 +1401,7 @@
         "cs" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Měření a navigace pracují s vaší polohou. Zapnete ji takto:"
+            "value" : "Měření a navigace pracují s tvou polohou. Zapneš ji takto:"
           }
         },
         "de" : {
@@ -1413,7 +1413,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Measuring and navigation work from your position. To turn it on:"
+            "value" : "Measuring and navigation need your location. To turn it on:"
           }
         },
         "hu" : {
@@ -1425,13 +1425,13 @@
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Pomiar i nawigacja korzystają z Twojej pozycji. Jak ją włączyć:"
+            "value" : "Pomiar i nawigacja korzystają z twojej pozycji. Jak to włączyć:"
           }
         },
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Meranie a navigácia pracujú s vašou polohou. Zapnete ju takto:"
+            "value" : "Meranie a navigácia pracujú s tvojou polohou. Zapneš ju takto:"
           }
         }
       }
@@ -1548,7 +1548,7 @@
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "odmowa (Ustawienia → Safari → Lokalizacja)"
+            "value" : "zablokowany (Ustawienia → Safari → Lokalizacja)"
           }
         },
         "sk" : {
@@ -1606,13 +1606,13 @@
         "cs" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Klepněte na ikonu webu vlevo v adresním řádku › Oprávnění › Poloha: Povolit a stránku znovu načtěte."
+            "value" : "Klepni na ikonu webu vlevo v adresním řádku › Oprávnění › Poloha: Povolit a stránku znovu načti."
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Auf das Website-Symbol links in der Adressleiste tippen › Berechtigungen › Standort: Zulassen, dann die Seite neu laden."
+            "value" : "Tippe links in der Adressleiste auf das Website-Symbol › Berechtigungen › Standort: Zulassen, dann lade die Seite neu."
           }
         },
         "en" : {
@@ -1636,7 +1636,7 @@
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Ťuknite na ikonu stránky vľavo v paneli s adresou › Povolenia › Poloha: Povoliť a stránku znova načítajte."
+            "value" : "Ťukni na ikonu stránky vľavo od panela s adresou › Povolenia › Poloha: Povoliť, potom stránku znova načítaj."
           }
         }
       }
@@ -1647,19 +1647,19 @@
         "cs" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Nastavení Androidu › Poloha: zapněte ji a v Aplikace › Chrome › Oprávnění › Poloha zvolte „Povolit jen při používání aplikace“."
+            "value" : "Nastavení Androidu › Poloha: zapni ji a v Aplikace › Chrome › Oprávnění › Poloha zvol „Povolit jen při používání aplikace“."
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Android-Einstellungen › Standort: einschalten, und Apps › Chrome › Berechtigungen › Standort: „Nur während der Nutzung der App zulassen“."
+            "value" : "Android-Einstellungen › Standort: Schalte ihn ein und wähle unter Apps › Chrome › Berechtigungen › Standort „Nur während der Nutzung der App zulassen“."
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Android Settings › Location: turn it on, and Apps › Chrome › Permissions › Location: “Allow only while using the app”."
+            "value" : "Android Settings › Location: turn it on, then under Apps › Chrome › Permissions › Location choose “Allow only while using the app”."
           }
         },
         "hu" : {
@@ -1677,7 +1677,7 @@
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Nastavenia Androidu › Poloha: zapnite ju a v Aplikácie › Chrome › Povolenia › Poloha zvoľte „Povoliť iba pri používaní aplikácie“."
+            "value" : "Nastavenia Androidu › Poloha: zapni ju a v Aplikácie › Chrome › Povolenia › Poloha zvoľ „Povoliť iba pri používaní aplikácie“."
           }
         }
       }
@@ -1688,13 +1688,13 @@
         "cs" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Klikněte na ikonu webu vlevo v adresním řádku › Nastavení webu › Poloha: Povolit a stránku znovu načtěte."
+            "value" : "Klikni na ikonu webu vlevo v adresním řádku › Nastavení webu › Poloha: Povolit a stránku znovu načti."
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Auf das Website-Symbol links in der Adressleiste klicken › Website-Einstellungen › Standort: Zulassen, dann die Seite neu laden."
+            "value" : "Klicke links in der Adressleiste auf das Website-Symbol › Website-Einstellungen › Standort: Zulassen, dann lade die Seite neu."
           }
         },
         "en" : {
@@ -1718,7 +1718,7 @@
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Kliknite na ikonu stránky vľavo v paneli s adresou › Nastavenia stránky › Poloha: Povoliť a stránku znova načítajte."
+            "value" : "Klikni na ikonu stránky vľavo od panela s adresou › Nastavenia stránky › Poloha: Povoliť, potom stránku znova načítaj."
           }
         }
       }
@@ -1729,19 +1729,19 @@
         "cs" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Systémová poloha musí být pro Chrome také zapnutá (na Macu: Nastavení systému › Soukromí a zabezpečení › Polohové služby)."
+            "value" : "Systémová poloha musí být zapnutá i pro Chrome (na Macu: Nastavení systému › Soukromí a zabezpečení › Polohové služby)."
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Auch der System-Standort muss für Chrome an sein (am Mac: Systemeinstellungen › Datenschutz & Sicherheit › Ortungsdienste)."
+            "value" : "Die Standortfreigabe des Systems muss auch für Chrome eingeschaltet sein (am Mac: Systemeinstellungen › Datenschutz & Sicherheit › Ortungsdienste)."
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "System location must be on for Chrome too (on a Mac: System Settings › Privacy & Security › Location Services)."
+            "value" : "System location must also be on for Chrome (on a Mac: System Settings › Privacy & Security › Location Services)."
           }
         },
         "hu" : {
@@ -1759,7 +1759,7 @@
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Systémová poloha musí byť pre Chrome tiež zapnutá (na Macu: Systémové nastavenia › Súkromie a bezpečnosť › Polohové služby)."
+            "value" : "Polohové služby systému musia byť zapnuté aj pre Chrome (na Macu: Systémové nastavenia › Súkromie a zabezpečenie › Polohové služby)."
           }
         }
       }
@@ -1770,13 +1770,13 @@
         "cs" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Nastavení › Soukromí a zabezpečení › Polohové služby: zapněte je a u Webových stránek Safari zvolte „Při používání aplikace“."
+            "value" : "Nastavení › Soukromí a zabezpečení › Polohové služby: zapni je a u Webových stránek Safari zvol „Při používání aplikace“."
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Einstellungen › Datenschutz & Sicherheit › Ortungsdienste: einschalten und bei Safari-Websites „Beim Verwenden der App“ wählen."
+            "value" : "Einstellungen › Datenschutz & Sicherheit › Ortungsdienste: Schalte sie ein und wähle bei Safari-Websites „Beim Verwenden der App“."
           }
         },
         "en" : {
@@ -1800,7 +1800,7 @@
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Nastavenia › Súkromie a bezpečnosť › Polohové služby: zapnite ich a pri Webových stránkach Safari zvoľte „Pri používaní apky“."
+            "value" : "Nastavenia › Súkromie a zabezpečenie › Polohové služby: zapni ich a pri Webových stránkach Safari zvoľ „Počas používania aplikácie“."
           }
         }
       }
@@ -1811,13 +1811,13 @@
         "cs" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "V Safari otevřete nabídku vedle adresního řádku (aA) › Nastavení webových stránek › Poloha: Povolit a stránku znovu načtěte."
+            "value" : "V Safari otevři nabídku vedle adresního řádku (aA) › Nastavení webové stránky › Poloha: Povolit a stránku znovu načti."
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "In Safari das Menü neben der Adressleiste (aA) › Website-Einstellungen › Standort: Erlauben, dann die Seite neu laden."
+            "value" : "Tippe in Safari auf das Menü neben der Adressleiste (aA) › Website-Einstellungen › Standort: Erlauben, dann lade die Seite neu."
           }
         },
         "en" : {
@@ -1835,13 +1835,13 @@
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "W Safari otwórz menu obok paska adresu (aA) › Ustawienia witryny › Lokalizacja: Pozwalaj, a potem odśwież stronę."
+            "value" : "W Safari otwórz menu obok paska adresu (aA) › Ustawienia witryny › Lokalizacja: Zezwól, a potem odśwież stronę."
           }
         },
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "V Safari otvorte ponuku vedľa panela s adresou (aA) › Nastavenia webovej stránky › Poloha: Povoliť a stránku znova načítajte."
+            "value" : "V Safari otvor ponuku vedľa panela s adresou (aA) › Nastavenia webovej stránky › Poloha: Povoliť, potom stránku znova načítaj."
           }
         }
       }
@@ -1852,13 +1852,13 @@
         "cs" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Safari › Nastavení › Webové stránky › Poloha: u této stránky zvolte „Povolit“ a stránku znovu načtěte."
+            "value" : "Safari › Nastavení › Webové stránky › Poloha: u této stránky zvol „Povolit“ a stránku znovu načti."
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Safari › Einstellungen › Websites › Standort: für diese Website „Erlauben“ wählen, dann die Seite neu laden."
+            "value" : "Safari › Einstellungen › Websites › Standort: Wähle für diese Website „Erlauben“ und lade die Seite neu."
           }
         },
         "en" : {
@@ -1876,13 +1876,13 @@
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Safari › Ustawienia › Witryny › Lokalizacja: dla tej witryny wybierz „Pozwalaj”, a potem odśwież stronę."
+            "value" : "Safari › Ustawienia › Witryny › Lokalizacja: dla tej witryny wybierz „Zezwól”, a potem odśwież stronę."
           }
         },
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Safari › Nastavenia › Webové stránky › Poloha: pri tejto stránke zvoľte „Povoliť“ a stránku znova načítajte."
+            "value" : "Safari › Nastavenia › Webové stránky › Poloha: pri tejto stránke zvoľ „Povoliť“ a stránku znova načítaj."
           }
         }
       }
@@ -1893,13 +1893,13 @@
         "cs" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Nastavení systému › Soukromí a zabezpečení › Polohové služby: zapněte je, i pro Safari."
+            "value" : "Nastavení systému › Soukromí a zabezpečení › Polohové služby: zapni je, i pro Safari."
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Systemeinstellungen › Datenschutz & Sicherheit › Ortungsdienste: einschalten, auch für Safari."
+            "value" : "Systemeinstellungen › Datenschutz & Sicherheit › Ortungsdienste: Schalte sie ein, auch für Safari."
           }
         },
         "en" : {
@@ -1923,7 +1923,7 @@
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Systémové nastavenia › Súkromie a bezpečnosť › Polohové služby: zapnite ich, aj pre Safari."
+            "value" : "Systémové nastavenia › Súkromie a zabezpečenie › Polohové služby: zapni ich, aj pre Safari."
           }
         }
       }
@@ -1934,13 +1934,13 @@
         "cs" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "V nastavení webu v prohlížeči (ikona vedle adresního řádku) povolte této stránce polohu a stránku znovu načtěte."
+            "value" : "V nastavení webu v prohlížeči (ikona vedle adresního řádku) povol této stránce polohu a stránku znovu načti."
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "In den Website-Einstellungen des Browsers (Symbol neben der Adressleiste) den Standort für diese Seite erlauben, dann neu laden."
+            "value" : "Erlaube in den Website-Einstellungen deines Browsers (Symbol neben der Adressleiste) den Standortzugriff für diese Seite und lade sie neu."
           }
         },
         "en" : {
@@ -1964,7 +1964,7 @@
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "V nastaveniach stránky v prehliadači (ikona vedľa panela s adresou) povoľte tejto stránke polohu a stránku znova načítajte."
+            "value" : "V nastaveniach stránky v prehliadači (ikona vedľa panela s adresou) povoľ tejto stránke polohu a stránku znova načítaj."
           }
         }
       }
@@ -2303,13 +2303,13 @@
         "cs" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Zatím nejsou uložena žádná místa – můžeš je přidat v nastavení."
+            "value" : "Zatím nejsou uložena žádná místa – můžeš je přidat v Nastavení."
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Noch keine gespeicherten Orte – du kannst in den Einstellungen welche hinzufügen."
+            "value" : "Noch keine gespeicherten Orte – in den Einstellungen kannst du welche hinzufügen."
           }
         },
         "en" : {
@@ -2333,7 +2333,7 @@
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Zatiaľ nie sú uložené miesta – môžeš ich pridať v nastaveniach."
+            "value" : "Zatiaľ nemáš uložené miesta – pridať ich môžeš v Nastaveniach."
           }
         }
       }
@@ -2385,7 +2385,7 @@
         "cs" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Po buňkách (šestiúhelník asi 66 m): počet průjezdů, průměrná rychlost, hodina (0–23) a den v týdnu. Nic jiného."
+            "value" : "Za každou buňku (šestiúhelník asi 66 m): počet průjezdů, průměrná rychlost, hodina (0–23) a den v týdnu. Nic jiného."
           }
         },
         "de" : {
@@ -2397,7 +2397,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Per cell (a hexagon of about 66 m): the number of passes, the average speed, the hour of day (0–23) and the day of week. Nothing else."
+            "value" : "Per cell (a hexagon about 66 m across): the number of passes, the average speed, the hour of day (0–23) and the day of week. Nothing else."
           }
         },
         "hu" : {
@@ -2415,7 +2415,7 @@
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Po bunkách (šesťuholník asi 66 m): počet prejazdov, priemerná rýchlosť, hodina (0–23) a deň v týždni. Nič iné."
+            "value" : "Za každú bunku (šesťuholník asi 66 m): počet prejazdov, priemerná rýchlosť, hodina (0–23) a deň v týždni. Nič iné."
           }
         }
       }
@@ -2473,7 +2473,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Um jeden gespeicherten Ort (Zuhause, Arbeit, weitere) liegt eine Zone, standardmäßig 200 m. Zellen in einer Zone werden nie gesendet und erscheinen auf deiner eigenen Heatmap grau. Zonen und gespeicherte Orte liegen nur auf diesem Gerät."
+            "value" : "Um jeden gespeicherten Ort (Zuhause, Arbeit, weitere) liegt eine Zone, standardmäßig 200 m. Zellen in einer Zone werden nie gesendet und erscheinen auf deiner eigenen Heatmap grau. Zonen und gespeicherte Orte werden nur auf diesem Gerät gespeichert."
           }
         },
         "en" : {
@@ -2491,13 +2491,13 @@
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Wokół każdego zapisanego miejsca (Dom, Praca, inne) jest strefa, domyślnie 200 m. Komórki w strefach nigdy nie są wysyłane, a na Twojej własnej mapie cieplnej są szare. Strefy i zapisane miejsca są przechowywane tylko na tym urządzeniu."
+            "value" : "Wokół każdego zapisanego miejsca (Dom, Praca, inne) jest strefa, domyślnie 200 m. Komórki w strefach nigdy nie są wysyłane, a na twojej własnej mapie cieplnej są szare. Strefy i zapisane miejsca są przechowywane tylko na tym urządzeniu."
           }
         },
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Okolo každého uloženého miesta (Domov, Práca, ďalšie) je zóna, predvolene 200 m. Bunky v zónach sa nikdy neodošlú a na tvojej vlastnej teplotnej mape sú sivé. Zóny a uložené miesta sú uložené len v tomto zariadení."
+            "value" : "Okolo každého uloženého miesta (Domov, Práca, ďalšie) je zóna, predvolene 200 m. Bunky v zónach sa nikdy neodošlú a na tvojej vlastnej tepelnej mape sú sivé. Zóny a uložené miesta sú uložené len v tomto zariadení."
           }
         }
       }
@@ -2661,7 +2661,7 @@
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Režim teplotnej mapy"
+            "value" : "Režim tepelnej mapy"
           }
         }
       }
@@ -2672,7 +2672,7 @@
         "cs" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Frekvence"
+            "value" : "Četnost"
           }
         },
         "de" : {
@@ -2702,7 +2702,7 @@
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Frekvencia"
+            "value" : "Početnosť"
           }
         }
       }
@@ -2901,13 +2901,13 @@
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Komórki w strefie nie są wysyłane i są szare na Twojej własnej mapie cieplnej."
+            "value" : "Komórki w strefie nie są wysyłane i są szare na twojej własnej mapie cieplnej."
           }
         },
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Bunky v zóne sa neodošlú a na tvojej vlastnej teplotnej mape sú sivé."
+            "value" : "Bunky v zóne sa neodošlú a na tvojej vlastnej tepelnej mape sú sivé."
           }
         }
       }
@@ -2959,13 +2959,13 @@
         "cs" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "{u} před tebou"
+            "value" : "za {u}"
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "{u} voraus"
+            "value" : "in {u}"
           }
         },
         "en" : {
@@ -2983,13 +2983,13 @@
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "{u} przed tobą"
+            "value" : "za {u}"
           }
         },
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "{u} pred tebou"
+            "value" : "o {u}"
           }
         }
       }
@@ -3106,7 +3106,7 @@
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Pomiar prędkości średniej"
+            "value" : "Pomiar średniej prędkości"
           }
         },
         "sk" : {
@@ -3522,7 +3522,7 @@
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "očakávaný"
+            "value" : "očakávané"
           }
         }
       }
@@ -3621,13 +3621,13 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Im Hintergrund gibt es kein GPS, deshalb haben wir beendet – am Anfang des nächsten Abschnitts startet sie neu."
+            "value" : "Im Hintergrund gibt es kein GPS, darum wurde die Messung beendet – am Anfang des nächsten Abschnitts startet sie neu."
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "There is no GPS in the background, so we stopped – it restarts at the start of the next section."
+            "value" : "GPS doesn’t work in the background, so measuring stopped. It restarts at the start of the next section."
           }
         },
         "hu" : {
@@ -3639,7 +3639,7 @@
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "W tle nie ma GPS, więc zakończyliśmy pomiar – na początku następnego odcinka ruszy od nowa."
+            "value" : "W tle nie ma GPS, więc pomiar zakończono – na początku następnego odcinka ruszy od nowa."
           }
         },
         "sk" : {
@@ -3744,7 +3744,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Am Anfang des nächsten Abschnitts startet sie neu."
+            "value" : "Die Messung startet am Anfang des nächsten Abschnitts neu."
           }
         },
         "en" : {
@@ -3861,7 +3861,7 @@
         "cs" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Ruční měření průměru – klepnutím rozbalíte"
+            "value" : "Ruční měření průměru – klepnutím rozbalíš"
           }
         },
         "de" : {
@@ -3891,7 +3891,7 @@
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Manuálne meranie priemeru – ťuknutím rozbalíte"
+            "value" : "Manuálne meranie priemeru – ťuknutím sa rozbalí"
           }
         }
       }
@@ -4066,7 +4066,7 @@
         "cs" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "vzdálenost (částečně odhad)"
+            "value" : "vzdálenost (částečně odhadnutá)"
           }
         },
         "de" : {
@@ -4096,7 +4096,7 @@
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "vzdialenosť (čiastočne odhad)"
+            "value" : "vzdialenosť (čiastočne odhadnutá)"
           }
         }
       }
@@ -4277,7 +4277,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Warte auf GPS-Signal…"
+            "value" : "Warten auf GPS-Signal…"
           }
         },
         "en" : {
@@ -4441,7 +4441,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Die App ist in den Hintergrund gegangen"
+            "value" : "Die App ist in den Hintergrund gewechselt"
           }
         },
         "en" : {
@@ -4482,7 +4482,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "GPS zu lange ausgefallen"
+            "value" : "GPS-Signal zu lange ausgefallen"
           }
         },
         "en" : {
@@ -4500,7 +4500,7 @@
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Zbyt długa utrata GPS"
+            "value" : "Zbyt długo brak sygnału GPS"
           }
         },
         "sk" : {
@@ -4517,7 +4517,7 @@
         "cs" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Opustil jsi úsek"
+            "value" : "Jsi mimo úsek"
           }
         },
         "de" : {
@@ -4541,13 +4541,13 @@
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Zjazd z odcinka pomiarowego"
+            "value" : "Poza odcinkiem pomiarowym"
           }
         },
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Opustil si úsek"
+            "value" : "Si mimo úseku"
           }
         }
       }
@@ -4570,7 +4570,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "You are driving the wrong way"
+            "value" : "You’re going the wrong way"
           }
         },
         "hu" : {
@@ -4599,13 +4599,13 @@
         "cs" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Kamera za {d} metrů, maximálně {x}"
+            "value" : "Radar za {d} metrů, maximálně {x}"
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Kamera in {d} Metern, maximal {x}"
+            "value" : "Blitzer in {d} Metern, maximal {x}"
           }
         },
         "en" : {
@@ -4623,13 +4623,13 @@
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Kamera za {d} metrów, maksimum {x}"
+            "value" : "Fotoradar za {d} metrów, maksimum {x}"
           }
         },
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Kamera o {d} metrov, maximum {x}"
+            "value" : "Radar o {d} metrov, maximum {x}"
           }
         }
       }
@@ -4640,13 +4640,13 @@
         "cs" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Kamera za {d} metrů"
+            "value" : "Radar za {d} metrů"
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Kamera in {d} Metern"
+            "value" : "Blitzer in {d} Metern"
           }
         },
         "en" : {
@@ -4664,13 +4664,13 @@
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Kamera za {d} metrów"
+            "value" : "Fotoradar za {d} metrów"
           }
         },
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Kamera o {d} metrov"
+            "value" : "Radar o {d} metrov"
           }
         }
       }
@@ -4722,7 +4722,7 @@
         "cs" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Plánovaná kontrola – {place}"
+            "value" : "Plánovaná kontrola, oblast {place}"
           }
         },
         "de" : {
@@ -4763,7 +4763,7 @@
         "cs" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Rychlost Nav"
+            "value" : "Prům. rychlost"
           }
         },
         "de" : {
@@ -4828,7 +4828,7 @@
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "odmowa (Ustawienia → Prywatność → Usługi lokalizacji)"
+            "value" : "zablokowany (Ustawienia → Prywatność → Usługi lokalizacji)"
           }
         },
         "sk" : {
@@ -4845,13 +4845,13 @@
         "cs" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Nastavení › Soukromí a zabezpečení › Polohové služby: zapněte je."
+            "value" : "Nastavení › Soukromí a zabezpečení › Polohové služby: zapni je."
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Einstellungen › Datenschutz & Sicherheit › Ortungsdienste: einschalten."
+            "value" : "Einstellungen › Datenschutz & Sicherheit › Ortungsdienste: Schalte sie ein."
           }
         },
         "en" : {
@@ -4875,7 +4875,7 @@
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Nastavenia › Súkromie a bezpečnosť › Polohové služby: zapnite ich."
+            "value" : "Nastavenia › Súkromie a zabezpečenie › Polohové služby: zapni ich."
           }
         }
       }
@@ -4892,13 +4892,13 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "In den Einstellungen der App (Öffnen): Standort › „Beim Verwenden der App“."
+            "value" : "Wähle in den Einstellungen der App (Öffnen): Standort › „Beim Verwenden der App“."
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "In the app's own settings (Open): Location › “While Using the App”."
+            "value" : "In the app’s own settings (tap Open): Location › “While Using the App”."
           }
         },
         "hu" : {
@@ -4916,7 +4916,7 @@
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "V nastaveniach aplikácie (Otvoriť): Poloha › „Pri používaní aplikácie“."
+            "value" : "V nastaveniach appky (Otvoriť): Poloha › „Počas používania aplikácie“."
           }
         }
       }
@@ -4958,6 +4958,88 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Otvoriť"
+          }
+        }
+      }
+    },
+    "ios.intent.destination" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cíl"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ziel"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Destination"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cél"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cel"
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cieľ"
+          }
+        }
+      }
+    },
+    "ios.intent.startNav" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Spustit navigaci"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Navigation starten"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Start navigation"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Navigáció indítása"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Uruchom nawigację"
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Spustiť navigáciu"
           }
         }
       }
@@ -5091,7 +5173,7 @@
         "cs" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Sleduje"
+            "value" : "Sleduji"
           }
         },
         "de" : {
@@ -5132,7 +5214,7 @@
         "cs" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Tvoje poloha je potřeba k rozpoznání úseků a měření průměrné rychlosti – i při zamčené obrazovce, dokud aplikace měří."
+            "value" : "K rozpoznání úseků a měření průměrné rychlosti potřebujeme tvou polohu – i při zamčené obrazovce, dokud aplikace měří."
           }
         },
         "de" : {
@@ -5144,7 +5226,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Your location is needed to detect sections and measure your average speed – also with the screen locked while the app is measuring."
+            "value" : "Your location is used to detect sections and measure your average speed, including while the screen is locked and the app is measuring."
           }
         },
         "hu" : {
@@ -5349,7 +5431,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "The sound plays regardless of the silent switch, even with the screen locked; music is lowered meanwhile."
+            "value" : "Sound plays regardless of the silent switch and with the screen locked; music is turned down meanwhile."
           }
         },
         "hu" : {
@@ -5378,13 +5460,13 @@
         "cs" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Upozornění na kamery"
+            "value" : "Upozornění na radary"
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Kamerawarnung"
+            "value" : "Blitzerwarnung"
           }
         },
         "en" : {
@@ -5402,13 +5484,13 @@
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Ostrzeżenia o kamerach"
+            "value" : "Ostrzeżenia o fotoradarach"
           }
         },
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Upozornenie na kamery"
+            "value" : "Upozornenie na radary"
           }
         }
       }
@@ -5419,19 +5501,19 @@
         "cs" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Pokud je ve směru jízdy do 600 m kamera nebo začátek úsekového měření: krátký tón, hlášení a vibrace – u každé kamery jednou."
+            "value" : "Když je ve směru jízdy do 600 m radar nebo začátek úsekového měření: krátký tón, hlášení a vibrace – u každého radaru jednou."
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Liegt eine Kamera oder der Beginn einer Abschnittskontrolle innerhalb von 600 m in Fahrtrichtung: kurzer Ton, Ansage und Vibration – einmal pro Kamera."
+            "value" : "Liegt ein Blitzer oder der Beginn einer Abschnittskontrolle innerhalb von 600 m in Fahrtrichtung: kurzer Ton, Ansage und Vibration – einmal pro Blitzer."
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "When a camera or the start of a section control is within 600 m ahead: a short tone, an announcement and a vibration – once per camera."
+            "value" : "When a camera or the start of a section control is within 600 m on your route: a short tone, a voice announcement and vibration – once per camera."
           }
         },
         "hu" : {
@@ -5443,13 +5525,13 @@
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Gdy kamera lub początek odcinkowego pomiaru jest do 600 m przed tobą: krótki dźwięk, komunikat i wibracja – raz dla każdej kamery."
+            "value" : "Gdy fotoradar lub początek odcinkowego pomiaru jest do 600 m przed tobą: krótki dźwięk, komunikat i wibracja – raz dla każdego fotoradaru."
           }
         },
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Ak je v smere jazdy do 600 m kamera alebo začiatok úsekovej kontroly: krátky tón, hlásenie a vibrácia – pri každej kamere raz."
+            "value" : "Ak je v smere jazdy do 600 m radar alebo začiatok úsekovej kontroly: krátky tón, hlásenie a vibrácia – pri každom radare raz."
           }
         }
       }
@@ -5542,7 +5624,7 @@
         "cs" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Tón a hlášení, když dojedeš na úsek nebo do oblasti plánované policejní kontroly."
+            "value" : "Tón a hlášení, když dojedeš na místo plánované policejní kontroly (úsek nebo oblast)."
           }
         },
         "de" : {
@@ -5566,7 +5648,7 @@
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Dźwięk i komunikat, gdy wjedziesz na odcinek lub obszar planowanej kontroli policji."
+            "value" : "Dźwięk i komunikat, gdy wjedziesz na linię lub w obszar planowanej kontroli policji."
           }
         },
         "sk" : {
@@ -5800,7 +5882,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Search destination"
+            "value" : "Search for a destination"
           }
         },
         "hu" : {
@@ -6075,7 +6157,7 @@
         "cs" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Cíl dosažen"
+            "value" : "Jsi v cíli"
           }
         },
         "de" : {
@@ -6099,13 +6181,13 @@
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Cel osiągnięty"
+            "value" : "Jesteś na miejscu"
           }
         },
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Cieľ dosiahnutý"
+            "value" : "Si v cieli"
           }
         }
       }
@@ -6116,13 +6198,13 @@
         "cs" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Kamera {d} · max {x}"
+            "value" : "Radar {d} · max {x}"
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Kamera {d} · max. {x}"
+            "value" : "Blitzer {d} · max. {x}"
           }
         },
         "en" : {
@@ -6140,13 +6222,13 @@
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Kamera {d} · maks. {x}"
+            "value" : "Fotoradar {d} · maks. {x}"
           }
         },
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Kamera {d} · max {x}"
+            "value" : "Radar {d} · max. {x}"
           }
         }
       }
@@ -6157,7 +6239,7 @@
         "cs" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "+{n} min kolona"
+            "value" : "+{n} min zácpa"
           }
         },
         "de" : {
@@ -6169,7 +6251,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "+{n} min traffic"
+            "value" : "+{n} min traffic jam"
           }
         },
         "hu" : {
@@ -6403,7 +6485,7 @@
         "cs" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Jsi v koloně?"
+            "value" : "Jsi v zácpě?"
           }
         },
         "de" : {
@@ -6415,7 +6497,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Stuck in traffic?"
+            "value" : "Stuck in a traffic jam?"
           }
         },
         "hu" : {
@@ -7194,7 +7276,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "{km} km · −{n} min faster"
+            "value" : "{km} km · {n} min faster"
           }
         },
         "hu" : {
@@ -7235,7 +7317,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "−{n} min faster"
+            "value" : "{n} min faster"
           }
         },
         "hu" : {
@@ -7305,13 +7387,13 @@
         "cs" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Sjezd za {km} km · úspora {n} min"
+            "value" : "Výjezd za {km} km · úspora {n} min"
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Abfahrt in {km} km · spart {n} Min."
+            "value" : "Ausfahrt in {km} km · spart {n} Min."
           }
         },
         "en" : {
@@ -7346,13 +7428,13 @@
         "cs" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Sjezd za {km} km"
+            "value" : "Výjezd za {km} km"
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Abfahrt in {km} km"
+            "value" : "Ausfahrt in {km} km"
           }
         },
         "en" : {
@@ -7387,13 +7469,13 @@
         "cs" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Sjezd: {name} · {km} km"
+            "value" : "Výjezd: {name} · {km} km"
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Abfahrt: {name} · {km} km"
+            "value" : "Ausfahrt: {name} · {km} km"
           }
         },
         "en" : {
@@ -7428,13 +7510,13 @@
         "cs" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Sjezd: {name} · {km} km · úspora {n} min"
+            "value" : "Výjezd: {name} · {km} km · úspora {n} min"
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Abfahrt: {name} · {km} km · spart {n} Min."
+            "value" : "Ausfahrt: {name} · {km} km · spart {n} Min."
           }
         },
         "en" : {
@@ -7516,7 +7598,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Lohnt nicht · +{km} km Umweg, −{n} Min."
+            "value" : "Lohnt sich nicht · +{km} km Umweg, −{n} Min."
           }
         },
         "en" : {
@@ -7715,13 +7797,13 @@
         "cs" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "{n} kamer · {v} ověřených"
+            "value" : "Radary: {n} · ověřeno: {v}"
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "{n} Kameras · {v} geprüft"
+            "value" : "{n} Blitzer · {v} geprüft"
           }
         },
         "en" : {
@@ -7739,13 +7821,13 @@
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "{n} kamer · {v} zweryfikowanych"
+            "value" : "Fotoradary: {n} (zweryfikowane: {v})"
           }
         },
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "{n} kamier · {v} overených"
+            "value" : "{n} radarov · {v} overených"
           }
         }
       }
@@ -7756,19 +7838,19 @@
         "cs" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "+{n} min kvůli provozu"
+            "value" : "+{n} min kvůli zácpě"
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "+{n} Min. wegen Verkehr"
+            "value" : "+{n} Min. wegen Stau"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "+{n} min due to traffic"
+            "value" : "+{n} min: traffic jam"
           }
         },
         "hu" : {
@@ -7786,7 +7868,7 @@
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "+{n} min kvôli premávke"
+            "value" : "+{n} min kvôli zápche"
           }
         }
       }
@@ -7885,7 +7967,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Routen werden gesucht …"
+            "value" : "Routen werden gesucht…"
           }
         },
         "en" : {
@@ -7920,7 +8002,7 @@
         "cs" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Bez zdržení"
+            "value" : "Bez zácpy"
           }
         },
         "de" : {
@@ -7932,7 +8014,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "No traffic delay"
+            "value" : "No traffic jam"
           }
         },
         "hu" : {
@@ -7944,7 +8026,7 @@
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Bez opóźnień"
+            "value" : "Bez korków"
           }
         },
         "sk" : {
@@ -7967,7 +8049,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Warte auf GPS-Signal …"
+            "value" : "Warten auf GPS-Signal…"
           }
         },
         "en" : {
@@ -8108,7 +8190,7 @@
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Odcinkowe pomiary: {n}"
+            "value" : "Pomiary odcinkowe: {n}"
           }
         },
         "sk" : {
@@ -8166,7 +8248,7 @@
         "cs" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Trasa do: {name}"
+            "value" : "Trasa do {name}"
           }
         },
         "de" : {
@@ -8190,7 +8272,7 @@
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Trasa do: {name}"
+            "value" : "Trasa do {name}"
           }
         },
         "sk" : {
@@ -8518,13 +8600,13 @@
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Ponowna próba za {s} s – dotknij, aby teraz"
+            "value" : "Ponowna próba za {s} s – dotknij, by spróbować teraz"
           }
         },
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Znova o {s} s – ťukni pre okamžitý pokus"
+            "value" : "Ďalší pokus o {s} s – ťukni a skús hneď"
           }
         }
       }
@@ -8541,7 +8623,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Route wird neu berechnet …"
+            "value" : "Route wird neu berechnet…"
           }
         },
         "en" : {
@@ -8658,7 +8740,7 @@
         "cs" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Zadej alespoň {n} znaky"
+            "value" : "Minimální počet znaků: {n}"
           }
         },
         "de" : {
@@ -8682,13 +8764,13 @@
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Wpisz co najmniej {n} znaki"
+            "value" : "Minimalna liczba znaków: {n}"
           }
         },
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Zadaj aspoň {n} znaky"
+            "value" : "Minimálny počet znakov: {n}"
           }
         }
       }
@@ -8705,7 +8787,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Suche …"
+            "value" : "Suche…"
           }
         },
         "en" : {
@@ -8746,7 +8828,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Noch keine letzten Ziele"
+            "value" : "Noch keine früheren Ziele"
           }
         },
         "en" : {
@@ -8764,13 +8846,13 @@
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Brak poprzednich celów"
+            "value" : "Brak ostatnich celów"
           }
         },
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Zatiaľ žiadne predchádzajúce ciele"
+            "value" : "Zatiaľ žiadne nedávne ciele"
           }
         }
       }
@@ -8869,7 +8951,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Adresse der Arbeit"
+            "value" : "Adresse für die Arbeit"
           }
         },
         "en" : {
@@ -8975,7 +9057,7 @@
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Posledné ciele"
+            "value" : "Nedávne ciele"
           }
         }
       }
@@ -8998,7 +9080,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Saved places"
+            "value" : "Saved addresses"
           }
         },
         "hu" : {
@@ -9027,7 +9109,7 @@
         "cs" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Poté"
+            "value" : "Potom"
           }
         },
         "de" : {
@@ -9068,13 +9150,13 @@
         "cs" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Kamera {d}"
+            "value" : "Radar {d}"
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Kamera {d}"
+            "value" : "Blitzer {d}"
           }
         },
         "en" : {
@@ -9092,13 +9174,13 @@
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Kamera {d}"
+            "value" : "Fotoradar {d}"
           }
         },
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Kamera {d}"
+            "value" : "Radar {d}"
           }
         }
       }
@@ -9139,7 +9221,7 @@
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Plánovaná kontrola {d} · max {x}"
+            "value" : "Plánovaná kontrola {d} · max. {x}"
           }
         }
       }
@@ -9180,7 +9262,7 @@
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Úseková kontrola {d} · max {x}"
+            "value" : "Úseková kontrola {d} · max. {x}"
           }
         }
       }
@@ -9191,7 +9273,7 @@
         "cs" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Kolona na trase, příjezd o {n} minut později."
+            "value" : "Zácpa na trase, příjezd o {n} minut později."
           }
         },
         "de" : {
@@ -9203,7 +9285,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Traffic on your route, arriving {n} minutes later."
+            "value" : "Traffic jam on your route. You’ll arrive {n} minutes later."
           }
         },
         "hu" : {
@@ -9215,7 +9297,7 @@
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Korek na trasie, przyjazd {n} minut później."
+            "value" : "Korek na trasie, przyjazd {n} min później."
           }
         },
         "sk" : {
@@ -9232,19 +9314,19 @@
         "cs" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Rychlejší trasa, úspora {n} min"
+            "value" : "Rychlejší trasa, ušetříš {n} minut"
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Schnellere Route, spart {n} Min."
+            "value" : "Schnellere Route, du sparst {n} Minuten"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Faster route, saves {n} min"
+            "value" : "Faster route, saves {n} minutes"
           }
         },
         "hu" : {
@@ -9262,7 +9344,7 @@
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Rýchlejšia trasa, úspora {n} min"
+            "value" : "Rýchlejšia trasa, úspora {n} minút"
           }
         }
       }
@@ -9273,19 +9355,19 @@
         "cs" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Rychlejší trasa, sjezd za 500 metrů"
+            "value" : "Rychlejší trasa, výjezd za 500 metrů"
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Schnellere Route, Abfahrt in 500 Metern"
+            "value" : "Schnellere Route, Ausfahrt in 500 Metern"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Faster route, exit in 500 metres"
+            "value" : "Faster route, take the exit in 500 metres"
           }
         },
         "hu" : {
@@ -9314,19 +9396,19 @@
         "cs" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Rychlejší trasa, {n} min, {km} km objížďka, rozhodni se"
+            "value" : "Rychlejší trasa, {n} min, objížďka {km} km, rozhodni se"
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Schnellere Route, {n} Minuten, {km} km Umweg, du entscheidest"
+            "value" : "Schnellere Route, {n} Minuten, {km} Kilometer Umweg, du entscheidest"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Faster route, {n} min, {km} km detour, your call"
+            "value" : "Faster route, saves {n} minutes, but it’s a detour of {km} kilometres. Your call."
           }
         },
         "hu" : {
@@ -9338,13 +9420,13 @@
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Szybsza trasa, {n} min, {km} km objazdu, ty decydujesz"
+            "value" : "Szybsza trasa, {n} min, objazd {km} km, ty decydujesz"
           }
         },
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Rýchlejšia trasa, {n} min, {km} km obchádzka, rozhodni sa"
+            "value" : "Rýchlejšia trasa, {n} minút, obchádzka {km} kilometrov, rozhodnutie je na tebe"
           }
         }
       }
@@ -9355,19 +9437,19 @@
         "cs" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Rychlejší trasa, ale nevyplatí se, {km} km objížďka"
+            "value" : "Rychlejší trasa, ale nevyplatí se, objížďka {km} km"
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Schnellere Route, lohnt sich aber nicht, {km} km Umweg"
+            "value" : "Schnellere Route, lohnt sich aber nicht, {km} Kilometer Umweg"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Faster route, but not worth it, {km} km detour"
+            "value" : "Faster route, but a detour of {km} kilometres. Not worth it."
           }
         },
         "hu" : {
@@ -9379,13 +9461,13 @@
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Szybsza trasa, ale się nie opłaca, {km} km objazdu"
+            "value" : "Szybsza trasa, ale się nie opłaca, objazd {km} km"
           }
         },
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Rýchlejšia trasa, ale neoplatí sa, {km} km obchádzka"
+            "value" : "Rýchlejšia trasa, ale neoplatí sa, obchádzka {km} kilometrov"
           }
         }
       }
@@ -9396,19 +9478,19 @@
         "cs" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Rychlejší trasa, úspora {n} minut, sjezd za {km} kilometrů"
+            "value" : "Rychlejší trasa, úspora {n} minut, výjezd za {km} kilometrů"
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Schnellere Route, {n} Minuten gespart, Abfahrt in {km} Kilometern"
+            "value" : "Schnellere Route, {n} Minuten gespart, Ausfahrt in {km} Kilometern"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Faster route, {n} minutes saved, exit in {km} kilometres"
+            "value" : "Faster route, saves {n} minutes. Take the exit in {km} kilometres."
           }
         },
         "hu" : {
@@ -9420,7 +9502,7 @@
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Szybsza trasa, {n} minut oszczędności, zjazd za {km} kilometrów"
+            "value" : "Szybsza trasa, {n} min oszczędności, zjazd za {km} km"
           }
         },
         "sk" : {
@@ -9449,7 +9531,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Hi, let's go!"
+            "value" : "Hi, ready to go!"
           }
         },
         "hu" : {
@@ -9490,7 +9572,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Hi {name}, let's go!"
+            "value" : "Hi {name}, ready to go!"
           }
         },
         "hu" : {
@@ -9519,7 +9601,7 @@
         "cs" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Pomalý provoz. Jsi v koloně?"
+            "value" : "Pomalý provoz. Jsi v zácpě?"
           }
         },
         "de" : {
@@ -9566,7 +9648,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Neuberechnung"
+            "value" : "Route wird neu berechnet"
           }
         },
         "en" : {
@@ -9607,13 +9689,13 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Abschnittskontrolle beginnt, maximal {x}"
+            "value" : "Abschnittskontrolle voraus, maximal {x}"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Section control ahead, maximum {x}"
+            "value" : "Section control ahead. Maximum {x}."
           }
         },
         "hu" : {
@@ -9648,13 +9730,13 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Zu schnell, bitte langsamer"
+            "value" : "Du bist zu schnell, fahr langsamer"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Too fast, slow down"
+            "value" : "You’re too fast. Slow down."
           }
         },
         "hu" : {
@@ -9929,7 +10011,7 @@
         "cs" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "GPS – klepněte a povolte"
+            "value" : "GPS – klepni pro povolení"
           }
         },
         "de" : {
@@ -9959,7 +10041,7 @@
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "GPS – ťuknite a povoľte"
+            "value" : "GPS – ťukni a povoľ"
           }
         }
       }
@@ -10042,6 +10124,47 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Offline · vstavané úseky"
+          }
+        }
+      }
+    },
+    "pill.sim" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Simulátor"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Simulator"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Simulator"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Szimulátor"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Symulator"
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Simulátor"
           }
         }
       }
@@ -10246,7 +10369,7 @@
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "max {x}"
+            "value" : "max. {x}"
           }
         }
       }
@@ -10287,7 +10410,7 @@
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "max ~{x}"
+            "value" : "max. ~{x}"
           }
         }
       }
@@ -10380,7 +10503,7 @@
         "cs" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Nahlášení: {label}"
+            "value" : "Hlášení: {label}"
           }
         },
         "de" : {
@@ -10410,7 +10533,7 @@
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Nahlásenie: {label}"
+            "value" : "Hlásenie: {label}"
           }
         }
       }
@@ -10503,7 +10626,7 @@
         "cs" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Tvoje vlastní nahlášení"
+            "value" : "Tvoje vlastní hlášení"
           }
         },
         "de" : {
@@ -10533,7 +10656,7 @@
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Tvoje vlastné nahlásenie"
+            "value" : "Tvoje hlásenie"
           }
         }
       }
@@ -10544,19 +10667,19 @@
         "cs" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Do nahlášení se zapíše tvoje aktuální poloha a směr jízdy. Dočasný úsek: na konci měření tlačítko „Konec” nahlásí koncovou bránu."
+            "value" : "Do hlášení se zapíše tvoje aktuální poloha a směr jízdy. Dočasný úsek: na konci měření tlačítko „Konec“ nahlásí koncovou bránu."
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Deine aktuelle Position und Fahrtrichtung werden mitgesendet. Temporärer Abschnitt: Am Ende der Messung meldet die Taste „Ende“ das Schlusstor."
+            "value" : "Deine aktuelle Position und Fahrtrichtung werden mitgesendet. Temporärer Abschnitt: Am Ende der Messung meldest du mit „Ende“ den abschließenden Messpunkt."
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Your current position and heading are included in the report. Temporary section: at the end of the measurement, the “End” button reports the closing gate."
+            "value" : "Your current position and direction of travel are sent with the report. For a temporary section, tap “End” at the finish to report the closing gate."
           }
         },
         "hu" : {
@@ -10574,7 +10697,7 @@
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Do nahlásenia sa zapíše tvoja aktuálna poloha a smer jazdy. Dočasný úsek: na konci merania tlačidlo „Koniec” nahlási koncovú bránu."
+            "value" : "Do hlásenia sa zapíše tvoja aktuálna poloha a smer jazdy. Dočasný úsek: na konci merania tlačidlo „Koniec“ nahlási koncovú bránu."
           }
         }
       }
@@ -10585,19 +10708,19 @@
         "cs" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Začátek úsekového měření jsi nahlásil – konec nahlas tady."
+            "value" : "Začátek úsekového měření je odeslán – konec nahlas na stejném místě."
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Du hast den Beginn der Abschnittskontrolle gemeldet – melde das Ende hier."
+            "value" : "Du hast den Anfang der Abschnittskontrolle gemeldet – melde das Ende hier."
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "You reported the start of the average-speed check – report its end right here."
+            "value" : "You sent the section start – report its end here, at the same spot."
           }
         },
         "hu" : {
@@ -10609,13 +10732,13 @@
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Zgłoszono początek pomiaru odcinkowego – koniec zgłoś tutaj."
+            "value" : "Początek pomiaru jest już zgłoszony – koniec zgłoś tutaj."
           }
         },
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Začiatok úsekového merania si nahlásil – koniec nahlás tu."
+            "value" : "Začiatok úsekového merania je nahlásený – koniec nahlás tu."
           }
         }
       }
@@ -10632,13 +10755,13 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Für ein Tor wird die Fahrtrichtung benötigt – fahre los und versuche es erneut."
+            "value" : "Für einen Messpunkt brauchen wir die Fahrtrichtung – fahr los und versuche es dann erneut."
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "A gate needs a driving direction – start moving and try again."
+            "value" : "A gate needs a direction of travel – start driving, then try again."
           }
         },
         "hu" : {
@@ -10656,7 +10779,7 @@
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Brána potrebuje smer jazdy – rozbehni sa a skús znova."
+            "value" : "Brána potrebuje smer jazdy – rozjed sa a skús znova."
           }
         }
       }
@@ -10667,7 +10790,7 @@
         "cs" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Zatím není poloha GPS."
+            "value" : "Zatím není známa poloha GPS."
           }
         },
         "de" : {
@@ -10697,7 +10820,7 @@
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Zatiaľ nie je poloha GPS."
+            "value" : "Zatiaľ nie je známa poloha GPS."
           }
         }
       }
@@ -10708,7 +10831,7 @@
         "cs" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Server není nastaven – nahlášení teď nelze odeslat."
+            "value" : "Server není nastaven – hlášení teď nelze odeslat."
           }
         },
         "de" : {
@@ -10738,7 +10861,7 @@
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Server nie je nastavený – nahlásenie sa teraz nedá odoslať."
+            "value" : "Server nie je nastavený – hlásenie sa teraz nedá odoslať."
           }
         }
       }
@@ -11036,13 +11159,13 @@
         "cs" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Špatná poloha kamery"
+            "value" : "Špatná poloha radaru"
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Falsche Kameraposition"
+            "value" : "Falsche Blitzer-Position"
           }
         },
         "en" : {
@@ -11060,13 +11183,13 @@
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Zła pozycja kamery"
+            "value" : "Błędna pozycja fotoradaru"
           }
         },
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Zlá poloha kamery"
+            "value" : "Zlá poloha radaru"
           }
         }
       }
@@ -11183,7 +11306,7 @@
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Złe ograniczenie prędkości"
+            "value" : "Błędny limit prędkości"
           }
         },
         "sk" : {
@@ -11224,7 +11347,7 @@
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Zła granica odcinka"
+            "value" : "Błędna granica odcinka"
           }
         },
         "sk" : {
@@ -11247,7 +11370,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Start-/Schlusstor an falscher Stelle"
+            "value" : "Start- oder End-Messpunkt an falscher Stelle"
           }
         },
         "en" : {
@@ -11282,7 +11405,7 @@
         "cs" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Nahlášení"
+            "value" : "Hlášení"
           }
         },
         "de" : {
@@ -11312,7 +11435,7 @@
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Nahlásenie"
+            "value" : "Hlásenie"
           }
         }
       }
@@ -11335,7 +11458,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Obstacle"
+            "value" : "Hazard"
           }
         },
         "hu" : {
@@ -11429,7 +11552,7 @@
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Stoi"
+            "value" : "Stoi ruch"
           }
         },
         "sk" : {
@@ -11446,7 +11569,7 @@
         "cs" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Kolona"
+            "value" : "Zácpa"
           }
         },
         "de" : {
@@ -11493,13 +11616,13 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Messstrecke Start"
+            "value" : "Abschnittsbeginn"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Average check start"
+            "value" : "Section start"
           }
         },
         "hu" : {
@@ -11511,13 +11634,13 @@
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Początek odcinkowego pomiaru"
+            "value" : "Początek pomiaru"
           }
         },
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Začiatok úsekového merania"
+            "value" : "Začiatok merania"
           }
         }
       }
@@ -11534,13 +11657,13 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Messstrecke Ende"
+            "value" : "Abschnittsende"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Average check end"
+            "value" : "Section end"
           }
         },
         "hu" : {
@@ -11552,13 +11675,13 @@
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Koniec odcinkowego pomiaru"
+            "value" : "Koniec pomiaru"
           }
         },
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Koniec úsekového merania"
+            "value" : "Koniec merania"
           }
         }
       }
@@ -11815,7 +11938,7 @@
         "cs" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "cache (offline)"
+            "value" : "mezipaměť (offline)"
           }
         },
         "de" : {
@@ -11827,7 +11950,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "cache (offline)"
+            "value" : "cached (offline)"
           }
         },
         "hu" : {
@@ -12061,7 +12184,7 @@
         "cs" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Data o úsecích a kamerách: © OpenStreetMap contributors (ODbL); pevné body VÉDA: ORFK (2015); plánované kontroly: police.hu. Mapa: © Mapbox, © OpenStreetMap. Aplikace je informativní – rychlostní limit vždy určují dopravní značky."
+            "value" : "Data o úsecích a radarech: © OpenStreetMap contributors (ODbL); pevné body VÉDA: ORFK (2015); plánované kontroly: police.hu. Mapa: © Mapbox, © OpenStreetMap. Aplikace je informativní – rychlostní limit vždy určují dopravní značky."
           }
         },
         "de" : {
@@ -12085,7 +12208,7 @@
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Dane odcinków i kamer: © OpenStreetMap contributors (ODbL); stałe punkty VÉDA: ORFK (2015); planowane kontrole: police.hu. Mapa: © Mapbox, © OpenStreetMap. Aplikacja ma charakter informacyjny – limit prędkości zawsze określają znaki."
+            "value" : "Dane odcinków i fotoradarów: © OpenStreetMap contributors (ODbL); stałe punkty VÉDA: ORFK (2015); planowane kontrole: police.hu. Mapa: © Mapbox, © OpenStreetMap. Aplikacja ma charakter informacyjny – o limicie prędkości zawsze decydują znaki."
           }
         },
         "sk" : {
@@ -12167,7 +12290,7 @@
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Rozwój"
+            "value" : "Dla programistów"
           }
         },
         "sk" : {
@@ -12337,7 +12460,7 @@
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Teplotná mapa"
+            "value" : "Tepelná mapa"
           }
         }
       }
@@ -12483,7 +12606,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Mine is built from your own trips and stays on this device. Community shows other drivers' anonymous data."
+            "value" : "“Mine” is built from your own trips and stays on this device. “Community” shows other drivers’ anonymous data."
           }
         },
         "hu" : {
@@ -12495,13 +12618,13 @@
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Własna powstaje z Twoich przejazdów i zostaje na tym urządzeniu. Społeczności pokazuje anonimowe dane innych kierowców."
+            "value" : "Własna powstaje z twoich przejazdów i zostaje na tym urządzeniu. Społeczności pokazuje anonimowe dane innych kierowców."
           }
         },
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Vlastná vzniká z tvojich jázd a zostáva len v tomto zariadení. Komunitná ukazuje anonymné dáta ostatných vodičov."
+            "value" : "Vlastná vzniká z tvojich jázd a zostáva len v tomto zariadení. Komunitná ukazuje anonymné údaje ostatných vodičov."
           }
         }
       }
@@ -12764,13 +12887,13 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Anrede"
+            "value" : "Begrüßung"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Greeting name"
+            "value" : "Your name"
           }
         },
         "hu" : {
@@ -12782,7 +12905,7 @@
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Jak się do Ciebie zwracać"
+            "value" : "Jak się do ciebie zwracać"
           }
         },
         "sk" : {
@@ -12811,7 +12934,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "The app greets you with this name on the map and when navigation starts. Empty: “Hi!”"
+            "value" : "The app greets you by this name on the map and when navigation starts. If empty: “Hi!”"
           }
         },
         "hu" : {
@@ -12823,13 +12946,13 @@
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Tym imieniem aplikacja wita Cię na mapie i przy starcie nawigacji. Puste: „Cześć!”"
+            "value" : "Tym imieniem aplikacja wita cię na mapie i przy starcie nawigacji. Gdy puste: „Cześć!”"
           }
         },
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Týmto menom ťa aplikácia pozdraví na mape a pri spustení navigácie. Prázdne: „Ahoj!“"
+            "value" : "Týmto menom ťa appka pozdraví na mape a pri spustení navigácie. Ak je prázdne: „Ahoj!“"
           }
         }
       }
@@ -12922,19 +13045,19 @@
         "cs" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Místa kontrol zveřejněná policií předem, jako slabá žlutá čára nebo plocha; na čáře, resp. v ploše nahoře ukáže pruh. Pevných kamer se to netýká."
+            "value" : "Místa kontrol zveřejněná policií předem, jako nevýrazná žlutá čára nebo plocha; na čáře či v oblasti tě nahoře upozorní pruh. Pevných radarů se to netýká."
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Von der Polizei vorab veröffentlichte Kontrollstellen als blasse gelbe Linie oder Fläche; auf der Linie bzw. in der Fläche zeigt oben ein Balken den Hinweis. Feste Kameras sind nicht betroffen."
+            "value" : "Von der Polizei vorab veröffentlichte Kontrollstellen als blassgelbe Linie oder Fläche; auf der Linie bzw. in der Fläche erscheint oben ein Balken. Feste Blitzer sind nicht betroffen."
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Check locations announced in advance by the police, as a faint yellow line or area; a bar at the top shows while you are on the line or in the area. Fixed cameras are not affected."
+            "value" : "Locations of police checks announced in advance, shown as a faint yellow line or area. A bar appears at the top while you’re on the line or in the area. Fixed cameras are not affected."
           }
         },
         "hu" : {
@@ -12946,13 +13069,13 @@
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Miejsca kontroli ogłoszone wcześniej przez policję, jako blada żółta linia lub obszar; na linii albo w obszarze pasek u góry daje znać. Stałych kamer to nie dotyczy."
+            "value" : "Miejsca kontroli ogłoszone wcześniej przez policję: jasnożółta linia lub obszar. Gdy jedziesz po linii albo w obszarze, u góry pojawia się pasek. Stałych fotoradarów to nie dotyczy."
           }
         },
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Miesta kontrol zverejnené políciou vopred, ako slabá žltá čiara alebo plocha; na čiare, resp. v ploche hore ukáže pruh. Pevných kamier sa to netýka."
+            "value" : "Miesta kontrol, ktoré polícia zverejnila vopred, ako slabá žltá čiara alebo plocha; keď ideš po čiare alebo v ploche, hore sa zobrazí pruh. Pevných radarov sa to netýka."
           }
         }
       }
@@ -12993,7 +13116,7 @@
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Žiadosti o trasu dnes"
+            "value" : "Požiadavky na trasy dnes"
           }
         }
       }
@@ -13297,13 +13420,13 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Eingeschaltet wird am Ende einer Fahrt gesendet: Zelle, Anzahl der Durchfahrten, Durchschnittsgeschwindigkeit, Stunde, Wochentag. Nicht gesendet: Route, genaue Zeit, Kennung, die Umgebung gespeicherter Orte, Anfang und Ende der Fahrten."
+            "value" : "Wenn aktiviert, wird am Ende einer Fahrt gesendet: Zelle, Anzahl der Durchfahrten, Durchschnittsgeschwindigkeit, Stunde, Wochentag. Nicht gesendet: Route, genaue Zeit, Kennung, die Umgebung gespeicherter Orte, Anfang und Ende der Fahrten."
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "When on, at the end of a trip this is sent: cell, number of passes, average speed, hour of day, day of week. Not sent: route, exact time, identifier, the area around saved places, the start and end of trips."
+            "value" : "When on, the following is sent at the end of each trip: cell, number of passes, average speed, hour of day, day of week. Never sent: route, exact time, identifier, the area around saved places, the start and end of trips."
           }
         },
         "hu" : {
@@ -13520,7 +13643,7 @@
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Pokaż tolerancję urzędową"
+            "value" : "Pokaż oficjalną tolerancję"
           }
         },
         "sk" : {
@@ -13537,19 +13660,19 @@
         "cs" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Vedle limitu hodnota s tolerancí ({percent} %, alespoň {min} km/h). Barevný kód a doporučení se vždy počítají k přísnému limitu."
+            "value" : "Vedle limitu hodnota zvýšená o toleranci ({percent} %, min. {min} km/h). Barva a doporučení vždy vycházejí z přísného limitu."
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Neben dem Limit steht der Wert mit Toleranz ({percent} %, mindestens {min} km/h). Farbcode und Empfehlung beziehen sich immer auf das strenge Limit."
+            "value" : "Neben dem Limit steht der Wert mit Toleranz ({percent} %, mindestens {min} km/h). Farbcode und Empfehlung beziehen sich immer auf das strikte Limit."
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Next to the limit, the value with tolerance ({percent}%, at least {min} km/h). The colour code and advice always use the strict limit."
+            "value" : "Shows the limit plus tolerance next to it ({percent}%, at least {min} km/h). The colour code and advice always use the strict limit."
           }
         },
         "hu" : {
@@ -13561,13 +13684,13 @@
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Obok limitu wartość z tolerancją ({percent}%, co najmniej {min} km/h). Kod kolorów i wskazówka zawsze liczą się do ścisłego limitu."
+            "value" : "Obok limitu: wartość powiększona o tolerancję ({percent}%, min. {min} km/h). Kod kolorów i wskazówki zawsze opierają się na ścisłym limicie."
           }
         },
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Vedľa limitu hodnota s toleranciou ({percent} %, aspoň {min} km/h). Farebný kód a odporúčanie sa vždy počítajú k prísnemu limitu."
+            "value" : "Vedľa limitu sa zobrazí hodnota navýšená o toleranciu ({percent} %, aspoň {min} km/h). Farebný kód a odporúčanie sa vždy riadia prísnym limitom."
           }
         }
       }
@@ -13625,13 +13748,13 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Für diese Sprache gibt es auf diesem Gerät keine Stimme – in den Geräteeinstellungen kannst du eine laden"
+            "value" : "Für diese Sprache gibt es auf diesem Gerät keine Stimme – in den Geräteeinstellungen kannst du eine herunterladen"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "No voice for this language on this device – you can download one in the device settings"
+            "value" : "No voice for this language on this device – download one in the device settings"
           }
         },
         "hu" : {
@@ -13713,7 +13836,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "This browser can’t speak"
+            "value" : "This browser doesn’t support speech"
           }
         },
         "hu" : {
@@ -13725,7 +13848,7 @@
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Ta przeglądarka nie potrafi mówić"
+            "value" : "Ta przeglądarka nie obsługuje mowy"
           }
         },
         "sk" : {
@@ -13795,7 +13918,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Spoken turns, section checks and “too fast” warnings"
+            "value" : "Announces turns, section checks and “too fast” warnings"
           }
         },
         "hu" : {
@@ -13807,7 +13930,7 @@
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Zapowiadanie skrętów, odcinkowego pomiaru i „za szybko”"
+            "value" : "Zapowiedzi skrętów, pomiarów odcinkowych i ostrzeżeń „za szybko”"
           }
         },
         "sk" : {
@@ -13824,13 +13947,13 @@
         "cs" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Držení displeje zapnutého"
+            "value" : "Nevypínat displej"
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Display anlassen"
+            "value" : "Display wach halten"
           }
         },
         "en" : {
@@ -13848,13 +13971,13 @@
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Utrzymywanie włączonego ekranu"
+            "value" : "Ekran zawsze włączony"
           }
         },
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Udržiavanie displeja zapnutého"
+            "value" : "Nevypínať displej"
           }
         }
       }
@@ -13865,7 +13988,7 @@
         "cs" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Nedá se vyrovnat"
+            "value" : "Nelze dohnat"
           }
         },
         "de" : {
@@ -13877,7 +14000,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Can’t make it up"
+            "value" : "Can’t recover"
           }
         },
         "hu" : {
@@ -13889,13 +14012,13 @@
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Nie da się wyrównać"
+            "value" : "Nie da się nadrobić"
           }
         },
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Nedá sa vyrovnať"
+            "value" : "Nedá sa dohnať"
           }
         }
       }
@@ -13906,7 +14029,7 @@
         "cs" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "nedá se"
+            "value" : "nelze dohnat"
           }
         },
         "de" : {
@@ -13918,7 +14041,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "can’t make it"
+            "value" : "can’t recover"
           }
         },
         "hu" : {
@@ -13930,13 +14053,13 @@
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "nie do odrobienia"
+            "value" : "nie do nadrobienia"
           }
         },
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "nedá sa"
+            "value" : "nedá sa dohnať"
           }
         }
       }
@@ -13977,7 +14100,7 @@
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "max {x}"
+            "value" : "max. {x}"
           }
         }
       }
@@ -14018,7 +14141,7 @@
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Spomaľ · max {x}"
+            "value" : "Spomaľ · max. {x}"
           }
         }
       }
@@ -14053,7 +14176,7 @@
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Zostań poniżej {x}"
+            "value" : "Jedź poniżej {x}"
           }
         },
         "sk" : {
@@ -14076,7 +14199,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Quelle: Community (temporäre Tore)"
+            "value" : "Quelle: Community (temporäre Messpunkte)"
           }
         },
         "en" : {
@@ -14094,7 +14217,7 @@
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Źródło: społeczność (bramy tymczasowe)"
+            "value" : "Źródło: społeczność (bramki tymczasowe)"
           }
         },
         "sk" : {
@@ -14322,7 +14445,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Teilen-Taste → „Zum Home-Bildschirm“. So läuft die App im Vollbild ohne Adressleiste."
+            "value" : "Teilen-Symbol → „Zum Home-Bildschirm“. So läuft die App im Vollbild ohne Adressleiste."
           }
         },
         "en" : {
@@ -14363,7 +14486,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Auf den Home-Bildschirm legen:"
+            "value" : "Füge die App zum Home-Bildschirm hinzu:"
           }
         },
         "en" : {
@@ -14451,7 +14574,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Starts automatically on a section: live average, limit and a clear colour code."
+            "value" : "Starts by itself at a section: live average, limit and a clear colour code."
           }
         },
         "hu" : {
@@ -14685,7 +14808,7 @@
         "cs" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Průměr vysoký"
+            "value" : "Vysoký průměr"
           }
         },
         "de" : {
@@ -14855,7 +14978,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Stelle die Automatische Sperre auf „Nie“"
+            "value" : "Stell die Automatische Sperre auf „Nie“"
           }
         },
         "en" : {
@@ -14896,7 +15019,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Das Display kann ausgehen – stelle die Automatische Sperre auf „Nie“"
+            "value" : "Das Display kann ausgehen – stell die Automatische Sperre auf „Nie“"
           }
         },
         "en" : {
@@ -15464,7 +15587,7 @@
         "cs" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "V koloně"
+            "value" : "V zácpě"
           }
         },
         "de" : {
@@ -15476,7 +15599,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "In traffic"
+            "value" : "In traffic jams"
           }
         },
         "hu" : {
@@ -15511,7 +15634,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Höchstgeschw."
+            "value" : "Höchsttempo"
           }
         },
         "en" : {
@@ -15587,13 +15710,13 @@
         "cs" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Žádné úsekové měření."
+            "value" : "Žádné měření úseků."
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Keine Abschnittskontrolle."
+            "value" : "Keine Abschnittskontrollen."
           }
         },
         "en" : {
@@ -15617,7 +15740,7 @@
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Žiadne úsekové meranie."
+            "value" : "Žiadne úsekové merania."
           }
         }
       }
@@ -15710,13 +15833,13 @@
         "cs" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Odbočení"
+            "value" : "Zatáčky"
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Abbiegen"
+            "value" : "Abbiegungen"
           }
         },
         "en" : {
@@ -15904,7 +16027,7 @@
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Vymazať aj moju vlastnú teplotnú mapu"
+            "value" : "Vymazať aj moju tepelnú mapu"
           }
         }
       }
@@ -15915,7 +16038,7 @@
         "cs" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Obnovitelné 30 dní"
+            "value" : "Lze obnovit 30 dní"
           }
         },
         "de" : {
@@ -16038,7 +16161,7 @@
         "cs" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Zatím žádná jízda. Aplikace zaznamenává jízdy automaticky."
+            "value" : "Zatím není zaznamenána žádná jízda. Aplikace jízdy zapisuje automaticky."
           }
         },
         "de" : {
@@ -16068,7 +16191,7 @@
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Zatiaľ žiadna jazda. Aplikácia zaznamenáva jazdy automaticky."
+            "value" : "Zatiaľ žiadna jazda. Appka zaznamenáva jazdy automaticky."
           }
         }
       }
@@ -16185,13 +16308,13 @@
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "W odniesieniu do limitu: poniżej → powyżej"
+            "value" : "Względem limitu na znaku: poniżej → powyżej"
           }
         },
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Voči limitu: pod ním → nad ním"
+            "value" : "Voči značenému limitu: pod ním → nad ním"
           }
         }
       }
@@ -16366,13 +16489,13 @@
         "cs" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "{n} odbočení · {d} změn směru"
+            "value" : "Zatáčky: {n} · změny směru: {d}"
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "{n} Abbiegen · {d} Richtungswechsel"
+            "value" : "{n} Abbiegungen · {d} Richtungswechsel"
           }
         },
         "en" : {
@@ -16390,7 +16513,7 @@
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "{n} skrętów · {d} zmian kierunku"
+            "value" : "skręty: {n} · zmiany kierunku: {d}"
           }
         },
         "sk" : {
@@ -16612,7 +16735,7 @@
         "cs" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "V koloně"
+            "value" : "V zácpě"
           }
         },
         "de" : {
@@ -16624,7 +16747,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "In traffic"
+            "value" : "In traffic jams"
           }
         },
         "hu" : {
@@ -16694,13 +16817,13 @@
         "cs" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Odbočení"
+            "value" : "Zatáčky"
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Abbiegen"
+            "value" : "Abbiegungen"
           }
         },
         "en" : {
@@ -16858,7 +16981,7 @@
         "cs" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Díky – nahlásil jsi, že tam není"
+            "value" : "Díky – označeno, že tam není"
           }
         },
         "de" : {
@@ -16870,7 +16993,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Thanks – you said it’s not there"
+            "value" : "Thanks – noted as not there"
           }
         },
         "hu" : {
@@ -16888,7 +17011,7 @@
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Ďakujeme – nahlásil si, že tam nie je"
+            "value" : "Ďakujeme – nahlásené, že tam nie je"
           }
         }
       }
@@ -17034,7 +17157,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "In Germany the driver may not use this feature"
+            "value" : "Drivers may not use this feature in Germany"
           }
         },
         "hu" : {
