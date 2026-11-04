@@ -1,8 +1,9 @@
 // A kör képei (AOS18): iOS-képek a VALÓDI térképpel, három méreten → docs/screenshots/<dátum>-aos18-ios-<méret>-<nézet>.png. A térképi réteget (GPS-jelölő, bounds-fit, „+N perc” címke, kamera)
 // a paritás-kapu nem méri, ezért ezeket szemmel ellenőrizzük. Használat: `tsx packages/parity/scripts/shots.mjs [--device pro] [--view nav] [--out <mappa>]`.
 import { execFileSync } from 'node:child_process';
-import { mkdirSync } from 'node:fs';
+import { mkdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { PNG } from 'pngjs';
 import { BUNDLE, DEVICES, pick, ROOT } from './config.mjs';
 
 const NAV = ['-sim', 'navsim', '-simPanel', 'NO'];
@@ -25,15 +26,51 @@ const out = pick(argv, 'out') ?? join(ROOT, 'docs', 'screenshots');
 const date = pick(argv, 'date') ?? '2026-11-03';
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 mkdirSync(out, { recursive: true });
+/** A kép világos részaránya: a csupa fekete (indul az app, nem rajzolt a térkép) nem kész. */
+function ready(file) {
+  const img = PNG.sync.read(readFileSync(file));
+  let lit = 0;
+  let n = 0;
+  for (let k = img.width * Math.floor(img.height * 0.1) * 4; k < img.data.length; k += 4 * 53) {
+    n++;
+    if (img.data[k] + img.data[k + 1] + img.data[k + 2] > 90) lit++;
+  }
+  return lit / n > 0.04;
+}
+
+const simctl = (...a) => execFileSync('xcrun', ['simctl', ...a], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] });
 for (const device of devices) {
   const { udid } = DEVICES[device];
+  // egyszerre egy szimulátor: három mellett a memória elfogy, és a térkép feketén marad
+  for (const other of Object.values(DEVICES)) {
+    if (other.udid !== udid) {
+      try {
+        simctl('shutdown', other.udid);
+      } catch {
+        // nem futott
+      }
+    }
+  }
+  try {
+    simctl('boot', udid);
+  } catch {
+    // már fut
+  }
+  simctl('bootstatus', udid, '-b');
+  await sleep(30_000);
   for (const view of views) {
     execFileSync('xcrun', ['simctl', 'launch', '--terminate-running-process', udid, BUNDLE, '-lang:v1', 'hu', ...VIEWS[view]], { stdio: 'ignore' });
     // friss szimulátoron az app + a Mapbox-csempék 30–60 s
     await sleep(45_000);
     const file = join(out, `${date}-aos18-ios-${device}-${view}.png`);
-    execFileSync('xcrun', ['simctl', 'io', udid, 'screenshot', '--type=png', file], { stdio: 'ignore' });
+    for (let i = 0; i < 12; i++) {
+      execFileSync('xcrun', ['simctl', 'io', udid, 'screenshot', '--type=png', file], { stdio: 'ignore' });
+      if (ready(file)) break;
+      await sleep(10_000);
+    }
+    if (!ready(file)) console.log(`FEKETE: ${file}`);
     execFileSync('sips', ['-Z', '1100', file], { stdio: 'ignore' });
     console.log(`kép: ${file}`);
   }
+  simctl('shutdown', udid);
 }

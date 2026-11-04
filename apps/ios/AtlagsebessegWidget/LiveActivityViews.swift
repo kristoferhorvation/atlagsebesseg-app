@@ -126,7 +126,7 @@ struct WatchBlock: View {
                 if let next = w.nextSection {
                     HStack(spacing: 6) {
                         LiveIcon(name: .kapu_kezdo, size: 16).foregroundStyle(Tokens.Colors.brand)
-                        Text(next).font(.inter(Tokens.FontSize.f15, Tokens.FontWeight.w620)).lineLimit(1).minimumScaleFactor(0.85)
+                        Text(next).font(.inter(Tokens.FontSize.f15, Tokens.FontWeight.w620)).lineLimit(1).minimumScaleFactor(0.7)
                     }
                 }
                 // AOS17: a futó út km · idő · átlag és az irányváltások száma
