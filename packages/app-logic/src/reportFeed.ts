@@ -1,4 +1,4 @@
-import { reportChoiceLabel, type ReportInsert, type ReportType } from './reports';
+import { hazardLabel, HAZARD_KINDS, reportChoiceLabel, type HazardKind, type ReportInsert, type ReportType } from './reports';
 import { t } from './i18n';
 import { TILE_DEG, tileBBox, tilesAround, type BBox } from './sectionCache';
 import type { ReportRow } from './supabase';
@@ -8,6 +8,8 @@ export interface ActiveReport {
   id: string;
   type: ReportType;
   gateKind: 'kezdo' | 'zaro' | null;
+  /** AW22: a Veszély altípusa; a régi „Akadály” soroknál és más típusnál `null`. */
+  hazard?: HazardKind | null;
   lat: number;
   lon: number;
   headingDeg: number | null;
@@ -66,6 +68,7 @@ export function rowToActiveReport(row: ReportRow, myUserId: string | null): Acti
     id: row.id,
     type: row.type as ReportType,
     gateKind: row.gate_kind,
+    hazard: hazardOf(row.type, row.subtype),
     lat: row.lat,
     lon: row.lon,
     headingDeg: row.heading_deg,
@@ -83,6 +86,7 @@ export function ownReport(row: ReportInsert, id: string, now: number): ActiveRep
     id,
     type: row.type,
     gateKind: row.type === 'ideiglenes_kapu' ? row.gate_kind : null,
+    hazard: row.type === 'ideiglenes_kapu' ? null : hazardOf(row.type, row.subtype),
     lat: row.lat,
     lon: row.lon,
     headingDeg: row.heading_deg,
@@ -194,10 +198,14 @@ export const REPORT_TONE: Record<ReportIconName, string> = {
   kapu_zaro: 'kezi',
 };
 
-export function reportVisual(r: Pick<ActiveReport, 'type' | 'gateKind'>): { icon: ReportIconName; tone: string; label: string } {
+/** A `reports.subtype` a Veszély altípusaként (más érték vagy más típus: nincs). */
+export const hazardOf = (type: string, subtype: string | null | undefined): HazardKind | null =>
+  type === 'akadaly' && (HAZARD_KINDS as readonly string[]).includes(subtype ?? '') ? (subtype as HazardKind) : null;
+
+export function reportVisual(r: Pick<ActiveReport, 'type' | 'gateKind'> & { hazard?: HazardKind | null }): { icon: ReportIconName; tone: string; label: string } {
   if (r.type === 'ideiglenes_kapu') {
     const icon = r.gateKind === 'zaro' ? 'kapu_zaro' : 'kapu_kezdo';
     return { icon, tone: REPORT_TONE[icon], label: reportChoiceLabel(icon) };
   }
-  return { icon: r.type, tone: REPORT_TONE[r.type], label: reportChoiceLabel(r.type) };
+  return { icon: r.type, tone: REPORT_TONE[r.type], label: r.hazard ? `${reportChoiceLabel(r.type)} · ${hazardLabel(r.hazard)}` : reportChoiceLabel(r.type) };
 }

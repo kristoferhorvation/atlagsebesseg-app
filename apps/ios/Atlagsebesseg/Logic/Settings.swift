@@ -38,6 +38,8 @@ nonisolated struct Settings: Equatable, Sendable {
     var adatmegosztas = true
     /// AW20-javítás: az adatvédelmi zóna sugara (m) mentett helyenként (`home`, `work`, további hely azonosítója); hiányzó = 200 m. Csak helyben.
     var zonaM: [String: Int] = [:]
+    /// AW22: a napló és a saját hőtérkép felhős mentése (bejelentkezve; alapból ki).
+    var felhoMentes = false
 
     static let `default` = Settings()
     static let storageKey = "settings:v1"
@@ -61,6 +63,7 @@ nonisolated struct Settings: Equatable, Sendable {
         // AOS17: egyszeri migráció – az `adatmegosztas_v2` jelölő nélküli (régi) tárolt érték helyett BE; utána a felhasználó választása marad
         if p["adatmegosztas_v2"] as? Bool == true, let v = p["adatmegosztas"] as? Bool { s.adatmegosztas = v }
         s.zonaM = parseZoneRadii(p["zona_m"])
+        if let v = p["felho_mentes"] as? Bool { s.felhoMentes = v }
         return s
     }
 
@@ -69,7 +72,7 @@ nonisolated struct Settings: Equatable, Sendable {
             "hatosagi_tures_megjelenitese": hatosagiTuresMegjelenitese, "egyseg": egyseg.rawValue, "terkep": terkep.rawValue,
             "tervezett_meresek": tervezettMeresek, "hangos_utasitasok": hangosUtasitasok,
             "kamera_jelzes": kameraJelzes, "tervezett_jelzes": tervezettJelzes, "jelzes_mod": jelzesMod.rawValue,
-            "megszolitas": megszolitas, "hoterkep": hoterkep.rawValue, "hoterkep_nezet": hoterkepNezet.rawValue, "adatmegosztas": adatmegosztas, "adatmegosztas_v2": true, "zona_m": zonaM,
+            "megszolitas": megszolitas, "hoterkep": hoterkep.rawValue, "hoterkep_nezet": hoterkepNezet.rawValue, "adatmegosztas": adatmegosztas, "adatmegosztas_v2": true, "zona_m": zonaM, "felho_mentes": felhoMentes,
         ]
         let data = (try? JSONSerialization.data(withJSONObject: obj, options: [.sortedKeys])) ?? Data()
         return String(decoding: data, as: UTF8.self)

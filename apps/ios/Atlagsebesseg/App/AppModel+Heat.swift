@@ -38,7 +38,7 @@ extension AppModel {
                 if let r = self.tripStore.absorbTrip(id) { self.heatIndex.upsert(r.changed) }
                 await Task.yield()
             }
-            self.heatIndex.setAll(self.tripStore.heatCells())
+            self.heatIndex.setAll(self.tripStore.displayHeatCells())
             self.heatVersion += 1
         }
     }
@@ -148,7 +148,8 @@ extension AppModel {
     /// Egy lezárt út beolvasztása a hőtérképbe, és (bekapcsolt megosztásnál) a feltöltés-várólistába.
     func absorbIntoHeat(_ trip: Trip) {
         guard let r = tripStore.absorbTrip(trip.id) else { return }
-        heatIndex.upsert(r.changed)
+        // AW22: a többi készülék celláival együtt rajzolódik: ilyenkor a teljes lista adja a helyes összeget
+        if tripStore.remoteHeat().isEmpty { heatIndex.upsert(r.changed) } else { heatIndex.setAll(tripStore.displayHeatCells()) }
         heatVersion += 1
         guard settings.adatmegosztas, sim == nil else { return }
         let rows = uploadRows(r.passes, geo: H3Geo(), tzOffsetMin: Double(TimeZone.current.secondsFromGMT()) / 60, zones: heatZoneList)

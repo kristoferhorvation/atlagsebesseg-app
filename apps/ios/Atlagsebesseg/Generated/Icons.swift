@@ -41,11 +41,17 @@ enum IconName: String, CaseIterable, Sendable {
     case work
     case pin
     case crosshair
+    case apple
+    case googleB
+    case googleG
+    case googleY
+    case googleR
+    case mail
 }
 
 extension IconName {
     /// Kitöltött (nem vonal) ikon.
-    var filled: Bool { self == .play || self == .stop }
+    var filled: Bool { self == .play || self == .stop || self == .apple || self == .googleB || self == .googleG || self == .googleY || self == .googleR }
 
     /// Az ikon útvonala a 24 × 24-es nézetben.
     var path: Path {
@@ -488,6 +494,77 @@ extension IconName {
             p.addLine(to: CGPoint(x: 22, y: 12))
             p.move(to: CGPoint(x: 12, y: 12))
             p.addLine(to: CGPoint(x: 12.01, y: 12))
+        case .apple:
+            p.move(to: CGPoint(x: 12.152, y: 6.896))
+            p.addCurve(to: CGPoint(x: 8.192, y: 5.856), control1: CGPoint(x: 11.204, y: 6.896), control2: CGPoint(x: 9.737, y: 5.818))
+            p.addCurve(to: CGPoint(x: 3.231, y: 8.87), control1: CGPoint(x: 6.152, y: 5.883), control2: CGPoint(x: 4.282, y: 7.039))
+            p.addCurve(to: CGPoint(x: 4.75, y: 20.96), control1: CGPoint(x: 1.114, y: 12.545), control2: CGPoint(x: 2.685, y: 17.973))
+            p.addCurve(to: CGPoint(x: 8.542, y: 23.999), control1: CGPoint(x: 5.763, y: 22.414), control2: CGPoint(x: 6.958, y: 24.05))
+            p.addCurve(to: CGPoint(x: 12.477, y: 23.012), control1: CGPoint(x: 10.062, y: 23.934), control2: CGPoint(x: 10.632, y: 23.012))
+            p.addCurve(to: CGPoint(x: 16.437, y: 23.96), control1: CGPoint(x: 14.308, y: 23.012), control2: CGPoint(x: 14.827, y: 23.999))
+            p.addCurve(to: CGPoint(x: 20.113, y: 21.012), control1: CGPoint(x: 18.074, y: 23.934), control2: CGPoint(x: 19.113, y: 22.48))
+            p.addCurve(to: CGPoint(x: 21.775, y: 17.597), control1: CGPoint(x: 21.269, y: 19.324), control2: CGPoint(x: 21.749, y: 17.687))
+            p.addCurve(to: CGPoint(x: 18.555, y: 12.74), control1: CGPoint(x: 21.736, y: 17.584), control2: CGPoint(x: 18.593, y: 16.376))
+            p.addCurve(to: CGPoint(x: 21.152, y: 8.181), control1: CGPoint(x: 18.529, y: 9.7), control2: CGPoint(x: 21.035, y: 8.246))
+            p.addCurve(to: CGPoint(x: 16.762, y: 5.805), control1: CGPoint(x: 19.723, y: 6.091), control2: CGPoint(x: 17.529, y: 5.857))
+            p.addCurve(to: CGPoint(x: 12.152, y: 6.895), control1: CGPoint(x: 14.762, y: 5.649), control2: CGPoint(x: 13.087, y: 6.895))
+            p.closeSubpath()
+            p.move(to: CGPoint(x: 15.53, y: 3.83))
+            p.addCurve(to: CGPoint(x: 16.775, y: 0), control1: CGPoint(x: 16.373, y: 2.818), control2: CGPoint(x: 16.93, y: 1.403))
+            p.addCurve(to: CGPoint(x: 13.243, y: 1.818), control1: CGPoint(x: 15.568, y: 0.052), control2: CGPoint(x: 14.113, y: 0.805))
+            p.addCurve(to: CGPoint(x: 11.97, y: 5.532), control1: CGPoint(x: 12.463, y: 2.714), control2: CGPoint(x: 11.789, y: 4.156))
+            p.addCurve(to: CGPoint(x: 15.529, y: 3.831), control1: CGPoint(x: 13.308, y: 5.636), control2: CGPoint(x: 14.685, y: 4.844))
+            p.closeSubpath()
+        case .googleB:
+            p.move(to: CGPoint(x: 22.56, y: 12.25))
+            p.addCurve(to: CGPoint(x: 22.36, y: 10), control1: CGPoint(x: 22.56, y: 11.47), control2: CGPoint(x: 22.49, y: 10.72))
+            p.addLine(to: CGPoint(x: 12, y: 10))
+            p.addLine(to: CGPoint(x: 12, y: 14.26))
+            p.addLine(to: CGPoint(x: 17.92, y: 14.26))
+            p.addCurve(to: CGPoint(x: 15.71, y: 17.57), control1: CGPoint(x: 17.66, y: 15.63), control2: CGPoint(x: 16.88, y: 16.79))
+            p.addLine(to: CGPoint(x: 15.71, y: 20.34))
+            p.addLine(to: CGPoint(x: 19.28, y: 20.34))
+            p.addCurve(to: CGPoint(x: 22.56, y: 12.25), control1: CGPoint(x: 21.36, y: 18.42), control2: CGPoint(x: 22.56, y: 15.6))
+            p.closeSubpath()
+        case .googleG:
+            p.move(to: CGPoint(x: 12, y: 23))
+            p.addCurve(to: CGPoint(x: 19.28, y: 20.34), control1: CGPoint(x: 14.97, y: 23), control2: CGPoint(x: 17.46, y: 22.02))
+            p.addLine(to: CGPoint(x: 15.71, y: 17.57))
+            p.addCurve(to: CGPoint(x: 12, y: 18.63), control1: CGPoint(x: 14.73, y: 18.23), control2: CGPoint(x: 13.48, y: 18.63))
+            p.addCurve(to: CGPoint(x: 5.84, y: 14.1), control1: CGPoint(x: 9.14, y: 18.63), control2: CGPoint(x: 6.71, y: 16.7))
+            p.addLine(to: CGPoint(x: 2.18, y: 14.1))
+            p.addLine(to: CGPoint(x: 2.18, y: 16.94))
+            p.addCurve(to: CGPoint(x: 12, y: 23), control1: CGPoint(x: 3.99, y: 20.53), control2: CGPoint(x: 7.7, y: 23))
+            p.closeSubpath()
+        case .googleY:
+            p.move(to: CGPoint(x: 5.84, y: 14.09))
+            p.addCurve(to: CGPoint(x: 5.49, y: 12), control1: CGPoint(x: 5.62, y: 13.43), control2: CGPoint(x: 5.49, y: 12.73))
+            p.addCurve(to: CGPoint(x: 5.84, y: 9.91), control1: CGPoint(x: 5.49, y: 11.27), control2: CGPoint(x: 5.62, y: 10.57))
+            p.addLine(to: CGPoint(x: 5.84, y: 7.07))
+            p.addLine(to: CGPoint(x: 2.18, y: 7.07))
+            p.addCurve(to: CGPoint(x: 1, y: 12), control1: CGPoint(x: 1.43, y: 8.55), control2: CGPoint(x: 1, y: 10.22))
+            p.addCurve(to: CGPoint(x: 2.18, y: 16.93), control1: CGPoint(x: 1, y: 13.78), control2: CGPoint(x: 1.43, y: 15.45))
+            p.addLine(to: CGPoint(x: 5.03, y: 14.71))
+            p.addLine(to: CGPoint(x: 5.84, y: 14.09))
+            p.closeSubpath()
+        case .googleR:
+            p.move(to: CGPoint(x: 12, y: 5.38))
+            p.addCurve(to: CGPoint(x: 16.21, y: 7.02), control1: CGPoint(x: 13.62, y: 5.38), control2: CGPoint(x: 15.06, y: 5.94))
+            p.addLine(to: CGPoint(x: 19.36, y: 3.87))
+            p.addCurve(to: CGPoint(x: 12, y: 1), control1: CGPoint(x: 17.45, y: 2.09), control2: CGPoint(x: 14.97, y: 1))
+            p.addCurve(to: CGPoint(x: 2.18, y: 7.07), control1: CGPoint(x: 7.7, y: 1), control2: CGPoint(x: 3.99, y: 3.47))
+            p.addLine(to: CGPoint(x: 5.84, y: 9.91))
+            p.addCurve(to: CGPoint(x: 12, y: 5.38), control1: CGPoint(x: 6.71, y: 7.31), control2: CGPoint(x: 9.14, y: 5.38))
+            p.closeSubpath()
+        case .mail:
+            p.move(to: CGPoint(x: 3, y: 6.5))
+            p.addLine(to: CGPoint(x: 21, y: 6.5))
+            p.addLine(to: CGPoint(x: 21, y: 17.5))
+            p.addLine(to: CGPoint(x: 3, y: 17.5))
+            p.closeSubpath()
+            p.move(to: CGPoint(x: 3.5, y: 7))
+            p.addLine(to: CGPoint(x: 12, y: 13.5))
+            p.addLine(to: CGPoint(x: 20.5, y: 7))
         }
         return p
     }

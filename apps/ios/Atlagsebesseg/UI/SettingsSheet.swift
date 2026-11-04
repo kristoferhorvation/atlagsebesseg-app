@@ -24,6 +24,8 @@ struct SettingsSheet: View {
                             HeatDetailsView(model: model, onClose: { heatDetailsOpen = false })
                         } else {
                             SheetHead(title: t(.settingsTitle), onClose: onClose)
+                            // AW22: a „Fiók” kártya a lap tetején
+                            AccountCard(model: model)
                             GroupLabel(text: t(.settingsGroupDisplay))
                             displayCard
                             // a jelzések csak iOS-en vannak: a paritás-kép a webes lapot méri
@@ -334,6 +336,9 @@ struct SettingsSheet: View {
     }
 
     private var language: Binding<Lang?> {
-        Binding(get: { LangChoice.shared.preference }, set: { LangChoice.shared.preference = $0 })
+        Binding(get: { LangChoice.shared.preference }, set: {
+            LangChoice.shared.preference = $0
+            model.accountDataChanged()
+        })
     }
 }

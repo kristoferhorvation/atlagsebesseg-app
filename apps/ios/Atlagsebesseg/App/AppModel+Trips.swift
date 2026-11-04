@@ -59,12 +59,14 @@ extension AppModel {
     func reloadTrips() { trips = tripStore.trips() }
 
     func deleteTrip(_ id: String) {
+        noteCloudDeleted([id], heat: false)
         tripStore.deleteTrip(id)
         reloadTrips()
     }
 
     /// AOS17: `heat`: a saját hőtérkép is törlődik; `keep`: 30 napig visszaállítható, különben azonnal és véglegesen.
     func deleteAllTrips(heat: Bool, keep: Bool) {
+        noteCloudDeleted(tripStore.trips().map(\.id), heat: heat)
         tripStore.deleteAll(heat: heat, keep: keep)
         reloadTrips()
         refreshTrash()
@@ -83,10 +85,12 @@ extension AppModel {
 
     /// A Beállítások sora: a napló és a hőtérkép visszaáll, a kirajzolt réteg is frissül.
     func restoreTrash() {
+        let before = Set(tripStore.trips().map(\.id))
         tripStore.restoreTrash()
         reloadTrips()
+        noteCloudRestored(trips.map(\.id).filter { !before.contains($0) })
         refreshTrash()
-        heatIndex.setAll(heatSeedList ?? tripStore.heatCells())
+        heatIndex.setAll(heatSeedList ?? tripStore.displayHeatCells())
         heatVersion += 1
         showToast(AppToast(text: t(.settingsRestored), color: Tokens.StatusColors.jo, icon: .check))
     }
@@ -109,6 +113,7 @@ extension AppModel {
                 tripStore.saveTrip(trip)
                 changed = true
                 absorbIntoHeat(trip)
+                accountTripSaved()
                 if sim != nil { NSLog("TRIP saved %@ %.0f m %.0f s turns %d/%d/%d checks %d", trip.id, trip.distanceM, trip.movingS, trip.turns.left, trip.turns.right, trip.turns.uTurn, trip.measurements.count) }
             case let .discarded(id):
                 tripStore.deleteSamples(id)

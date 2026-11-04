@@ -17,6 +17,7 @@ struct MapScreen: View {
     // AOS17: az első helyzetig a webes kiinduló nézet; az első fixre ugrik (nem repül), utána a közeli követés
     @State private var viewport: Viewport = .camera(center: CLLocationCoordinate2D(latitude: 46.5, longitude: 12.5), zoom: 5.2)
     @State private var firstFixShown = false
+    @State private var mapEpoch = 0
     @State private var sectionsFC = FeatureCollection(features: [])
     @State private var cameraPoints: [FixedCamera] = []
     @State private var zonesFC = FeatureCollection(features: [])
@@ -64,6 +65,26 @@ struct MapScreen: View {
 
     var body: some View {
         MapReader { proxy in map(proxy) }
+            // AW22: nyelvváltáskor azonnal az új nyelvű feliratok: a csempék a régi nyelven vannak a gyorsítótárban, a térkép újraépül
+            .id(mapEpoch)
+            .onChange(of: L10n.lang) { refreshMapLanguage() }
+            // a gyorsítótár egy korábbi futás nyelvén maradhatott (a nyelv az app leállása alatt, a rendszerben is változhat)
+            .onAppear { if UserDefaults.standard.string(forKey: Self.mapLangKey) != L10n.lang.rawValue { refreshMapLanguage() } }
+            #if DEBUG
+            // élő próba: `-switchLangAfter de` – 15 s múlva nyelvváltás (a fej nélküli szimulátorban nincs koppintás)
+            .task {
+                guard let l = UserDefaults.standard.string(forKey: "switchLangAfter").flatMap(Lang.init(rawValue:)) else { return }
+                try? await Task.sleep(for: .seconds(15))
+                LangChoice.shared.preference = l
+            }
+            #endif
+    }
+
+    private static let mapLangKey = "map:lang:v1"
+
+    private func refreshMapLanguage() {
+        UserDefaults.standard.set(L10n.lang.rawValue, forKey: Self.mapLangKey)
+        MapboxMap.clearData { _ in DispatchQueue.main.async { mapEpoch += 1 } }
     }
 
     private func map(_ proxy: MapProxy) -> some View {

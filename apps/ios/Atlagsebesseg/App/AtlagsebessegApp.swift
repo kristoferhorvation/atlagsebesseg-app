@@ -1,9 +1,15 @@
+import MapboxCommon
 import SwiftUI
 
 @main
 struct AtlagsebessegApp: App {
     @State private var model = AppModel()
     @Environment(\.scenePhase) private var scenePhase
+
+    init() {
+        // AW22: a térkép feliratai az app nyelvén (a Map létrejötte előtt)
+        HttpServiceFactory.setHttpServiceInterceptorForInterceptor(MapLanguageInterceptor())
+    }
 
     var body: some Scene {
         WindowGroup {

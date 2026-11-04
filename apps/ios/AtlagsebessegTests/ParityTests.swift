@@ -179,6 +179,36 @@ struct ParityTests {
         #expect(!source[floatBody..<hudBody].contains("mapRecenter"), "a gomb nem kerülhet vissza a lebegő rétegbe (ott a helye a táblától és a mérőkártyától függene)")
     }
 
+    @Test("AW22: ManualMini mellett a „Vissza a helyemre” a gombsor fölött, a mini az AW21 előtti helyén")
+    func visszaMini() throws {
+        let s = try ParitySpec.load("recenter-mini")
+        let b = try s.part("button").box
+        let rep = try s.part("report").box
+        let mini = try s.part("mini").box
+        #expect(rep.x + rep.w == 402 - Tokens.Space.s3, "a mini mellett nincs fenntartott hely: a Bejelentés a jobb szélen, mint az AW21 előtt")
+        #expect(mini.x + mini.w == rep.x - Tokens.Space.s3, "a mini a Bejelentés mellett")
+        #expect(b.x == rep.x && b.w == rep.w, "a gomb a Bejelentés fölött")
+        #expect(rep.y - (b.y + b.h) == Tokens.Space.s3, "12 pt a gombsor fölött")
+        let source = try String(contentsOf: Repo.iosDir.appendingPathComponent("Atlagsebesseg/UI/DriveView.swift"), encoding: .utf8)
+        #expect(source.contains("recenterButton.offset(y: -(Tokens.Size.roundButton + Tokens.Space.s3))"), "a gomb a gombsor fölött, a sort nem tolja")
+        #expect(source.contains("if !model.manualPillCollapsed {"), "a mini mellett nincs fenntartott hely")
+    }
+
+    @Test("AW22: a Fiók kártya: nagy, hivatalos fehér Apple-gomb, alatta kisebben a Google és az e-mail; az ajánlat gombjai")
+    func fiok() throws {
+        let s = try ParitySpec.load("account-card")
+        let apple = try s.part("apple").box
+        let small = try s.part("small").box
+        #expect(apple.h == 56)
+        #expect(small.h == 48)
+        #expect(small.y >= apple.y + apple.h)
+        same(Tokens.Colors.appleButton, try s.part("apple").background, "Apple-gomb háttér")
+        same(Tokens.Colors.appleButtonText, try s.part("apple").color, "Apple-gomb felirat")
+        let source = try String(contentsOf: Repo.iosDir.appendingPathComponent("Atlagsebesseg/UI/AccountViews.swift"), encoding: .utf8)
+        #expect(source.contains("minHeight: 56"))
+        #expect(!source.contains("SecureField"), "jelszó nincs: magic link")
+    }
+
     @Test("GPS-jelölő: 60 pt, kék pont, nem a Mapbox alap-nyila")
     func gpsJelolo() throws {
         let s = try ParitySpec.load("gps-marker")
@@ -232,7 +262,7 @@ struct ParityTests {
         close(seg.width, try z.part("box").box.w, "zóna-választó", tol: 5)
         close(seg.height, try z.part("box").box.h, "zóna-választó", tol: 0.5)
         let r = try ParitySpec.load("report-tiles")
-        let sheet = measured(ReportSheet(fix: GpsFix(lat: 47.5, lon: 19, timestamp: 0, speed: 0, accuracy: 5, heading: nil), online: true, sending: nil, gateStarted: false, onPick: { _, _, _ in }, onClose: {}), width: try r.part("root").box.w - 2)
+        let sheet = measured(ReportSheet(fix: GpsFix(lat: 47.5, lon: 19, timestamp: 0, speed: 0, accuracy: 5, heading: nil), online: true, sending: nil, gateStarted: false, onPick: { _, _, _, _ in }, onClose: {}), width: try r.part("root").box.w - 2)
         close(sheet.height, try r.part("root").box.h, "Bejelentés lap", tol: 6)
     }
 

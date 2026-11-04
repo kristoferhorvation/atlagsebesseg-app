@@ -683,7 +683,22 @@ try {
   check('kézi mérés navigáció közben: induláskor a teljes kártya „Kézi átlagmérés” címmel', k0.card && k0.chip === 'Kézi átlagmérés' && !k0.mini, JSON.stringify(k0));
   await kp.waitFor(q('.manual-mini'), 25_000, 'zsugorított kártya');
   const k1 = await kp.evaluate(`(() => { const e = ${q('.manual-mini')}; const r = e.getBoundingClientRect(); const b = e.querySelector('b'); return { txt: e.innerText.replace(/\\s+/g, ' ').trim(), tone: e.dataset.tone, accent: (() => { const i = document.createElement('i'); i.dataset.tone = 'kezi'; i.style.color = 'var(--tone)'; document.body.append(i); const c = getComputedStyle(i).color; i.remove(); return c; })(), right: r.right, left: r.left, w: innerWidth, h: r.height, bigPx: parseFloat(getComputedStyle(b).fontSize), bigColor: getComputedStyle(b).color, stop: !!document.querySelector('.hud .card[aria-label="Kézi átlagmérés"] .btn.danger, .manual-mini .btn'), top: !!${q('.nav-top')}, bottom: !!${q('.nav-bottom')} }; })()`);
-  check('zsugorított kártya: nagy átlag, „km/h átlag”, idő; Leállítás nélkül, a gombsor mellett jobbra', /^\d+ km\/h átlag \d+:\d{2}$/.test(k1.txt) && !k1.stop && k1.left > k1.w * 0.25 && k1.right > k1.w * 0.5 && k1.bigPx >= 36 && k1.h >= 70, JSON.stringify(k1));
+  check('zsugorított kártya: nagy átlag, „km/h átlag”, idő; Leállítás nélkül, a jobb oldalon', /^\d+ km\/h átlag \d+:\d{2}$/.test(k1.txt) && !k1.stop && k1.left > k1.w * 0.3 && k1.right > k1.w * 0.6 && k1.bigPx >= 36 && k1.h >= 70, JSON.stringify(k1));
+  // AW22: ManualMini mellett a „Vissza a helyemre” a jobb oldali gombsor fölött; a mini és a gombsor a helyén marad
+  {
+    const before = await kp.evaluate(`(() => { const m = ${q('.manual-mini')}.getBoundingClientRect(); const r = ${q('.actions .report')}.getBoundingClientRect(); return { miniL: m.left, miniR: m.right, repL: r.left, repT: r.top }; })()`);
+    const m = (type, x, y, extra = {}) => kp.send('Input.dispatchMouseEvent', { type, x, y, button: 'left', buttons: 1, clickCount: 1, ...extra });
+    await m('mousePressed', 180, 300);
+    await m('mouseMoved', 230, 340);
+    await m('mouseMoved', 270, 380);
+    await m('mouseReleased', 270, 380, { buttons: 0 });
+    await kp.waitFor(q('.actions .recenter-above'), 15_000, 'gomb a gombsor fölött');
+    const up = await kp.evaluate(`(() => { const b = ${q('.actions .recenter-above')}.getBoundingClientRect(); const m = ${q('.manual-mini')}; const mr = m?.getBoundingClientRect(); const r = ${q('.actions .report')}.getBoundingClientRect(); return { miniL: mr?.left, miniR: mr?.right, repL: r.left, repT: r.top, right: innerWidth - b.right, gap: r.top - b.bottom, sameX: b.left === r.left, slot: !!${q('.actions .recenter-slot')} }; })()`);
+    check('AW22: ManualMini mellett a „Vissza a helyemre” a jobb oldali gombsor fölött (12 px), nincs fenntartott hely', up.right === 12 && up.gap === 12 && up.sameX && !up.slot, JSON.stringify(up));
+    check('AW22: a gomb megjelenésére a mini és a Bejelentés nem mozdul', up.miniL === before.miniL && up.miniR === before.miniR && up.repL === before.repL && up.repT === before.repT, JSON.stringify({ before, up }));
+    await click(kp, '.actions .recenter-above');
+    await kp.waitFor(`!${q('.actions .recenter')}`, 10_000, 'visszaállt a követés');
+  }
   check('a zsugorított kártya átlag-száma a kézi mérés accent színében, nem státusz-színben', k1.tone === 'kezi' && k1.bigColor === k1.accent, JSON.stringify(k1));
   check('a zsugorított kártya alatt a navigáció teljes: felső kártya + alsó sáv', k1.top && k1.bottom, JSON.stringify(k1));
   check('a kézi mérés privát: hálózat nélkül is fut, nincs kapu-küldés (reports), nincs „Újra” gomb', (await kp.evaluate(`window.__reportCalls.length`)) === 0 && !(await kp.evaluate(`/Újra/.test(document.body.innerText)`)));
@@ -758,13 +773,13 @@ try {
   await rpg.evaluate(`${q('.report-alert-row .btn')}.click(); true`);
   await sleep(400);
   check('„Igen”: köszönő toast, a kártya azonnal eltűnik', /megerősítve/.test(await rpg.evaluate(text('.toast'))) && !(await rpg.evaluate(`!!${q('.report-alert-row')}`)));
-  // a következő (Akadály): válasz nélkül az elhaladás után még 10 s-ig látszik, aztán magától eltűnik
+  // a következő (Veszély): válasz nélkül az elhaladás után még 10 s-ig látszik, aztán magától eltűnik
   await rpg.waitFor(`${q('.report-alert-row')}?.dataset.phase === 'ask'`, 120_000, 'következő kérdés');
   const askAt = await rpg.evaluate(`performance.now()`);
   const nextTitle = await rpg.evaluate(`${q('.report-alert-row b')}?.innerText.trim() ?? null`);
-  await rpg.waitFor(`!/Akadály/.test(${q('.report-alert-row b')}?.innerText ?? '')`, 30_000, 'magától eltűnik');
+  await rpg.waitFor(`!/Veszély/.test(${q('.report-alert-row b')}?.innerText ?? '')`, 30_000, 'magától eltűnik');
   const shownSim = (((await rpg.evaluate(`performance.now()`)) - askAt) / 1000) * RPG_SPEED;
-  check('arra a bejelentésre nem tér vissza; a következő kérdés válasz nélkül az elhaladás után ~10 s-mal magától eltűnik', nextTitle === 'Akadály' && shownSim >= 9.2 && shownSim < 32, `${nextTitle}, ${shownSim.toFixed(1)} s szimulált (${RPG_SPEED}× lejátszás)`);
+  check('arra a bejelentésre nem tér vissza; a következő kérdés válasz nélkül az elhaladás után ~10 s-mal magától eltűnik', nextTitle === 'Veszély' && shownSim >= 9.2 && shownSim < 32, `${nextTitle}, ${shownSim.toFixed(1)} s szimulált (${RPG_SPEED}× lejátszás)`);
   // egy kapu-tétel: „Átlagmérés eleje” → elküldve (a szerver-hívás itt elfogva) → ugyanaz a sor „Átlagmérés vége”
   await rpg.evaluate(`window.__gateCalls = []; const f0 = window.fetch; window.fetch = (...a) => { const u = String(a[0]?.url ?? a[0]); if (/\\/rest\\/v1\\/reports/.test(u)) { window.__gateCalls.push(u); return Promise.resolve(new Response(JSON.stringify([{ id: '00000000-0000-4000-8000-0000000000a1' }]), { status: 201, headers: { 'content-type': 'application/json' } })); } return f0(...a); }; true`);
   await click(rpg, 'button[aria-label="Bejelentés"]');
@@ -1134,7 +1149,7 @@ try {
     }
     const trip = hdb.trips[0];
     const passes = hdb.heat.reduce((n, c) => n + c.count, 0);
-    check('AW20: a krúzing-út végén a személyes hőtérkép cellánként frissül (IndexedDB `heat`: h3 res 10, áthaladások, átlag, utolsó idő), az út megjelölve', hdb.v === 3 && !!trip && hdb.heat.length > 20 && hdb.heat.every((c) => /^8a[0-9a-f]{13}$/.test(c.h3) && c.count >= 1 && c.avgKmh > 0 && c.lastT > 0) && hdb.heatTrips.some((x) => x.id === trip.id), JSON.stringify({ v: hdb.v, cells: hdb.heat.length, passes, trips: hdb.heatTrips.length }));
+    check('AW20: a krúzing-út végén a személyes hőtérkép cellánként frissül (IndexedDB `heat`: h3 res 10, áthaladások, átlag, utolsó idő), az út megjelölve', hdb.v === 4 && !!trip && hdb.heat.length > 20 && hdb.heat.every((c) => /^8a[0-9a-f]{13}$/.test(c.h3) && c.count >= 1 && c.avgKmh > 0 && c.lastT > 0) && hdb.heatTrips.some((x) => x.id === trip.id), JSON.stringify({ v: hdb.v, cells: hdb.heat.length, passes, trips: hdb.heatTrips.length }));
     console.log(`  info: ${hdb.heat.length} cella / ${passes} áthaladás / ${hdb.samples.length} minta egy 17,7 km-es útból`);
     check('AW20: a megosztás alapból ki – a szimulátor-út nem kerül a feltöltési sorba, nincs hálózati írás', (await hk.evaluate(`localStorage.getItem('heat:outbox:v1')`)) === null);
     await hk.close();
@@ -1355,7 +1370,7 @@ try {
     await se.waitFor(q('.zone-picker'), 30_000, 'zóna-választó');
     const seg = await se.evaluate(`(() => [...document.querySelectorAll('.zone-picker')].map((z) => { const s = z.querySelector('.segmented').getBoundingClientRect(); const row = z.closest('.list-row').getBoundingClientRect(); const b = [...z.querySelectorAll('button')].map((x) => x.getBoundingClientRect()); return { inside: b.every((x) => x.left >= s.left && x.right <= s.right + 0.5), inRow: s.right <= row.right && s.left >= row.left, equal: Math.abs(b[0].width - b[2].width) < 1, oneLine: new Set(b.map((x) => Math.round(x.top))).size === 1 }; }))()`);
     check('AOS17, AOS18: 320 px-en a zóna-szegmensek (az „1 km” is) a háttéren és a soron belül, egy sorban (a választó a tartalma széles, balra zárt)', seg.length === 2 && seg.every((x) => x.inside && x.inRow && x.oneLine), JSON.stringify(seg));
-    const look = await se.evaluate(`(() => { const on = ${q('.segmented button[aria-pressed="true"]')}; const sw = ${q('.switch[aria-checked="true"]')}; const share = ${q('[data-testid="heat-details-row"]')}.previousElementSibling; return { seg: getComputedStyle(on).backgroundColor, sw: getComputedStyle(sw).backgroundColor, shareLine: getComputedStyle(share).borderBottomWidth, shareOn: share.querySelector('.switch').getAttribute('aria-checked'), other: getComputedStyle(${q('.list-row')}).borderBottomWidth, pageOverflow: document.documentElement.scrollWidth > innerWidth }; })()`);
+    const look = await se.evaluate(`(() => { const on = ${q('.segmented button[aria-pressed="true"]')}; const sw = ${q('.switch[aria-checked="true"]')}; const share = ${q('[data-testid="heat-details-row"]')}.previousElementSibling; return { seg: getComputedStyle(on).backgroundColor, sw: getComputedStyle(sw).backgroundColor, shareLine: getComputedStyle(share).borderBottomWidth, shareOn: share.querySelector('.switch').getAttribute('aria-checked'), other: getComputedStyle(${q('[data-testid="heat-details-row"]')}.parentElement.querySelector('.list-row')).borderBottomWidth, pageOverflow: document.documentElement.scrollWidth > innerWidth }; })()`);
     check('AOS17: a kapcsoló zöld, a kiválasztott szegmens fehér (mint eddig a weben)', look.sw === 'rgb(46, 229, 157)' && look.seg === 'rgb(244, 246, 250)', JSON.stringify(look));
     check('AOS17: a megosztás alapból BE, és a sora meg a Részletek között nincs vonal (a többi sor között van)', look.shareOn === 'true' && look.shareLine === '0px' && look.other === '1px' && !look.pageOverflow, JSON.stringify(look));
     await size(se, 390);
@@ -1512,6 +1527,88 @@ try {
     await sleep(1200);
     await o.shot(`${DATE}-nav-gyorsabb-ut.png`);
     await o.close();
+  }
+  // ------------------------------------------------------------------
+  // AW22: Veszély-csempe, Fiók kártya (a szimulátor hálózat nélkül: `?account=`), névlépés, ajánlat, térkép-nyelv
+  // ------------------------------------------------------------------
+  {
+    const hz = await mk();
+    await hz.goto('/?navsim&panel=0&heat=ki&speed=7');
+    await hz.waitFor(q('.card.compact'), 60_000, 'alapkártya');
+    await click(hz, 'button[aria-label="Bejelentés"]');
+    await hz.waitFor(q('.sheet .tiles'), 10_000, 'menü');
+    const before = await hz.evaluate(`(() => { const t = [...document.querySelectorAll('.tile')].find((x) => /Veszély/.test(x.innerText)); const r = t?.getBoundingClientRect(); return t ? { h: r.height, w: r.width, i: [...document.querySelectorAll('.tile')].indexOf(t), akadaly: /Akadály/.test(document.body.innerText) } : null; })()`);
+    check('AW22: az „Akadály” csempe „Veszély”, a mérete és a helye változatlan (76 px, a 4. csempe)', before && before.h === 76 && before.i === 3 && !before.akadaly, JSON.stringify(before));
+    await hz.evaluate(`[...document.querySelectorAll('.tile')][3].click(); true`);
+    await hz.waitFor(q('[data-testid="hazard-list"]'), 10_000, 'altípus-választó');
+    const kinds = await hz.evaluate(`({ title: ${text('.sheet-head .title')}, rows: [...document.querySelectorAll('[data-testid="hazard-list"] .label')].map((x) => x.innerText), ids: [...document.querySelectorAll('[data-testid="hazard-list"] [data-kind]')].map((x) => x.dataset.kind) })`);
+    check('AW22: a Veszély altípus-választója: Tárgy az úton · Kátyú · Álló jármű', kinds.title === 'Veszély' && kinds.rows.join('|') === 'Tárgy az úton|Kátyú|Álló jármű' && kinds.ids.join() === 'targy,katyu,allo_jarmu', JSON.stringify(kinds));
+    await hz.close();
+
+    const acc = async (query, width = 390) => {
+      const p = await mk();
+      await p.send('Emulation.setDeviceMetricsOverride', { width, height: 844, deviceScaleFactor: 1, mobile: true });
+      await p.goto(`/?navsim&panel=0&heat=ki&speed=7&sheet=settings${query}`);
+      await p.waitFor(q('[data-testid="account-card"]'), 60_000, 'Fiók kártya');
+      return p;
+    };
+    const overflow = `(() => { const c = ${q('[data-testid="account-card"]')}; const sheet = ${q('.sheet')}; const bad = [...c.querySelectorAll('*')].filter((e) => e.getBoundingClientRect().right > sheet.getBoundingClientRect().right + 0.5 || e.scrollWidth > e.clientWidth + 1).map((e) => e.className || e.tagName); return bad; })()`;
+    for (const width of [320, 390, 430]) {
+      const out = await acc('', width);
+      const m = await out.evaluate(`(() => { const a = ${q('[data-testid="account-apple"]')}.getBoundingClientRect(); const g = ${q('[data-testid="account-google"]')}.getBoundingClientRect(); const e = ${q('[data-testid="account-email"]')}.getBoundingClientRect(); const first = ${q('.sheet .group-label')}.innerText; return { first, appleH: a.height, googleH: g.height, below: g.top >= a.bottom, sameRow: g.top === e.top, smaller: g.height < a.height, cs: getComputedStyle(${q('[data-testid="account-apple"]')}).backgroundColor, overflow: ${overflow} }; })()`);
+      check(`AW22: ${width} px: kijelentkezve a lap tetején a Fiók kártya, nagy Apple-gomb, alatta kisebben a Google és az e-mail, semmi nem lóg ki`, m.first === 'FIÓK' && m.below && m.sameRow && m.smaller && m.appleH >= 56 && m.cs === 'rgb(255, 255, 255)' && m.overflow.length === 0, JSON.stringify(m));
+      await out.close();
+    }
+    const off = await acc('&account=off');
+    const offM = await off.evaluate(`({ note: !!${q('[data-testid="account-not-configured"]')}, apple: ${q('[data-testid="account-apple"]')}.disabled, google: ${q('[data-testid="account-google"]')}.disabled, email: ${q('[data-testid="account-email"]')}.disabled, err: !!${q('.account-error')} })`);
+    check('AW22: be nem állított Apple/Google: tiszta felirat, nem hiba; az e-mail működik', offM.note && offM.apple && offM.google && !offM.email && !offM.err, JSON.stringify(offM));
+    await click(off, '[data-testid="account-email"]');
+    await off.waitFor(q('.account-email-form input'), 5000, 'e-mail mező');
+    check('AW22: az e-mailhez csak cím kell, jelszó nincs (magic link)', await off.evaluate(`!${q('input[type="password"]')} && ${q('[data-testid="account-email-send"]')}.disabled`));
+    await off.close();
+    const sent = await acc('&account=sent');
+    check('AW22: elküldött link visszajelzése', await sent.evaluate(`/kristof@example\.com/.test(${text('[data-testid="account-email-sent"]')})`));
+    await sent.close();
+    for (const width of [320, 390, 430]) {
+      const inn = await acc('&account=in', width);
+      const m = await inn.evaluate(`({ text: ${text('[data-testid="account-card"]')}, sw: ${q('[data-testid="account-card"] .switch')}?.getAttribute('aria-checked'), overflow: ${overflow} })`);
+      check(`AW22: ${width} px: bejelentkezve e-mail, szinkron állapota, mentés alapból KI, kijelentkezés, fiók törlése`, /kristof@example\.com/.test(m.text) && /Szinkronizálva/.test(m.text) && m.sw === 'false' && /Kijelentkezés/.test(m.text) && /Fiók törlése/.test(m.text) && m.overflow.length === 0, JSON.stringify(m));
+      if (width === 390) {
+        await click(inn, '[data-testid="account-delete"]');
+        await inn.waitFor(q('[data-testid="account-delete-panel"]'), 5000, 'megerősítés');
+        check('AW22: a fiók törlése megerősítést kér, és kimondja, hogy a névtelen közösségi cellák maradnak', await inn.evaluate(`/közösségi hőtérképbe már névtelenül bekerült cellák megmaradnak/.test(${text('[data-testid="account-delete-panel"]')})`));
+      }
+      await inn.close();
+    }
+    const ns = await mk();
+    await ns.goto('/?navsim&panel=0&heat=ki&speed=7&nameStep=Anna');
+    await ns.waitFor(q('[data-testid="name-step"]'), 60_000, 'névlépés');
+    const nsv = await ns.evaluate(`({ value: ${q('[data-testid="name-step"] input')}.value, title: ${text('.sheet-head .title')} })`);
+    check('AW22: „Így szólítsunk?” a keresztnévvel kitöltve, átírható', nsv.value === 'Anna' && nsv.title === 'Így szólítsunk?', JSON.stringify(nsv));
+    await click(ns, '[data-testid="name-skip"]');
+    await ns.waitFor(`!${q('[data-testid="name-step"]')}`, 5000, 'kihagyás');
+    await ns.close();
+    const ne = await mk();
+    await ne.goto('/?navsim&panel=0&heat=ki&speed=7&nameStep=');
+    await ne.waitFor(q('[data-testid="name-step"]'), 60_000, 'névlépés e-mailnél');
+    check('AW22: e-mailes belépésnél a mező üres, a mentés tiltott', await ne.evaluate(`${q('[data-testid="name-step"] input')}.value === '' && ${q('[data-testid="name-save"]')}.disabled`));
+    await ne.close();
+    const nu = await mk();
+    await nu.goto('/?navsim&panel=0&heat=ki&speed=7&nudge');
+    await nu.waitFor(q('[data-testid="account-nudge"]'), 60_000, 'ajánlat');
+    await click(nu, '[data-testid="nudge-signin"]');
+    await nu.waitFor(q('[data-testid="account-card"]'), 5000, 'Beállítások');
+    check('AW22: az ajánlatról a Fiók kártyára jutunk, és az ajánlat eltűnik', await nu.evaluate(`!${q('[data-testid="account-nudge"]')}`));
+    await nu.close();
+    const lm = await mk(REAL);
+    await lm.goto('/?navsim&panel=0&heat=ki&speed=7&sheet=settings');
+    await lm.waitFor(MAP_READY, 60_000, 'térkép');
+    const lang0 = await lm.evaluate(`document.querySelector('.mapboxgl-map, [data-language]')?.dataset.language`);
+    await lm.evaluate(`(() => { const s = ${q('select[aria-label="Nyelv"]')}; const set = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value').set; set.call(s, 'de'); s.dispatchEvent(new Event('change', { bubbles: true })); return true; })()`);
+    await sleep(400);
+    const lang1 = await lm.evaluate(`document.querySelector('[data-language]')?.dataset.language`);
+    check('AW22: a térkép feliratainak nyelve az app nyelve, nyelvváltáskor azonnal', lang0 === 'hu' && lang1 === 'de', JSON.stringify({ lang0, lang1 }));
+    await lm.close();
   }
 } catch (e) {
   // a closeChrome ENOTEMPTY-je különben elnyelné a valódi kivételt

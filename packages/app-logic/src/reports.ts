@@ -10,6 +10,13 @@ export type ReportType = 'traffipax' | 'rendorseg' | 'baleset' | 'akadaly' | 'ut
 export const MAP_ERROR_KINDS = ['szakaszhatar', 'sebesseghatar', 'nem_letezik', 'hianyzo', 'kamera', 'egyeb'] as const;
 export type MapErrorKind = (typeof MAP_ERROR_KINDS)[number];
 
+/** AW22: a „Veszély” (`akadaly`) második választójának tételei, a lap sorrendjében (a `reports.subtype` értékei). */
+export const HAZARD_KINDS = ['targy', 'katyu', 'allo_jarmu'] as const;
+export type HazardKind = (typeof HAZARD_KINDS)[number];
+export const hazardLabel = (k: HazardKind): string => t(`report.hazard.${k}` as TKey);
+/** A bejelentés alkategóriája: Térképhibánál és Veszélynél (a régi „Akadály” soroknál nincs). */
+export type ReportSubtype = MapErrorKind | HazardKind;
+
 /** A Térképhiba alkategóriájának felirata; csak a szakaszhatárnak van magyarázó sora. */
 export const mapErrorLabel = (k: MapErrorKind): string => t(`report.sub.${k}` as TKey);
 export const mapErrorHint = (k: MapErrorKind): string | null => (k === 'szakaszhatar' ? t('report.sub.szakaszhatarHint') : null);
@@ -20,8 +27,8 @@ export interface SimpleReportInsert {
   lat: number;
   lon: number;
   heading_deg: number | null;
-  /** AOS17: a Térképhiba alkategóriája (`reports.subtype`); más típusnál nincs. */
-  subtype?: MapErrorKind;
+  /** AOS17: a Térképhiba, AW22: a Veszély alkategóriája (`reports.subtype`); más típusnál nincs. */
+  subtype?: ReportSubtype;
 }
 
 export type ReportInsert = SimpleReportInsert | GateReportInsert;
@@ -74,7 +81,7 @@ const heading = (h: number | null) => (h === null ? null : ((Math.round(h) % 360
  * Egy koppintásos bejelentés a jelenlegi helyről. Kapunál irány kell (a kapu iránya a haladási
  * irány) – ha nincs, `null`.
  */
-export function reportFromFix(choice: SimpleReportInsert['type'] | GateChoice, fix: GpsFix, subtype?: MapErrorKind): ReportInsert | null {
+export function reportFromFix(choice: SimpleReportInsert['type'] | GateChoice, fix: GpsFix, subtype?: ReportSubtype): ReportInsert | null {
   if (choice === 'kapu_kezdo' || choice === 'kapu_zaro') {
     const h = heading(fix.heading);
     if (h === null) return null;
@@ -89,7 +96,7 @@ export function reportFromFix(choice: SimpleReportInsert['type'] | GateChoice, f
     };
   }
   const row: SimpleReportInsert = { type: choice, lat: fix.lat, lon: fix.lon, heading_deg: heading(fix.heading) };
-  return choice === 'szakasz_hiba' && subtype ? { ...row, subtype } : row;
+  return subtype && (MAP_ERROR_KINDS as readonly string[]).includes(subtype) === (choice === 'szakasz_hiba') && (choice === 'szakasz_hiba' || choice === 'akadaly') ? { ...row, subtype } : row;
 }
 
 /** AW18: a menü utolsó sorának kis csempéi (egy sorban, a kapu-tétel mellett). */

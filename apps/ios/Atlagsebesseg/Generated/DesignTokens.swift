@@ -74,6 +74,18 @@ enum Tokens {
         static let tripMid = Color(.sRGB, red: 1, green: 0.698039, blue: 0.141176, opacity: 1)
         /// `#FF4D61`
         static let tripFast = Color(.sRGB, red: 1, green: 0.301961, blue: 0.380392, opacity: 1)
+        /// `#FFFFFF`
+        static let appleButton = Color(.sRGB, red: 1, green: 1, blue: 1, opacity: 1)
+        /// `#000000`
+        static let appleButtonText = Color(.sRGB, red: 0, green: 0, blue: 0, opacity: 1)
+        /// `#4285F4`
+        static let googleBlue = Color(.sRGB, red: 0.258824, green: 0.521569, blue: 0.956863, opacity: 1)
+        /// `#34A853`
+        static let googleGreen = Color(.sRGB, red: 0.203922, green: 0.658824, blue: 0.32549, opacity: 1)
+        /// `#FBBC05`
+        static let googleYellow = Color(.sRGB, red: 0.984314, green: 0.737255, blue: 0.019608, opacity: 1)
+        /// `#EA4335`
+        static let googleRed = Color(.sRGB, red: 0.917647, green: 0.262745, blue: 0.207843, opacity: 1)
         /// `#E5303F`
         static let signRing = Color(.sRGB, red: 0.898039, green: 0.188235, blue: 0.247059, opacity: 1)
         /// `#FFFFFF`

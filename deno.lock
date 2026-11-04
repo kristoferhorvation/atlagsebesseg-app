@@ -23,6 +23,20 @@
       ]
     },
     "members": {
+      "apps/ios": {
+        "packageJson": {
+          "dependencies": [
+            "npm:@atlagsebesseg/app-logic@*",
+            "npm:@atlagsebesseg/core@*",
+            "npm:@atlagsebesseg/design-tokens@*",
+            "npm:@atlagsebesseg/web@*",
+            "npm:@types/node@^22.20.5",
+            "npm:tsx@^4.20.0",
+            "npm:typescript@~6.0.3",
+            "npm:vitest@4"
+          ]
+        }
+      },
       "apps/mobile": {
         "packageJson": {
           "dependencies": [
@@ -58,9 +72,12 @@
             "npm:@types/react-dom@19.3.0",
             "npm:@types/react@19.3",
             "npm:@vitejs/plugin-react@6.1.2",
+            "npm:eslint@9.39.5",
+            "npm:h3-js@4.5.0",
             "npm:mapbox-gl@3.32.0",
             "npm:react-dom@19.3.0",
             "npm:react@19.3.0",
+            "npm:typescript-eslint@8.72.1",
             "npm:typescript@~6.0.3",
             "npm:vite-plugin-mkcert@2.1.0",
             "npm:vite@^8.3.4",
@@ -74,6 +91,7 @@
             "npm:@atlagsebesseg/core@*",
             "npm:@atlagsebesseg/data@*",
             "npm:@supabase/supabase-js@^2.118.0",
+            "npm:@types/node@^22.20.5",
             "npm:typescript@~6.0.3",
             "npm:vitest@4"
           ]
@@ -83,6 +101,7 @@
         "packageJson": {
           "dependencies": [
             "npm:@types/node@^22.20.5",
+            "npm:tsx@^4.20.0",
             "npm:typescript@~6.0.3",
             "npm:vitest@4"
           ]
@@ -106,6 +125,16 @@
         "packageJson": {
           "dependencies": [
             "npm:typescript@~6.0.3",
+            "npm:vitest@4"
+          ]
+        }
+      },
+      "packages/parity": {
+        "packageJson": {
+          "dependencies": [
+            "npm:pixelmatch@^7.1.0",
+            "npm:playwright-core@^1.56.0",
+            "npm:pngjs@7",
             "npm:vitest@4"
           ]
         }

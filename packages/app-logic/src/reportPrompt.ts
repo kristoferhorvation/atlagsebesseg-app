@@ -1,5 +1,6 @@
 import { angleDiffDeg, bearingDeg, haversineM, type GpsFix } from '@atlagsebesseg/core';
 import { CAMERA_ALERT } from './navigation/config';
+import { t } from './i18n';
 import type { ActiveReport } from './reportFeed';
 
 /**
@@ -32,6 +33,16 @@ function geometry(fix: GpsFix, r: ActiveReport): { d: number; ahead: boolean; be
   const d = haversineM(fix, r);
   const diff = fix.heading === null ? null : angleDiffDeg(fix.heading, bearingDeg(fix, r));
   return { d, ahead: diff !== null && diff <= REPORT_PROMPT.coneDeg, behind: diff !== null && diff > 90 };
+}
+
+/**
+ * AW22: a Veszély közeledés-bemondása, bejelentésenként egyszer („Veszély az úton 250 méterre”): a kártya első, figyelmeztető
+ * állapotában, 50 m-re kerekítve. Más típusra, kérdés-fázisban és már bemondott bejelentésre nincs.
+ */
+export function hazardVoice(prompt: ReportPrompt | null, report: Pick<ActiveReport, 'type'> | null | undefined, spoken: Set<string>): string | null {
+  if (!prompt || prompt.phase !== 'approach' || report?.type !== 'akadaly' || spoken.has(prompt.id)) return null;
+  spoken.add(prompt.id);
+  return t('report.voice.hazard', { m: Math.max(50, Math.round(prompt.distanceM / 50) * 50) });
 }
 
 /** Ennyire meg kellett közelíteni, hogy a „mögöttünk van” elhaladásnak számítson (hajtűkanyarban a légvonal megtéveszt). */

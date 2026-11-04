@@ -58,6 +58,10 @@ extension AppModel {
         let same = p?.id == reportPromptState?.id && p?.phase == reportPromptState?.phase
             && Int(((p?.distanceM ?? 0) / 10).rounded()) == Int(((reportPromptState?.distanceM ?? 0) / 10).rounded())
         if !same { reportPromptState = p }
+        // AW22: a Veszély közeledés-bemondása, bejelentésenként egyszer (a webes `hazardVoice`)
+        if let text = hazardVoice(p, list.first { $0.id == p?.id }, spoken: &hazardSpoken), settings.hangosUtasitasok {
+            player.announce(text, interrupt: true)
+        }
         if let sel = selectedReportId, !list.contains(where: { $0.id == sel }) { selectedReportId = nil }
         runLiveTestHooks()
     }
@@ -130,8 +134,8 @@ extension AppModel {
     /// AW18: a „Dugó” / „Beállt” bejelentés közösségi dugó-mintát is ad (`jamSample`; a „Dugóba kerültél?” Igen-je a
     /// session-ből adja, ott `false`).
     /// AOS17: a Térképhiba a második választóból jön – az alkategóriával és a lap első koppintásakori hellyel (`fix`).
-    func sendReport(_ choice: ReportChoice, jamSample: Bool = true, subtype: MapErrorKind? = nil, fix tapped: GpsFix? = nil) {
-        guard let fix = tapped ?? lastFix, let row = reportFromFix(choice, fix, subtype: subtype) else { return }
+    func sendReport(_ choice: ReportChoice, jamSample: Bool = true, subtype: MapErrorKind? = nil, hazard: HazardKind? = nil, fix tapped: GpsFix? = nil) {
+        guard let fix = tapped ?? lastFix, let row = reportFromFix(choice, fix, subtype: subtype, hazard: hazard) else { return }
         let label = choice.label
         reportSending = choice
         let done = { [weak self] (id: String?) in

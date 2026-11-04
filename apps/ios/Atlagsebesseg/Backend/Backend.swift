@@ -60,7 +60,7 @@ final class Backend {
     func activeReports(in b: BBox) async throws -> [ActiveReport] {
         guard let client else { throw BackendError.nincsBeallitas }
         async let rows: [ReportRow] = client.from("active_reports")
-            .select("id,type,lat,lon,heading_deg,gate_kind,confirmations,denials,created_at,expires_at,user_id")
+            .select("id,type,lat,lon,heading_deg,gate_kind,subtype,confirmations,denials,created_at,expires_at,user_id")
             .gte("lat", value: b.south)
             .lte("lat", value: b.north)
             .gte("lon", value: b.west)

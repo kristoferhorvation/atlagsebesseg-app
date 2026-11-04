@@ -23,7 +23,7 @@ struct ReportSheet: View {
     let sending: ReportChoice?
     /// AOS14 javítás: az „Átlagmérés eleje” elküldve – az egyetlen kapu-tétel most „Átlagmérés vége”.
     let gateStarted: Bool
-    let onPick: (ReportChoice, MapErrorKind?, GpsFix?) -> Void
+    let onPick: (ReportChoice, MapErrorKind?, HazardKind?, GpsFix?) -> Void
     let onClose: () -> Void
 
     private var noHeading: Bool { fix != nil && fix?.heading == nil }
@@ -36,13 +36,17 @@ struct ReportSheet: View {
 
     /// AOS17: a „Térképhiba” második választója nyitva – a küldés az első koppintáskori helyről megy.
     @State private var mapErrorFix: GpsFix?
+    /// AW22: a „Veszély” második választója nyitva (ugyanígy).
+    @State private var hazardFix: GpsFix?
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 0) {
-                SheetHead(title: mapErrorFix == nil ? t(.reportTitle) : ReportChoice.szakaszHiba.label, onClose: onClose)
+                SheetHead(title: mapErrorFix != nil ? ReportChoice.szakaszHiba.label : hazardFix != nil ? ReportChoice.akadaly.label : t(.reportTitle), onClose: onClose)
                 if let fix = mapErrorFix {
                     mapErrorList(fix)
+                } else if let fix = hazardFix {
+                    hazardList(fix)
                 } else {
                     let menu = reportMenu(gateStarted: gateStarted)
                     VStack(spacing: Tokens.Space.s2) {
@@ -61,7 +65,11 @@ struct ReportSheet: View {
         }
         .scrollBounceBehavior(.basedOnSize)
         // `-reportMapError YES` (képernyőkép, `-reportOpen YES` mellett): rögtön a második választó
-        .onAppear { if UserDefaults.standard.bool(forKey: "reportMapError") { mapErrorFix = fix } }
+        .onAppear {
+            if UserDefaults.standard.bool(forKey: "reportMapError") { mapErrorFix = fix }
+            // `-reportHazard YES`: ugyanígy a Veszély választója
+            if UserDefaults.standard.bool(forKey: "reportHazard") { hazardFix = fix }
+        }
     }
 
     /// AOS17: mi a hiba? Egy koppintás elküldi, alkategóriával.
@@ -70,7 +78,7 @@ struct ReportSheet: View {
             GroupLabel(text: t(.reportSubQuestion))
             ListCard {
                 ForEach(MapErrorKind.allCases) { k in
-                    Button { onPick(.szakaszHiba, k, fix) } label: {
+                    Button { onPick(.szakaszHiba, k, nil, fix) } label: {
                         HStack(spacing: 14) {
                             RowText(label: k.label, hint: k.hint)
                             Icon(name: .chevronRight, size: 20).foregroundStyle(Tokens.Colors.textFaint)
@@ -86,6 +94,28 @@ struct ReportSheet: View {
         }
     }
 
+    /// AW22: milyen veszély? Egy koppintás elküldi, altípussal (a Térképhiba-választó mintájára).
+    private func hazardList(_ fix: GpsFix) -> some View {
+        VStack(alignment: .leading, spacing: 0) {
+            GroupLabel(text: t(.reportHazardQuestion))
+            ListCard {
+                ForEach(HazardKind.allCases) { k in
+                    Button { onPick(.akadaly, nil, k, fix) } label: {
+                        HStack(spacing: 14) {
+                            RowText(label: k.label)
+                            Icon(name: .chevronRight, size: 20).foregroundStyle(Tokens.Colors.textFaint)
+                        }
+                        .listRow()
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(sending != nil)
+                    if k != HazardKind.allCases.last { RowDivider() }
+                }
+            }
+        }
+    }
+
     /// AOS17: az A5-ös csempe (76 pt, 44 pt-es ikon, 18 pt-es felirat). Szó közben soha nem törik: az egyszavas felirat egy sor, és
     /// ha nem fér ki, a betű enged.
     private func tile(_ c: ReportChoice) -> some View {
@@ -93,7 +123,7 @@ struct ReportSheet: View {
         // a webes `@media (max-width: 389px)`: keskeny kijelzőn a térköz enged
         let narrow = UIScreen.main.bounds.width < 390
         return Button {
-            if c == .szakaszHiba { mapErrorFix = fix } else { onPick(c, nil, nil) }
+            if c == .szakaszHiba { mapErrorFix = fix } else if c == .akadaly { hazardFix = fix } else { onPick(c, nil, nil, nil) }
         } label: {
             HStack(spacing: narrow ? Tokens.Space.s2 : 10) {
                 Icon(name: c.icon)

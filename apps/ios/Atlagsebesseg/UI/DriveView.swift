@@ -109,9 +109,17 @@ struct DriveView: View {
             }
         }
         .overlay {
+            if let name = model.nameStep {
+                AppSheet(onClose: model.skipName) {
+                    NameStepSheet(initial: name, onSave: model.saveName, onSkip: model.skipName)
+                }
+                .zIndex(3)
+            }
+        }
+        .overlay {
             if model.reportSheetOpen {
                 AppSheet(onClose: { model.reportSheetOpen = false }) {
-                    ReportSheet(fix: view.lastFix, online: model.backend.configured, sending: model.reportSending, gateStarted: model.gateStarted, onPick: { [model] c, sub, fix in model.sendReport(c, subtype: sub, fix: fix) }, onClose: { model.reportSheetOpen = false })
+                    ReportSheet(fix: view.lastFix, online: model.backend.configured, sending: model.reportSending, gateStarted: model.gateStarted, onPick: { [model] c, sub, hazard, fix in model.sendReport(c, subtype: sub, hazard: hazard, fix: fix) }, onClose: { model.reportSheetOpen = false })
                 }
                 .zIndex(2)
             }
@@ -301,6 +309,14 @@ struct DriveView: View {
                 .id(cam.id)
                 .transition(.opacity.combined(with: .offset(y: 12)))
         }
+        // AW22: befejezett út után, legfeljebb egyszer; csak az üres nézeten
+        if model.signInNudge && !driving && model.nav == nil && model.shownReport == nil && model.shownCamera == nil {
+            SignInNudge(onSignIn: {
+                model.signInNudge = false
+                settingsOpen = true
+            }, onLater: { model.signInNudge = false })
+            .transition(.opacity.combined(with: .offset(y: 12)))
+        }
         // a bal alsó tábla a gombsor fölött (a webes `.recenter-row`)
         if navSign, let nav = model.nav {
             HStack {
@@ -330,15 +346,19 @@ struct DriveView: View {
             Button { model.reportSheetOpen = true } label: { Icon(name: .report, size: 28).foregroundStyle(Tokens.Colors.near) }
                 .buttonStyle(RoundButtonStyle())
                 .accessibilityLabel(t(.mapReport))
-            // AW21: a webes `.recenter-slot`: a gombnak saját, mindig fenntartott helye van a sor jobb szélén; rejtve a hely üres, a többi gomb nem mozdul
-            ZStack {
-                if !model.follow && view.lastFix != nil {
-                    Button { model.follow = true } label: { Icon(name: .crosshair, size: 28).foregroundStyle(Tokens.Colors.brand) }
-                        .buttonStyle(RoundButtonStyle())
-                        .accessibilityLabel(t(.mapRecenter))
+            // AW21: a webes `.recenter-slot`: a gombnak saját, mindig fenntartott helye van a sor jobb szélén; rejtve a hely üres, a többi gomb nem mozdul.
+            // AW22: a ManualMini helye soha nem mozdul – amíg látszik, nincs fenntartott hely, a gomb a jobb oldali gombsor fölé kerül (`.recenter-above`)
+            if !model.manualPillCollapsed {
+                ZStack {
+                    if recenterShown { recenterButton }
                 }
+                .frame(width: Tokens.Size.roundButton, height: Tokens.Size.roundButton)
             }
-            .frame(width: Tokens.Size.roundButton, height: Tokens.Size.roundButton)
+        }
+        .overlay(alignment: .bottomTrailing) {
+            if model.manualPillCollapsed && recenterShown {
+                recenterButton.offset(y: -(Tokens.Size.roundButton + Tokens.Space.s3))
+            }
         }
         if let nav = model.nav, stripShown { strip(nav) }
         if !hudCardHidden {
@@ -363,6 +383,14 @@ struct DriveView: View {
             )
             .onGeometryChange(for: CGFloat.self) { $0.frame(in: .global).minY } action: { if hudCardHidden { model.navCardTop = $0 } }
         }
+    }
+
+    private var recenterShown: Bool { !model.follow && view.lastFix != nil }
+
+    private var recenterButton: some View {
+        Button { model.follow = true } label: { Icon(name: .crosshair, size: 28).foregroundStyle(Tokens.Colors.brand) }
+            .buttonStyle(RoundButtonStyle())
+            .accessibilityLabel(t(.mapRecenter))
     }
 
     private func strip(_ nav: NavView) -> some View {

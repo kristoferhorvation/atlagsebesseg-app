@@ -14,7 +14,9 @@ import { supabase } from '../backend';
 /** Szimulátorban (`?sim`, `?navsim`, `?cruise`) a közösségi feltöltés nincs – a teszt-út ne kerüljön az éles táblába. */
 const IS_SIM = ['sim', 'navsim', 'cruise'].some((k) => new URLSearchParams(location.search).has(k));
 
-export function useTrips(now: () => number, nav: NavView | null, view: SessionView, share: boolean, zones: readonly HeatZone[]) {
+export function useTrips(now: () => number, nav: NavView | null, view: SessionView, share: boolean, zones: readonly HeatZone[], onSaved?: () => void) {
+  const savedRef = useRef(onSaved);
+  savedRef.current = onSaved;
   const shareRef = useRef(share);
   shareRef.current = share;
   const zonesRef = useRef(zones);
@@ -48,7 +50,13 @@ export function useTrips(now: () => number, nav: NavView | null, view: SessionVi
     };
     if (samples.length) write(() => addSamples(samples));
     for (const e of ended) {
-      if (e.kind === 'saved') write(() => finishTrip(e.trip).then(() => setVersion((v) => v + 1)));
+      if (e.kind === 'saved')
+        write(() =>
+          finishTrip(e.trip).then(() => {
+            setVersion((v) => v + 1);
+            savedRef.current?.();
+          }),
+        );
       else write(() => deleteSamples(e.id));
     }
     const v = rec.view(now());

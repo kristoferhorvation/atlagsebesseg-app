@@ -19,3 +19,4 @@ export * from './location';
 export * from './trips';
 export * from './heat';
 export * from './heatSeed';
+export * from './account';

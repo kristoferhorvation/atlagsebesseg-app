@@ -25,6 +25,10 @@ describe('AOS17', () => {
     expect(reportFromFix('szakasz_hiba', fix, 'kamera')).toMatchObject({ type: 'szakasz_hiba', subtype: 'kamera' });
     expect(reportFromFix('baleset', fix, 'kamera')).not.toHaveProperty('subtype');
     expect(reportFromFix('szakasz_hiba', fix)).not.toHaveProperty('subtype');
+    // AW22: a Veszély altípusa
+    expect(reportFromFix('akadaly', fix, 'katyu')).toMatchObject({ type: 'akadaly', subtype: 'katyu' });
+    expect(reportFromFix('akadaly', fix, 'kamera')).not.toHaveProperty('subtype');
+    expect(reportFromFix('szakasz_hiba', fix, 'katyu')).not.toHaveProperty('subtype');
   });
 
   it('a bejelentés alsó szövege szó szerint a tulajdonosi szöveg', () => {

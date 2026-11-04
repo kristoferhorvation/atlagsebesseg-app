@@ -27,7 +27,7 @@ nonisolated func tripCell(_ lat: Double, _ lon: Double) -> String? {
 
 private let SQLITE_TRANSIENT = unsafeBitCast(-1, to: sqlite3_destructor_type.self)
 
-final class TripStore {
+final class TripStore: BackupStore {
     // a kapcsolat a deinitben zárul (az nem a fő szálhoz kötött); máshol csak a fő szálról használjuk
     nonisolated(unsafe) private var db: OpaquePointer?
 
@@ -73,6 +73,11 @@ final class TripStore {
             CREATE TABLE IF NOT EXISTS trash_heat_trips (trip_id TEXT PRIMARY KEY, deleted_at REAL NOT NULL);
             """)
             exec("PRAGMA user_version = 3")
+        }
+        if version < 4 {
+            // AW22: a fiók többi készülékének hőtérképe (a felhős mentésből; kijelzéshez adódik, soha nem töltődik fel újra)
+            exec("CREATE TABLE IF NOT EXISTS remote_heat (n INTEGER PRIMARY KEY, cells TEXT NOT NULL)")
+            exec("PRAGMA user_version = 4")
         }
     }
 
@@ -172,7 +177,7 @@ final class TripStore {
             exec("DELETE FROM samples; DELETE FROM trash_trips; DELETE FROM trash_heat; DELETE FROM trash_heat_trips;")
         }
         exec("DELETE FROM trips")
-        if heat { exec("DELETE FROM heat; DELETE FROM heat_trips;") }
+        if heat { exec("DELETE FROM heat; DELETE FROM heat_trips; DELETE FROM remote_heat;") }
         exec("COMMIT")
         if !keep { exec("VACUUM") }
     }
@@ -216,6 +221,41 @@ final class TripStore {
         exec("INSERT OR REPLACE INTO heat_trips SELECT trip_id FROM trash_heat_trips")
         exec("DELETE FROM trash_trips; DELETE FROM trash_heat; DELETE FROM trash_heat_trips;")
         exec("COMMIT")
+    }
+
+    // MARK: AW22: felhős mentés (`BackupStore`)
+
+    /// A letöltött út a naplóba; a hőtérképbe nem olvad be (a cellái a másik készülék sorában érkeznek).
+    func saveDownloaded(_ trip: Trip, samples: [TripSample]) {
+        saveTrip(trip)
+        addSamples(samples)
+        run("INSERT OR REPLACE INTO heat_trips (trip_id) VALUES (?)", trip.id)
+    }
+
+    /// A fiók többi készülékének cellái: minden szinkronnál teljes csere.
+    func setRemoteHeat(_ lists: [[HeatCell]]) {
+        exec("DELETE FROM remote_heat")
+        for list in lists { run("INSERT INTO remote_heat (cells) VALUES (?)", FieldValue.array(heatBlob(list)).json) }
+    }
+
+    /// A többi készülék cellái.
+    func remoteHeat() -> [[HeatCell]] {
+        guard let db else { return [] }
+        var st: OpaquePointer?
+        sqlite3_prepare_v2(db, "SELECT cells FROM remote_heat", -1, &st, nil)
+        defer { sqlite3_finalize(st) }
+        var out: [[HeatCell]] = []
+        while sqlite3_step(st) == SQLITE_ROW {
+            guard let text = sqlite3_column_text(st, 0), case let .array(rows)? = try? JSONDecoder().decode(FieldValue.self, from: Data(String(cString: text).utf8)) else { continue }
+            out.append(parseHeatBlob(rows))
+        }
+        return out
+    }
+
+    /// A kirajzolandó személyes hőtérkép: a saját + a fiók többi készülékéé.
+    func displayHeatCells() -> [HeatCell] {
+        let remote = remoteHeat()
+        return remote.isEmpty ? heatCells() : mergeRemoteHeat(heatCells(), remote)
     }
 
     /// Egy út mintái (időrendben) – a tesztekhez és a következő kör hőtérképéhez.
@@ -324,4 +364,11 @@ final class TripStore {
     private func column(_ st: OpaquePointer?, _ i: Int32) -> Double? {
         sqlite3_column_type(st, i) == SQLITE_NULL ? nil : sqlite3_column_double(st, i)
     }
+}
+
+extension TripStore {
+    func backupTrips() -> [Trip] { trips() }
+    func backupSamples(_ tripId: String) -> [TripSample] { samples(tripId) }
+    func deleteDownloaded(_ id: String) { deleteTrip(id) }
+    func ownHeatCells() -> [HeatCell] { heatCells() }
 }

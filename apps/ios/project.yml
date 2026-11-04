@@ -86,6 +86,8 @@ targets:
       path: Atlagsebesseg/Atlagsebesseg.entitlements
       properties:
         com.apple.security.application-groups: [group.hu.atlagsebesseg.app]
+        # AW22: Sign in with Apple (natív, ASAuthorization)
+        com.apple.developer.applesignin: [Default]
     info:
       path: Atlagsebesseg/Info.plist
       properties:
@@ -155,8 +157,10 @@ targets:
         # AOS16: a verzió a beállításokból (az XcodeGen alapja különben fix 1.0 / 1)
         CFBundleShortVersionString: $(MARKETING_VERSION)
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        # AW22: a kijelzőnév nyelvenként az InfoPlist.xcstrings-ből (generált, az app kijelzőnevével azonos)
         CFBundleDisplayName: Atlagsebesseg
         CFBundleDevelopmentRegion: en
+        CFBundleLocalizations: [en, hu, de, sk, cs, pl]
         NSExtension:
           NSExtensionPointIdentifier: com.apple.widgetkit-extension
         UIAppFonts: [InterVariable.ttf]

@@ -19,6 +19,7 @@ final class AppModel {
             if !settings.hangosUtasitasok { player.stopSpeaking() }
             // AOS16: a megosztás kikapcsolásakor a várakozó sorok törlődnek (a már nem kért adat nem megy fel utólag)
             if !settings.adatmegosztas { Self.clearHeatOutbox() }
+            accountDataChanged()
         }
     }
 
@@ -136,6 +137,29 @@ final class AppModel {
     @ObservationIgnored var reportFeed: ReportFeed?
     @ObservationIgnored var reportView: BBox?
     @ObservationIgnored let reportPrompt = ReportPromptWatch()
+    @ObservationIgnored var hazardSpoken = Set<String>()
+
+    // MARK: AW22: fiók (a kötés az AppModel+Account.swift-ben)
+    /// A bejelentkezett felhasználó (`nil`: még nincs munkamenet; névtelen felhasználónál `isAnonymous`).
+    var accountUserState: AccountUser?
+    /// Be van-e állítva a szolgáltató; szimulátorban a képhez igen (a `-accountSim off` a be nem állított állapot).
+    var accountProviders = (apple: false, google: false)
+    var syncStatus = SyncStatus.idle
+    var lastSyncMs: Double?
+    var accountBusy = false
+    var accountError: String?
+    var emailSentTo: String?
+    /// „Így szólítsunk?”: a kitöltött név (e-mailnél üres); `nil`: a lépés nincs nyitva.
+    var nameStep: String?
+    var signInNudge = false
+    @ObservationIgnored var accountFields = FieldState.parse(UserDefaults.standard.string(forKey: FIELDS_KEY))
+    @ObservationIgnored var accountHandled: String?
+    @ObservationIgnored var accountSyncing = false
+    @ObservationIgnored var accountAgain = false
+    @ObservationIgnored var accountDebounce: Task<Void, Never>?
+    @ObservationIgnored var accountAuthTask: Task<Void, Never>?
+    @ObservationIgnored let appleSignIn = AppleSignIn()
+    @ObservationIgnored let webAuth = WebAuth()
     @ObservationIgnored var simReports: [ActiveReport] = []
     /// AOS14: Live Activity mérés és navigáció közben (lezárt képernyő, Dynamic Island); AOS15: a GPS indításától állandó.
     @ObservationIgnored let liveActivity = LiveActivityController()
@@ -218,6 +242,7 @@ final class AppModel {
         setUpReports()
         reloadTrips()
         setUpHeat()
+        setUpAccount()
         LiveActivityController.endStale()
         refreshTrash()
         liveMap.onImage = { [weak self] in
@@ -440,6 +465,7 @@ final class AppModel {
         refreshLiveMap()
         liveActivity.resume(liveState)
         flushHeatOutbox()
+        accountBecameActive()
     }
 
     /// A Live Activity mostani tartalma (a szimulátoros előnézet is ezt rajzolja).
@@ -496,6 +522,11 @@ final class AppModel {
     }
 
     func openLink(_ url: URL) {
+        // AW22: a bejelentkező link / OAuth visszatérése
+        if url.scheme == "atlagsebesseg", url.host == "auth-callback" {
+            handleAuthCallback(url)
+            return
+        }
         guard url.scheme == "atlagsebesseg", url.host == "live" else { return }
         reportSheetOpen = false
         geoHelpOpen = false

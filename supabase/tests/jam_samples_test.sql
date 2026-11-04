@@ -42,7 +42,7 @@ select pg_temp.expect_error($$insert into public.jam_samples (kind, lat, lon, he
 select pg_temp.expect_error($$update public.jam_samples set avg_kmh = 120 where id = '22222222-2222-2222-2222-222222222222'$$, 'a minta nem módosítható');
 select pg_temp.expect((select count(*) from public.active_jams where id = '22222222-2222-2222-2222-222222222222') = 1, 'active_jams: a friss minta látszik');
 insert into public.reports (type, lat, lon, heading_deg) values ('dugo', 47.5, 19.0, 90), ('beallt', 47.5, 19.0, 90);
-select pg_temp.expect((select count(*) from public.reports where type in ('dugo', 'beallt')) = 2, 'új bejelentéstípus: dugo, beallt');
+select pg_temp.expect((select count(*) from public.reports where type in ('dugo', 'beallt') and created_at = now()) = 2, 'új bejelentéstípus: dugo, beallt');
 reset role;
 
 set role authenticated;

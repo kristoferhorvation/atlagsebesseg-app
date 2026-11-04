@@ -53,6 +53,13 @@ export const color = {
   tripSlow: '#2EE59D',
   tripMid: '#FFB224',
   tripFast: '#FF4D61',
+  /** AW22: az Apple-gomb a hivatalos fehér stílusban; a Google „G” jelének négy színe. Más célra nem használhatók. */
+  appleButton: '#FFFFFF',
+  appleButtonText: '#000000',
+  googleBlue: '#4285F4',
+  googleGreen: '#34A853',
+  googleYellow: '#FBBC05',
+  googleRed: '#EA4335',
   signRing: '#E5303F',
   signFace: '#FFFFFF',
   signText: '#0B0C10',

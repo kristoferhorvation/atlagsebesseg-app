@@ -71,7 +71,7 @@
         "x": 25,
         "y": 169,
         "w": 352,
-        "h": 1171.48
+        "h": 213.67
       },
       "style": {
         "fontSize": "20px",
@@ -100,7 +100,7 @@
         "x": 26,
         "y": 170,
         "w": 350,
-        "h": 127.56
+        "h": 211.67
       },
       "style": {
         "fontSize": "20px",
@@ -117,8 +117,8 @@
         "paddingRight": "16px",
         "paddingBottom": "14px",
         "paddingLeft": "16px",
-        "rowGap": "14px",
-        "columnGap": "14px",
+        "rowGap": "10px",
+        "columnGap": "10px",
         "boxShadow": "none",
         "opacity": "1"
       }
@@ -127,7 +127,7 @@
       "selector": ".list-row .label",
       "box": {
         "x": 42,
-        "y": 184,
+        "y": 439.67,
         "w": 252,
         "h": 20
       },
@@ -156,9 +156,9 @@
       "selector": ".list-row .hint",
       "box": {
         "x": 42,
-        "y": 207,
-        "w": 252,
-        "h": 75.56
+        "y": 187,
+        "w": 318,
+        "h": 56.67
       },
       "style": {
         "fontSize": "14px",
@@ -185,7 +185,7 @@
       "selector": ".switch",
       "box": {
         "x": 308,
-        "y": 217.28,
+        "y": 472.95,
         "w": 52,
         "h": 32
       },
@@ -214,7 +214,7 @@
       "selector": ".segmented",
       "box": {
         "x": 228.81,
-        "y": 311.56,
+        "y": 567.23,
         "w": 131.19,
         "h": 40
       },
@@ -243,7 +243,7 @@
       "selector": ".segmented button[aria-pressed=\"true\"]",
       "box": {
         "x": 231.81,
-        "y": 314.56,
+        "y": 570.23,
         "w": 65.05,
         "h": 34
       },

@@ -3,6 +3,8 @@ import { HEAT_MODES, LANGUAGE_NAMES, LOCALES, MEGSZOLITAS_MAX, getLanguage, lang
 import { DEFAULT_TOLERANCE } from '@atlagsebesseg/core';
 import { useLanguage, useVoiceStatus } from '../i18n';
 import { purgeTrash, restoreTrash, trashExpiry } from '../trips/tripStore';
+import type { AccountApi } from '../hooks/useAccount';
+import { AccountCard } from './AccountCard';
 import { Icon } from './Icon';
 import { Sheet } from './Sheet';
 import { ZonePicker } from './ZonePicker';
@@ -37,7 +39,10 @@ export function SettingsSheet({
   peek,
   onPeekEnd,
   onClose,
+  account,
 }: {
+  /** AW22: a „Fiók” kártya a lap tetején. */
+  account: AccountApi;
   settings: Settings;
   update: (p: Partial<Settings>) => void;
   info: SystemInfo;
@@ -82,6 +87,7 @@ export function SettingsSheet({
   const heatLabels: Record<HeatMode, string> = { ki: t('settings.heat.off'), sajat: t('settings.heat.own'), kozossegi: t('settings.heat.community') };
   return (
     <Sheet title={t('settings.title')} onClose={onClose} peek={peek} onPeekEnd={onPeekEnd}>
+      <AccountCard account={account} settings={settings} update={update} />
       <div className="group-label">{t('settings.group.display')}</div>
       <div className="list">
         <div className="list-row">

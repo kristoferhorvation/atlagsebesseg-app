@@ -88,6 +88,7 @@ export interface ReportRow {
   lon: number;
   heading_deg: number | null;
   gate_kind: 'kezdo' | 'zaro' | null;
+  subtype?: string | null;
   confirmations: number;
   denials: number;
   created_at: string;
@@ -99,7 +100,7 @@ export interface ReportRow {
 export async function listActiveReports(client: SupabaseClient | null, b: BBox): Promise<ReportRow[]> {
   const { data, error } = await need(client)
     .from('active_reports')
-    .select('id,type,lat,lon,heading_deg,gate_kind,confirmations,denials,created_at,expires_at,user_id')
+    .select('id,type,lat,lon,heading_deg,gate_kind,subtype,confirmations,denials,created_at,expires_at,user_id')
     .gte('lat', b.south)
     .lte('lat', b.north)
     .gte('lon', b.west)

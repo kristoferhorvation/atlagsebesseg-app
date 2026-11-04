@@ -1,11 +1,9 @@
 {
   "app.name": "Średnia prędkość",
   "app.description": "Odcinkowy pomiar prędkości: średnia na żywo, limit i kod kolorów podczas jazdy.",
-
   "common.close": "Zamknij",
   "common.ok": "OK",
   "common.done": "Gotowe",
-
   "start.tagline": "Na odcinku pomiarowym włącza się automatycznie: średnia na żywo, limit i czytelny kod kolorów.",
   "start.tip.phone": "Telefon w uchwycie, ekran włączony",
   "start.tip.location": "Zezwól na dostęp do lokalizacji",
@@ -14,7 +12,6 @@
   "start.install.steps": "Przycisk Udostępnij → „Dodaj do ekranu początkowego”. Wtedy działa na pełnym ekranie, bez paska adresu.",
   "start.go": "Start",
   "start.sim": "Wypróbuj bez GPS (symulator)",
-
   "pill.gps.off": "GPS wyłączony",
   "pill.sim": "Symulator",
   "pill.gps.searching": "Szukam GPS…",
@@ -28,11 +25,9 @@
   "pill.wake.tap": "Ekran może zgasnąć – dotknij",
   "pill.wake.off": "Ekran może zgasnąć",
   "pill.offline": "Offline · wbudowane odcinki",
-
   "status.good": "Dobre tempo",
   "status.slow": "Średnia za wysoka",
   "status.fast": "Za szybko",
-
   "hud.measure": "Pomiar",
   "hud.starting": "Pomiar się rozpoczyna…",
   "hud.estimate": "Szacunek",
@@ -41,21 +36,17 @@
   "hud.tolerance": "tolerancja {x}",
   "hud.now": "teraz",
   "hud.expected": "przewidywana",
-
   "hud.limitAria": "Limit: {x} {u}",
-
   "hud.approach.aria": "Zbliża się odcinek pomiarowy",
   "hud.approach.chip": "Odcinek pomiarowy",
   "hud.approach.default": "Pomiar średniej prędkości",
   "hud.ahead": "za {u}",
-
   "hud.done.aria": "Koniec odcinka",
   "hud.done.over": "+{x} {u} powyżej limitu",
   "hud.done.under": "Poniżej limitu",
   "hud.done.final": "{u} średnia końcowa",
   "hud.done.section": "odcinek",
   "hud.done.duration": "czas przejazdu",
-
   "hud.interrupted.aria": "Pomiar przerwany",
   "hud.interrupted.manual": "Ręczny pomiar średniej przerwany",
   "hud.interrupted.auto": "Pomiar przerwany",
@@ -66,7 +57,6 @@
   "interrupt.offRoute": "Poza odcinkiem pomiarowym",
   "interrupt.wrongWay": "Jedziesz w przeciwnym kierunku",
   "interrupt.gpsLoss": "Zbyt długo brak sygnału GPS",
-
   "hud.manual": "Ręczny pomiar średniej",
   "hud.manual.stop": "Zatrzymaj",
   "hud.manual.pillAria": "Ręczny pomiar średniej – dotknij, aby rozwinąć",
@@ -75,29 +65,23 @@
   "hud.manualDone.distance": "dystans",
   "hud.manualDone.distanceEst": "dystans (częściowo szacowany)",
   "hud.manualDone.time": "czas",
-
-
   "hud.none.aria": "Brak odcinka pomiarowego",
   "hud.none.near": "Brak odcinka pomiarowego w pobliżu",
   "hud.none.waiting": "Czekam na sygnał GPS…",
-
   "source.verified": "Zweryfikowany",
   "source.osm": "Źródło: OpenStreetMap",
   "source.official": "Źródło: oficjalna lista",
   "source.community": "Źródło: społeczność (bramki tymczasowe)",
   "source.named": "Źródło: {name}, {date}",
-
   "slowdown.cant": "Nie da się nadrobić",
   "slowdown.stay": "Jedź poniżej {x}",
   "slowdown.slow": "Zwolnij · maks. {x}",
   "slowdown.compactMax": "maks. {x}",
   "slowdown.compactCant": "nie do nadrobienia",
-
   "planned.line": "Planowana kontrola policji",
   "planned.zone": "Kontrola policji – {place} · {date} · źródło: {source}",
   "planned.max": "maks. {x}",
   "planned.maxApprox": "maks. ~{x}",
-
   "date.month.1": "sty",
   "date.month.2": "lut",
   "date.month.3": "mar",
@@ -113,18 +97,16 @@
   "date.range.day": "{d} {m}",
   "date.range.month": "{d1}–{d2} {m}",
   "date.range.months": "{d1} {m1} – {d2} {m2}",
-
   "time.now": "teraz",
   "time.minutes": "{n} min temu",
   "time.hours": "{n} godz. temu",
   "greet.named": "Cześć {name}!",
   "greet.anon": "Cześć!",
-
   "report.title": "Zgłoszenie",
   "report.type.rendorseg": "Policja",
   "report.type.traffipax": "Fotoradar",
   "report.type.baleset": "Wypadek",
-  "report.type.akadaly": "Przeszkoda",
+  "report.type.akadaly": "Zagrożenie",
   "report.type.utlezaras": "Zamknięta droga",
   "report.type.szakasz_hiba": "Błąd mapy",
   "report.type.dugo": "Korek",
@@ -144,6 +126,11 @@
   "report.sub.hianyzo": "Brakujący odcinek",
   "report.sub.kamera": "Błędna pozycja fotoradaru",
   "report.sub.egyeb": "Inne",
+  "report.hazard.question": "Jakie zagrożenie?",
+  "report.hazard.targy": "Przedmiot na drodze",
+  "report.hazard.katyu": "Dziura w drodze",
+  "report.hazard.allo_jarmu": "Stojący pojazd",
+  "report.voice.hazard": "Zagrożenie na drodze za {m} metrów",
   "report.card.aria": "Zgłoszenie: {label}",
   "report.card.own": "Twoje własne zgłoszenie",
   "report.card.confirm": "Potwierdź",
@@ -156,10 +143,8 @@
   "report.sendFail": "Nie udało się wysłać – brak połączenia?",
   "vote.confirmed": "Dzięki – potwierdzone",
   "vote.gone": "Dzięki – zgłoszono, że już tego tam nie ma",
-
   "toast.wakeSleep": "Ekran może zgasnąć – ustaw automatyczną blokadę na „Nigdy”",
   "toast.wakeNever": "Ustaw automatyczną blokadę na „Nigdy”",
-
   "camera.type.speed": "Fotoradar",
   "camera.type.red_light": "Kamera na czerwonym świetle",
   "camera.type.complex": "Złożony punkt kontrolny",
@@ -174,13 +159,11 @@
   "camera.dir.one": "Mierzy w jednym kierunku",
   "camera.distance": "{d} od ciebie",
   "warn.camera.DE": "W Niemczech kierowca nie może korzystać z tej funkcji",
-
   "map.recenter": "Wróć do mojej pozycji",
   "map.settings": "Ustawienia",
   "map.manualStart": "Rozpocznij ręczny pomiar średniej",
   "map.report": "Zgłoś",
   "map.attribution": "Odcinki © OpenStreetMap contributors (ODbL)",
-
   "settings.title": "Ustawienia",
   "settings.group.display": "Wyświetlacz",
   "settings.tolerance": "Pokaż oficjalną tolerancję",
@@ -207,7 +190,6 @@
   "settings.sim.exit": "Wyjdź z symulatora",
   "settings.sim.hint": "Odtwarza nagraną trasę bez GPS, do wypróbowania wyświetlacza.",
   "settings.attribution": "Dane odcinków i fotoradarów: © OpenStreetMap contributors (ODbL); stałe punkty VÉDA: ORFK (2015); planowane kontrole: police.hu. Mapa: © Mapbox, © OpenStreetMap. Aplikacja ma charakter informacyjny – o limicie prędkości zawsze decydują znaki.",
-
   "geo.off": "wyłączony",
   "geo.searching": "szukam…",
   "geo.active": "aktywny",
@@ -238,7 +220,6 @@
   "sections.status.offline": "wbudowane (offline)",
   "server.set": "ustawiony",
   "server.none": "brak (tryb offline)",
-
   "map.search": "Szukaj celu",
   "nav.aria": "Nawigacja",
   "nav.search.placeholder": "Dokąd jedziemy?",
@@ -346,7 +327,6 @@
   "ios.intent.destination": "Cel",
   "ios.geo.denied": "zablokowany (Ustawienia → Prywatność → Usługi lokalizacji)",
   "ios.start.tip.background": "Mierzy także przy zablokowanym ekranie – podczas pomiaru ekran nie gaśnie",
-
   "ios.alert.camera": "Fotoradar za {d} metrów, maksimum {x}",
   "ios.alert.cameraNoLimit": "Fotoradar za {d} metrów",
   "ios.alert.plannedLine": "Planowana kontrola, maksimum {x}",
@@ -368,7 +348,6 @@
   "ios.live.nextSection": "Odcinek za {d}",
   "ios.live.attribution": "© Mapbox © OpenStreetMap",
   "ios.live.remaining": "pozostało {x}",
-
   "trips.title": "Dziennik jazd",
   "trips.cruise": "Swobodna jazda",
   "trips.cruiseStatus": "Swobodna jazda · {dist} · {time}",
@@ -413,7 +392,6 @@
   "trips.checkLimit": "limit {v}",
   "trips.checkOk": "OK",
   "trips.checkFast": "za szybko",
-
   "settings.heat": "Mapa cieplna",
   "settings.heat.off": "Wył.",
   "settings.heat.own": "Własna",
@@ -444,5 +422,40 @@
   "heat.zone.hint": "Komórki w strefie nie są wysyłane i są szare na twojej własnej mapie cieplnej.",
   "heat.zone.200": "200 m",
   "heat.zone.500": "500 m",
-  "heat.zone.1000": "1 km"
+  "heat.zone.1000": "1 km",
+  "account.title": "Konto",
+  "account.hint": "Opcjonalne: aplikacja działa w pełni także bez konta. Po zalogowaniu miejsca i ustawienia masz na wszystkich urządzeniach.",
+  "account.apple": "Zaloguj się przez Apple",
+  "account.google": "Google",
+  "account.email": "E-mail",
+  "account.notConfigured": "Logowanie przez Apple i Google nie jest jeszcze skonfigurowane.",
+  "account.emailPlaceholder": "Twój adres e-mail",
+  "account.emailSend": "Wyślij link do logowania",
+  "account.emailHint": "Hasło nie jest potrzebne: dostaniesz e-mailem link i nim się zalogujesz.",
+  "account.emailSent": "Wysłaliśmy link na {email}. Otwórz go na tym urządzeniu.",
+  "account.cancel": "Anuluj",
+  "account.sync.syncing": "Synchronizacja…",
+  "account.sync.error": "Synchronizacja nie powiodła się, spróbujemy ponownie później.",
+  "account.sync.waiting": "Rozpoczynanie synchronizacji…",
+  "account.sync.at": "Zsynchronizowano: {time}",
+  "account.backup": "Kopia dziennika i mapy cieplnej w chmurze",
+  "account.backupHint": "Po włączeniu twoje przejazdy i własna mapa cieplna są przesyłane i synchronizowane z innymi urządzeniami. Po wyłączeniu nic więcej nie jest przesyłane; istniejąca kopia zostaje do usunięcia konta.",
+  "account.signOut": "Wyloguj się",
+  "account.signOutHint": "Wszystkie dane zostają na tym urządzeniu, a ty korzystasz dalej bez konta.",
+  "account.delete": "Usuń konto",
+  "account.delete.body": "Usunięte zostaną twoje konto i wszystkie powiązane dane na serwerze: profil, zsynchronizowane ustawienia i miejsca, dziennik i mapa cieplna w chmurze, zgłoszenia, głosy. Komórki dodane już anonimowo do wspólnej mapy cieplnej zostają, bo nie da się ich z tobą powiązać. Dane na twoim urządzeniu również zostają.",
+  "account.delete.confirm": "Usuń na stałe",
+  "account.err.rate": "Za dużo żądań. Poczekaj chwilę i spróbuj ponownie.",
+  "account.err.notAllowed": "Na ten adres nie możemy teraz wysłać wiadomości.",
+  "account.err.email": "Sprawdź adres e-mail.",
+  "account.err.generic": "Nie udało się – brak połączenia? Spróbuj ponownie.",
+  "account.name.title": "Mamy tak się do ciebie zwracać?",
+  "account.name.save": "Zapisz",
+  "account.name.skip": "Pomiń",
+  "account.nudge.text": "Zaloguj się, aby nie stracić przejazdów",
+  "account.nudge.action": "Zaloguj się",
+  "account.nudge.later": "Nie teraz",
+  "account.signedIn": "Zalogowano",
+  "account.signedOut": "Wylogowano",
+  "account.deleted": "Twoje konto zostało usunięte"
 }

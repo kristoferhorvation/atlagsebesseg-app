@@ -1,4 +1,5 @@
-import { mergeHeatCells, mergePasses, normalizeTrip, trashExpired, trashExpiresAt, tripPasses, TRIP, type HeatCell, type HeatPass, type Trip, type TripSample } from '@atlagsebesseg/app-logic';
+import { noteDeleted, noteRestored } from '../account/cloudState';
+import { mergeHeatCells, mergePasses, mergeRemoteHeat, normalizeTrip, trashExpired, trashExpiresAt, tripPasses, TRIP, type HeatCell, type HeatPass, type Trip, type TripSample } from '@atlagsebesseg/app-logic';
 
 /**
  * AW19: az utak naplójának helyi tárolója – IndexedDB (`atlagsebesseg-trips`, 1. verzió; az iOS-pár a SQLite-os
@@ -8,9 +9,10 @@ import { mergeHeatCells, mergePasses, normalizeTrip, trashExpired, trashExpiresA
  * melyik út van már beolvasztva – idempotencia). Szerverre innen semmi nem megy (a közösségi feltöltés külön, opt-in).
  * AOS17 (3. verzió): `trashTrips`, `trashHeat`, `trashHeatTrips` – az „Összes törlése” 30 napig visszaállítható sorai `deletedAt`-tal
  * (a minták a helyükön maradnak: a `samples` csak út-azonosítóval érhető el, a lejáratkor törlődnek).
+ * AW22 (4. verzió): `remoteHeat` – a fiók többi készülékének hőtérképe (a felhős mentésből, a kijelzéshez hozzáadva, soha nem töltődik fel újra).
  */
 const DB_NAME = 'atlagsebesseg-trips';
-const DB_VERSION = 3;
+const DB_VERSION = 4;
 
 let dbPromise: Promise<IDBDatabase> | null = null;
 
@@ -26,6 +28,7 @@ function open(): Promise<IDBDatabase> {
       if (!db.objectStoreNames.contains('trashTrips')) db.createObjectStore('trashTrips', { keyPath: 'id' });
       if (!db.objectStoreNames.contains('trashHeat')) db.createObjectStore('trashHeat', { keyPath: 'h3' });
       if (!db.objectStoreNames.contains('trashHeatTrips')) db.createObjectStore('trashHeatTrips', { keyPath: 'id' });
+      if (!db.objectStoreNames.contains('remoteHeat')) db.createObjectStore('remoteHeat', { autoIncrement: true });
     };
     req.onsuccess = () => resolve(req.result);
     req.onerror = () => reject(req.error);
@@ -106,6 +109,12 @@ export async function deleteSamples(tripId: string): Promise<void> {
 
 /** Egy út a mintáival. */
 export async function deleteTrip(id: string): Promise<void> {
+  noteDeleted([id]);
+  await deleteDownloadedTrip(id);
+}
+
+/** Az út törlése a szerver felé jelzés nélkül (a másik készüléken törölt út). */
+export async function deleteDownloadedTrip(id: string): Promise<void> {
   const db = await open();
   await deleteSamplesOf(db, id);
   const tx = db.transaction('trips', 'readwrite');
@@ -122,7 +131,8 @@ type Trashed<T> = T & { deletedAt: number };
  */
 export async function deleteAllTrips({ heat, keep, now = Date.now() }: { heat: boolean; keep: boolean; now?: number }): Promise<void> {
   const db = await open();
-  const tx = db.transaction(['trips', 'samples', 'heat', 'heatTrips', ...TRASH_STORES], 'readwrite');
+  noteDeleted((await listTrips()).map((x) => x.id), heat);
+  const tx = db.transaction(['trips', 'samples', 'heat', 'heatTrips', 'remoteHeat', ...TRASH_STORES], 'readwrite');
   if (keep) {
     const [trips, cells, heatTrips, oldCells] = await Promise.all([
       result(tx.objectStore('trips').getAll() as IDBRequest<Trip[]>),
@@ -142,6 +152,7 @@ export async function deleteAllTrips({ heat, keep, now = Date.now() }: { heat: b
   if (heat) {
     tx.objectStore('heat').clear();
     tx.objectStore('heatTrips').clear();
+    tx.objectStore('remoteHeat').clear();
   }
   await done(tx);
 }
@@ -186,16 +197,44 @@ export async function restoreTrash(now = Date.now()): Promise<void> {
   for (const x of heatTrips) tx.objectStore('heatTrips').put({ id: x.id });
   for (const s of TRASH_STORES) tx.objectStore(s).clear();
   await done(tx);
+  noteRestored(trips.map((x) => x.id));
 }
 
 // ---------------------------------------------------------------------------
 // AW20: személyes hőtérkép – cellánkénti összesítés, inkrementálisan
 // ---------------------------------------------------------------------------
 
-/** A teljes személyes hőtérkép (cellánként egy sor). */
-export async function listHeat(): Promise<HeatCell[]> {
+/** A készülék saját hőtérképe (cellánként egy sor): ez töltődik fel, ha be van kapcsolva a felhős mentés. */
+export async function listHeatOwn(): Promise<HeatCell[]> {
   const db = await open();
   return result(db.transaction('heat').objectStore('heat').getAll() as IDBRequest<HeatCell[]>);
+}
+
+/** A kirajzolandó személyes hőtérkép: a saját + a fiók többi készülékéé (AW22). */
+export async function listHeat(): Promise<HeatCell[]> {
+  const db = await open();
+  const [own, lists] = await Promise.all([listHeatOwn(), result(db.transaction('remoteHeat').objectStore('remoteHeat').getAll() as IDBRequest<HeatCell[][]>)]);
+  return lists.length ? mergeRemoteHeat(own, lists) : own;
+}
+
+/** A fiók többi készülékének cellái: minden szinkronnál teljes csere. */
+export async function setRemoteHeat(lists: readonly (readonly HeatCell[])[]): Promise<void> {
+  const db = await open();
+  const tx = db.transaction('remoteHeat', 'readwrite');
+  const store = tx.objectStore('remoteHeat');
+  store.clear();
+  for (const l of lists) store.add(l);
+  await done(tx);
+}
+
+/** A felhőből letöltött út: a naplóba kerül, de a hőtérképbe nem olvad be (a cellái a másik készülék sorában érkeznek). */
+export async function saveDownloadedTrip(trip: Trip, samples: readonly TripSample[]): Promise<void> {
+  const db = await open();
+  const tx = db.transaction(['trips', 'samples', 'heatTrips'], 'readwrite');
+  tx.objectStore('trips').put(trip);
+  for (const s of samples) tx.objectStore('samples').add(s);
+  tx.objectStore('heatTrips').put({ id: trip.id });
+  await done(tx);
 }
 
 /**

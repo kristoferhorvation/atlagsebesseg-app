@@ -21,6 +21,8 @@ import {
   plannedCheckActive,
   PlannedCheckWatch,
   ReportPromptWatch,
+  hazardVoice,
+  getLanguage,
   gateStartedAfter,
   type ReportPrompt,
   greetingText,
@@ -43,7 +45,7 @@ import {
   reportFromFix,
   t,
   type TKey,
-  type MapErrorKind,
+  type ReportSubtype,
   type ReportChoice,
   type ReportInsert,
   type SessionView,
@@ -91,6 +93,7 @@ import { simStartFromUrl, useSimulator } from './sim/useSimulator';
 import { buildNavSim, simIdleFix, simRouteFetcher, simSearch, SIM_ALT_MODES, SIM_PLACES, type NavSimData, type SimAltMode } from './sim/navSim';
 import { CameraCard } from './ui/CameraCard';
 import { cameraIcon } from './ui/cameraIcon';
+import { speak } from './nav/speech';
 import { Hud, ManualMini, SlowDown, toneOf } from './ui/Hud';
 import { Icon, type IconName } from './ui/Icon';
 import { LimitSign } from './ui/LimitSign';
@@ -102,6 +105,8 @@ import { ReportCard } from './ui/ReportCard';
 import { GeoBlockedSheet } from './ui/GeoBlockedSheet';
 import { ReportSheet } from './ui/ReportSheet';
 import { SettingsSheet } from './ui/SettingsSheet';
+import { NameStepSheet, SignInNudge } from './ui/AccountCard';
+import { useAccount } from './hooks/useAccount';
 import { SimPanel } from './ui/SimPanel';
 import { StartScreen } from './ui/StartScreen';
 import { StatusPills } from './ui/StatusPills';
@@ -226,7 +231,8 @@ function Drive({ map }: { map: WebMapAdapter }) {
   navSessionRef.current = nav.session;
   // AW20-javítás: adatvédelmi zónák a mentett helyek körül (csak helyben; a hőtérkép szürkíti, a feltöltés kihagyja)
   const zones = useMemo(() => heatZones(places.saved, settings.zona_m), [places.saved, settings.zona_m]);
-  const trips = useTrips(now, nav.view, view, settings.adatmegosztas, zones);
+  const tripSavedRef = useRef<() => void>(() => undefined);
+  const trips = useTrips(now, nav.view, view, settings.adatmegosztas, zones, () => tripSavedRef.current());
   tripsRef.current = trips;
   const navSearch = useCallback((q: string) => (NAV_SIM ? simSearch(q) : searchPlaces(q, view.lastFix)), [view.lastFix]);
   const requestsToday = useSyncExternalStore(requestCounter.subscribe, () => requestCounter.count);
@@ -373,6 +379,9 @@ function Drive({ map }: { map: WebMapAdapter }) {
   // „Még ott van?” (bejelentésenként egyszer; válasz, elhaladás vagy 10 s után eltűnik)
   const [promptWatch] = useState(() => new ReportPromptWatch());
   const [prompt, setPrompt] = useState<ReportPrompt | null>(null);
+  const hazardSpoken = useRef(new Set<string>());
+  const settingsRef = useRef(settings);
+  settingsRef.current = settings;
   const feedRef = useRef(feed);
   feedRef.current = feed;
   const fixRef = useRef(view.lastFix);
@@ -381,6 +390,9 @@ function Drive({ map }: { map: WebMapAdapter }) {
     const f = feedRef.current;
     const p = promptWatch.update(fixRef.current, f.reports, (rid) => f.myVote(rid) !== null, now());
     // a távolság 10 m-es lépésben frissül (nem minden óra-lépésnél új objektum)
+    // AW22: a Veszély közeledés-bemondása, bejelentésenként egyszer
+    const hazard = hazardVoice(p, f.reports.find((r) => r.id === p?.id), hazardSpoken.current);
+    if (hazard && settingsRef.current.hangos_utasitasok) speak(hazard, getLanguage(), 'section', SIM_MODE);
     setPrompt((prev) => (prev?.id === p?.id && prev?.phase === p?.phase && Math.round((prev?.distanceM ?? 0) / 10) === Math.round((p?.distanceM ?? 0) / 10) ? prev : p));
   }, [promptWatch, now]);
   useEffect(checkPrompt, [view.lastFix, feed.reports.length, checkPrompt]);
@@ -561,6 +573,21 @@ function Drive({ map }: { map: WebMapAdapter }) {
   const [sheet, setSheet] = useState<'report' | 'settings' | 'geo' | 'trips' | 'heatDetails' | null>(START_SHEET);
   const [toast, setToast] = useState<Toast | null>(null);
   const showToast = useCallback((t: Omit<Toast, 'id'>) => setToast({ ...t, id: Date.now() }), []);
+  // AW22: a valódi, nem kötelező fiók
+  const { preference, setPreference } = useLanguage();
+  const account = useAccount({
+    settings,
+    update,
+    preference,
+    setPreference,
+    saved: places.saved,
+    recents: places.recents,
+    setPlaces: places.replaceAll,
+    openTripId: trips.cruise?.tripId ?? null,
+    onData: trips.touch,
+    toast: (text) => showToast({ text, tone: 'jo', icon: 'check' }),
+  });
+  tripSavedRef.current = account.tripSaved;
   useEffect(() => {
     if (!toast) return;
     const id = setTimeout(() => setToast(null), toast.ms ?? 2600);
@@ -620,7 +647,7 @@ function Drive({ map }: { map: WebMapAdapter }) {
 
   const [sending, setSending] = useState<ReportChoice | null>(null);
   const report = useCallback(
-    (choice: ReportChoice, opts: { jamSample?: boolean; subtype?: MapErrorKind; fix?: GpsFix } = {}) => {
+    (choice: ReportChoice, opts: { jamSample?: boolean; subtype?: ReportSubtype; fix?: GpsFix } = {}) => {
       const fix = opts.fix ?? view.lastFix;
       const row = fix ? reportFromFix(choice, fix, opts.subtype) : null;
       if (!row) return;
@@ -843,6 +870,16 @@ function Drive({ map }: { map: WebMapAdapter }) {
             />
           )}
           {!selected && selectedCam && <CameraCard key={selectedCam.id} camera={selectedCam} fix={view.lastFix} unit={settings.egyseg} onClose={() => setSelectedCamId(null)} />}
+          {/* AW22: befejezett út után, legfeljebb egyszer; csak az üres nézeten */}
+          {account.nudge && !driving && !nav.view && !selected && !selectedCam && (
+            <SignInNudge
+              onLater={account.closeNudge}
+              onSignIn={() => {
+                account.closeNudge();
+                setSheet('settings');
+              }}
+            />
+          )}
           {navSign && nav.view && (
             <div className="recenter-row">
               <div className="sign-slot">
@@ -866,14 +903,23 @@ function Drive({ map }: { map: WebMapAdapter }) {
           <button className="round-btn glass report" onClick={() => setSheet('report')} aria-label={t('map.report')}>
             <Icon name="report" size={28} />
           </button>
-          {/* AW21: a „Vissza a helyemre” SAJÁT, mindig fenntartott helye a gombsor jobb szélén; rejtett gombnál a hely üres marad, a többi gomb nem mozdul */}
-          <div className="recenter-slot">
-            {!follow.following && (
-              <button className="round-btn glass recenter" onClick={follow.recenter} aria-label={t('map.recenter')}>
+          {/* AW21: a „Vissza a helyemre” SAJÁT, mindig fenntartott helye a gombsor jobb szélén; rejtett gombnál a hely üres marad, a többi gomb nem mozdul.
+              AW22: a ManualMini helye soha nem mozdul – amíg látszik, nincs fenntartott hely (a mini az AW21 előtti helyén), a gomb a jobb oldali gombsor fölé kerül */}
+          {pillCollapsed ? (
+            !follow.following && (
+              <button className="round-btn glass recenter recenter-above" onClick={follow.recenter} aria-label={t('map.recenter')}>
                 <Icon name="crosshair" size={28} />
               </button>
-            )}
-          </div>
+            )
+          ) : (
+            <div className="recenter-slot">
+              {!follow.following && (
+                <button className="round-btn glass recenter" onClick={follow.recenter} aria-label={t('map.recenter')}>
+                  <Icon name="crosshair" size={28} />
+                </button>
+              )}
+            </div>
+          )}
         </div>
         {nav.view && (measuringLayout || stepStrip) && <NavStrip view={nav.view} unit={settings.egyseg} />}
         {hudCardShown && (
@@ -946,6 +992,7 @@ function Drive({ map }: { map: WebMapAdapter }) {
       )}
       {sheet === 'settings' && (
         <SettingsSheet
+          account={account}
           settings={settings}
           update={update}
           simMode={SIM_MODE}
@@ -981,6 +1028,7 @@ function Drive({ map }: { map: WebMapAdapter }) {
           }}
         />
       )}
+      {account.nameStep !== null && <NameStepSheet initial={account.nameStep} onSave={account.saveName} onSkip={account.skipName} />}
       {sheet === 'heatDetails' && <HeatDetailsSheet saved={places.saved} zones={zones} settings={settings} update={update} onShowZone={showZone} peek={zonePeek} onPeekEnd={() => setZonePeek(false)} onClose={() => setSheet('settings')} />}
       {sheet === 'trips' && (
         <TripLogSheet

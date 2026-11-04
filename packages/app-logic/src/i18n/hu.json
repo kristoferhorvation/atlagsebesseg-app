@@ -1,11 +1,9 @@
 {
   "app.name": "Átlagsebesség",
   "app.description": "Átlagsebesség-mérő szakaszok: élő átlag, határ és színkód vezetés közben.",
-
   "common.close": "Bezárás",
   "common.ok": "Rendben",
   "common.done": "Kész",
-
   "start.tagline": "Mérőszakaszon automatikusan indul: élő átlag, határ és egyértelmű színkód.",
   "start.tip.phone": "Telefon tartóban, képernyő bekapcsolva",
   "start.tip.location": "Helyhozzáférés engedélyezése",
@@ -14,7 +12,6 @@
   "start.install.steps": "Megosztás gomb → „Főképernyőhöz adás”. Így teljes képernyőn, címsor nélkül fut.",
   "start.go": "Indulás",
   "start.sim": "Kipróbálom GPS nélkül (szimulátor)",
-
   "pill.gps.off": "GPS ki",
   "pill.sim": "Szimulátor",
   "pill.gps.searching": "GPS keresése…",
@@ -28,11 +25,9 @@
   "pill.wake.tap": "Kijelző elalhat – koppints",
   "pill.wake.off": "Kijelző elalhat",
   "pill.offline": "Offline · beépített szakaszok",
-
   "status.good": "Jó ütem",
   "status.slow": "Átlag magas",
   "status.fast": "Túl gyors",
-
   "hud.measure": "Mérés",
   "hud.starting": "Mérés indul…",
   "hud.estimate": "Becslés",
@@ -41,21 +36,17 @@
   "hud.tolerance": "tűrés {x}",
   "hud.now": "most",
   "hud.expected": "várható",
-
   "hud.limitAria": "Határ: {x} {u}",
-
   "hud.approach.aria": "Mérőszakasz közeleg",
   "hud.approach.chip": "Mérőszakasz",
   "hud.approach.default": "Átlagsebesség-mérés",
   "hud.ahead": "{u} múlva",
-
   "hud.done.aria": "Szakasz vége",
   "hud.done.over": "+{x} {u} a határ felett",
   "hud.done.under": "A határ alatt",
   "hud.done.final": "{u} végső átlag",
   "hud.done.section": "szakasz",
   "hud.done.duration": "menetidő",
-
   "hud.interrupted.aria": "Mérés megszakadt",
   "hud.interrupted.manual": "Kézi átlagmérés megszakadt",
   "hud.interrupted.auto": "Mérés megszakadt",
@@ -66,7 +57,6 @@
   "interrupt.offRoute": "Letértél a szakaszról",
   "interrupt.wrongWay": "Ellenirányban haladsz",
   "interrupt.gpsLoss": "Túl hosszú GPS-kiesés",
-
   "hud.manual": "Kézi átlagmérés",
   "hud.manual.stop": "Leállítás",
   "hud.manual.pillAria": "Kézi átlagmérés – koppintásra kinyílik",
@@ -75,29 +65,23 @@
   "hud.manualDone.distance": "távolság",
   "hud.manualDone.distanceEst": "távolság (részben becsült)",
   "hud.manualDone.time": "idő",
-
-
   "hud.none.aria": "Nincs mérőszakasz",
   "hud.none.near": "Nincs mérőszakasz a közelben",
   "hud.none.waiting": "GPS-jelre vár…",
-
   "source.verified": "Ellenőrzött",
   "source.osm": "Forrás: OpenStreetMap",
   "source.official": "Forrás: hivatalos lista",
   "source.community": "Forrás: közösségi (ideiglenes kapuk)",
   "source.named": "Forrás: {name}, {date}",
-
   "slowdown.cant": "Nem hozható be",
   "slowdown.stay": "Maradj {x} alatt",
   "slowdown.slow": "Lassíts · max {x}",
   "slowdown.compactMax": "max {x}",
   "slowdown.compactCant": "nem hozható",
-
   "planned.line": "Tervezett rendőrségi mérés",
   "planned.zone": "Rendőrségi mérés {place} területén · {date} · forrás: {source}",
   "planned.max": "max {x}",
   "planned.maxApprox": "max ~{x}",
-
   "date.month.1": "jan",
   "date.month.2": "febr",
   "date.month.3": "márc",
@@ -113,18 +97,16 @@
   "date.range.day": "{m} {d}",
   "date.range.month": "{m} {d1}–{d2}",
   "date.range.months": "{m1} {d1}–{m2} {d2}",
-
   "time.now": "most",
   "time.minutes": "{n} perce",
   "time.hours": "{n} órája",
   "greet.named": "Szia {name}!",
   "greet.anon": "Szia!",
-
   "report.title": "Bejelentés",
   "report.type.rendorseg": "Rendőrség",
   "report.type.traffipax": "Traffipax",
   "report.type.baleset": "Baleset",
-  "report.type.akadaly": "Akadály",
+  "report.type.akadaly": "Veszély",
   "report.type.utlezaras": "Útlezárás",
   "report.type.szakasz_hiba": "Térképhiba",
   "report.type.dugo": "Dugó",
@@ -144,6 +126,11 @@
   "report.sub.hianyzo": "Hiányzó szakasz",
   "report.sub.kamera": "Rossz kamera-pozíció",
   "report.sub.egyeb": "Egyéb",
+  "report.hazard.question": "Milyen veszély?",
+  "report.hazard.targy": "Tárgy az úton",
+  "report.hazard.katyu": "Kátyú",
+  "report.hazard.allo_jarmu": "Álló jármű",
+  "report.voice.hazard": "Veszély az úton {m} méterre",
   "report.card.aria": "Bejelentés: {label}",
   "report.card.own": "Saját bejelentésed",
   "report.card.confirm": "Megerősítés",
@@ -156,10 +143,8 @@
   "report.sendFail": "Nem sikerült elküldeni – nincs kapcsolat?",
   "vote.confirmed": "Köszönjük – megerősítve",
   "vote.gone": "Köszönjük – jelezted, hogy nincs ott",
-
   "toast.wakeSleep": "A kijelző elalhat – állítsd az automatikus zárolást „Soha” értékre",
   "toast.wakeNever": "Állítsd az automatikus zárolást „Soha” értékre",
-
   "camera.type.speed": "Sebességmérő kamera",
   "camera.type.red_light": "Piroslámpa-kamera",
   "camera.type.complex": "Komplex ellenőrző pont",
@@ -174,13 +159,11 @@
   "camera.dir.one": "Egy irányban mér",
   "camera.distance": "{d} távolságra",
   "warn.camera.DE": "Németországban a vezető nem használhatja ezt a funkciót",
-
   "map.recenter": "Vissza a helyemre",
   "map.settings": "Beállítások",
   "map.manualStart": "Kézi átlagmérés indítása",
   "map.report": "Bejelentés",
   "map.attribution": "Szakaszok © OpenStreetMap contributors (ODbL)",
-
   "settings.title": "Beállítások",
   "settings.group.display": "Kijelző",
   "settings.tolerance": "Hatósági tűrés megjelenítése",
@@ -207,7 +190,6 @@
   "settings.sim.exit": "Kilépés a szimulátorból",
   "settings.sim.hint": "Felvett útvonal lejátszása GPS nélkül, a kijelző kipróbálásához.",
   "settings.attribution": "Szakaszadatok és kamerák: © OpenStreetMap contributors (ODbL); fix VÉDA-pontok: ORFK (2015); tervezett mérések: police.hu. Térkép: © Mapbox, © OpenStreetMap. Az app tájékoztató jellegű – a sebességhatárt mindig a táblák határozzák meg.",
-
   "geo.off": "ki",
   "geo.searching": "keresés…",
   "geo.active": "aktív",
@@ -238,7 +220,6 @@
   "sections.status.offline": "beépített (offline)",
   "server.set": "beállítva",
   "server.none": "nincs (offline mód)",
-
   "map.search": "Úti cél keresése",
   "nav.aria": "Navigáció",
   "nav.search.placeholder": "Hova megyünk?",
@@ -346,7 +327,6 @@
   "ios.intent.destination": "Cél",
   "ios.geo.denied": "tiltva (Beállítások → Adatvédelem → Helymeghatározás)",
   "ios.start.tip.background": "Zárolt képernyővel is mér – a kijelző mérés közben ébren marad",
-
   "ios.alert.camera": "Kamera {d} méterre, maximum {x}",
   "ios.alert.cameraNoLimit": "Kamera {d} méterre",
   "ios.alert.plannedLine": "Tervezett mérés, maximum {x}",
@@ -368,7 +348,6 @@
   "ios.live.nextSection": "Szakasz {d} múlva",
   "ios.live.attribution": "© Mapbox © OpenStreetMap",
   "ios.live.remaining": "{x} hátra",
-
   "trips.title": "Utak naplója",
   "trips.cruise": "Krúzing",
   "trips.cruiseStatus": "Krúzing · {dist} · {time}",
@@ -413,7 +392,6 @@
   "trips.checkLimit": "határ {v}",
   "trips.checkOk": "rendben",
   "trips.checkFast": "túl gyors",
-
   "settings.heat": "Hőtérkép",
   "settings.heat.off": "Ki",
   "settings.heat.own": "Saját",
@@ -444,5 +422,40 @@
   "heat.zone.hint": "A zónában a cellák nem kerülnek fel, és szürkék a saját hőtérképen.",
   "heat.zone.200": "200 m",
   "heat.zone.500": "500 m",
-  "heat.zone.1000": "1 km"
+  "heat.zone.1000": "1 km",
+  "account.title": "Fiók",
+  "account.hint": "Nem kötelező, az app nélküle is teljes értékű. Bejelentkezve a helyeid és a beállításaid minden készülékeden megvannak.",
+  "account.apple": "Bejelentkezés az Apple-lel",
+  "account.google": "Google",
+  "account.email": "E-mail",
+  "account.notConfigured": "Az Apple- és a Google-belépés még nincs beállítva.",
+  "account.emailPlaceholder": "E-mail-címed",
+  "account.emailSend": "Bejelentkező link küldése",
+  "account.emailHint": "Jelszó nem kell: e-mailben kapsz egy linket, azzal lépsz be.",
+  "account.emailSent": "Elküldtük a linket ide: {email}. Ezen a készüléken nyisd meg.",
+  "account.cancel": "Mégse",
+  "account.sync.syncing": "Szinkronizálás…",
+  "account.sync.error": "A szinkron nem sikerült, később újra megpróbáljuk.",
+  "account.sync.waiting": "Szinkron indul…",
+  "account.sync.at": "Szinkronizálva: {time}",
+  "account.backup": "Napló és hőtérkép mentése a felhőbe",
+  "account.backupHint": "Bekapcsolva az utaid és a saját hőtérképed feltöltődik, és szinkronban marad a többi készülékeddel. Kikapcsolva nem megy fel több adat; a már feltöltött másolat a fiók törléséig megmarad.",
+  "account.signOut": "Kijelentkezés",
+  "account.signOutHint": "A készüléken minden adatod megmarad, és fiók nélkül folytatod.",
+  "account.delete": "Fiók törlése",
+  "account.delete.body": "Törlődik a fiókod és minden hozzá tartozó, szerveren tárolt adat: profil, szinkronizált beállítások és helyek, felhős napló és hőtérkép, bejelentések, szavazatok. A közösségi hőtérképbe már névtelenül bekerült cellák megmaradnak, mert nem köthetők hozzád. A készülékeden lévő adatok is megmaradnak.",
+  "account.delete.confirm": "Végleges törlés",
+  "account.err.rate": "Most túl sok a kérés. Várj egy kicsit, és próbáld újra.",
+  "account.err.notAllowed": "Erre a címre most nem tudunk levelet küldeni.",
+  "account.err.email": "Ellenőrizd az e-mail-címet.",
+  "account.err.generic": "Nem sikerült – nincs kapcsolat? Próbáld újra.",
+  "account.name.title": "Így szólítsunk?",
+  "account.name.save": "Mentés",
+  "account.name.skip": "Kihagyom",
+  "account.nudge.text": "Jelentkezz be, és nem vesznek el az utaid",
+  "account.nudge.action": "Bejelentkezés",
+  "account.nudge.later": "Nem most",
+  "account.signedIn": "Bejelentkeztél",
+  "account.signedOut": "Kijelentkeztél",
+  "account.deleted": "A fiókod törölve"
 }

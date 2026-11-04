@@ -119,6 +119,7 @@ extension AppModel {
         edit(&saved)
         placesStore.setItem(SAVED_KEY, serializeSaved(saved))
         heatVersion += 1 // AW20-javítás: a zónák a mentett helyekből jönnek – a szürke / színezett felosztás újraszámolódik
+        accountDataChanged()
     }
 
     // MARK: tervezés (útvonalválasztó)
@@ -322,6 +323,7 @@ extension AppModel {
     private func pushRecent(_ p: Place) {
         recents = addRecent(recents, p)
         placesStore.setItem(RECENTS_KEY, serializeRecents(recents))
+        accountDataChanged()
     }
 
     // MARK: útvonal-adat (routeData.ts)

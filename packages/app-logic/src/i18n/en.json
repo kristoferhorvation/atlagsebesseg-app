@@ -1,11 +1,9 @@
 {
   "app.name": "Average Speed",
   "app.description": "Section average-speed checks: live average, limit and colour code as you drive.",
-
   "common.close": "Close",
   "common.ok": "OK",
   "common.done": "Done",
-
   "start.tagline": "Starts by itself at a section: live average, limit and a clear colour code.",
   "start.tip.phone": "Phone in a holder, screen on",
   "start.tip.location": "Allow location access",
@@ -14,7 +12,6 @@
   "start.install.steps": "Share button → “Add to Home Screen”. It then runs full screen, without an address bar.",
   "start.go": "Start",
   "start.sim": "Try it without GPS (simulator)",
-
   "pill.gps.off": "GPS off",
   "pill.sim": "Simulator",
   "pill.gps.searching": "Finding GPS…",
@@ -28,11 +25,9 @@
   "pill.wake.tap": "Screen may sleep – tap",
   "pill.wake.off": "Screen may sleep",
   "pill.offline": "Offline · built-in sections",
-
   "status.good": "On pace",
   "status.slow": "Average too high",
   "status.fast": "Too fast",
-
   "hud.measure": "Measuring",
   "hud.starting": "Starting…",
   "hud.estimate": "Estimate",
@@ -41,21 +36,17 @@
   "hud.tolerance": "tolerance {x}",
   "hud.now": "now",
   "hud.expected": "expected",
-
   "hud.limitAria": "Limit: {x} {u}",
-
   "hud.approach.aria": "Section ahead",
   "hud.approach.chip": "Section",
   "hud.approach.default": "Average speed check",
   "hud.ahead": "{u} ahead",
-
   "hud.done.aria": "End of section",
   "hud.done.over": "+{x} {u} over the limit",
   "hud.done.under": "Under the limit",
   "hud.done.final": "{u} final average",
   "hud.done.section": "section",
   "hud.done.duration": "travel time",
-
   "hud.interrupted.aria": "Measurement interrupted",
   "hud.interrupted.manual": "Manual average measurement interrupted",
   "hud.interrupted.auto": "Measurement interrupted",
@@ -66,7 +57,6 @@
   "interrupt.offRoute": "You left the section",
   "interrupt.wrongWay": "You’re going the wrong way",
   "interrupt.gpsLoss": "GPS signal lost for too long",
-
   "hud.manual": "Manual average measurement",
   "hud.manual.stop": "Stop",
   "hud.manual.pillAria": "Manual average measurement – tap to expand",
@@ -75,29 +65,23 @@
   "hud.manualDone.distance": "distance",
   "hud.manualDone.distanceEst": "distance (partly estimated)",
   "hud.manualDone.time": "time",
-
-
   "hud.none.aria": "No section",
   "hud.none.near": "No section nearby",
   "hud.none.waiting": "Waiting for GPS…",
-
   "source.verified": "Verified",
   "source.osm": "Source: OpenStreetMap",
   "source.official": "Source: official list",
   "source.community": "Source: community (temporary gates)",
   "source.named": "Source: {name}, {date}",
-
   "slowdown.cant": "Can’t recover",
   "slowdown.stay": "Stay under {x}",
   "slowdown.slow": "Slow down · max {x}",
   "slowdown.compactMax": "max {x}",
   "slowdown.compactCant": "can’t recover",
-
   "planned.line": "Planned police check",
   "planned.zone": "Police check in {place} · {date} · source: {source}",
   "planned.max": "max {x}",
   "planned.maxApprox": "max ~{x}",
-
   "date.month.1": "Jan",
   "date.month.2": "Feb",
   "date.month.3": "Mar",
@@ -113,13 +97,11 @@
   "date.range.day": "{m} {d}",
   "date.range.month": "{m} {d1}–{d2}",
   "date.range.months": "{m1} {d1}–{m2} {d2}",
-
   "time.now": "now",
   "time.minutes": "{n} min ago",
   "time.hours": "{n} h ago",
   "greet.named": "Hi {name}!",
   "greet.anon": "Hi!",
-
   "report.title": "Report",
   "report.type.rendorseg": "Police",
   "report.type.traffipax": "Speed camera",
@@ -144,6 +126,11 @@
   "report.sub.hianyzo": "Missing section",
   "report.sub.kamera": "Wrong camera position",
   "report.sub.egyeb": "Other",
+  "report.hazard.question": "What kind of hazard?",
+  "report.hazard.targy": "Object on the road",
+  "report.hazard.katyu": "Pothole",
+  "report.hazard.allo_jarmu": "Stopped vehicle",
+  "report.voice.hazard": "Hazard on the road in {m} meters",
   "report.card.aria": "Report: {label}",
   "report.card.own": "Your own report",
   "report.card.confirm": "Confirm",
@@ -156,10 +143,8 @@
   "report.sendFail": "Couldn’t send – no connection?",
   "vote.confirmed": "Thanks – confirmed",
   "vote.gone": "Thanks – noted as not there",
-
   "toast.wakeSleep": "The screen may sleep – set auto-lock to “Never”",
   "toast.wakeNever": "Set auto-lock to “Never”",
-
   "camera.type.speed": "Speed camera",
   "camera.type.red_light": "Red-light camera",
   "camera.type.complex": "Complex checkpoint",
@@ -174,13 +159,11 @@
   "camera.dir.one": "Measures one direction",
   "camera.distance": "{d} away",
   "warn.camera.DE": "Drivers may not use this feature in Germany",
-
   "map.recenter": "Back to my position",
   "map.settings": "Settings",
   "map.manualStart": "Start manual average measurement",
   "map.report": "Report",
   "map.attribution": "Sections © OpenStreetMap contributors (ODbL)",
-
   "settings.title": "Settings",
   "settings.group.display": "Display",
   "settings.tolerance": "Show official tolerance",
@@ -207,7 +190,6 @@
   "settings.sim.exit": "Exit the simulator",
   "settings.sim.hint": "Replays a recorded route without GPS, to try out the display.",
   "settings.attribution": "Section data and cameras: © OpenStreetMap contributors (ODbL); fixed VÉDA points: ORFK (2015); planned checks: police.hu. Map: © Mapbox, © OpenStreetMap. The app is for information only – the signs always set the speed limit.",
-
   "geo.off": "off",
   "geo.searching": "searching…",
   "geo.active": "active",
@@ -238,7 +220,6 @@
   "sections.status.offline": "built-in (offline)",
   "server.set": "configured",
   "server.none": "none (offline mode)",
-
   "map.search": "Search for a destination",
   "nav.aria": "Navigation",
   "nav.search.placeholder": "Where to?",
@@ -346,7 +327,6 @@
   "ios.intent.destination": "Destination",
   "ios.geo.denied": "denied (Settings → Privacy → Location Services)",
   "ios.start.tip.background": "Keeps measuring with the screen locked – the display stays on while measuring",
-
   "ios.alert.camera": "Camera in {d} metres, maximum {x}",
   "ios.alert.cameraNoLimit": "Camera in {d} metres",
   "ios.alert.plannedLine": "Planned check, maximum {x}",
@@ -368,7 +348,6 @@
   "ios.live.nextSection": "Section in {d}",
   "ios.live.attribution": "© Mapbox © OpenStreetMap",
   "ios.live.remaining": "{x} left",
-
   "trips.title": "Trip log",
   "trips.cruise": "Cruising",
   "trips.cruiseStatus": "Cruising · {dist} · {time}",
@@ -413,7 +392,6 @@
   "trips.checkLimit": "limit {v}",
   "trips.checkOk": "OK",
   "trips.checkFast": "too fast",
-
   "settings.heat": "Heatmap",
   "settings.heat.off": "Off",
   "settings.heat.own": "Mine",
@@ -444,5 +422,40 @@
   "heat.zone.hint": "Cells inside the zone are not sent and show in grey on your own heatmap.",
   "heat.zone.200": "200 m",
   "heat.zone.500": "500 m",
-  "heat.zone.1000": "1 km"
+  "heat.zone.1000": "1 km",
+  "account.title": "Account",
+  "account.hint": "Optional: the app works fully without it. Signed in, your places and settings are on all your devices.",
+  "account.apple": "Sign in with Apple",
+  "account.google": "Google",
+  "account.email": "Email",
+  "account.notConfigured": "Apple and Google sign-in are not set up yet.",
+  "account.emailPlaceholder": "Your email address",
+  "account.emailSend": "Send sign-in link",
+  "account.emailHint": "No password needed: you get a link by email and sign in with it.",
+  "account.emailSent": "We sent the link to {email}. Open it on this device.",
+  "account.cancel": "Cancel",
+  "account.sync.syncing": "Syncing…",
+  "account.sync.error": "Sync failed, we will try again later.",
+  "account.sync.waiting": "Sync starting…",
+  "account.sync.at": "Synced: {time}",
+  "account.backup": "Back up log and heatmap to the cloud",
+  "account.backupHint": "When on, your trips and your own heatmap are uploaded and kept in sync with your other devices. When off, nothing more is uploaded; the existing copy stays until you delete your account.",
+  "account.signOut": "Sign out",
+  "account.signOutHint": "All your data stays on this device and you continue without an account.",
+  "account.delete": "Delete account",
+  "account.delete.body": "Your account and all data stored for it on the server will be deleted: profile, synced settings and places, cloud log and heatmap, reports, votes. Cells already added anonymously to the community heatmap remain, as they cannot be linked to you. The data on your device also remains.",
+  "account.delete.confirm": "Delete permanently",
+  "account.err.rate": "Too many requests right now. Wait a little and try again.",
+  "account.err.notAllowed": "We cannot send email to this address right now.",
+  "account.err.email": "Check the email address.",
+  "account.err.generic": "That did not work – no connection? Try again.",
+  "account.name.title": "Is this what we should call you?",
+  "account.name.save": "Save",
+  "account.name.skip": "Skip",
+  "account.nudge.text": "Sign in so you never lose your trips",
+  "account.nudge.action": "Sign in",
+  "account.nudge.later": "Not now",
+  "account.signedIn": "You are signed in",
+  "account.signedOut": "You are signed out",
+  "account.deleted": "Your account has been deleted"
 }

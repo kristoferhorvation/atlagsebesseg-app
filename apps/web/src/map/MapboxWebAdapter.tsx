@@ -6,7 +6,7 @@ import { mapTheme, MapStore, NAV_FOLLOW, navFollowZoom, placeAltLabel, type Ligh
 import { bearingDeg, haversineM, LocalProjection, type GpsFix, type LatLon, type Section } from '@atlagsebesseg/core';
 import { color } from '@atlagsebesseg/design-tokens';
 import { iconSvg } from '../ui/Icon';
-import { t } from '@atlagsebesseg/app-logic';
+import { getLanguage, subscribeLanguage, t } from '@atlagsebesseg/app-logic';
 import { mapStyleFor, mapTestMode } from './testMapMode';
 import type { MapCamera, MapFit, MapHandlers, MapHeat, MapPlanned, MapReport, MapRoute, MapZone, WebMapAdapter, WebMapState } from './WebMapAdapter';
 
@@ -180,6 +180,7 @@ class MapController {
   private readonly routeLabels = new Map<string, { marker: mapboxgl.Marker; el: HTMLButtonElement; label: NonNullable<MapRoute['label']> }>();
   /** AW17: a címkék újrahelyezése mozgáskor, képkockánként legfeljebb egyszer. */
   private labelRaf = 0;
+  private readonly unsubLanguage: () => void;
   /** Az útvonalválasztó alsó kártyája ennyit takar (px) – a címke e fölött számol látható területtel. */
   private labelPadBottom = 0;
 
@@ -213,7 +214,14 @@ class MapController {
       logoPosition: 'top-left',
       fadeDuration: 0,
       config: base.config,
+      // AW22: a térkép feliratai (város, ország, POI) az app nyelvén, nem az eszközén
+      language: getLanguage(),
     });
+    this.unsubLanguage = subscribeLanguage(() => {
+      this.map.setLanguage(getLanguage());
+      this.map.getContainer().dataset.language = getLanguage();
+    });
+    this.map.getContainer().dataset.language = getLanguage();
     this.map.addControl(new mapboxgl.AttributionControl({ compact: true, customAttribution: t('map.attribution') }), 'top-right');
 
     const el = document.createElement('div');
@@ -260,6 +268,7 @@ class MapController {
   }
 
   destroy(): void {
+    this.unsubLanguage();
     cancelAnimationFrame(this.raf);
     cancelAnimationFrame(this.labelRaf);
     clearTimeout(this.viewTimer);

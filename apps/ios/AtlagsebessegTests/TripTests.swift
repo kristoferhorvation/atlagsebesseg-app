@@ -609,8 +609,12 @@ struct AOS17Tests {
     func alkategoria() throws {
         let fix = GpsFix(lat: 47.5, lon: 19, timestamp: 0, speed: nil, accuracy: 5, heading: 90)
         #expect(MapErrorKind.allCases.map(\.rawValue) == ["szakaszhatar", "sebesseghatar", "nem_letezik", "hianyzo", "kamera", "egyeb"])
-        #expect(reportFromFix(.szakaszHiba, fix, subtype: .kamera)?.subtype == .kamera)
+        #expect(reportFromFix(.szakaszHiba, fix, subtype: .kamera)?.subtype == "kamera")
         #expect(reportFromFix(.baleset, fix, subtype: .kamera)?.subtype == nil)
+        // AW22: a Veszély altípusa
+        #expect(reportFromFix(.akadaly, fix, hazard: .katyu)?.subtype == "katyu")
+        #expect(reportFromFix(.akadaly, fix, subtype: .kamera)?.subtype == nil)
+        #expect(reportFromFix(.szakaszHiba, fix, hazard: .katyu)?.subtype == nil)
         let json = String(decoding: try JSONEncoder().encode(reportFromFix(.szakaszHiba, fix, subtype: .nemLetezik)!), as: UTF8.self)
         #expect(json.contains(#""subtype":"nem_letezik""#))
         #expect(!String(decoding: try JSONEncoder().encode(reportFromFix(.baleset, fix)!), as: UTF8.self).contains("subtype"))

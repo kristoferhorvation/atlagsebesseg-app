@@ -98,6 +98,22 @@ nonisolated enum MapErrorKind: String, CaseIterable, Codable, Sendable, Identifi
     var hint: String? { self == .szakaszhatar ? t(.reportSubSzakaszhatarHint) : nil }
 }
 
+/// AW22: a „Veszély” (`akadaly`) második választójának tételei, a lap sorrendjében (a `reports.subtype` értékei; a webes `HAZARD_KINDS`).
+nonisolated enum HazardKind: String, CaseIterable, Codable, Sendable, Identifiable {
+    case targy, katyu
+    case alloJarmu = "allo_jarmu"
+
+    var id: String { rawValue }
+
+    var label: String {
+        switch self {
+        case .targy: t(.reportHazardTargy)
+        case .katyu: t(.reportHazardKatyu)
+        case .alloJarmu: t(.reportHazardAlloJarmu)
+        }
+    }
+}
+
 /// A `reports` táblába írt sor (a `user_id`-t a szerver adja). A kapu-mezők csak ideiglenes kapunál kerülnek a JSON-ba.
 nonisolated struct ReportInsert: Encodable, Equatable, Sendable {
     var type: ReportType
@@ -105,8 +121,8 @@ nonisolated struct ReportInsert: Encodable, Equatable, Sendable {
     var lat: Double
     var lon: Double
     var headingDeg: Double?
-    /// AOS17: a Térképhiba alkategóriája (`reports.subtype`); csak akkor kerül a JSON-ba, ha van.
-    var subtype: MapErrorKind? = nil
+    /// AOS17: a Térképhiba, AW22: a Veszély alkategóriája (`reports.subtype`); csak akkor kerül a JSON-ba, ha van.
+    var subtype: String? = nil
 
     enum CodingKeys: String, CodingKey {
         case type, lat, lon, subtype
@@ -138,14 +154,14 @@ nonisolated private func normalizedHeading(_ h: Double?) -> Double? {
 }
 
 /// Egy koppintásos bejelentés a jelenlegi helyről (a webes `reportFromFix`). Kapunál irány kell – ha nincs, `nil`.
-nonisolated func reportFromFix(_ choice: ReportChoice, _ fix: GpsFix, subtype: MapErrorKind? = nil) -> ReportInsert? {
+nonisolated func reportFromFix(_ choice: ReportChoice, _ fix: GpsFix, subtype: MapErrorKind? = nil, hazard: HazardKind? = nil) -> ReportInsert? {
     let h = normalizedHeading(fix.heading)
     switch choice {
     case .kapuKezdo, .kapuZaro:
         guard let h else { return nil }
         return ReportInsert(type: .ideiglenesKapu, gateKind: choice == .kapuKezdo ? "kezdo" : "zaro", lat: fix.lat, lon: fix.lon, headingDeg: h)
     default:
-        return ReportInsert(type: ReportType(rawValue: choice.rawValue)!, lat: fix.lat, lon: fix.lon, headingDeg: h, subtype: choice == .szakaszHiba ? subtype : nil)
+        return ReportInsert(type: ReportType(rawValue: choice.rawValue)!, lat: fix.lat, lon: fix.lon, headingDeg: h, subtype: choice == .szakaszHiba ? subtype?.rawValue : choice == .akadaly ? hazard?.rawValue : nil)
     }
 }
 
@@ -164,6 +180,12 @@ nonisolated struct ActiveReport: Identifiable, Equatable, Sendable {
     /// A saját bejelentés (erre nem lehet szavazni – RLS).
     var own = false
 
+    /// AW22: a Veszély altípusa; a régi „Akadály” soroknál és más típusnál `nil`.
+    var hazard: HazardKind?
+
+    /// AW22: a kártya és a közeledés felirata: a Veszély az altípusával (a webes `reportVisual`).
+    var label: String { hazard.map { "\(choice.label) · \($0.label)" } ?? choice.label }
+
     /// A bejelentés-lap eleme, amelyhez tartozik (ikon, tónus, felirat).
     var choice: ReportChoice {
         if type == .ideiglenesKapu { return gateKind == "zaro" ? .kapuZaro : .kapuKezdo }
@@ -179,6 +201,7 @@ nonisolated struct ReportRow: Decodable, Sendable {
     var lon: Double
     var heading_deg: Double?
     var gate_kind: String?
+    var subtype: String?
     var confirmations: Int
     var denials: Int
     var created_at: String
@@ -199,7 +222,8 @@ nonisolated struct ReportRow: Decodable, Sendable {
             id: id, type: t, gateKind: gate_kind, lat: lat, lon: lon, headingDeg: heading_deg,
             createdAt: Self.parseDate(created_at), expiresAt: Self.parseDate(expires_at),
             confirmations: confirmations, denials: denials,
-            own: myUserId != nil && user_id?.lowercased() == myUserId?.lowercased()
+            own: myUserId != nil && user_id?.lowercased() == myUserId?.lowercased(),
+            hazard: t == .akadaly ? subtype.flatMap(HazardKind.init(rawValue:)) : nil
         )
     }
 }
@@ -215,7 +239,8 @@ nonisolated let MAX_REPORT_TILE_SPAN = 3
 nonisolated func ownReport(_ row: ReportInsert, id: String, now: Double) -> ActiveReport {
     ActiveReport(
         id: id, type: row.type, gateKind: row.type == .ideiglenesKapu ? row.gateKind : nil, lat: row.lat, lon: row.lon,
-        headingDeg: row.headingDeg, createdAt: now, expiresAt: now + REPORT_TTL_MS, own: true
+        headingDeg: row.headingDeg, createdAt: now, expiresAt: now + REPORT_TTL_MS, own: true,
+        hazard: row.type == .akadaly ? row.subtype.flatMap(HazardKind.init(rawValue:)) : nil
     )
 }
 
@@ -358,6 +383,14 @@ nonisolated let REPORT_PASSED_NEAR_M = 100.0
 /// bejelentés kicsúszhat a ±`coneDeg` kúpból, hajtűkanyarban átmenetileg mögénk is kerülhet – az még nem elhaladás.
 nonisolated private func promptGone(_ g: (d: Double, ahead: Bool, behind: Bool), minD: Double, alertM: Double) -> Bool {
     (g.behind && minD <= REPORT_PASSED_NEAR_M && g.d > REPORT_PROMPT.nearM) || g.d > 2 * alertM
+}
+
+/// AW22: a Veszély közeledés-bemondása, bejelentésenként egyszer (a webes `hazardVoice`): a kártya első, figyelmeztető
+/// állapotában, 50 m-re kerekítve. Más típusra, kérdés-fázisban és már bemondott bejelentésre nincs.
+nonisolated func hazardVoice(_ prompt: ReportPrompt?, _ report: ActiveReport?, spoken: inout Set<String>) -> String? {
+    guard let prompt, prompt.phase == .approach, report?.type == .akadaly, !spoken.contains(prompt.id) else { return nil }
+    spoken.insert(prompt.id)
+    return t(.reportVoiceHazard, ["m": String(max(50, Int(jsRound(prompt.distanceM / 50)) * 50))])
 }
 
 /// A legközelebbi bejelentés, amelyre most figyelmeztetni kell (a webes `reportPromptCandidate`; `skip`: már volt /

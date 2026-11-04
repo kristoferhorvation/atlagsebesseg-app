@@ -27,9 +27,11 @@ export function renderAll(): Map<string, string> {
     'Atlagsebesseg/Resources/InfoPlist.xcstrings',
     xcstrings(['ios.displayName', 'ios.locationUsage'], (k) => ({ 'ios.displayName': 'CFBundleDisplayName', 'ios.locationUsage': 'NSLocationWhenInUseUsageDescription' })[k as string]!),
   );
+  // AW22: a widget-kiterjesztés kijelzőneve nyelvenként, az appéval azonos
+  out.set('AtlagsebessegWidget/InfoPlist.xcstrings', xcstrings(['ios.displayName'], () => 'CFBundleDisplayName'));
   out.set('Atlagsebesseg/Generated/L10nKey.swift', l10nKeys());
   // a webes Icon.tsx szerint a `play` és a `stop` kitöltött
-  out.set('Atlagsebesseg/Generated/Icons.swift', iconsSwift(PATHS, ['play', 'stop']));
+  out.set('Atlagsebesseg/Generated/Icons.swift', iconsSwift(PATHS, ['play', 'stop', 'apple', 'googleB', 'googleG', 'googleY', 'googleR']));
   out.set('Atlagsebesseg/Generated/AppLogicConstants.swift', appLogicConstants());
   out.set('Atlagsebesseg/Generated/ManeuverIcons.swift', maneuverIconsSwift(MANEUVER_PATHS));
   for (const [name, content] of simFixtures()) out.set(`Atlagsebesseg/Resources/Sim/${name}`, content);

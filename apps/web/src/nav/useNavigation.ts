@@ -78,7 +78,14 @@ export function usePlaces() {
   const setSaved = useCallback((kind: 'home' | 'work', place: Place | null) => update((prev) => ({ ...prev, [kind]: place })), [update]);
   const addOther = useCallback((place: Place) => update((prev) => addSavedOther(prev, place)), [update]);
   const removeOther = useCallback((id: string) => update((prev) => removeSavedOther(prev, id)), [update]);
-  return { recents, saved: saved ?? NO_SAVED, pushRecent, setSaved, addOther, removeOther };
+  // AW22: a fiók szinkronja a teljes listákat cseréli (a másik készülék változása)
+  const replaceAll = useCallback((nextSaved: SavedPlaces, nextRecents: readonly Place[]) => {
+    setSavedState(nextSaved);
+    syncStore.setItem(SAVED_KEY, JSON.stringify(nextSaved));
+    setRecents([...nextRecents]);
+    syncStore.setItem(RECENTS_KEY, JSON.stringify(nextRecents));
+  }, []);
+  return { recents, saved: saved ?? NO_SAVED, pushRecent, setSaved, addOther, removeOther, replaceAll };
 }
 
 /**

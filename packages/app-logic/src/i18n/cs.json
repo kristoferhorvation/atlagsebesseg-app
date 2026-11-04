@@ -1,11 +1,9 @@
 {
   "app.name": "Průměrná rychlost",
   "app.description": "Úseky s měřením průměrné rychlosti: živý průměr, limit a barevný kód při jízdě.",
-
   "common.close": "Zavřít",
   "common.ok": "OK",
   "common.done": "Hotovo",
-
   "start.tagline": "Na měřeném úseku se spustí automaticky: živý průměr, limit a jasný barevný kód.",
   "start.tip.phone": "Telefon v držáku, displej zapnutý",
   "start.tip.location": "Povol přístup k poloze",
@@ -14,7 +12,6 @@
   "start.install.steps": "Tlačítko Sdílet → „Přidat na plochu“. Pak běží na celé obrazovce, bez adresního řádku.",
   "start.go": "Start",
   "start.sim": "Vyzkoušet bez GPS (simulátor)",
-
   "pill.gps.off": "GPS vypnuto",
   "pill.sim": "Simulátor",
   "pill.gps.searching": "Hledám GPS…",
@@ -28,11 +25,9 @@
   "pill.wake.tap": "Displej může zhasnout – klepni",
   "pill.wake.off": "Displej může zhasnout",
   "pill.offline": "Offline · vestavěné úseky",
-
   "status.good": "Dobré tempo",
   "status.slow": "Vysoký průměr",
   "status.fast": "Příliš rychle",
-
   "hud.measure": "Měření",
   "hud.starting": "Měření se spouští…",
   "hud.estimate": "Odhad",
@@ -41,21 +36,17 @@
   "hud.tolerance": "tolerance {x}",
   "hud.now": "teď",
   "hud.expected": "očekávaný",
-
   "hud.limitAria": "Limit: {x} {u}",
-
   "hud.approach.aria": "Měřený úsek se blíží",
   "hud.approach.chip": "Měřený úsek",
   "hud.approach.default": "Měření průměrné rychlosti",
   "hud.ahead": "za {u}",
-
   "hud.done.aria": "Konec úseku",
   "hud.done.over": "+{x} {u} nad limitem",
   "hud.done.under": "Pod limitem",
   "hud.done.final": "{u} konečný průměr",
   "hud.done.section": "úsek",
   "hud.done.duration": "doba jízdy",
-
   "hud.interrupted.aria": "Měření bylo přerušeno",
   "hud.interrupted.manual": "Ruční měření průměru bylo přerušeno",
   "hud.interrupted.auto": "Měření bylo přerušeno",
@@ -66,7 +57,6 @@
   "interrupt.offRoute": "Jsi mimo úsek",
   "interrupt.wrongWay": "Jedeš v protisměru",
   "interrupt.gpsLoss": "Příliš dlouhý výpadek GPS",
-
   "hud.manual": "Ruční měření průměru",
   "hud.manual.stop": "Zastavit",
   "hud.manual.pillAria": "Ruční měření průměru – klepnutím rozbalíš",
@@ -75,29 +65,23 @@
   "hud.manualDone.distance": "vzdálenost",
   "hud.manualDone.distanceEst": "vzdálenost (částečně odhadnutá)",
   "hud.manualDone.time": "čas",
-
-
   "hud.none.aria": "Žádný měřený úsek",
   "hud.none.near": "V okolí není měřený úsek",
   "hud.none.waiting": "Čekám na signál GPS…",
-
   "source.verified": "Ověřeno",
   "source.osm": "Zdroj: OpenStreetMap",
   "source.official": "Zdroj: oficiální seznam",
   "source.community": "Zdroj: komunita (dočasné brány)",
   "source.named": "Zdroj: {name}, {date}",
-
   "slowdown.cant": "Nelze dohnat",
   "slowdown.stay": "Drž se pod {x}",
   "slowdown.slow": "Zpomal · max {x}",
   "slowdown.compactMax": "max {x}",
   "slowdown.compactCant": "nelze dohnat",
-
   "planned.line": "Plánovaná policejní kontrola",
   "planned.zone": "Policejní kontrola – {place} · {date} · zdroj: {source}",
   "planned.max": "max {x}",
   "planned.maxApprox": "max ~{x}",
-
   "date.month.1": "led",
   "date.month.2": "úno",
   "date.month.3": "bře",
@@ -113,18 +97,16 @@
   "date.range.day": "{d}. {m}",
   "date.range.month": "{d1}.–{d2}. {m}",
   "date.range.months": "{d1}. {m1} – {d2}. {m2}",
-
   "time.now": "teď",
   "time.minutes": "před {n} min",
   "time.hours": "před {n} h",
   "greet.named": "Ahoj {name}!",
   "greet.anon": "Ahoj!",
-
   "report.title": "Hlášení",
   "report.type.rendorseg": "Policie",
   "report.type.traffipax": "Radar",
   "report.type.baleset": "Nehoda",
-  "report.type.akadaly": "Překážka",
+  "report.type.akadaly": "Nebezpečí",
   "report.type.utlezaras": "Uzavírka silnice",
   "report.type.szakasz_hiba": "Chyba mapy",
   "report.type.dugo": "Zácpa",
@@ -144,6 +126,11 @@
   "report.sub.hianyzo": "Chybějící úsek",
   "report.sub.kamera": "Špatná poloha radaru",
   "report.sub.egyeb": "Jiné",
+  "report.hazard.question": "Jaké nebezpečí?",
+  "report.hazard.targy": "Předmět na silnici",
+  "report.hazard.katyu": "Výmol",
+  "report.hazard.allo_jarmu": "Stojící vozidlo",
+  "report.voice.hazard": "Nebezpečí na silnici za {m} metrů",
   "report.card.aria": "Hlášení: {label}",
   "report.card.own": "Tvoje vlastní hlášení",
   "report.card.confirm": "Potvrdit",
@@ -156,10 +143,8 @@
   "report.sendFail": "Odeslání se nezdařilo – bez připojení?",
   "vote.confirmed": "Díky – potvrzeno",
   "vote.gone": "Díky – označeno, že tam není",
-
   "toast.wakeSleep": "Displej může zhasnout – nastav automatický zámek na „Nikdy“",
   "toast.wakeNever": "Nastav automatický zámek na „Nikdy“",
-
   "camera.type.speed": "Radar",
   "camera.type.red_light": "Kamera na červenou",
   "camera.type.complex": "Komplexní kontrolní místo",
@@ -174,13 +159,11 @@
   "camera.dir.one": "Měří jeden směr",
   "camera.distance": "{d} od tebe",
   "warn.camera.DE": "V Německu řidič tuto funkci nesmí používat",
-
   "map.recenter": "Zpět na mou polohu",
   "map.settings": "Nastavení",
   "map.manualStart": "Spustit ruční měření průměru",
   "map.report": "Nahlásit",
   "map.attribution": "Úseky © OpenStreetMap contributors (ODbL)",
-
   "settings.title": "Nastavení",
   "settings.group.display": "Displej",
   "settings.tolerance": "Zobrazit úřední toleranci",
@@ -207,7 +190,6 @@
   "settings.sim.exit": "Opustit simulátor",
   "settings.sim.hint": "Přehraje zaznamenanou trasu bez GPS, k vyzkoušení displeje.",
   "settings.attribution": "Data o úsecích a radarech: © OpenStreetMap contributors (ODbL); pevné body VÉDA: ORFK (2015); plánované kontroly: police.hu. Mapa: © Mapbox, © OpenStreetMap. Aplikace je informativní – rychlostní limit vždy určují dopravní značky.",
-
   "geo.off": "vypnuto",
   "geo.searching": "hledám…",
   "geo.active": "aktivní",
@@ -238,7 +220,6 @@
   "sections.status.offline": "vestavěné (offline)",
   "server.set": "nastaven",
   "server.none": "žádný (offline režim)",
-
   "map.search": "Hledat cíl",
   "nav.aria": "Navigace",
   "nav.search.placeholder": "Kam pojedeme?",
@@ -346,7 +327,6 @@
   "ios.intent.destination": "Cíl",
   "ios.geo.denied": "zamítnuto (Nastavení → Soukromí → Polohové služby)",
   "ios.start.tip.background": "Měří i při zamčené obrazovce – během měření displej nezhasne",
-
   "ios.alert.camera": "Radar za {d} metrů, maximálně {x}",
   "ios.alert.cameraNoLimit": "Radar za {d} metrů",
   "ios.alert.plannedLine": "Plánovaná kontrola, maximálně {x}",
@@ -368,7 +348,6 @@
   "ios.live.nextSection": "Úsek za {d}",
   "ios.live.attribution": "© Mapbox © OpenStreetMap",
   "ios.live.remaining": "zbývá {x}",
-
   "trips.title": "Deník jízd",
   "trips.cruise": "Volná jízda",
   "trips.cruiseStatus": "Volná jízda · {dist} · {time}",
@@ -413,7 +392,6 @@
   "trips.checkLimit": "limit {v}",
   "trips.checkOk": "v pořádku",
   "trips.checkFast": "příliš rychle",
-
   "settings.heat": "Teplotní mapa",
   "settings.heat.off": "Vyp.",
   "settings.heat.own": "Vlastní",
@@ -444,5 +422,40 @@
   "heat.zone.hint": "Buňky v zóně se neodešlou a na tvé vlastní teplotní mapě jsou šedé.",
   "heat.zone.200": "200 m",
   "heat.zone.500": "500 m",
-  "heat.zone.1000": "1 km"
+  "heat.zone.1000": "1 km",
+  "account.title": "Účet",
+  "account.hint": "Nepovinné: aplikace funguje naplno i bez něj. Po přihlášení máš místa a nastavení na všech zařízeních.",
+  "account.apple": "Přihlásit se přes Apple",
+  "account.google": "Google",
+  "account.email": "E-mail",
+  "account.notConfigured": "Přihlášení přes Apple a Google zatím není nastavené.",
+  "account.emailPlaceholder": "Tvoje e-mailová adresa",
+  "account.emailSend": "Poslat přihlašovací odkaz",
+  "account.emailHint": "Heslo není potřeba: e-mailem dostaneš odkaz a jím se přihlásíš.",
+  "account.emailSent": "Odkaz jsme poslali na {email}. Otevři ho na tomto zařízení.",
+  "account.cancel": "Zrušit",
+  "account.sync.syncing": "Synchronizace…",
+  "account.sync.error": "Synchronizace selhala, později to zkusíme znovu.",
+  "account.sync.waiting": "Spouští se synchronizace…",
+  "account.sync.at": "Synchronizováno: {time}",
+  "account.backup": "Zálohovat deník a teplotní mapu do cloudu",
+  "account.backupHint": "Když je zapnuto, tvoje jízdy a vlastní teplotní mapa se nahrají a synchronizují s ostatními zařízeními. Když je vypnuto, už se nic nenahrává; stávající kopie zůstane do smazání účtu.",
+  "account.signOut": "Odhlásit se",
+  "account.signOutHint": "Všechna data zůstanou na tomto zařízení a pokračuješ bez účtu.",
+  "account.delete": "Smazat účet",
+  "account.delete.body": "Smaže se tvůj účet a všechna k němu patřící data uložená na serveru: profil, synchronizovaná nastavení a místa, deník a teplotní mapa v cloudu, hlášení, hlasy. Buňky už anonymně přidané do komunitní teplotní mapy zůstanou, protože je s tebou nelze spojit. Data v tvém zařízení také zůstanou.",
+  "account.delete.confirm": "Trvale smazat",
+  "account.err.rate": "Právě je příliš mnoho požadavků. Chvíli počkej a zkus to znovu.",
+  "account.err.notAllowed": "Na tuto adresu teď nemůžeme poslat e-mail.",
+  "account.err.email": "Zkontroluj e-mailovou adresu.",
+  "account.err.generic": "Nepovedlo se – není připojení? Zkus to znovu.",
+  "account.name.title": "Máme tě takto oslovovat?",
+  "account.name.save": "Uložit",
+  "account.name.skip": "Přeskočit",
+  "account.nudge.text": "Přihlas se, aby se tvoje jízdy neztratily",
+  "account.nudge.action": "Přihlásit se",
+  "account.nudge.later": "Teď ne",
+  "account.signedIn": "Jsi přihlášen",
+  "account.signedOut": "Jsi odhlášen",
+  "account.deleted": "Tvůj účet byl smazán"
 }

@@ -18,6 +18,8 @@ const COMPONENTS = [
   { name: 'heat-switch', file: 'apps/web/src/ui/HeatSwitch.tsx', path: '/?navsim&panel=0&heatSeed&heat=sajat&heatView=gyakorisag&speed=7', parts: { root: '.heat-switch', box: '.heat-switch .segmented', selected: '.heat-switch button[aria-pressed="true"]', other: '.heat-switch button[aria-pressed="false"]', legend: '.heat-legend', bar: '.heat-legend-bar' } },
   { name: 'actions', file: 'apps/web/src/App.tsx', path: NAVSIM, parts: { root: '.actions', button: '.actions .round-btn', report: '.actions .round-btn.report' } },
   { name: 'recenter', file: 'apps/web/src/App.tsx', path: NAVSIM, recenter: true, parts: { root: '.actions', slot: '.actions .recenter-slot', button: '.actions .recenter', report: '.actions .round-btn.report', card: '.hud > .card' } },
+  // AW22: ManualMini mellett a gomb a gombsor fölött, a mini az AW21 előtti helyén
+  { name: 'recenter-mini', file: 'apps/web/src/App.tsx', path: '/?navsim&stage=nav&panel=0&speed=1&at=60', mini: true, parts: { root: '.actions', mini: '.manual-mini', button: '.actions .recenter-above', report: '.actions .round-btn.report' } },
   { name: 'nav-bottom', file: 'apps/web/src/ui/NavHud.tsx', path: AT(-295), parts: { root: '.nav-bottom', speed: '.nav-bottom-speed', eta: '.nav-bottom-eta b', remaining: '.nav-bottom-eta span', end: '.nav-end' } },
   { name: 'nav-top', file: 'apps/web/src/ui/NavHud.tsx', path: AT(-295), parts: { root: '.nav-top', dist: '.nav-dist', road: '.nav-road', then: '.nav-then' } },
   { name: 'meter-full', file: 'apps/web/src/ui/Hud.tsx', path: `${AT(150)}&alt=aftergate`, parts: { root: '.hud > .card', chip: '.hud > .card .chip', hero: '.hud > .card .hero', unit: '.hud > .card .hero-unit', sign: '.hud > .card .sign', num: '.hud > .card .meter-num', progress: '.hud > .card .progress', progressLabel: '.hud > .card .progress-label' } },
@@ -30,6 +32,9 @@ const COMPONENTS = [
   { name: 'report-tiles', file: 'apps/web/src/ui/ReportSheet.tsx', path: NAVSIM, click: 'button[aria-label="Bejelentés"]', parts: { root: '.sheet', head: '.sheet-head', close: '.sheet-head .icon-btn', tile: '.tile', icon: '.tile .ic', label: '.tile-label', gate: '.tile.wide', note: '.sheet-note' } },
   { name: 'settings-rows', file: 'apps/web/src/ui/SettingsSheet.tsx', path: `${NAVSIM}&sheet=settings`, parts: { root: '.sheet', group: '.group-label', list: '.list', row: '.list-row', label: '.list-row .label', hint: '.list-row .hint', switch: '.switch', segmented: '.segmented', segment: '.segmented button[aria-pressed="true"]' } },
   { name: 'zone-picker', file: 'apps/web/src/ui/ZonePicker.tsx', path: `${NAVSIM}&sheet=settings`, parts: { root: '.zone-picker', hint: '.zone-picker .hint', box: '.zone-picker .segmented', selected: '.zone-picker button[aria-pressed="true"]', other: '.zone-picker button[aria-pressed="false"]' } },
+  // AW22: a Fiók kártya (`?account=in`: bejelentkezve), a névlépés és az út utáni ajánlat
+  { name: 'account-card', file: 'apps/web/src/ui/AccountCard.tsx', path: `${NAVSIM}&sheet=settings`, parts: { root: '[data-testid="account-card"]', apple: '.apple-btn', small: '.account-small-btn', hint: '[data-testid="account-card"] .hint' } },
+  { name: 'account-nudge', file: 'apps/web/src/ui/AccountCard.tsx', path: `${NAVSIM}&nudge`, parts: { root: '.account-nudge', text: '.account-nudge-text', button: '.account-nudge .btn' } },
   { name: 'gps-marker', file: 'apps/web/src/map/MapboxWebAdapter.tsx', path: NAVSIM, parts: { root: '.puck', dot: '.puck-dot', cone: '.puck-cone' } },
 ];
 
@@ -50,6 +55,19 @@ try {
       await page.mouse.down();
       await page.mouse.move(box.width / 2 + 90, 340, { steps: 6 });
       await page.mouse.up();
+    }
+    if (c.mini) {
+      await page.locator('button[aria-label="Kézi átlagmérés indítása"]').first().waitFor({ timeout: 60_000 });
+      await page.locator('button[aria-label="Kézi átlagmérés indítása"]').first().click();
+      // a harness rögzített órával fut: az 5 s-os zsugorodás helyett bökés (a teljes kártya chipje)
+      await page.locator('.hud > .card[aria-label="Kézi átlagmérés"] .chip').first().click();
+      await page.waitForSelector('.manual-mini', { timeout: 30_000 });
+      const box = page.viewportSize();
+      await page.mouse.move(box.width / 2, box.height * 0.5);
+      await page.mouse.down();
+      await page.mouse.move(box.width / 2 + 60, box.height * 0.5 + 50, { steps: 6 });
+      await page.mouse.up();
+      await page.waitForSelector('.actions .recenter-above', { timeout: 15_000 });
     }
     if (c.click) {
       await page.locator(c.click).first().waitFor({ timeout: 60_000 });

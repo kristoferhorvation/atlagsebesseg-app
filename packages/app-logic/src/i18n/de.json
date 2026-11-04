@@ -1,11 +1,9 @@
 {
   "app.name": "Durchschnittstempo",
   "app.description": "Abschnittskontrolle: Live-Durchschnitt, Limit und Farbcode beim Fahren.",
-
   "common.close": "Schließen",
   "common.ok": "OK",
   "common.done": "Fertig",
-
   "start.tagline": "Startet automatisch auf einem Messabschnitt: Live-Durchschnitt, Limit und klarer Farbcode.",
   "start.tip.phone": "Handy in der Halterung, Bildschirm an",
   "start.tip.location": "Standortzugriff erlauben",
@@ -14,7 +12,6 @@
   "start.install.steps": "Teilen-Symbol → „Zum Home-Bildschirm“. So läuft die App im Vollbild ohne Adressleiste.",
   "start.go": "Los",
   "start.sim": "Ohne GPS ausprobieren (Simulator)",
-
   "pill.gps.off": "GPS aus",
   "pill.sim": "Simulator",
   "pill.gps.searching": "GPS wird gesucht…",
@@ -28,11 +25,9 @@
   "pill.wake.tap": "Display kann ausgehen – tippen",
   "pill.wake.off": "Display kann ausgehen",
   "pill.offline": "Offline · integrierte Abschnitte",
-
   "status.good": "Gutes Tempo",
   "status.slow": "Schnitt zu hoch",
   "status.fast": "Zu schnell",
-
   "hud.measure": "Messung",
   "hud.starting": "Messung startet…",
   "hud.estimate": "Schätzung",
@@ -41,21 +36,17 @@
   "hud.tolerance": "Toleranz {x}",
   "hud.now": "jetzt",
   "hud.expected": "erwartet",
-
   "hud.limitAria": "Limit: {x} {u}",
-
   "hud.approach.aria": "Messabschnitt voraus",
   "hud.approach.chip": "Messabschnitt",
   "hud.approach.default": "Abschnittskontrolle",
   "hud.ahead": "in {u}",
-
   "hud.done.aria": "Abschnittsende",
   "hud.done.over": "+{x} {u} über dem Limit",
   "hud.done.under": "Unter dem Limit",
   "hud.done.final": "{u} Enddurchschnitt",
   "hud.done.section": "Abschnitt",
   "hud.done.duration": "Fahrzeit",
-
   "hud.interrupted.aria": "Messung unterbrochen",
   "hud.interrupted.manual": "Manuelle Durchschnittsmessung unterbrochen",
   "hud.interrupted.auto": "Messung unterbrochen",
@@ -66,7 +57,6 @@
   "interrupt.offRoute": "Du hast den Abschnitt verlassen",
   "interrupt.wrongWay": "Du fährst in die Gegenrichtung",
   "interrupt.gpsLoss": "GPS-Signal zu lange ausgefallen",
-
   "hud.manual": "Manuelle Durchschnittsmessung",
   "hud.manual.stop": "Stopp",
   "hud.manual.pillAria": "Manuelle Durchschnittsmessung – zum Aufklappen tippen",
@@ -75,29 +65,23 @@
   "hud.manualDone.distance": "Strecke",
   "hud.manualDone.distanceEst": "Strecke (teilweise geschätzt)",
   "hud.manualDone.time": "Zeit",
-
-
   "hud.none.aria": "Kein Messabschnitt",
   "hud.none.near": "Kein Messabschnitt in der Nähe",
   "hud.none.waiting": "Warten auf GPS-Signal…",
-
   "source.verified": "Geprüft",
   "source.osm": "Quelle: OpenStreetMap",
   "source.official": "Quelle: offizielle Liste",
   "source.community": "Quelle: Community (temporäre Messpunkte)",
   "source.named": "Quelle: {name}, {date}",
-
   "slowdown.cant": "Nicht mehr zu schaffen",
   "slowdown.stay": "Bleib unter {x}",
   "slowdown.slow": "Langsamer · max. {x}",
   "slowdown.compactMax": "max. {x}",
   "slowdown.compactCant": "nicht zu schaffen",
-
   "planned.line": "Geplante Polizeikontrolle",
   "planned.zone": "Polizeikontrolle in {place} · {date} · Quelle: {source}",
   "planned.max": "max. {x}",
   "planned.maxApprox": "max. ~{x}",
-
   "date.month.1": "Jan.",
   "date.month.2": "Feb.",
   "date.month.3": "März",
@@ -113,18 +97,16 @@
   "date.range.day": "{d}. {m}",
   "date.range.month": "{d1}.–{d2}. {m}",
   "date.range.months": "{d1}. {m1} – {d2}. {m2}",
-
   "time.now": "gerade eben",
   "time.minutes": "vor {n} Min.",
   "time.hours": "vor {n} Std.",
   "greet.named": "Hallo {name}!",
   "greet.anon": "Hallo!",
-
   "report.title": "Melden",
   "report.type.rendorseg": "Polizei",
   "report.type.traffipax": "Blitzer",
   "report.type.baleset": "Unfall",
-  "report.type.akadaly": "Hindernis",
+  "report.type.akadaly": "Gefahr",
   "report.type.utlezaras": "Sperrung",
   "report.type.szakasz_hiba": "Kartenfehler",
   "report.type.dugo": "Stau",
@@ -144,6 +126,11 @@
   "report.sub.hianyzo": "Fehlender Abschnitt",
   "report.sub.kamera": "Falsche Blitzer-Position",
   "report.sub.egyeb": "Sonstiges",
+  "report.hazard.question": "Welche Gefahr?",
+  "report.hazard.targy": "Gegenstand auf der Straße",
+  "report.hazard.katyu": "Schlagloch",
+  "report.hazard.allo_jarmu": "Stehendes Fahrzeug",
+  "report.voice.hazard": "Gefahr auf der Straße in {m} Metern",
   "report.card.aria": "Meldung: {label}",
   "report.card.own": "Deine eigene Meldung",
   "report.card.confirm": "Bestätigen",
@@ -156,10 +143,8 @@
   "report.sendFail": "Senden fehlgeschlagen – keine Verbindung?",
   "vote.confirmed": "Danke – bestätigt",
   "vote.gone": "Danke – du hast gemeldet, dass es nicht mehr da ist",
-
   "toast.wakeSleep": "Das Display kann ausgehen – stell die Automatische Sperre auf „Nie“",
   "toast.wakeNever": "Stell die Automatische Sperre auf „Nie“",
-
   "camera.type.speed": "Blitzer",
   "camera.type.red_light": "Rotlichtkamera",
   "camera.type.complex": "Komplexe Kontrollstelle",
@@ -174,13 +159,11 @@
   "camera.dir.one": "Misst in eine Richtung",
   "camera.distance": "{d} entfernt",
   "warn.camera.DE": "In Deutschland darf der Fahrer diese Funktion nicht nutzen",
-
   "map.recenter": "Zurück zu meiner Position",
   "map.settings": "Einstellungen",
   "map.manualStart": "Manuelle Durchschnittsmessung starten",
   "map.report": "Melden",
   "map.attribution": "Abschnitte © OpenStreetMap contributors (ODbL)",
-
   "settings.title": "Einstellungen",
   "settings.group.display": "Anzeige",
   "settings.tolerance": "Amtliche Toleranz anzeigen",
@@ -207,7 +190,6 @@
   "settings.sim.exit": "Simulator verlassen",
   "settings.sim.hint": "Spielt eine aufgezeichnete Route ohne GPS ab, zum Ausprobieren der Anzeige.",
   "settings.attribution": "Abschnittsdaten und Kameras: © OpenStreetMap contributors (ODbL); feste VÉDA-Punkte: ORFK (2015); geplante Kontrollen: police.hu. Karte: © Mapbox, © OpenStreetMap. Die App dient nur zur Information – das Tempolimit bestimmen immer die Schilder.",
-
   "geo.off": "aus",
   "geo.searching": "Suche…",
   "geo.active": "aktiv",
@@ -238,7 +220,6 @@
   "sections.status.offline": "integriert (offline)",
   "server.set": "eingerichtet",
   "server.none": "keiner (Offline-Modus)",
-
   "map.search": "Ziel suchen",
   "nav.aria": "Navigation",
   "nav.search.placeholder": "Wohin?",
@@ -346,7 +327,6 @@
   "ios.intent.destination": "Ziel",
   "ios.geo.denied": "verweigert (Einstellungen → Datenschutz → Ortungsdienste)",
   "ios.start.tip.background": "Misst auch bei gesperrtem Bildschirm – während der Messung bleibt die Anzeige an",
-
   "ios.alert.camera": "Blitzer in {d} Metern, maximal {x}",
   "ios.alert.cameraNoLimit": "Blitzer in {d} Metern",
   "ios.alert.plannedLine": "Geplante Kontrolle, maximal {x}",
@@ -368,7 +348,6 @@
   "ios.live.nextSection": "Abschnitt in {d}",
   "ios.live.attribution": "© Mapbox © OpenStreetMap",
   "ios.live.remaining": "noch {x}",
-
   "trips.title": "Fahrtenbuch",
   "trips.cruise": "Freie Fahrt",
   "trips.cruiseStatus": "Freie Fahrt · {dist} · {time}",
@@ -413,7 +392,6 @@
   "trips.checkLimit": "Limit {v}",
   "trips.checkOk": "ok",
   "trips.checkFast": "zu schnell",
-
   "settings.heat": "Heatmap",
   "settings.heat.off": "Aus",
   "settings.heat.own": "Eigene",
@@ -444,5 +422,40 @@
   "heat.zone.hint": "Zellen in der Zone werden nicht gesendet und erscheinen auf deiner eigenen Heatmap grau.",
   "heat.zone.200": "200 m",
   "heat.zone.500": "500 m",
-  "heat.zone.1000": "1 km"
+  "heat.zone.1000": "1 km",
+  "account.title": "Konto",
+  "account.hint": "Optional: Die App funktioniert auch ohne vollständig. Angemeldet hast du deine Orte und Einstellungen auf all deinen Geräten.",
+  "account.apple": "Mit Apple anmelden",
+  "account.google": "Google",
+  "account.email": "E-Mail",
+  "account.notConfigured": "Die Anmeldung mit Apple und Google ist noch nicht eingerichtet.",
+  "account.emailPlaceholder": "Deine E-Mail-Adresse",
+  "account.emailSend": "Anmeldelink senden",
+  "account.emailHint": "Kein Passwort nötig: Du bekommst per E-Mail einen Link und meldest dich damit an.",
+  "account.emailSent": "Wir haben den Link an {email} gesendet. Öffne ihn auf diesem Gerät.",
+  "account.cancel": "Abbrechen",
+  "account.sync.syncing": "Synchronisierung …",
+  "account.sync.error": "Synchronisierung fehlgeschlagen, wir versuchen es später erneut.",
+  "account.sync.waiting": "Synchronisierung startet …",
+  "account.sync.at": "Synchronisiert: {time}",
+  "account.backup": "Fahrtenbuch und Heatmap in der Cloud sichern",
+  "account.backupHint": "Wenn aktiviert, werden deine Fahrten und deine eigene Heatmap hochgeladen und mit deinen anderen Geräten synchronisiert. Wenn deaktiviert, wird nichts mehr hochgeladen; die vorhandene Kopie bleibt, bis du dein Konto löschst.",
+  "account.signOut": "Abmelden",
+  "account.signOutHint": "Alle deine Daten bleiben auf diesem Gerät, und du machst ohne Konto weiter.",
+  "account.delete": "Konto löschen",
+  "account.delete.body": "Dein Konto und alle zugehörigen auf dem Server gespeicherten Daten werden gelöscht: Profil, synchronisierte Einstellungen und Orte, Fahrtenbuch und Heatmap in der Cloud, Meldungen, Bewertungen. Bereits anonym in die Community-Heatmap eingeflossene Zellen bleiben, da sie dir nicht zugeordnet werden können. Auch die Daten auf deinem Gerät bleiben erhalten.",
+  "account.delete.confirm": "Endgültig löschen",
+  "account.err.rate": "Gerade zu viele Anfragen. Warte kurz und versuche es erneut.",
+  "account.err.notAllowed": "An diese Adresse können wir gerade keine E-Mail senden.",
+  "account.err.email": "Prüfe die E-Mail-Adresse.",
+  "account.err.generic": "Das hat nicht geklappt – keine Verbindung? Versuche es erneut.",
+  "account.name.title": "Sollen wir dich so nennen?",
+  "account.name.save": "Speichern",
+  "account.name.skip": "Überspringen",
+  "account.nudge.text": "Melde dich an, damit deine Fahrten nicht verloren gehen",
+  "account.nudge.action": "Anmelden",
+  "account.nudge.later": "Nicht jetzt",
+  "account.signedIn": "Du bist angemeldet",
+  "account.signedOut": "Du bist abgemeldet",
+  "account.deleted": "Dein Konto wurde gelöscht"
 }

@@ -57,10 +57,11 @@ describe('szótárak: minden kulcs mind a 6 nyelven', () => {
 
   /** AW21: szándékosan a magyarral azonos értékek (márkanév, mértékegység, szám, rövidítés, közös szó). Más kulcs nem lehet azonos. */
   const SAME_AS_HU: Record<string, string[]> = {
-    '*': ['pill.gps.accuracy', 'pill.gps.active', 'settings.gps', 'report.alert.ahead', 'ios.live.attribution', 'heat.zone.200', 'heat.zone.500', 'heat.zone.1000'],
+    '*': ['pill.gps.accuracy', 'pill.gps.active', 'settings.gps', 'report.alert.ahead', 'ios.live.attribution', 'heat.zone.200', 'heat.zone.500', 'heat.zone.1000', 'account.google'],
     en: ['slowdown.compactMax', 'planned.max', 'planned.maxApprox', 'date.range.day', 'date.range.month', 'date.range.months'],
-    cs: ['slowdown.compactMax', 'planned.max', 'planned.maxApprox'],
-    sk: ['date.month.1', 'date.month.5', 'date.month.6', 'date.month.7', 'date.month.8', 'date.month.10', 'date.month.11', 'date.month.12', 'sections.status.cache', 'nav.picker.alt'],
+    cs: ['slowdown.compactMax', 'planned.max', 'planned.maxApprox', 'account.email'],
+    pl: ['account.email'],
+    sk: ['date.month.1', 'date.month.5', 'date.month.6', 'date.month.7', 'date.month.8', 'date.month.10', 'date.month.11', 'date.month.12', 'sections.status.cache', 'nav.picker.alt', 'account.email'],
   };
   for (const lang of LANGUAGES.filter((l) => l !== 'hu')) {
     it(`AW21: ${lang}: egyetlen szöveg sem egyezik a hu.json értékével (kivéve a szándékosan azonosakat)`, () => {

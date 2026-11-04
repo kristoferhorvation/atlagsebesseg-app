@@ -57,6 +57,9 @@ export const STATES = [
   { id: 'ajanlat-de', lang: 'de', web: { path: '/?navsim&stage=nav&panel=0&speed=7&at=WIN1+150', ready: '.nav-offer-compact' }, ios: [...NAV, '-navStage', 'nav', '-simAt', 'WIN1+150'] },
   { id: 'bejelentes', web: { path: '/?navsim&panel=0&heat=ki&speed=7', ready: '.card.compact', click: 'button[aria-label="Bejelentés"]', after: '.sheet .tiles' }, ios: [...NAV, ...HEAT_OFF, '-reportOpen', 'YES'] },
   { id: 'beallitasok', web: { path: '/?navsim&panel=0&sheet=settings&heat=ki&speed=7', ready: '.sheet .list' }, ios: [...NAV, ...HEAT_OFF, '-settingsOpen', 'top', '-simPlaces', 'YES'] },
+  // AW22: a Fiók kártya bejelentkezve (kijelentkezve a `beallitasok` állapot teteje), az út utáni ajánlat, a Veszély választója
+  { id: 'fiok-be', web: { path: '/?navsim&panel=0&sheet=settings&heat=ki&speed=7&account=in', ready: '[data-testid="account-card"]' }, ios: [...NAV, ...HEAT_OFF, '-settingsOpen', 'top', '-simPlaces', 'YES', '-accountSim', 'in'] },
+  { id: 'fiok-ajanlat', web: { path: '/?navsim&panel=0&heat=ki&speed=7&nudge', ready: '.account-nudge' }, ios: [...NAV, ...HEAT_OFF, '-nudge', 'YES'] },
   { id: 'beallitasok-zona', web: { path: '/?navsim&panel=0&sheet=settings&heat=ki&speed=7', ready: '.zone-picker', scrollTo: '.zone-picker' }, ios: [...NAV, ...HEAT_OFF, '-settingsOpen', 'zone', '-simPlaces', 'YES'] },
 ];
 

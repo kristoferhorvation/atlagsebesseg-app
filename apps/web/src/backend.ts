@@ -12,6 +12,8 @@ import {
 export const supabase = createSupabaseClient({
   url: import.meta.env.VITE_SUPABASE_URL,
   anonKey: import.meta.env.VITE_SUPABASE_ANON_KEY,
+  // AW22: a bejelentkező link és az OAuth a munkamenetet az URL-ben hozza vissza
+  detectSessionInUrl: true,
 });
 
 /** localStorage aszinkron burokban; privát módban / tiltott tárhelynél csendben üres. */

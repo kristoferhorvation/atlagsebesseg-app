@@ -30,6 +30,8 @@ export interface Settings {
   adatmegosztas_v2: boolean;
   /** AW20-javítás: az adatvédelmi zóna sugara (m) mentett helyenként (`home`, `work`, további hely azonosítója); hiányzó = 500 m. Csak helyben. */
   zona_m: Record<string, number>;
+  /** AW22: a napló és a saját hőtérkép felhős mentése (bejelentkezve; alapból ki). */
+  felho_mentes: boolean;
 }
 
 /** A megszólítás legfeljebb ennyi karakter (a köszöntő sor egy sorban maradjon). */
@@ -38,7 +40,7 @@ export const MEGSZOLITAS_MAX = 24;
 /** A tárolt / beírt név: szélein vágva, a belső szóközök egyre, legfeljebb `MEGSZOLITAS_MAX` karakter. */
 export const normalizeName = (raw: string): string => [...raw.replace(/\s+/g, ' ').trim()].slice(0, MEGSZOLITAS_MAX).join('').trim();
 
-export const DEFAULT_SETTINGS: Settings = { hatosagi_tures_megjelenitese: false, egyseg: 'kmh', terkep: 'szines', tervezett_meresek: true, hangos_utasitasok: true, megszolitas: '', hoterkep: 'sajat', hoterkep_nezet: 'gyakorisag', adatmegosztas: true, adatmegosztas_v2: true, zona_m: {} };
+export const DEFAULT_SETTINGS: Settings = { hatosagi_tures_megjelenitese: false, egyseg: 'kmh', terkep: 'szines', tervezett_meresek: true, hangos_utasitasok: true, megszolitas: '', hoterkep: 'sajat', hoterkep_nezet: 'gyakorisag', adatmegosztas: true, adatmegosztas_v2: true, zona_m: {}, felho_mentes: false };
 export const SETTINGS_KEY = 'settings:v1';
 
 /** Tárolt beállítások beolvasása; ismeretlen / sérült érték helyett az alapértelmezés. */
@@ -60,6 +62,7 @@ export function parseSettings(raw: string | null | undefined): Settings {
       adatmegosztas: p.adatmegosztas_v2 === true && typeof p.adatmegosztas === 'boolean' ? p.adatmegosztas : DEFAULT_SETTINGS.adatmegosztas,
       adatmegosztas_v2: true,
       zona_m: parseZoneRadii(p.zona_m),
+      felho_mentes: p.felho_mentes === true,
     };
   } catch {
     return DEFAULT_SETTINGS;

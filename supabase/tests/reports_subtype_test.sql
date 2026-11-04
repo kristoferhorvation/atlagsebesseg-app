@@ -29,3 +29,11 @@ insert into public.reports (type, lat, lon, user_id) values ('szakasz_hiba', 47.
 select pg_temp.expect(true, 'alkategória nélkül is beírható (régi kliens)');
 select pg_temp.expect_error($q$insert into public.reports (type, lat, lon, user_id, subtype) values ('szakasz_hiba', 47.5, 19.0, '00000000-0000-0000-0000-0000000000a9', 'x')$q$, 'ismeretlen alkategória tiltott');
 select pg_temp.expect_error($q$insert into public.reports (type, lat, lon, user_id, subtype) values ('baleset', 47.5, 19.0, '00000000-0000-0000-0000-0000000000a9', 'kamera')$q$, 'más típus nem kaphat alkategóriát');
+
+-- AW22: a Veszély altípusa
+insert into public.reports (type, lat, lon, user_id, subtype) values ('akadaly', 47.5, 19.0, '00000000-0000-0000-0000-0000000000a9', 'katyu');
+select pg_temp.expect((select count(*) from public.active_reports where user_id = '00000000-0000-0000-0000-0000000000a9' and type = 'akadaly' and subtype = 'katyu') = 1, 'AW22: a Veszély altípusa beírható, a nézet adja');
+insert into public.reports (type, lat, lon, user_id) values ('akadaly', 47.5, 19.0, '00000000-0000-0000-0000-0000000000a9');
+select pg_temp.expect(true, 'AW22: altípus nélkül is beírható (régi „Akadály” sor)');
+select pg_temp.expect_error($q$insert into public.reports (type, lat, lon, user_id, subtype) values ('akadaly', 47.5, 19.0, '00000000-0000-0000-0000-0000000000a9', 'kamera')$q$, 'AW22: Térképhiba-alkategória a Veszélyre tiltott');
+select pg_temp.expect_error($q$insert into public.reports (type, lat, lon, user_id, subtype) values ('szakasz_hiba', 47.5, 19.0, '00000000-0000-0000-0000-0000000000a9', 'katyu')$q$, 'AW22: Veszély-altípus a Térképhibára tiltott');
