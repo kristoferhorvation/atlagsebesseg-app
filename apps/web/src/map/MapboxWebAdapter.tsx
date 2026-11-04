@@ -16,6 +16,10 @@ const PITCH = 60;
 const RECENTER_MS = 900;
 /** Az autó képernyő-helyének (focusY) simítási időállandója (ms). */
 const FOCUS_TAU_MS = 150;
+/** A követő kamera „nem változott” küszöbei: fok (pozíció ≈ 1 cm, irány, dőlés), zoom, kitöltés (px). */
+const CAM_EPS_DEG = 1e-7;
+const CAM_EPS_ZOOM = 1e-4;
+const CAM_EPS_PAD = 0.5;
 /** Mozdulat közben a jelzés és a nézet-frissítés ritkítása. */
 const GESTURE_THROTTLE_MS = 250;
 const VIEW_DEBOUNCE_MS = 500;
@@ -150,6 +154,10 @@ class MapController {
   private styleReady = false;
   private prev: WebMapState | null = null;
   private shown: Pose | null = null;
+  /** A markerre utoljára beállított póz (csak változáskor írunk a DOM-ba). */
+  private markerShown: Pose | null = null;
+  /** A térképnek utoljára küldött követő kamera (azonos kamerára nem hívunk jumpTo-t). */
+  private lastCam: Camera | null = null;
   private from: Pose | null = null;
   private to: Pose | null = null;
   private animStart = 0;
@@ -735,13 +743,20 @@ class MapController {
       zoom: lerp(this.from.zoom, this.to.zoom, k),
     };
     this.shown = pose;
-    this.marker.setLngLat([pose.lon, pose.lat]).setRotation(pose.bearing);
+    const ms = this.markerShown;
+    if (!ms || ms.lat !== pose.lat || ms.lon !== pose.lon || ms.bearing !== pose.bearing) {
+      this.marker.setLngLat([pose.lon, pose.lat]).setRotation(pose.bearing);
+      this.markerShown = pose;
+    }
     const s = this.store.getState();
     // a kártya méretváltásakor az autó helye finoman, nem ugrásszerűen követi (időalapú, a képkocka-sebességtől független)
     const dt = this.lastFrameT ? Math.min(1000, t - this.lastFrameT) : 16;
     this.lastFrameT = t;
     this.focusY += (s.focusY - this.focusY) * (1 - Math.exp(-dt / FOCUS_TAU_MS));
-    if (!this.following) return;
+    if (!this.following) {
+      this.lastCam = null; // a felhasználó vagy a fit mozgathatta a kamerát: visszakövetéskor újra küldjük
+      return;
+    }
     const h = this.map.getContainer().clientHeight;
     // az autó a képernyő focusY magasságában: fölötte alul, alatta (navigáció: alsó harmad) felül tolunk
     let cam: Camera = { ...pose, pitch: PITCH, padTop: Math.max(0, 2 * this.focusY * h - h), padBottom: Math.max(0, h - 2 * this.focusY * h) };
@@ -750,6 +765,20 @@ class MapController {
       cam = blend(this.recenter.from, cam, easeInOut(k));
       if (k >= 1) this.recenter = null;
     }
+    const lc = this.lastCam;
+    if (
+      lc &&
+      Math.abs(lc.lat - cam.lat) < CAM_EPS_DEG &&
+      Math.abs(lc.lon - cam.lon) < CAM_EPS_DEG &&
+      Math.abs(lc.bearing - cam.bearing) < CAM_EPS_DEG &&
+      Math.abs(lc.zoom - cam.zoom) < CAM_EPS_ZOOM &&
+      Math.abs(lc.pitch - cam.pitch) < CAM_EPS_DEG &&
+      Math.abs(lc.padTop - cam.padTop) < CAM_EPS_PAD &&
+      Math.abs(lc.padBottom - cam.padBottom) < CAM_EPS_PAD
+    ) {
+      return;
+    }
+    this.lastCam = cam;
     this.map.jumpTo({
       center: [cam.lon, cam.lat],
       bearing: cam.bearing,
