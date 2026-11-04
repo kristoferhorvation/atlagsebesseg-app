@@ -534,6 +534,19 @@ Gyökér: `npm test` és `npm run typecheck` minden csomagra; `npm run test:all`
 - Mérés (2026-11-02, AW20): `--check-only` 622 s → 290 s, csúcs RAM (Chrome RSS-összeg) 2961 → 1670 MB, csúcs folyamat 27 → 14; teljes mód 953 s,
   csúcs RAM 1826 MB. Mérés: `ps` mintavétel a Chrome-folyamatokra (összes RSS) a futás alatt.
 
+## Böngésző-tesztelés
+- Minden általad megnyitott böngészőtabot zárj be, amikor végeztél.
+- Hosszú tesztnél állítsd le a pozíciószimulációt és zárd be a tabot.
+- Mapbox tesztnél GPS-frissítés max. 1/mp, animációk és 3D-épületek ki.
+- A munka végén ellenőrizd, hogy nem maradt nyitva tab.
+- **Headless Chrome-őr (`apps/web/scripts/chrome-guard.mjs`)**: a nav-shots, view-shots, shots, i18n-check és a paritás-harness mind ezen át indít / takarít.
+  Indításkor kilövi az előző futásból maradt **árva** Chrome-ot (`user-data-dir=…atlag-(nav|shots|i18n)-…`, szülő: PID 1; élő futás Chrome-ját nem bántja),
+  SIGINT / SIGTERM / SIGHUP / kivétel / kilépés esetén szinkron leállítja a Chrome-ot (és a paritás detached vite-ját), és kemény időkorlátot ad:
+  alapból 5 perc, view-shots 15 perc (a teljes futás mérve ~7 perc), nav-shots és parity 30 perc (`SHOTS_TIMEOUT_MIN` felülírja). A `kill -9` nem kapható el – azt az árva-kilövés fedi a következő indításkor.
+- **Megszakított / lelőtt futás után** (TaskStop, időkorlát, `kill -9`) ellenőrizd: `ps aux | grep -E 'user-data-dir=.*atlag-(nav|shots|i18n)-' | grep -v grep`
+  (a paritás Playwright-Chrome-ja: `playwright_chromiumdev_profile`). Ha maradt, a következő szkript-indítás kilövi, de a CPU addig is megy – lődd ki kézzel (`kill -9`).
+- Szinkron hívásokat (`spawnSync`, `execFileSync`) a watchdog nem tud megszakítani – azoknak saját `timeout` kell (az `ios-shots.mjs`-ben megvan).
+
 ## Hol vannak a döntések
 - `supabase/README.md` – séma, cron, RLS-indoklás
 - `DESIGN.md` – UI, tokenek

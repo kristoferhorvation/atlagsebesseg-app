@@ -6,8 +6,8 @@
 //   npm run dev -w @atlagsebesseg/web            # másik terminálban (a Mapbox-token az apps/web/.env-ben)
 //   npm run shots -w @atlagsebesseg/web          # ellenőrzés + képek
 //   npm run shots -w @atlagsebesseg/web -- --check-only
-import { spawn } from 'node:child_process';
-import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { closeChrome, spawnGuardedChrome, startWatchdog } from './chrome-guard.mjs';
+import { mkdir, mkdtemp, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -24,26 +24,13 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 async function launch() {
   const profile = await mkdtemp(join(tmpdir(), 'atlag-shots-'));
-  const proc = spawn(CHROME, [
-    '--headless=new',
-    `--remote-debugging-port=${PORT}`,
-    `--user-data-dir=${profile}`,
-    '--no-first-run',
-    '--hide-scrollbars',
-    '--use-angle=swiftshader',
-    '--enable-unsafe-swiftshader',
-    'about:blank',
-  ]);
-  for (let i = 0; i < 50; i++) {
-    try {
-      const res = await fetch(`http://127.0.0.1:${PORT}/json/version`);
-      if (res.ok) return { proc, profile };
-    } catch {
-      // még indul
-    }
-    await sleep(200);
-  }
-  throw new Error('a Chrome nem indult el');
+  // az őr (chrome-guard.mjs): árva Chrome kilövése indításkor, takarítás signalnál / kilépésnél, sikertelen indulásnál is
+  const { proc } = await spawnGuardedChrome(
+    CHROME,
+    ['--headless=new', `--remote-debugging-port=${PORT}`, `--user-data-dir=${profile}`, '--no-first-run', '--hide-scrollbars', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', 'about:blank'],
+    { profile, port: PORT, attempts: 50 },
+  );
+  return { proc, profile };
 }
 
 /** Egy lap CDP-kapcsolattal. */
@@ -104,7 +91,11 @@ async function openPage() {
       await writeFile(join(OUT, file), Buffer.from(data, 'base64'));
       console.log(`  kép: docs/screenshots/${file}`);
     },
-    close: () => ws.close(),
+    // a lap is bezárul, nem csak a kapcsolat (a nyitva hagyott térképes lapok tovább futnak és terhelik a gépet)
+    close: async () => {
+      ws.close();
+      await fetch(`http://127.0.0.1:${PORT}/json/close/${target.id}`).catch(() => undefined);
+    },
   };
 }
 
@@ -123,6 +114,7 @@ function check(name, ok, detail = '') {
   console.log(`${ok ? 'OK ' : 'HIBA'}  ${name}${detail ? ` – ${detail}` : ''}`);
 }
 
+startWatchdog(5, 'shots'); // kemény időkorlát (SHOTS_TIMEOUT_MIN felülírja)
 const { proc, profile } = await launch();
 try {
   // --- 1. ellenőrzések (gyors lejátszás) ---
@@ -219,9 +211,7 @@ try {
     r.close();
   }
 } finally {
-  proc.kill();
-  await sleep(300);
-  await rm(profile, { recursive: true, force: true });
+  await closeChrome({ proc, profile }).catch(() => undefined);
 }
 
 const failed = results.filter((r) => !r.ok).length;

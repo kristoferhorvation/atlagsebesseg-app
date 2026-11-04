@@ -32,6 +32,7 @@
 import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { startWatchdog } from './chrome-guard.mjs';
 import { closeChrome, launchChrome, openPage, sleep, VIEW_H } from './cdp.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -63,6 +64,7 @@ const SHOT = CHECK_ONLY ? 'blank' : 'photo';
 // lekérés, 2 perces dugó-ablak – ezt olvassák), a `speed` csak a lejátszás ütemét adja; a kiírt értékek szimulált másodpercek.
 // Ellenőrző módban a képet nem adó, állapot-alapú blokkok gyorsabban futnak; a valós várakozást (sleep) a szorzóval osztjuk.
 const fast = (n, x) => (CHECK_ONLY ? n * x : n);
+startWatchdog(30, 'nav-shots'); // kemény időkorlát: a teljes futás ~16 perc; lejáratkor a Chrome leáll és a szkript kilép
 const chrome = await launchChrome({ photo: !CHECK_ONLY });
 const mk = (map = 'blank') => openPage({ port: chrome.port, base: BASE, outDir: OUT, map });
 try {
@@ -735,7 +737,7 @@ try {
   await rpg.goto(`/?sim=jo&speed=${RPG_SPEED}&panel=0`);
   await rpg.waitFor(MAP_READY, 60_000, 'térkép');
   // a kártya állapotának naplója (100 ms-enként): fázis, felirat, idő
-  await rpg.evaluate(`window.__alertLog = []; setInterval(() => { const r = document.querySelector('.report-alert-row'); window.__alertLog.push({ t: performance.now(), phase: r?.dataset.phase ?? null, txt: r?.querySelector('b')?.innerText.trim() ?? null }); }, 100); true`);
+  await rpg.evaluate(`window.__alertLog = []; window.__alertTimer = setInterval(() => { const r = document.querySelector('.report-alert-row'); window.__alertLog.push({ t: performance.now(), phase: r?.dataset.phase ?? null, txt: r?.querySelector('b')?.innerText.trim() ?? null }); }, 100); true`);
   await rpg.waitFor(`${q('.report-alert .report-alert-row')}?.dataset.phase === 'approach'`, 90_000, 'közeledő bejelentés');
   const ap = await rpg.evaluate(`(() => { const c = ${q('.nav-top.report-alert')}; window.__alertEl = c.querySelector('.report-alert-row'); const r = c.getBoundingClientRect(); return { txt: c.innerText.replace(/\\s+/g, ' ').trim(), top: r.top, cam: c.dataset.camera, n: document.querySelectorAll('.report-alert-row').length, bottomCard: !!document.querySelector('.report-card') }; })()`);
   check('közeledéskor figyelmeztető kártya felül (a kamera-figyelmeztetés stílusában): „Rendőrség 2xx m”', /^Rendőrség \d+ m$/.test(ap.txt) && ap.cam === 'true' && ap.top < 200 && ap.n === 1 && !ap.bottomCard, JSON.stringify(ap));
@@ -768,6 +770,7 @@ try {
   check('elküldés után ugyanaz a sor „Átlagmérés vége”, a jegyzet a végére emlékeztet', g2.calls === 1 && g2.tiles.length === 9 && g2.tiles.at(-1) === 'Átlagmérés vége' && /végét/.test(g2.note), JSON.stringify(g2));
   if (!CHECK_ONLY) await rpg.shot(`${DATE}-bejelentes-menu-vege.png`);
   check('nincs kezeletlen JS-kivétel (AOS14)', rpg.logs.length === 0 && gk.logs.length === 0, [...rpg.logs, ...gk.logs].join(' | '));
+  await rpg.evaluate('clearInterval(window.__alertTimer); true').catch(() => undefined);
   await rpg.close();
   // navigáció közben a manőverkártya alatt (a kamera-sor helyén), ugyanígy
   const rn = await mk(SHOT);

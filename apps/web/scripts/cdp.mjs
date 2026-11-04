@@ -1,9 +1,11 @@
 // Headless Chrome iPhone-méretben (390 × 844, 3×), CDP-n – külső függőség nélkül (Node 22+ WebSocket).
 // A navigációs képernyőkép-szkript (nav-shots.mjs) közös alapja; a shots.mjs saját másolatot használ.
-import { spawn } from 'node:child_process';
-import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { closeChrome, spawnGuardedChrome } from './chrome-guard.mjs';
+
+export { closeChrome };
 
 export const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const SEND_TIMEOUT_MS = 180_000;
@@ -15,38 +17,28 @@ const CHROME = process.env.CHROME ?? '/Applications/Google Chrome.app/Contents/M
 export async function launchChrome({ photo = false } = {}) {
   const port = 9300 + Math.floor(Math.random() * 500);
   const profile = await mkdtemp(join(tmpdir(), 'atlag-nav-'));
-  const proc = spawn(CHROME, [
-    '--headless=new',
-    `--remote-debugging-port=${port}`,
-    `--user-data-dir=${profile}`,
-    '--no-first-run',
-    '--hide-scrollbars',
-    '--use-angle=swiftshader',
-    '--enable-unsafe-swiftshader',
-    // AW20: kevesebb erőforrás – V8-halom korlát, nincs GPU-kompozitálás (NAV_GPU_COMPOSITING=1 visszakapcsolja), háttér-munka le
-    '--js-flags=--max-old-space-size=512',
-    ...(photo || process.env.NAV_GPU_COMPOSITING ? [] : ['--disable-gpu-compositing']),
-    '--disable-extensions',
-    '--disable-background-networking',
-    '--disable-component-update',
-    'about:blank',
-  ]);
-  // zárolt / alvó kijelzőnél az indulás 10 s fölött is lehet: legfeljebb 30 s-ot várunk
-  for (let i = 0; i < 150; i++) {
-    try {
-      if ((await fetch(`http://127.0.0.1:${port}/json/version`)).ok) return { proc, profile, port };
-    } catch {
-      // még indul
-    }
-    await sleep(200);
-  }
-  throw new Error('a Chrome nem indult el');
-}
-
-export async function closeChrome({ proc, profile }) {
-  proc.kill();
-  await sleep(300);
-  await rm(profile, { recursive: true, force: true });
+  // az őr: előbb kilövi az előző futás árva Chrome-ját, saját folyamatcsoportban indít, signal / kilépés / időkorlát esetén leállít
+  return spawnGuardedChrome(
+    CHROME,
+    [
+      '--headless=new',
+      `--remote-debugging-port=${port}`,
+      `--user-data-dir=${profile}`,
+      '--no-first-run',
+      '--hide-scrollbars',
+      '--use-angle=swiftshader',
+      '--enable-unsafe-swiftshader',
+      // AW20: kevesebb erőforrás – V8-halom korlát, nincs GPU-kompozitálás (NAV_GPU_COMPOSITING=1 visszakapcsolja), háttér-munka le
+      '--js-flags=--max-old-space-size=512',
+      ...(photo || process.env.NAV_GPU_COMPOSITING ? [] : ['--disable-gpu-compositing']),
+      '--disable-extensions',
+      '--disable-background-networking',
+      '--disable-component-update',
+      'about:blank',
+    ],
+    // zárolt / alvó kijelzőnél az indulás 10 s fölött is lehet: legfeljebb 30 s-ot várunk
+    { profile, port, attempts: 150 },
+  );
 }
 
 /** A (legfeljebb egy) nyitott lap: új lap csak a régi tényleges bezárása után nyílhat. */

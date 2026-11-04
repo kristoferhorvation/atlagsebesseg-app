@@ -3,10 +3,15 @@
 import { spawn } from 'node:child_process';
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { onCleanup, reapOrphanChrome, startWatchdog } from '../../../apps/web/scripts/chrome-guard.mjs';
 import { DEVICES, OUT, pick, ROOT, STATES, WEB_BASE, WORK } from './config.mjs';
 import { diffImages, readPng, sideBySide, THRESHOLDS } from './diff-core.mjs';
-import { buildApp, iosShot, prepareDevice } from './ios-shots.mjs';
+import { buildApp, iosShot, prepareDevice, stopApp } from './ios-shots.mjs';
 import { launchBrowser, navWindows, webShot } from './web-shots.mjs';
+
+// kemény időkorlát (a teljes futás ~25 perc; SHOTS_TIMEOUT_MIN felülírja) + az előző futás árva Chrome-jának kilövése
+startWatchdog(30, 'parity');
+reapOrphanChrome();
 
 const argv = process.argv.slice(2);
 const devices = (pick(argv, 'device')?.split(',') ?? Object.keys(DEVICES));
@@ -21,6 +26,8 @@ async function withServer(fn) {
   if (up) return fn();
   const port = new URL(WEB_BASE).port;
   const proc = spawn('npx', ['vite', '--port', port, '--strictPort'], { cwd: join(ROOT, 'apps', 'web'), stdio: 'ignore', detached: true });
+  // signal / kivétel / időkorlát esetén a `finally` nem fut: a detached vite folyamatcsoportját a közös őr is leállítja
+  const unregister = onCleanup(() => process.kill(-proc.pid, 'SIGKILL'));
   try {
     for (let i = 0; i < 120; i++) {
       if (await fetch(WEB_BASE).then((r) => r.ok).catch(() => false)) break;
@@ -28,7 +35,12 @@ async function withServer(fn) {
     }
     return await fn();
   } finally {
-    process.kill(-proc.pid);
+    unregister();
+    try {
+      process.kill(-proc.pid);
+    } catch {
+      // már leállt
+    }
   }
 }
 
@@ -61,12 +73,17 @@ await withServer(async () => {
 
 if (!skipIos) {
   if (!skipBuild) buildApp();
-  for (const device of devices) {
-    await prepareDevice(device);
-    for (const state of states) {
-      await iosShot(device, state, windows);
-      console.log(`ios  ${device} ${state.id}`);
+  try {
+    for (const device of devices) {
+      await prepareDevice(device);
+      for (const state of states) {
+        await iosShot(device, state, windows);
+        console.log(`ios  ${device} ${state.id}`);
+      }
     }
+  } finally {
+    // hiba esetén sem marad futó app a szimulátorokban
+    for (const device of devices) stopApp(device);
   }
 }
 

@@ -2,6 +2,7 @@
 // a 320 × 568, 375 × 667, 390 × 844 és 430 × 932 nézeten. Használat: npm run view-shots -w @atlagsebesseg/web -- <képnév-előtag> [kimeneti mappa]
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { startWatchdog } from './chrome-guard.mjs';
 import { closeChrome, launchChrome, openPage, sleep } from './cdp.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -12,6 +13,7 @@ const VIEWS = [['320', 320, 568], ['kicsi', 375, 667], ['kozepes', 390, 844], ['
 const q = (sel) => `document.querySelector(${JSON.stringify(sel)})`;
 const SAVED = JSON.stringify({ home: { lat: 47.5, lon: 19.04, name: 'Budapest, Kossuth tér 1.', address: '' }, work: { lat: 47.45, lon: 19, name: 'Budaörs, Szabadság út 117.', address: '' }, others: [] });
 
+startWatchdog(15, 'view-shots'); // kemény időkorlát (SHOTS_TIMEOUT_MIN felülírja)
 const chrome = await launchChrome({ photo: true });
 try {
   const p = await openPage({ port: chrome.port, base: BASE, outDir: OUT, map: 'photo' });

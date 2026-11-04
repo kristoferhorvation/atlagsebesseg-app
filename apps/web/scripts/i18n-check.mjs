@@ -6,10 +6,10 @@
 //
 //   npm run dev -w @atlagsebesseg/web              # másik terminálban
 //   npm run i18n:check -w @atlagsebesseg/web
-import { spawn } from 'node:child_process';
-import { mkdtemp, rm } from 'node:fs/promises';
+import { mkdtemp } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { closeChrome, spawnGuardedChrome, startWatchdog } from './chrome-guard.mjs';
 
 const BASE = process.env.SHOTS_BASE ?? 'http://localhost:5173';
 const CHROME = process.env.CHROME ?? '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
@@ -18,16 +18,13 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 async function launch() {
   const profile = await mkdtemp(join(tmpdir(), 'atlag-i18n-'));
-  const proc = spawn(CHROME, ['--headless=new', `--remote-debugging-port=${PORT}`, `--user-data-dir=${profile}`, '--no-first-run', '--hide-scrollbars', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', 'about:blank']);
-  for (let i = 0; i < 50; i++) {
-    try {
-      if ((await fetch(`http://127.0.0.1:${PORT}/json/version`)).ok) return { proc, profile };
-    } catch {
-      // még indul
-    }
-    await sleep(200);
-  }
-  throw new Error('a Chrome nem indult el');
+  // az őr (chrome-guard.mjs): árva Chrome kilövése indításkor, takarítás signalnál / kilépésnél, sikertelen indulásnál is
+  const { proc } = await spawnGuardedChrome(
+    CHROME,
+    ['--headless=new', `--remote-debugging-port=${PORT}`, `--user-data-dir=${profile}`, '--no-first-run', '--hide-scrollbars', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', 'about:blank'],
+    { profile, port: PORT, attempts: 50 },
+  );
+  return { proc, profile };
 }
 
 async function openPage(acceptLanguage) {
@@ -84,7 +81,11 @@ async function openPage(acceptLanguage) {
       }
       throw new Error(`időtúllépés: ${label}`);
     },
-    close: () => ws.close(),
+    // a lap is bezárul, nem csak a kapcsolat
+    close: async () => {
+      ws.close();
+      await fetch(`http://127.0.0.1:${PORT}/json/close/${target.id}`).catch(() => undefined);
+    },
   };
 }
 
@@ -98,6 +99,7 @@ const LANG = `document.documentElement.lang`;
 const TITLE = `document.querySelector('.start h1')?.textContent`;
 const BAND = `document.querySelector('.planned-band')?.innerText.replace(/\\s+/g, ' ').trim()`;
 
+startWatchdog(5, 'i18n-check'); // kemény időkorlát (SHOTS_TIMEOUT_MIN felülírja)
 const { proc, profile } = await launch();
 try {
   // 1. kezdő nyelv a készülék nyelvéből
@@ -162,9 +164,7 @@ try {
     z.close();
   }
 } finally {
-  proc.kill();
-  await sleep(300);
-  await rm(profile, { recursive: true, force: true });
+  await closeChrome({ proc, profile }).catch(() => undefined);
 }
 
 const failed = results.filter((ok) => !ok).length;

@@ -7,7 +7,9 @@ import { BUNDLE, DEVICES, FIXED_NOW_MS, ROOT, TIME_ZONE, WORK } from './config.m
 import { resolveAt } from './web-shots.mjs';
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-const simctl = (...a) => execFileSync('xcrun', ['simctl', ...a], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
+// időkorlát: a megakadt simctl (pl. bootstatus fagyott szimulátoron) ne tartsa a harnesst örökké
+const SIMCTL_TIMEOUT_MS = 300_000;
+const simctl = (...a) => execFileSync('xcrun', ['simctl', ...a], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], timeout: SIMCTL_TIMEOUT_MS, killSignal: 'SIGKILL' });
 const IOS = join(ROOT, 'apps', 'ios');
 const APP = join(IOS, 'build', 'parity', 'Build', 'Products', 'Debug-iphonesimulator', 'Atlagsebesseg.app');
 
@@ -15,7 +17,7 @@ const APP = join(IOS, 'build', 'parity', 'Build', 'Products', 'Debug-iphonesimul
 export function buildApp() {
   const log = join(WORK, 'xcodebuild.log');
   mkdirSync(WORK, { recursive: true });
-  const r = spawnSync('sh', ['-c', `xcodebuild build -project Atlagsebesseg.xcodeproj -scheme Atlagsebesseg -configuration Debug -destination 'generic/platform=iOS Simulator' -derivedDataPath build/parity ARCHS=arm64 ONLY_ACTIVE_ARCH=YES > "${log}" 2>&1`], { cwd: IOS, stdio: 'inherit' });
+  const r = spawnSync('sh', ['-c', `exec xcodebuild build -project Atlagsebesseg.xcodeproj -scheme Atlagsebesseg -configuration Debug -destination 'generic/platform=iOS Simulator' -derivedDataPath build/parity ARCHS=arm64 ONLY_ACTIVE_ARCH=YES > "${log}" 2>&1`], { cwd: IOS, stdio: 'inherit', timeout: 20 * 60_000, killSignal: 'SIGKILL' });
   if (r.status !== 0) throw new Error(`xcodebuild hiba, napló: ${log}`);
 }
 
@@ -31,7 +33,7 @@ export async function prepareDevice(device) {
   simctl('status_bar', udid, 'override', '--batteryState', 'charged', '--batteryLevel', '100', '--cellularBars', '4', '--wifiBars', '3');
   simctl('install', udid, APP);
   // a telepítés utáni első indítás (előmelegítés) még nem kapja meg biztosan az argumentumokat: egy üres indítás, utána jöhetnek a képek
-  execFileSync('xcrun', ['simctl', 'launch', '--terminate-running-process', udid, BUNDLE, '-parity', 'YES'], { stdio: 'ignore' });
+  execFileSync('xcrun', ['simctl', 'launch', '--terminate-running-process', udid, BUNDLE, '-parity', 'YES'], { stdio: 'ignore', timeout: SIMCTL_TIMEOUT_MS, killSignal: 'SIGKILL' });
   await sleep(4000);
   simctl('terminate', udid, BUNDLE);
 }
@@ -62,6 +64,15 @@ async function settledShot(udid, file, minMs, maxMs = 60_000) {
   }
 }
 
+/** A paritás-app leállítása a szimulátoron (best effort; hiba után is hívható). */
+export function stopApp(device) {
+  try {
+    simctl('terminate', DEVICES[device].udid, BUNDLE);
+  } catch {
+    // nem futott
+  }
+}
+
 /** Egyszeri elakadásnál (a kép nem állt be) egy újraindítás, utána már hibát ad. */
 export async function iosShot(device, state, windows) {
   try {
@@ -89,7 +100,7 @@ async function iosShotOnce(device, state, windows) {
   }
   const args = state.ios.map((a) => resolveAt(a, windows));
   const env = { ...process.env, SIMCTL_CHILD_TZ: TIME_ZONE };
-  execFileSync('xcrun', ['simctl', 'launch', '--terminate-running-process', udid, BUNDLE, '-parity', 'YES', '-parityNow', String(FIXED_NOW_MS), '-lang:v1', state.lang ?? 'hu', ...args], { env, stdio: 'ignore' });
+  execFileSync('xcrun', ['simctl', 'launch', '--terminate-running-process', udid, BUNDLE, '-parity', 'YES', '-parityNow', String(FIXED_NOW_MS), '-lang:v1', state.lang ?? 'hu', ...args], { env, stdio: 'ignore', timeout: SIMCTL_TIMEOUT_MS, killSignal: 'SIGKILL' });
   // a navigációs állapotok útvonal-adata aszinkron érkezik: a „keresés…” kép is lehet stabil, ezért ezekre tovább várunk
   await settledShot(udid, file, state.ios.includes('nav') ? 24_000 : state.ios.includes('picker') ? 16_000 : 3000);
   return { file };
