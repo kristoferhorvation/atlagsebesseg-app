@@ -365,7 +365,7 @@ struct MapScreen: View {
         .onChange(of: model.fitVersion) { fitRoutes(proxy.map) }
         // a tervezés vége (indítás vagy mégse): a kamera visszaáll a követésre (mint a weben)
         .onChange(of: model.plan == nil) { _, closed in
-            guard closed else { return }
+            guard closed, !UserDefaults.standard.bool(forKey: "parityNoFollow") else { return }
             follow = true
             if let fix = view.lastFix { recenter(fix, animated: true) }
         }
