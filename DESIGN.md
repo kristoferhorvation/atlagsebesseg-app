@@ -255,3 +255,8 @@ térkép-rétegek (pl. alternatív útvonal) az alkalmazott fényhez igazodnak. 
 - Jelölőnégyzet: 26 px, 8 px-es sarok, kipipálva `accent`. Kis gomb: 48 px magas, 14 px-es sarok, 16 / 600.
 - **Kezdőképernyő:** a térkép fölött `bg` 10% → 94% (52%-ig) átmenet, alulra zárt oszlop, 22 px térköz, 76 px-es ikon (20 px-es sarok), cím 44 / 700, −0,035em, **soha nem törik** (ha nem fér ki, a betű kisebb), mondat 19 `textMuted`, három `ok` pipa 17 / 540, 60 px-es elsődleges gomb, szimulátor-link 16 / 600.
 
+
+## Fiók (AW22)
+- **Apple-gomb:** a hivatalos fehér stílus (`appleButton`, `appleButtonText`), 56 pt magas, a Fiók kártya elsődleges gombja; a felirat a szótárból (az app nyelvén), a betű szűk kijelzőn enged, egy sorban marad.
+- **Google / e-mail:** kisebb, 48 pt-es `.mini-btn`-ek az Apple-gomb alatt; a Google „G” négy színe (`google*` tokenek) más célra nem használható.
+- **Út utáni ajánlat:** a bejelentés-kártya üvege (`.report-card`), két `.btn`; csak az üres nézeten.

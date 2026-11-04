@@ -8,7 +8,11 @@ import SwiftUI
 extension AppModel {
     var signedInAccount: Bool { accountUserState.map { !$0.isAnonymous } ?? false }
     private var defaults: UserDefaults { .standard }
-    private var accountSimMode: Bool { sim != nil || UserDefaults.standard.string(forKey: "accountSim") != nil || Parity.on }
+    /// Szimulátorban nincs fiók-hálózat. A `setUpAccount` a szimulátor indítása előtt fut, ezért az indítási argumentumot is nézi.
+    private var accountSimMode: Bool {
+        let args = UserDefaults.standard
+        return sim != nil || args.string(forKey: "sim") != nil || args.bool(forKey: "cruise") || args.string(forKey: "accountSim") != nil || Parity.on
+    }
 
     /// A mostani app-adat a szinkron alakjában.
     private var accountData: AccountData {
@@ -30,6 +34,20 @@ extension AppModel {
             if args.bool(forKey: "nudge") { signInNudge = true }
             return
         }
+        #if DEBUG
+        // élő próba a fej nélküli szimulátorban: az `openurl` rendszer-párbeszédet nyit, itt nincs koppintás; a Documents/debug-url.txt tartalma a link
+        if args.bool(forKey: "debugUrls") {
+            Task { [weak self] in
+                let file = URL.documentsDirectory.appendingPathComponent("debug-url.txt")
+                while let self {
+                    try? await Task.sleep(for: .seconds(1))
+                    guard let text = try? String(contentsOf: file, encoding: .utf8), let url = URL(string: text.trimmingCharacters(in: .whitespacesAndNewlines)) else { continue }
+                    try? FileManager.default.removeItem(at: file)
+                    self.openLink(url)
+                }
+            }
+        }
+        #endif
         guard let client = backend.client else { return }
         Task { [weak self] in
             if let p = await self?.backend.authProviders() { self?.accountProviders = p }
@@ -85,7 +103,7 @@ extension AppModel {
     func accountDataChanged() {
         guard !accountSimMode else { return }
         let data = accountData
-        accountFields = noteLocalFields(accountFields, accountFieldsOf(data), order: otherPlaceKeys(data.saved), now: Date().timeIntervalSince1970 * 1000)
+        accountFields = noteLocalFields(accountFields, accountFieldsOf(data), order: otherPlaceKeys(data.saved), now: accountNowMs())
         defaults.set(accountFields.serialized, forKey: FIELDS_KEY)
         guard signedInAccount else { return }
         accountDebounce?.cancel()
@@ -124,7 +142,7 @@ extension AppModel {
             defaults.set(r.state.serialized, forKey: FIELDS_KEY)
             if !r.changed.isEmpty { applySynced(r.state) }
             if settings.felhoMentes {
-                let b = try await syncBackupOnce(remote, tripStore, CloudState.parse(defaults.string(forKey: CLOUD_STATE_KEY)), deviceId: accountDeviceId, openTripId: cruise?.tripId, now: Date().timeIntervalSince1970 * 1000)
+                let b = try await syncBackupOnce(remote, tripStore, CloudState.parse(defaults.string(forKey: CLOUD_STATE_KEY)), deviceId: accountDeviceId, openTripId: cruise?.tripId, now: accountNowMs())
                 defaults.set(b.state.serialized, forKey: CLOUD_STATE_KEY)
                 if b.down > 0 || b.deleted > 0 { reloadTrips() }
                 if b.heatChanged {
@@ -198,7 +216,7 @@ extension AppModel {
             return
         }
         guard backend.configured else { return }
-        let now = Date().timeIntervalSince1970 * 1000
+        let now = accountNowMs()
         let last = defaults.object(forKey: NUDGE_KEY) as? Double
         if signinNudgeDue(last, now: now, isAnonymous: true) {
             defaults.set(now, forKey: NUDGE_KEY)
@@ -295,6 +313,20 @@ extension AppModel {
         #endif
         _ = try await client.auth.session(from: url)
     }
+
+    #if DEBUG
+    /// Élő próba a fej nélküli szimulátorban (csak DEBUG): `simctl openurl atlagsebesseg://debug/<parancs>`.
+    func debugAccountCommand(_ url: URL) {
+        switch url.lastPathComponent {
+        case "unit-mph": settings.egyseg = .mph
+        case "backup-on": settings.felhoMentes = true
+        case "signout": signOut()
+        case "delete": removeAccount()
+        case "name": saveName("Proba")
+        default: break
+        }
+    }
+    #endif
 
     /// A levélben kapott link / OAuth visszatérése.
     func handleAuthCallback(_ url: URL) {

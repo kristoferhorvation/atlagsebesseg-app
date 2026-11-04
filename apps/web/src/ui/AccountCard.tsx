@@ -43,7 +43,7 @@ export function AccountCard({ account, settings, update }: { account: AccountApi
           <div className="list-row">
             <div style={{ minWidth: 0 }}>
               <div className="label">{accountTitle(user, settings.megszolitas)}</div>
-              {user.email && <div className="hint">{user.email}</div>}
+              {user.email && user.email !== accountTitle(user, settings.megszolitas) && <div className="hint">{user.email}</div>}
               <div className="hint" data-testid="account-sync" data-status={account.status}>
                 {syncStatusText(account.status, account.lastSync, time)}
               </div>

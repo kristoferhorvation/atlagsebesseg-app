@@ -17,6 +17,14 @@ const VIEWS = {
   'meres': ['-sim', 'lassit', '-simPanel', 'NO', '-simSeek', '0.5', '-simSpeed', '0.05'],
   'bejelentes': [...NAV, '-heat', 'ki', '-reportOpen', 'YES'],
   'beallitasok-zona': [...NAV, '-heat', 'ki', '-settingsOpen', 'zone', '-simPlaces', 'YES'],
+  // AW22
+  'fiok-ki': [...NAV, '-heat', 'ki', '-settingsOpen', 'top', '-accountEmailOpen', 'YES'],
+  'fiok-nincs-beallitva': [...NAV, '-heat', 'ki', '-settingsOpen', 'top', '-accountSim', 'off'],
+  'fiok-be': [...NAV, '-heat', 'ki', '-settingsOpen', 'top', '-accountSim', 'in'],
+  'fiok-nev': [...NAV, '-heat', 'ki', '-nameStep', 'Anna'],
+  'fiok-ajanlat': [...NAV, '-heat', 'ki', '-nudge', 'YES'],
+  'veszely': [...NAV, '-heat', 'ki', '-reportOpen', 'YES', '-reportHazard', 'YES'],
+  'vissza-mini': [...NAV, '-navStage', 'nav', '-simAt', '60', '-simSpeed', '0.05', '-manual', '0', '-manualMini', 'YES', '-parityNoFollow', 'YES'],
   'live-figyel': [...NAV, '-livePreview', 'YES', '-liveGallery', 'figyel'],
 };
 const argv = process.argv.slice(2);
@@ -62,7 +70,7 @@ for (const device of devices) {
     execFileSync('xcrun', ['simctl', 'launch', '--terminate-running-process', udid, BUNDLE, '-lang:v1', 'hu', ...VIEWS[view]], { stdio: 'ignore' });
     // friss szimulátoron az app + a Mapbox-csempék 30–60 s
     await sleep(45_000);
-    const file = join(out, `${date}-aos18-ios-${device}-${view}.png`);
+    const file = join(out, `${date}-${pick(argv, 'round') ?? 'aos18'}-ios-${device}-${view}.png`);
     for (let i = 0; i < 12; i++) {
       execFileSync('xcrun', ['simctl', 'io', udid, 'screenshot', '--type=png', file], { stdio: 'ignore' });
       if (ready(file)) break;

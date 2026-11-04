@@ -527,6 +527,12 @@ final class AppModel {
             handleAuthCallback(url)
             return
         }
+        #if DEBUG
+        if url.scheme == "atlagsebesseg", url.host == "debug" {
+            debugAccountCommand(url)
+            return
+        }
+        #endif
         guard url.scheme == "atlagsebesseg", url.host == "live" else { return }
         reportSheetOpen = false
         geoHelpOpen = false

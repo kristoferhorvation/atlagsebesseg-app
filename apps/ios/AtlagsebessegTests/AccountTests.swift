@@ -273,6 +273,15 @@ struct AccountSyncTests {
         #expect(applyFields(b, base: data()).settings.megszolitas == "Kristóf")
     }
 
+    @Test("a szinkron időbélyege egész ezredmásodperc, a JSON-ban tizedes nélkül")
+    func wholeMs() throws {
+        let t = accountNowMs(Date(timeIntervalSince1970: 1_793_819_465.123456))
+        #expect(t == t.rounded())
+        let json = String(decoding: try JSONEncoder().encode(FieldRow(key: "a", value: .null, updated_ms: t)), as: UTF8.self)
+        #expect(json.contains("\"updated_ms\":1793819465123"))
+        #expect(!json.contains("1793819465123."))
+    }
+
     @Test("az azonos tartalom eltérő kulcssorrenddel is ugyanaz")
     func sameContent() {
         let a = FieldValue.object(["a": .number(1), "b": .array([.number(1), .object(["c": .number(2)])])])

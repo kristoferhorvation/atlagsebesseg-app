@@ -2,8 +2,8 @@ import type { GpsFix } from '@atlagsebesseg/core';
 import { describe, expect, it } from 'vitest';
 import { greetingText, greetingVoice } from '../src/greeting';
 import { setLanguage } from '../src/i18n';
-import type { ActiveReport } from '../src/reportFeed';
-import { REPORT_PROMPT, ReportPromptWatch, reportAlertM, reportPromptCandidate } from '../src/reportPrompt';
+import { hazardOf, reportVisual, type ActiveReport } from '../src/reportFeed';
+import { hazardVoice, REPORT_PROMPT, ReportPromptWatch, reportAlertM, reportPromptCandidate } from '../src/reportPrompt';
 import { gateStartedAfter, reportMenu } from '../src/reports';
 import { DEFAULT_SETTINGS, normalizeName, parseSettings } from '../src/settings';
 
@@ -178,5 +178,26 @@ describe('köszöntés (megszólítás)', () => {
     expect(DEFAULT_SETTINGS.megszolitas).toBe('');
     expect(parseSettings(JSON.stringify({ megszolitas: ' Kristof ' })).megszolitas).toBe('Kristof');
     expect(parseSettings(JSON.stringify({ megszolitas: 42 })).megszolitas).toBe('');
+  });
+});
+
+describe('AW22: Veszély közeledés-bemondása', () => {
+  it('egyszer, a figyelmeztető állapotban, 50 m-re kerekítve; más típusra és kérdésnél nincs', () => {
+    setLanguage('hu');
+    const spoken = new Set<string>();
+    const prompt = { id: 'v', phase: 'approach' as const, distanceM: 262 };
+    expect(hazardVoice(prompt, { type: 'rendorseg' }, spoken)).toBeNull();
+    expect(hazardVoice({ ...prompt, phase: 'ask' }, { type: 'akadaly' }, spoken)).toBeNull();
+    expect(hazardVoice(prompt, { type: 'akadaly' }, spoken)).toBe('Veszély az úton 250 méterre');
+    expect(hazardVoice(prompt, { type: 'akadaly' }, spoken)).toBeNull();
+    expect(hazardVoice(null, null, spoken)).toBeNull();
+  });
+  it('a régi „Akadály” sor altípus nélkül „Veszély”, az újnál az altípus is látszik', () => {
+    setLanguage('hu');
+    expect(hazardOf('akadaly', null)).toBeNull();
+    expect(hazardOf('akadaly', 'katyu')).toBe('katyu');
+    expect(hazardOf('szakasz_hiba', 'katyu')).toBeNull();
+    expect(reportVisual({ type: 'akadaly', gateKind: null }).label).toBe('Veszély');
+    expect(reportVisual({ type: 'akadaly', gateKind: null, hazard: 'allo_jarmu' }).label).toBe('Veszély · Álló jármű');
   });
 });

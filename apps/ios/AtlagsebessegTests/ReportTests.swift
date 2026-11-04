@@ -502,3 +502,35 @@ struct LiveActivityAOS15Tests {
         #expect(along(w.first!) <= 9_700 + 1 && along(w.last!) >= 12_500 - 600 && along(w.last!) <= 12_500 + 1)
     }
 }
+
+@Suite("AW22: Veszély közeledés-bemondása")
+struct HazardVoiceTests {
+    private func report(_ type: ReportType, hazard: HazardKind? = nil) -> ActiveReport {
+        ActiveReport(id: "v", type: type, lat: 47, lon: 19, createdAt: 0, expiresAt: 1, hazard: hazard)
+    }
+
+    @Test("egyszer, a figyelmeztető állapotban, 50 m-re kerekítve; más típusra és kérdésnél nincs")
+    func voice() {
+        var spoken = Set<String>()
+        let prompt = ReportPrompt(id: "v", phase: .approach, distanceM: 262)
+        #expect(hazardVoice(prompt, report(.rendorseg), spoken: &spoken) == nil)
+        #expect(hazardVoice(ReportPrompt(id: "v", phase: .ask, distanceM: 262), report(.akadaly), spoken: &spoken) == nil)
+        #expect(hazardVoice(prompt, report(.akadaly), spoken: &spoken) == t(.reportVoiceHazard, ["m": "250"]))
+        #expect(hazardVoice(prompt, report(.akadaly), spoken: &spoken) == nil)
+        #expect(hazardVoice(nil, nil, spoken: &spoken) == nil)
+    }
+
+    @Test("a régi „Akadály” sor altípus nélkül „Veszély”, az újnál az altípus is látszik")
+    func label() {
+        let row = ReportRow(id: "r", type: "akadaly", lat: 47, lon: 19, heading_deg: nil, gate_kind: nil, subtype: nil, confirmations: 0, denials: 0, created_at: "2026-11-04T10:00:00Z", expires_at: "2026-11-04T12:00:00Z", user_id: nil)
+        #expect(row.active(myUserId: nil)?.hazard == nil)
+        var withKind = row
+        withKind.subtype = "katyu"
+        #expect(withKind.active(myUserId: nil)?.hazard == .katyu)
+        var other = withKind
+        other.type = "szakasz_hiba"
+        #expect(other.active(myUserId: nil)?.hazard == nil)
+        #expect(report(.akadaly).label == ReportChoice.akadaly.label)
+        #expect(report(.akadaly, hazard: .alloJarmu).label == "\(ReportChoice.akadaly.label) · \(HazardKind.alloJarmu.label)")
+    }
+}

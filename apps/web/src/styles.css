@@ -2985,9 +2985,19 @@ button.nav-reroute {
 .apple-btn {
   min-height: 56px;
   height: 56px;
+  padding: 0 10px;
+  gap: 8px;
+  /* egy sorban marad: 320 px-en a betű enged (iOS-en a minimumScaleFactor) */
+  font-size: min(20px, 4.5vw);
+  white-space: nowrap;
   background: var(--color-apple-button);
   color: var(--color-apple-button-text);
   font-weight: 600;
+}
+
+.account-nudge .btn {
+  font-size: min(20px, 5vw);
+  padding: 0 6px;
 }
 
 .apple-btn:disabled {
@@ -3051,4 +3061,27 @@ button.nav-reroute {
 
 .account-nudge-text {
   font-weight: 600;
+}
+
+/* AW22-javítás: 320 px-en az érkezési idő nem csúszhat a Befejezés gomb alá */
+@media (max-width: 340px) {
+  .nav-bottom {
+    gap: 6px;
+  }
+
+  .nav-bottom-speed {
+    min-width: 52px;
+  }
+
+  .nav-bottom-eta b {
+    font-size: 22px;
+  }
+
+  .nav-bottom .nav-end {
+    flex: none;
+    width: auto;
+    min-width: 0;
+    padding: 0 12px;
+    font-size: 16px;
+  }
 }

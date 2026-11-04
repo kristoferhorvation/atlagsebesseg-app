@@ -94,6 +94,8 @@ Első feltöltés előtt, kézzel, az [App Store Connectben](https://appstorecon
 elfogadása, majd Apps › + › New App: iOS, név `Átlagsebesség`, elsődleges nyelv magyar, Bundle ID `hu.atlagsebesseg.app`, SKU
 `atlagsebesseg-ios`, User Access: Full Access.
 
+A Sign in with Apple képesség (AW22) a `project.yml` entitlementjében van; az App ID-n is be kell kapcsolni (`hu.atlagsebesseg.app` › Sign In with Apple), különben az export profil-hibával áll meg.
+
 ## Telepítés a saját iPhone-ra (Kristof)
 
 1. Terminálban: `cd ~/Desktop/atlagsebesseg-app/apps/ios && npm run secrets && xcodegen generate`,

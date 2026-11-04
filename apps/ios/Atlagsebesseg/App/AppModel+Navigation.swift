@@ -362,6 +362,8 @@ extension AppModel {
         let args = UserDefaults.standard
         guard args.object(forKey: "manual") != nil else { return }
         startManual()
+        // `-manualMini YES` (AW22, a képhez): rögtön a zsugorított kártya
+        if args.bool(forKey: "manualMini") { tapManualPill() }
         let stopAfter = args.double(forKey: "manual")
         guard stopAfter > 0 else { return }
         Task { [weak self] in

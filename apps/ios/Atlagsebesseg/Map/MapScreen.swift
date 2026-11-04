@@ -383,7 +383,7 @@ struct MapScreen: View {
                 try? await Task.sleep(for: .milliseconds(500))
                 if gesturing { lastGestureAt = Date().timeIntervalSince1970 * 1000 }
                 let s = FollowState(following: follow, lastGestureAt: lastGestureAt)
-                if followReducer(s, .tick(at: Date().timeIntervalSince1970 * 1000, measuring: true)).following { follow = true }
+                if !UserDefaults.standard.bool(forKey: "parityNoFollow"), followReducer(s, .tick(at: Date().timeIntervalSince1970 * 1000, measuring: true)).following { follow = true }
             }
         }
         .onChange(of: follow) { _, on in

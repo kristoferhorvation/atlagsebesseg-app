@@ -203,3 +203,10 @@ npm run import:sections          # OSM → packages/data/output/*.json (helyi g�
 npm run upload:sections          # → sections tábla, upsert id szerint (service role, gyökér .env)
 npm run upload:sections -- --country IT --dry-run
 ```
+
+## Fiók (AW22)
+
+- Táblák: `profiles`, `account_fields`, `cloud_trips`, `cloud_heat` (RLS: csak a saját, csak valódi fiók), `account_merge_tokens` (kliensről nem érhető el). Részletek: gyökér `CLAUDE.md` › AW22.
+- Edge function: `account-delete` (`npm run deploy:edge`; a `verify_jwt` marad bekapcsolva).
+- Auth-beállítás (Management API-val beállítva): Site URL `https://atlagsebesseg.vercel.app`, átirányítások `https://atlagsebesseg.vercel.app/**`, `http://localhost:*/**`, `atlagsebesseg://auth-callback`, manual linking BE. A beépített levelező csak a csapattagoknak küld, 2 levél / óra, a sablon nem szerkeszthető: valódi felhasználókhoz saját SMTP kell.
+- Élő próba: `npm run db:account-live`.

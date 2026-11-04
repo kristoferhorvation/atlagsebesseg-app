@@ -174,7 +174,7 @@ struct ReportCard: View {
                     .frame(width: 52, height: 52)
                     .background(c.tone.color.opacity(Tokens.Opacity.o18), in: RoundedRectangle(cornerRadius: Tokens.Radius.r16, style: .continuous))
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(c.label).font(.inter(Tokens.FontSize.f22, Tokens.FontWeight.w640)).foregroundStyle(Tokens.Colors.text).lineLimit(1)
+                    Text(report.label).font(.inter(Tokens.FontSize.f22, Tokens.FontWeight.w640)).foregroundStyle(Tokens.Colors.text).lineLimit(1)
                     Text(timeAgo(now - report.createdAt)).font(.inter(Tokens.Typography.body.size - 3, Tokens.FontWeight.w500)).foregroundStyle(Tokens.Colors.textMuted)
                 }
                 Spacer(minLength: 0)
@@ -197,7 +197,7 @@ struct ReportCard: View {
         .padding(16)
         .glass(radius: Tokens.Radius.card)
         .accessibilityElement(children: .contain)
-        .accessibilityLabel(t(.reportCardAria, ["label": c.label]))
+        .accessibilityLabel(t(.reportCardAria, ["label": report.label]))
     }
 
     private func voteButton(_ confirm: Bool, icon: IconName, text: String, tone: ReportTone) -> some View {
@@ -288,12 +288,12 @@ struct ReportAlertRow: View {
                 Icon(name: c.icon, size: 40)
                 if ask {
                     VStack(alignment: .leading, spacing: 0) {
-                        Text(c.label).font(.inter(Tokens.Typography.body.size, Tokens.FontWeight.w640)).lineLimit(1)
+                        Text(alert.report.label).font(.inter(Tokens.Typography.body.size, Tokens.FontWeight.w640)).lineLimit(1)
                         Text(t(.reportPromptQuestion)).font(.num(Tokens.Typography.title.size, Tokens.FontWeight.w700)).tracking(-0.3).lineLimit(1)
                     }
                 } else {
                     let d = formatDistance(alert.prompt.distanceM, unit)
-                    Text(t(.reportAlertAhead, ["label": c.label, "d": "\(d.value) \(d.unit)"]))
+                    Text(t(.reportAlertAhead, ["label": alert.report.label, "d": "\(d.value) \(d.unit)"]))
                         .font(.num(Tokens.Typography.title.size, Tokens.FontWeight.w700)).tracking(-0.3).lineLimit(1).minimumScaleFactor(0.8)
                 }
             }
@@ -423,7 +423,7 @@ struct ReportPin: View {
             .scaleEffect(selected ? 1.18 : 1)
             .frame(width: Tokens.Size.touch, height: Tokens.Size.touch)
             .contentShape(Circle())
-            .accessibilityLabel(t(.reportCardAria, ["label": c.label]))
+            .accessibilityLabel(t(.reportCardAria, ["label": report.label]))
             .animation(.easeOut(duration: Tokens.Motion.fast), value: selected)
     }
 }

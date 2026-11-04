@@ -119,6 +119,9 @@ nonisolated func isIdentityTaken(code: String?, message: String?) -> Bool {
 
 // MARK: mezőnkénti szinkron
 
+/// A szinkron időbélyege: egész ezredmásodperc (a szerver oszlopa `bigint`, a tört érték elutasított kérést adna; a webes `Date.now()` párja).
+nonisolated func accountNowMs(_ date: Date = Date()) -> Double { (date.timeIntervalSince1970 * 1000).rounded() }
+
 /// Egy szinkronizált mező értéke (JSON). A szám mindig `Double`: a két platform azonos értéke így egyenlő.
 nonisolated enum FieldValue: Codable, Equatable, Sendable {
     case null

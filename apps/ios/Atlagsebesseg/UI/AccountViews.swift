@@ -18,7 +18,9 @@ private struct GoogleMark: View {
 struct AppleButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .css(Tokens.Typography.body.size, Tokens.FontWeight.w600)
+            // a webes `font-size: min(20px, 4.5vw)`: egy sorban marad
+            .css(min(Tokens.Typography.body.size, 0.045 * UIScreen.main.bounds.width), Tokens.FontWeight.w600)
+            .padding(.horizontal, 10)
             .frame(maxWidth: .infinity, minHeight: 56)
             .foregroundStyle(Tokens.Colors.appleButtonText)
             .background(Tokens.Colors.appleButton, in: RoundedRectangle(cornerRadius: Tokens.Radius.r18, style: .continuous))
@@ -46,12 +48,9 @@ struct AccountCard: View {
 
     private func signedIn(_ user: AccountUser) -> some View {
         ListCard {
-            VStack(alignment: .leading, spacing: 2) {
-                Text(accountTitle(user, name: model.settings.megszolitas))
-                    .font(.inter(Tokens.FontSize.f17, Tokens.FontWeight.w580))
-                    .foregroundStyle(Tokens.Colors.text)
-                    .lineLimit(1)
-                if let e = user.email { hint(e) }
+            VStack(alignment: .leading, spacing: 0) {
+                GreedyText(text: accountTitle(user, name: model.settings.megszolitas), font: .inter(Tokens.FontSize.f17, Tokens.FontWeight.w580), lineHeight: 20, color: Tokens.Colors.text)
+                if let e = user.email, e != accountTitle(user, name: model.settings.megszolitas) { hint(e) }
                 hint(syncStatusText(model.syncStatus, lastSyncMs: model.lastSyncMs, formatTime: Self.time))
             }
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -96,9 +95,9 @@ struct AccountCard: View {
             VStack(alignment: .leading, spacing: 10) {
                 hint(t(.accountHint))
                 Button { model.signInApple() } label: {
-                    HStack(spacing: 10) {
+                    HStack(spacing: Tokens.Space.s2) {
                         Icon(name: .apple, size: 22)
-                        Text(t(.accountApple)).lineLimit(1).minimumScaleFactor(0.8)
+                        Text(t(.accountApple)).lineLimit(1)
                     }
                 }
                 .buttonStyle(AppleButtonStyle())
@@ -148,11 +147,10 @@ struct AccountCard: View {
         }
     }
 
+    /// A webes `.list-row .hint`: 14 pt, 18,9 pt-es sor, mohó tördeléssel, 3 pt-tel a fölötte lévő sor alatt.
     private func hint(_ s: String) -> some View {
-        Text(s)
-            .font(.inter(Tokens.Typography.caption.size, Tokens.FontWeight.w400))
-            .foregroundStyle(Tokens.Colors.textMuted)
-            .fixedSize(horizontal: false, vertical: true)
+        GreedyText(text: s, font: .inter(Tokens.FontSize.f14, Tokens.FontWeight.w400), lineHeight: 1.35 * Tokens.FontSize.f14, color: Tokens.Colors.textMuted)
+            .padding(.top, 3)
     }
 
     private func errorText(_ s: String) -> some View {
@@ -213,16 +211,15 @@ struct SignInNudge: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
-            Text(t(.accountNudgeText))
-                .css(Tokens.Typography.body.size, Tokens.FontWeight.w600)
-                .foregroundStyle(Tokens.Colors.text)
-                .fixedSize(horizontal: false, vertical: true)
+            GreedyText(text: t(.accountNudgeText), font: .inter(Tokens.Typography.body.size, Tokens.FontWeight.w600), lineHeight: 26, color: Tokens.Colors.text)
             HStack(spacing: 10) {
-                Button(t(.accountNudgeLater), action: onLater).buttonStyle(WideButtonStyle())
-                Button(t(.accountNudgeAction), action: onSignIn).buttonStyle(WideButtonStyle(kind: .primary))
+                // a webes `font-size: min(20px, 5vw)`
+                Button(t(.accountNudgeLater), action: onLater).buttonStyle(WideButtonStyle(size: min(Tokens.Typography.body.size, 0.05 * UIScreen.main.bounds.width)))
+                Button(t(.accountNudgeAction), action: onSignIn).buttonStyle(WideButtonStyle(kind: .primary, size: min(Tokens.Typography.body.size, 0.05 * UIScreen.main.bounds.width)))
             }
         }
-        .padding(16)
+        // a CSS-keret (1 pt) a belső margóhoz adódik
+        .padding(17)
         .frame(maxWidth: .infinity, alignment: .leading)
         .glass(radius: Tokens.Radius.card)
     }
