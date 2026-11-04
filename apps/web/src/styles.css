@@ -258,6 +258,7 @@ select:focus-visible {
 
 .recenter {
   pointer-events: auto;
+  align-self: flex-end;
   color: var(--color-brand);
   animation: rise var(--motion-base) var(--motion-ease);
 }

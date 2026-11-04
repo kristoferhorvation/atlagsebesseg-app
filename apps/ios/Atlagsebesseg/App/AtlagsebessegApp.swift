@@ -19,6 +19,8 @@ struct AtlagsebessegApp: App {
                 }
             }
             .preferredColorScheme(.dark)
+            // AOS18-javítás: `-liveStress YES`: a widget archiválásának próbája (`packages/parity/scripts/live-stress.mjs`)
+            .task { if UserDefaults.standard.bool(forKey: "liveStress") { await LiveStress.run() } }
             // AW15: a választott nyelv a rendszer-elemek (formázás, felolvasás) nyelve is
             .environment(\.locale, L10n.lang.locale)
             .tint(Tokens.Colors.accent)

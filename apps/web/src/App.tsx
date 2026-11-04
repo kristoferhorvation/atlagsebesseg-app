@@ -843,18 +843,11 @@ function Drive({ map }: { map: WebMapAdapter }) {
             />
           )}
           {!selected && selectedCam && <CameraCard key={selectedCam.id} camera={selectedCam} fix={view.lastFix} unit={settings.egyseg} onClose={() => setSelectedCamId(null)} />}
-          {(!follow.following || navSign) && (
+          {navSign && nav.view && (
             <div className="recenter-row">
-              {navSign && nav.view && (
-                <div className="sign-slot">
-                  <LimitSign kmh={nav.view.limitKmh} unit={settings.egyseg} small />
-                </div>
-              )}
-              {!follow.following && (
-                <button className="round-btn glass recenter" onClick={follow.recenter} aria-label={t('map.recenter')}>
-                  <Icon name="crosshair" size={28} />
-                </button>
-              )}
+              <div className="sign-slot">
+                <LimitSign kmh={nav.view.limitKmh} unit={settings.egyseg} small />
+              </div>
             </div>
           )}
         </div>
@@ -873,6 +866,12 @@ function Drive({ map }: { map: WebMapAdapter }) {
           <button className="round-btn glass report" onClick={() => setSheet('report')} aria-label={t('map.report')}>
             <Icon name="report" size={28} />
           </button>
+          {/* AOS18-javítás: a „Vissza a helyemre” mindig ugyanott: a gombsor jobb szélén, táblától és mérőkártyától függetlenül */}
+          {!follow.following && (
+            <button className="round-btn glass recenter" onClick={follow.recenter} aria-label={t('map.recenter')}>
+              <Icon name="crosshair" size={28} />
+            </button>
+          )}
         </div>
         {nav.view && (measuringLayout || stepStrip) && <NavStrip view={nav.view} unit={settings.egyseg} />}
         {hudCardShown && (

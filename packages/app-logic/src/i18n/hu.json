@@ -340,7 +340,7 @@
   "nav.man.arrive": "Cél",
   "nav.man.depart": "Indulás",
   "ios.locationUsage": "A mérőszakaszok felismeréséhez és az átlagsebesség méréséhez kell a helyzeted – zárolt képernyővel is, amíg az app mér.",
-  "ios.displayName": "Átlagsebesség Nav",
+  "ios.displayName": "Átlagsebesség",
   "ios.geo.denied": "tiltva (Beállítások → Adatvédelem → Helymeghatározás)",
   "ios.start.tip.background": "Zárolt képernyővel is mér – a kijelző mérés közben ébren marad",
 

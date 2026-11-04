@@ -301,22 +301,11 @@ struct DriveView: View {
                 .id(cam.id)
                 .transition(.opacity.combined(with: .offset(y: 12)))
         }
-        // AOS16: mint a weben – a bal alsó tábla és a „Vissza a helyemre” külön sorban a gombsor fölött
-        let recenter = !model.follow && view.lastFix != nil
-        if navSign || recenter {
-            HStack(alignment: .bottom, spacing: Tokens.Space.s3) {
-                if navSign, let nav = model.nav {
-                    LimitSign(kmh: nav.limitKmh, unit: unit, small: true)
-                    Spacer()
-                }
-                if recenter {
-                    // a webes `.recenter`: `brand` színű célkereszt; csak akkor látszik, ha nem a pozíción áll a kamera
-                    Button { model.follow = true } label: { Icon(name: .crosshair, size: 28).foregroundStyle(Tokens.Colors.brand) }
-                        .buttonStyle(RoundButtonStyle())
-                        .accessibilityLabel(t(.mapRecenter))
-                }
-                // a webes `.recenter-row { justify-content: space-between }`: tábla nélkül a gomb a bal szélen
-                if !navSign { Spacer() }
+        // a bal alsó tábla a gombsor fölött (a webes `.recenter-row`)
+        if navSign, let nav = model.nav {
+            HStack {
+                LimitSign(kmh: nav.limitKmh, unit: unit, small: true)
+                Spacer()
             }
         }
     }
@@ -341,6 +330,12 @@ struct DriveView: View {
             Button { model.reportSheetOpen = true } label: { Icon(name: .report, size: 28).foregroundStyle(Tokens.Colors.near) }
                 .buttonStyle(RoundButtonStyle())
                 .accessibilityLabel(t(.mapReport))
+            // AOS18-javítás: a webes `.actions .recenter`: mindig a gombsor jobb szélén, táblától és mérőkártyától függetlenül; csak ha nem a pozíción áll a kamera
+            if !model.follow && view.lastFix != nil {
+                Button { model.follow = true } label: { Icon(name: .crosshair, size: 28).foregroundStyle(Tokens.Colors.brand) }
+                    .buttonStyle(RoundButtonStyle())
+                    .accessibilityLabel(t(.mapRecenter))
+            }
         }
         if let nav = model.nav, stripShown { strip(nav) }
         if !hudCardHidden {

@@ -53,4 +53,30 @@ struct LiveActivityTests {
         #expect(first == LiveNavRouter.work || first == nil)
         #expect(LiveNavRouter.take() == nil)
     }
+
+    @Test("AOS18-javítás: a widget-archiválás próbamintái (6 nyelv, szótár leghosszabb szövege, 80+ karakteres cím, hiányzó hely, 0 és nagy krúzing): kódolható, ≤ 4 KB, kirajzolható, ≤ 160 pt")
+    func archivalasMintak() throws {
+        let samples = LiveStress.samples()
+        #expect(samples.count >= 6 * 8)
+        for item in samples {
+            let data = try JSONEncoder().encode(item.state)
+            #expect(try JSONDecoder().decode(LiveState.self, from: data) == item.state, "\(item.name)")
+            // az ActivityKit a 4 KB fölötti tartalmat elutasítja
+            #expect(data.count <= 4096, "\(item.name): \(data.count) bájt")
+            let lock = LockScreenView(state: item.state, mapImage: LiveActivitySamples.mapImage)
+            #expect(ImageRenderer(content: lock.frame(width: 374)).uiImage != nil, "\(item.name)")
+            #expect(height(lock, width: 374) <= LIVE_MAX_HEIGHT, "\(item.name)")
+            for island in [AnyView(IslandCompactLeading(state: item.state)), AnyView(IslandCompactTrailing(state: item.state)), AnyView(IslandMinimal(state: item.state))] {
+                #expect(ImageRenderer(content: island).uiImage != nil, "\(item.name)")
+            }
+        }
+    }
+
+    @Test("AOS18-javítás: a widget natív betűt használ (a UIFont-ból épített Font az archiváláskor összeomlott)")
+    func widgetBetu() throws {
+        let yml = try String(contentsOf: Repo.iosDir.appendingPathComponent("project.yml"), encoding: .utf8)
+        #expect(yml.contains("SWIFT_ACTIVE_COMPILATION_CONDITIONS: $(inherited) WIDGET_EXTENSION"))
+        let font = try String(contentsOf: Repo.iosDir.appendingPathComponent("Atlagsebesseg/UI/InterFont.swift"), encoding: .utf8)
+        #expect(font.contains("#if WIDGET_EXTENSION") && font.contains(".custom(Tokens.Fonts.family, fixedSize: size)"))
+    }
 }

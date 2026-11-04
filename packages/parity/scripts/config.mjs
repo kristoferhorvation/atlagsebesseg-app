@@ -40,6 +40,8 @@ export const STATES = [
   { id: 'hoterkep', web: { path: '/?navsim&panel=0&heatSeed&heat=sajat&heatView=gyakorisag&speed=7', ready: '.heat-switch' }, ios: [...NAV, '-heatSeed', 'YES', '-heat', 'sajat', '-heatView', 'gyakorisag'] },
   { id: 'krusing', web: { path: '/?cruise&panel=0&heat=ki&speed=7&at=300', ready: '.cruise-status' }, ios: ['-cruise', 'YES', '-simPanel', 'NO', '-simAt', '300', ...HEAT_OFF] },
   { id: 'vissza', web: { path: '/?navsim&panel=0&heat=ki&speed=7', ready: '.card.compact', recenter: true }, ios: [...NAV, ...HEAT_OFF, '-parityNoFollow', 'YES'] },
+  // AOS18-javítás: a „Vissza a helyemre” táblával is ugyanott (a gombsor jobb szélén)
+  { id: 'vissza-nav', web: { path: '/?navsim&stage=nav&panel=0&speed=7&at=60', ready: '.nav-top', recenter: true }, ios: [...NAV, '-navStage', 'nav', '-simAt', '60', '-parityNoFollow', 'YES'] },
   { id: 'kozeledik', web: { path: '/?sim=jo&route=0&speed=12&seek=0.15&panel=0&heat=ki', ready: '.hud > .card[aria-label="Mérőszakasz közeleg"]' }, ios: ['-sim', 'jo', '-simPanel', 'NO', '-simSeek', '0.15', ...HEAT_OFF] },
   { id: 'meres-jo', web: { path: '/?sim=jo&route=0&speed=12&seek=0.5&panel=0&heat=ki', ready: '.hud > .card .hero' }, ios: ['-sim', 'jo', '-simPanel', 'NO', '-simSeek', '0.5', ...HEAT_OFF] },
   { id: 'meres-lassit', web: { path: '/?sim=lassit&route=0&speed=12&seek=0.5&panel=0&heat=ki', ready: '.slowdown[data-show="true"]' }, ios: ['-sim', 'lassit', '-simPanel', 'NO', '-simSeek', '0.5', ...HEAT_OFF] },

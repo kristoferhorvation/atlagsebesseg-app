@@ -8,10 +8,10 @@
   },
   "parts": {
     "root": {
-      "selector": ".recenter-row",
+      "selector": ".actions",
       "box": {
         "x": 12,
-        "y": 602,
+        "y": 678,
         "w": 378,
         "h": 64
       },
@@ -30,17 +30,17 @@
         "paddingRight": "0px",
         "paddingBottom": "0px",
         "paddingLeft": "0px",
-        "rowGap": "normal",
-        "columnGap": "normal",
+        "rowGap": "12px",
+        "columnGap": "12px",
         "boxShadow": "none",
         "opacity": "1"
       }
     },
     "button": {
-      "selector": ".recenter",
+      "selector": ".actions .recenter",
       "box": {
-        "x": 12,
-        "y": 602,
+        "x": 326,
+        "y": 678,
         "w": 64,
         "h": 64
       },
@@ -61,6 +61,64 @@
         "paddingLeft": "0px",
         "rowGap": "normal",
         "columnGap": "normal",
+        "boxShadow": "rgba(0, 0, 0, 0.65) 0px 24px 60px -12px, rgba(0, 0, 0, 0.35) 0px 2px 8px 0px, rgba(255, 255, 255, 0.06) 0px 1px 0px 0px inset",
+        "opacity": "1"
+      }
+    },
+    "report": {
+      "selector": ".actions .round-btn.report",
+      "box": {
+        "x": 250,
+        "y": 678,
+        "w": 64,
+        "h": 64
+      },
+      "style": {
+        "fontSize": "20px",
+        "fontWeight": "400",
+        "lineHeight": "normal",
+        "letterSpacing": "normal",
+        "color": "rgb(255, 178, 36)",
+        "backgroundColor": "rgba(14, 16, 22, 0.72)",
+        "backgroundImage": "none",
+        "borderTopWidth": "1px",
+        "borderTopColor": "rgba(255, 255, 255, 0.08)",
+        "borderTopLeftRadius": "50%",
+        "paddingTop": "0px",
+        "paddingRight": "0px",
+        "paddingBottom": "0px",
+        "paddingLeft": "0px",
+        "rowGap": "normal",
+        "columnGap": "normal",
+        "boxShadow": "rgba(0, 0, 0, 0.65) 0px 24px 60px -12px, rgba(0, 0, 0, 0.35) 0px 2px 8px 0px, rgba(255, 255, 255, 0.06) 0px 1px 0px 0px inset",
+        "opacity": "1"
+      }
+    },
+    "card": {
+      "selector": ".hud > .card",
+      "box": {
+        "x": 12,
+        "y": 754,
+        "w": 378,
+        "h": 74
+      },
+      "style": {
+        "fontSize": "20px",
+        "fontWeight": "400",
+        "lineHeight": "normal",
+        "letterSpacing": "normal",
+        "color": "rgb(244, 246, 250)",
+        "backgroundColor": "rgba(14, 16, 22, 0.72)",
+        "backgroundImage": "none",
+        "borderTopWidth": "1px",
+        "borderTopColor": "rgba(255, 255, 255, 0.08)",
+        "borderTopLeftRadius": "24px",
+        "paddingTop": "12px",
+        "paddingRight": "20px",
+        "paddingBottom": "12px",
+        "paddingLeft": "20px",
+        "rowGap": "14px",
+        "columnGap": "14px",
         "boxShadow": "rgba(0, 0, 0, 0.65) 0px 24px 60px -12px, rgba(0, 0, 0, 0.35) 0px 2px 8px 0px, rgba(255, 255, 255, 0.06) 0px 1px 0px 0px inset",
         "opacity": "1"
       }

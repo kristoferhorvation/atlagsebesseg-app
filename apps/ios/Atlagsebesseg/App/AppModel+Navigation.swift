@@ -158,6 +158,7 @@ extension AppModel {
                     self.navStage = nil
                     self.startNav()
                     self.runSimManual()
+                    if UserDefaults.standard.bool(forKey: "parityNoFollow") { self.follow = false }
                 }
             case .failure(let e):
                 self.plan = PlanState(dest: dest, status: (e as? DirectionsError)?.code == "RateLimited" ? .ratelimited : .error)

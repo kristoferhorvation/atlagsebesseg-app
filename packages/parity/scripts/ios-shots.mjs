@@ -21,9 +21,22 @@ export function buildApp() {
   if (r.status !== 0) throw new Error(`xcodebuild hiba, napló: ${log}`);
 }
 
-/** Bootolás, állapotsor rögzítése, a friss app telepítése. */
+export function shutdownDevice(device) {
+  try {
+    simctl('shutdown', DEVICES[device].udid);
+  } catch {
+    // nem futott
+  }
+}
+
+export function shutdownAll() {
+  for (const device of Object.keys(DEVICES)) shutdownDevice(device);
+}
+
+/** Bootolás (a többi szimulátor leállítva), állapotsor rögzítése, a friss app telepítése. */
 export async function prepareDevice(device) {
   const { udid } = DEVICES[device];
+  for (const other of Object.keys(DEVICES)) if (other !== device) shutdownDevice(other);
   const state = simctl('list', 'devices').split('\n').find((l) => l.includes(udid)) ?? '';
   if (!state.includes('(Booted)')) {
     simctl('boot', udid);

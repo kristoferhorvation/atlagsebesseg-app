@@ -164,9 +164,9 @@ biztonsági zóna fölött lebeg.
 - **Országos figyelmeztetés (A7):** ha a környéken német kamera/mérés van, egyszer (eszközönként)
   toast: „Németországban a vezető nem használhatja ezt a funkciót” (6 s).
 - **Szabad térkép (A5):** húzás, csípés, forgatás. Mozdításkor a követés kikapcsol, és a gombsor
-  fölött megjelenik a **„Vissza a helyemre”** (64 px, célkereszt, `brand`); rá a követő kamera
+  jobb szélén megjelenik a **„Vissza a helyemre”** (64 px, célkereszt, `brand`; AOS18-javítás: mindig ugyanott, táblától és mérőkártyától függetlenül); rá a követő kamera
   animálva (900 ms) áll vissza. Mérés közben 5 s tétlenség után magától is; mérésen kívül csak a
-  gombra. Mérés közben a gomb a állapot-sáv helye fölött ül.
+  gombra.
 - **Mapbox-attribúció (A5):** logó a bal, kompakt „i” a jobb felső sarokban, alapméretben, a
   biztonsági zóna alatt 4 px-re; kinyitva az attribúció több sorba tördel, nem takarja a logót.
   Az állapot-pillek közvetlenül a logó sora alatt (az A4-es helyükön).

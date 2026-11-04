@@ -68,16 +68,13 @@ export async function webShot(browser, device, state, windows) {
   await page.addStyleTag({ content: FLAT_CSS(color.parityBackdrop) });
   await page.waitForSelector(web.ready, { timeout: 120_000, state: 'attached' });
   if (web.recenter) {
-    // a térkép elhúzása: a követés kikapcsol, a „Vissza a helyemre” megjelenik
-    await page.evaluate(() => document.querySelector('.mapboxgl-canvas')?.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, clientX: 200, clientY: 200 })));
-    await page.waitForSelector('.recenter', { timeout: 5000 }).catch(async () => {
-      const box = page.viewportSize();
-      await page.mouse.move(box.width / 2, 250);
-      await page.mouse.down();
-      await page.mouse.move(box.width / 2 + 90, 340, { steps: 6 });
-      await page.mouse.up();
-      await page.waitForSelector('.recenter', { timeout: 15_000 });
-    });
+    // a térkép elhúzása a szabad részen (a felső kártya alatt, az alsó csoport fölött): a követés kikapcsol, a „Vissza a helyemre” megjelenik
+    const box = page.viewportSize();
+    await page.mouse.move(box.width / 2, box.height * 0.5);
+    await page.mouse.down();
+    await page.mouse.move(box.width / 2 + 60, box.height * 0.5 + 50, { steps: 6 });
+    await page.mouse.up();
+    await page.waitForSelector('.recenter', { timeout: 15_000 });
   }
   if (web.click) {
     await page.locator(web.click).first().click();

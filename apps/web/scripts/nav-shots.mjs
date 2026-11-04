@@ -32,6 +32,7 @@
 import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { execFileSync } from 'node:child_process';
 import { startWatchdog } from './chrome-guard.mjs';
 import { closeChrome, launchChrome, openPage, sleep, VIEW_H } from './cdp.mjs';
 
@@ -64,6 +65,14 @@ const SHOT = CHECK_ONLY ? 'blank' : 'photo';
 // lekérés, 2 perces dugó-ablak – ezt olvassák), a `speed` csak a lejátszás ütemét adja; a kiírt értékek szimulált másodpercek.
 // Ellenőrző módban a képet nem adó, állapot-alapú blokkok gyorsabban futnak; a valós várakozást (sleep) a szorzóval osztjuk.
 const fast = (n, x) => (CHECK_ONLY ? n * x : n);
+// AOS18-javítás: teljes (képkészítő) mód csak leállított szimulátorokkal (CLAUDE.md › Szimulátor-szabály): három futó szimulátor mellett a memória elfogy, a Chrome CDP-időtúllépéssel áll meg
+if (!CHECK_ONLY) {
+  const booted = execFileSync('xcrun', ['simctl', 'list', 'devices', 'booted'], { encoding: 'utf8', timeout: 30_000 }).split('\n').filter((l) => l.includes('(Booted)'));
+  if (booted.length) {
+    console.error(`HIBA: fut szimulátor, a teljes mód nem indul:\n${booted.join('\n')}`);
+    process.exit(1);
+  }
+}
 startWatchdog(30, 'nav-shots'); // kemény időkorlát: a teljes futás ~16 perc; lejáratkor a Chrome leáll és a szkript kilép
 const chrome = await launchChrome({ photo: !CHECK_ONLY });
 const mk = (map = 'blank') => openPage({ port: chrome.port, base: BASE, outDir: OUT, map });
@@ -736,8 +745,9 @@ try {
   const RPG_SPEED = fast(4, 2);
   await rpg.goto(`/?sim=jo&speed=${RPG_SPEED}&panel=0`);
   await rpg.waitFor(MAP_READY, 60_000, 'térkép');
-  // a kártya állapotának naplója (100 ms-enként): fázis, felirat, idő
-  await rpg.evaluate(`window.__alertLog = []; window.__alertTimer = setInterval(() => { const r = document.querySelector('.report-alert-row'); window.__alertLog.push({ t: performance.now(), phase: r?.dataset.phase ?? null, txt: r?.querySelector('b')?.innerText.trim() ?? null }); }, 100); true`);
+  // a kártya állapotának naplója: minden DOM-változásra (MutationObserver), nem időzítőre – a 100 ms-es mintavétel a képkészítő mód terhelésénél
+  // lemaradt egy-egy 250 ms-ig látszó értékről (AOS18-javítás: „lastApproachM: 100”), a feltétel a mintavétel ütemétől függött, nem az apptól
+  await rpg.evaluate(`window.__alertLog = []; window.__alertTimer = new MutationObserver(() => { const r = document.querySelector('.report-alert-row'); const e = { t: performance.now(), phase: r?.dataset.phase ?? null, txt: r?.querySelector('b')?.textContent.trim() ?? null }; const l = window.__alertLog.at(-1); if (!l || l.phase !== e.phase || l.txt !== e.txt) window.__alertLog.push(e); }); window.__alertTimer.observe(document.body, { subtree: true, childList: true, characterData: true, attributes: true, attributeFilter: ['data-phase'] }); true`);
   await rpg.waitFor(`${q('.report-alert .report-alert-row')}?.dataset.phase === 'approach'`, 90_000, 'közeledő bejelentés');
   const ap = await rpg.evaluate(`(() => { const c = ${q('.nav-top.report-alert')}; window.__alertEl = c.querySelector('.report-alert-row'); const r = c.getBoundingClientRect(); return { txt: c.innerText.replace(/\\s+/g, ' ').trim(), top: r.top, cam: c.dataset.camera, n: document.querySelectorAll('.report-alert-row').length, bottomCard: !!document.querySelector('.report-card') }; })()`);
   check('közeledéskor figyelmeztető kártya felül (a kamera-figyelmeztetés stílusában): „Rendőrség 2xx m”', /^Rendőrség \d+ m$/.test(ap.txt) && ap.cam === 'true' && ap.top < 200 && ap.n === 1 && !ap.bottomCard, JSON.stringify(ap));
@@ -770,8 +780,34 @@ try {
   check('elküldés után ugyanaz a sor „Átlagmérés vége”, a jegyzet a végére emlékeztet', g2.calls === 1 && g2.tiles.length === 9 && g2.tiles.at(-1) === 'Átlagmérés vége' && /végét/.test(g2.note), JSON.stringify(g2));
   if (!CHECK_ONLY) await rpg.shot(`${DATE}-bejelentes-menu-vege.png`);
   check('nincs kezeletlen JS-kivétel (AOS14)', rpg.logs.length === 0 && gk.logs.length === 0, [...rpg.logs, ...gk.logs].join(' | '));
-  await rpg.evaluate('clearInterval(window.__alertTimer); true').catch(() => undefined);
+  await rpg.evaluate('window.__alertTimer.disconnect(); true').catch(() => undefined);
   await rpg.close();
+  // AOS18-javítás: a „Vissza a helyemre” mindig a gombsor jobb szélén, a gombsor és az alatta lévő kártya között 12 px; táblával és tábla nélkül ugyanott
+  {
+    const rc = await mk();
+    const dragMap = async () => {
+      const m = (type, x, y, extra = {}) => rc.send('Input.dispatchMouseEvent', { type, x, y, button: 'left', buttons: 1, clickCount: 1, ...extra });
+      await m('mousePressed', 180, 280);
+      await m('mouseMoved', 240, 330);
+      await m('mouseMoved', 280, 380);
+      await m('mouseReleased', 280, 380, { buttons: 0 });
+    };
+    const place = `(() => { const b = ${q('.actions .recenter')}; const r = b?.getBoundingClientRect(); const rep = ${q('.actions .report')}.getBoundingClientRect(); const next = ${q('.actions')}.nextElementSibling?.getBoundingClientRect(); return r ? { right: innerWidth - r.right, gap: next ? next.top - r.bottom : null, sameRow: r.bottom === rep.bottom, afterReport: r.left > rep.left, float: !!${q('.hud-float .recenter')}, sign: !!${q('.hud-float .sign')} } : null; })()`;
+    await rc.goto('/?navsim&panel=0&heat=ki&speed=7');
+    await rc.waitFor(MAP_READY, 60_000, 'térkép');
+    check('AOS18-javítás: a követés alatt nincs „Vissza a helyemre”', await rc.evaluate(`!${q('.recenter')}`));
+    await dragMap();
+    await rc.waitFor(q('.actions .recenter'), 15_000, 'gomb');
+    const free = await rc.evaluate(place);
+    check('AOS18-javítás: „Vissza a helyemre” tábla nélkül a gombsor jobb szélén (12 px a széltől, 12 px a kártyától)', free.right === 12 && free.gap === 12 && free.sameRow && free.afterReport && !free.float && !free.sign, JSON.stringify(free));
+    await rc.goto('/?navsim&stage=nav&panel=0&speed=7&at=60');
+    await rc.waitFor(`${q('.nav-top')} && ${q('.hud-float .sign')}`, 60_000, 'navigáció táblával');
+    await dragMap();
+    await rc.waitFor(q('.actions .recenter'), 15_000, 'gomb táblával');
+    const signed = await rc.evaluate(place);
+    check('AOS18-javítás: táblával is ugyanott', signed.right === 12 && signed.gap === 12 && signed.sameRow && signed.afterReport && !signed.float && signed.sign, JSON.stringify(signed));
+    await rc.close();
+  }
   // navigáció közben a manőverkártya alatt (a kamera-sor helyén), ugyanígy
   const rn = await mk(SHOT);
   await rn.goto(`/?navsim&stage=nav&speed=${fast(2, 3)}&at=40&panel=0`);

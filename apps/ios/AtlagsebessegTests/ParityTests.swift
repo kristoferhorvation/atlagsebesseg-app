@@ -9,7 +9,7 @@ import UIKit
 // geometriája és a tokenek. A térképi és a teljes lapos nézeteket a képernyő-diff kapu (`npm run parity`) méri.
 
 private struct ParitySpec: Decodable {
-    struct Box: Decodable { let w: CGFloat; let h: CGFloat }
+    struct Box: Decodable { let x: CGFloat; let y: CGFloat; let w: CGFloat; let h: CGFloat }
     struct Part: Decodable { let box: Box; let style: [String: String] }
     let component: String
     let webFile: String
@@ -59,7 +59,19 @@ private func close(_ got: CGFloat, _ want: CGFloat, _ note: String, tol: CGFloat
     #expect(abs(got - want) <= tol, "\(note): iOS \(got) pt ≠ web \(want) px")
 }
 
+/// A spec a 17 Pro szélességén (402 pt) készült; a mért nézet az aktuális képernyőhöz igazodik (`UIScreen`). A webes szabályok szerint itt ennyi az eltérés.
+private let screenWidth = UIScreen.main.bounds.width
 private let hudWidth: CGFloat = 402 - 24
+
+/// `.hero { font-size: clamp(120px, 42vw, 196px); line-height: 0.9 }`: a nagy szám doboza a képernyőtől függ.
+private func heroDelta() -> CGFloat {
+    let t = Tokens.Typography.self
+    func size(_ w: CGFloat) -> CGFloat { min(t.hero.size, max(t.heroMin, w * t.heroVw / 100)) }
+    return (size(screenWidth) - size(402)) * t.hero.lineHeight
+}
+
+/// `@media (max-width: 389px) { .meter-compact .sign.sm { height: 62px } }` (a 402-es spec: 72).
+private var compactSignDelta: CGFloat { screenWidth < 390 ? 62 - 72 : 0 }
 
 /// Szakaszmérés-állapot a közös szimulátor-vezetésből.
 private func measuringView() throws -> SessionView {
@@ -148,6 +160,20 @@ struct ParityTests {
         close(greet.height, try g.part("root").box.h, "köszöntés")
     }
 
+    @Test("AOS18-javítás: a „Vissza a helyemre” a gombsor jobb szélén, a gombsor és az alatta lévő kártya között a webes 12 pt")
+    func vissza() throws {
+        let s = try ParitySpec.load("recenter")
+        let b = try s.part("button").box
+        #expect(b.x + b.w == 402 - Tokens.Space.s3)
+        #expect(b.y == (try s.part("report").box.y))
+        #expect(b.x > (try s.part("report").box.x))
+        #expect((try s.part("card").box.y) - (b.y + b.h) == Tokens.Space.s3)
+        let source = try String(contentsOf: Repo.iosDir.appendingPathComponent("Atlagsebesseg/UI/DriveView.swift"), encoding: .utf8)
+        let floatBody = try #require(source.range(of: "private var float: some View")).upperBound
+        let hudBody = try #require(source.range(of: "private var hud: some View")).lowerBound
+        #expect(!source[floatBody..<hudBody].contains("mapRecenter"), "a gomb nem kerülhet vissza a lebegő rétegbe (ott a helye a táblától és a mérőkártyától függene)")
+    }
+
     @Test("GPS-jelölő: 60 pt, kék pont, nem a Mapbox alap-nyila")
     func gpsJelolo() throws {
         let s = try ParitySpec.load("gps-marker")
@@ -162,16 +188,16 @@ struct ParityTests {
         close(idle.height, try ParitySpec.load("idle-card").part("root").box.h, "alapállapot")
         let v = try measuringView()
         let full = measured(MeterCard(view: v, settings: .default, gpsReady: true), width: hudWidth)
-        close(full.height, try ParitySpec.load("meter-full").part("root").box.h, "teljes mérőkártya", tol: 4)
+        close(full.height, try ParitySpec.load("meter-full").part("root").box.h + heroDelta(), "teljes mérőkártya", tol: 4)
         let compact = measured(MeterCard(view: v, settings: .default, gpsReady: true, meterCompact: true), width: hudWidth)
-        close(compact.height, try ParitySpec.load("meter-compact").part("root").box.h, "kompakt mérőkártya")
+        close(compact.height, try ParitySpec.load("meter-compact").part("root").box.h + compactSignDelta, "kompakt mérőkártya")
         var clock = 0.0
         let session = TrackingSession([], now: { clock })
         clock = 1000
         let manual = session.startManual()
         #expect(manual.phase == .kezi)
         let card = measured(MeterCard(view: manual, settings: .default, gpsReady: true), width: hudWidth)
-        close(card.height, try ParitySpec.load("manual-card").part("root").box.h, "kézi kártya", tol: 4)
+        close(card.height, try ParitySpec.load("manual-card").part("root").box.h + heroDelta(), "kézi kártya", tol: 4)
     }
 
     @Test("navigáció: alsó sáv, felső kártya és kompakt ajánlat")

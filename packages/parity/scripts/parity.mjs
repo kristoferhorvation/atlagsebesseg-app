@@ -6,11 +6,11 @@ import { join } from 'node:path';
 import { onCleanup, reapOrphanChrome, startWatchdog } from '../../../apps/web/scripts/chrome-guard.mjs';
 import { DEVICES, OUT, pick, ROOT, STATES, WEB_BASE, WORK } from './config.mjs';
 import { diffImages, readPng, sideBySide, THRESHOLDS } from './diff-core.mjs';
-import { buildApp, iosShot, prepareDevice, stopApp } from './ios-shots.mjs';
+import { buildApp, iosShot, prepareDevice, shutdownAll, shutdownDevice } from './ios-shots.mjs';
 import { launchBrowser, navWindows, webShot } from './web-shots.mjs';
 
 // kemény időkorlát (a teljes futás ~25 perc; SHOTS_TIMEOUT_MIN felülírja) + az előző futás árva Chrome-jának kilövése
-startWatchdog(30, 'parity');
+startWatchdog(60, 'parity');
 reapOrphanChrome();
 
 const argv = process.argv.slice(2);
@@ -74,16 +74,18 @@ await withServer(async () => {
 if (!skipIos) {
   if (!skipBuild) buildApp();
   try {
+    // AOS18-javítás: egyszerre csak EGY bebootolt szimulátor (CLAUDE.md › Szimulátor-szabály)
     for (const device of devices) {
       await prepareDevice(device);
       for (const state of states) {
         await iosShot(device, state, windows);
         console.log(`ios  ${device} ${state.id}`);
       }
+      shutdownDevice(device);
     }
   } finally {
-    // hiba esetén sem marad futó app a szimulátorokban
-    for (const device of devices) stopApp(device);
+    // hiba esetén sem marad futó szimulátor
+    shutdownAll();
   }
 }
 
