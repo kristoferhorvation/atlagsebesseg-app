@@ -686,6 +686,8 @@ try {
   check('zsugorított kártya: nagy átlag, „km/h átlag”, idő; Leállítás nélkül, a jobb oldalon', /^\d+ km\/h átlag \d+:\d{2}$/.test(k1.txt) && !k1.stop && k1.left > k1.w * 0.3 && k1.right > k1.w * 0.6 && k1.bigPx >= 36 && k1.h >= 70, JSON.stringify(k1));
   // AW22: ManualMini mellett a „Vissza a helyemre” a jobb oldali gombsor fölött; a mini és a gombsor a helyén marad
   {
+    // teljes módban futnak az animációk: a beállt helyzetet mérjük
+    await sleep(800);
     const before = await kp.evaluate(`(() => { const m = ${q('.manual-mini')}.getBoundingClientRect(); const r = ${q('.actions .report')}.getBoundingClientRect(); return { miniL: m.left, miniR: m.right, repL: r.left, repT: r.top }; })()`);
     const m = (type, x, y, extra = {}) => kp.send('Input.dispatchMouseEvent', { type, x, y, button: 'left', buttons: 1, clickCount: 1, ...extra });
     await m('mousePressed', 180, 300);
@@ -693,6 +695,7 @@ try {
     await m('mouseMoved', 270, 380);
     await m('mouseReleased', 270, 380, { buttons: 0 });
     await kp.waitFor(q('.actions .recenter-above'), 15_000, 'gomb a gombsor fölött');
+    await sleep(800);
     const up = await kp.evaluate(`(() => { const b = ${q('.actions .recenter-above')}.getBoundingClientRect(); const m = ${q('.manual-mini')}; const mr = m?.getBoundingClientRect(); const r = ${q('.actions .report')}.getBoundingClientRect(); return { miniL: mr?.left, miniR: mr?.right, repL: r.left, repT: r.top, right: innerWidth - b.right, gap: r.top - b.bottom, sameX: b.left === r.left, slot: !!${q('.actions .recenter-slot')} }; })()`);
     check('AW22: ManualMini mellett a „Vissza a helyemre” a jobb oldali gombsor fölött (12 px), nincs fenntartott hely', up.right === 12 && up.gap === 12 && up.sameX && !up.slot, JSON.stringify(up));
     check('AW22: a gomb megjelenésére a mini és a Bejelentés nem mozdul', up.miniL === before.miniL && up.miniR === before.miniR && up.repL === before.repL && up.repT === before.repT, JSON.stringify({ before, up }));
@@ -857,6 +860,8 @@ try {
   await tr.waitFor(q('.nav-top'), 60_000, 'navigáció');
   await tr.evaluate(`window.__repCalls = []; const f0 = window.fetch; window.fetch = (...a) => { const u = String(a[0]?.url ?? a[0]); if (/\\/rest\\/v1\\/reports/.test(u)) { window.__repCalls.push(u); return Promise.resolve(new Response(JSON.stringify([{ id: '00000000-0000-4000-8000-0000000000b1' }]), { status: 201, headers: { 'content-type': 'application/json' } })); } return f0(...a); }; true`);
   await tr.waitFor(q('.nav-delay'), 120_000, '+N perc dugó');
+  // a sáv a nézetből jön, a hang a következő óra-lépésben: nem azonos pillanat (AW22: egy teljes futásban ezen bukott)
+  await tr.waitFor(`(window.__navVoice ?? []).some((v) => v.kind === 'traffic')`, 10_000, 'dugó-hang').catch(() => undefined);
   const tr1 = await tr.evaluate(`({ text: ${text('.nav-delay')}, color: getComputedStyle(${q('.nav-delay')}).color, voice: (window.__navVoice ?? []).filter((v) => v.kind === 'traffic').map((v) => v.text), sameLine: (() => { const d = ${q('.nav-delay')}.getBoundingClientRect(); const b = ${q('.nav-bottom-eta b')}.getBoundingClientRect(); const e = ${q('.nav-end')}.getBoundingClientRect(); return d.bottom <= b.top + 2 && Math.abs(d.left - b.left) < 2 && d.right <= e.right && d.width > 60; })() })`);
   check('AW18: a friss forgalmi lekérés után „+N perc dugó” borostyánban közvetlenül az érkezési idő fölött (teljesen látszik), hanggal', /^\+\d+ perc dugó$/.test(tr1.text) && tr1.color === 'rgb(255, 178, 36)' && tr1.sameLine && tr1.voice.some((v) => /^Dugó az útvonalon, az érkezés \d+ perccel később\.$/.test(v)), JSON.stringify(tr1));
   // kis képernyőn a felső kártya sávvá zsugorodik, a kérdés önálló kártyán látszik: mindig a látható sort mérjük
