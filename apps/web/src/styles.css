@@ -3199,3 +3199,19 @@ button.nav-reroute {
 .nav-panel-alt {
   width: 100%;
 }
+
+/* AW23: 320 px-en a sáv felirata így is egy sorban olvasható marad */
+@media (max-width: 340px) {
+  .nav-bottom {
+    gap: 6px;
+  }
+
+  .nav-bottom .nav-end {
+    padding: 0 8px;
+    font-size: 15px;
+  }
+
+  .nav-bottom-speed {
+    min-width: 48px;
+  }
+}

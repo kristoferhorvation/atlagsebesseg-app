@@ -698,7 +698,8 @@ try {
     await sleep(800);
     const up = await kp.evaluate(`(() => { const b = ${q('.actions-upper .recenter')}.getBoundingClientRect(); const m = ${q('.manual-mini')}; const mr = m?.getBoundingClientRect(); const r = ${q('.actions .report')}.getBoundingClientRect(); return { miniL: mr?.left, miniR: mr?.right, repL: r.left, repT: r.top, right: innerWidth - b.right, gap: r.top - b.bottom, sameX: b.left === r.left, slot: !!${q('.actions .recenter-slot')} }; })()`);
     check('AW23: ManualMini mellett a „Vissza a helyemre” a Bejelentés fölött (12 px)', up.right === 12 && up.gap === 12 && up.sameX, JSON.stringify(up));
-    check('AW22: a gomb megjelenésére a mini és a Bejelentés nem mozdul', up.miniL === before.miniL && up.miniR === before.miniR && up.repL === before.repL && up.repT === before.repT, JSON.stringify({ before, up }));
+    // a mini megjelenési animációja (képkészítő módban nincs reduced-motion) még tarthat: 2 px-en belül
+    check('AW22: a gomb megjelenésére a mini és a Bejelentés nem mozdul', Math.abs(up.miniL - before.miniL) <= 2 && Math.abs(up.miniR - before.miniR) <= 2 && up.repL === before.repL && up.repT === before.repT, JSON.stringify({ before, up }));
     await click(kp, '.actions-upper .recenter');
     await kp.waitFor(`!${q('.actions .recenter')}`, 10_000, 'visszaállt a követés');
   }

@@ -210,3 +210,6 @@ npm run upload:sections -- --country IT --dry-run
 - Edge function: `account-delete` (`npm run deploy:edge`; a `verify_jwt` marad bekapcsolva).
 - Auth-beállítás (Management API-val beállítva): Site URL `https://atlagsebesseg.vercel.app`, átirányítások `https://atlagsebesseg.vercel.app/**`, `http://localhost:*/**`, `atlagsebesseg://auth-callback`, manual linking BE. A beépített levelező csak a csapattagoknak küld, 2 levél / óra, a sablon nem szerkeszthető: valódi felhasználókhoz saját SMTP kell.
 - Élő próba: `npm run db:account-live`.
+
+## E-mail Resenddel (AW23)
+A Supabase beépített levelezője csak csapattagoknak küld, óránként ~2 levelet. Beállítás: `.env.resend` a repó gyökerében (gitignore, `RESEND_API_KEY`, `RESEND_DOMAIN`), majd `npx tsx supabase/scripts/setup-resend.mts domain` (a DNS-rekordok listája), a rekordok beírása után `verify`, `smtp` (feladó `noreply@<domain>`, „Average Speed Nav”, 100 levél / óra), `templates` (6 nyelv, a nyelv a felhasználó `lang` metaadatából, alapból angol).
