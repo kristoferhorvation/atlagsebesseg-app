@@ -121,9 +121,11 @@ nonisolated struct NavView: Sendable {
     var rerouteFailed: Bool
     /// AW18: sikertelen újratervezés után a következő automatikus próbáig hátralévő másodperc (koppintásra azonnal).
     var rerouteRetryInS: Int? = nil
-    /// AW18: az indulási terv érkezési ideje (a „+N perc dugó” viszonyítási alapja).
-    var plannedEtaMs: Double = 0
-    /// AW18: „+N perc dugó” – a friss (Mapbox / helyi dugó) ETA legalább 3 perccel az indulási terv után; különben `nil`.
+    /// AW23: a térképen ez az útvonal látszik: a friss forgalmi válasz, ha van (a felirat és a szín egy forrásból).
+    var trafficRoute: NavRoute
+    /// AW23: a helyzet a `trafficRoute` mentén (m).
+    var trafficAlongM: Double = 0
+    /// AW23: „+N perc dugó” – a hátralévő út dugó-többlete (`routeDelayS`) legalább 3 perc; különben `nil`.
     var delayMin: Int? = nil
     /// AW18: helyi dugó-állapot (a mért tempó tartósan a várt alatt).
     var jam: Bool = false
@@ -194,22 +196,18 @@ final class NavigationSession {
     private var pending: [Task<Void, Never>] = []
 
     // AW18: forgalom
-    /// Az indulási terv érkezési ideje (ms).
-    private var plannedEtaMs = 0.0
     /// A friss forgalmi útvonal (a jelenlegi útvonalon, `fromAlongM`-től), a szakaszokkal és a közösségi adattal számolt idővel.
     private var fresh: (route: NavRoute, cum: [Double], fromAlongM: Double, version: Int)?
-    /// Volt már friss forgalmi adat (lekérés vagy újratervezés) – a „+N perc dugó” csak ettől (vagy dugóban) látszik.
-    private var hasFresh = false
     /// Az alternatívák között nem volt meg a jelenlegi útvonal: forgalom-lekérés köztes ponttal esedékes.
     private var trafficViaDue = false
     private var trafficPending = false
     private var communityJams: [CommunityJam] = []
-    /// A nyers (Directions) idők kumulálva – a várt tempóhoz.
-    private var rawCum: [Double] = [0]
     private let jamDetector = JamDetector()
     private var jamAskUntil: Double?
     private var jamAskKey: String?
     private var jamDeclined = Set<String>()
+    /// „Nem” után eddig nincs újabb kérdés (ms).
+    private var jamMuteUntil = 0.0
     private var lastJamUploadAt: Double?
     private var jamUploads: [JamSampleInsert] = []
     /// A „+N perc dugó” hangja már elhangzott (AW18-javítás: csak egyszer).
@@ -232,7 +230,6 @@ final class NavigationSession {
         self.route = route
         lastAltAt = now()
         install(route)
-        plannedEtaMs = clock() + remainingS() * 1000
     }
 
     // MARK: beállítások, bemenetek
@@ -290,9 +287,13 @@ final class NavigationSession {
     }
 
     /// AW18: „Dugóba kerültél?” válasz. Igen: a platform a „Dugó” bejelentést küldi (a meglévő folyamattal), itt a közösségi
-    /// minta kerül a sorba; Nem: ebben az útban ugyanarra a szakaszra (a következő manőverig) nem kérdez újra.
+    /// minta kerül a sorba; Nem: ugyanarra a szakaszra nem kérdez újra, `jamDeclineMuteMs`-ig sehol, és a dugó-állapot törlődik.
     func answerJam(_ yes: Bool) {
         if let key = jamAskKey, !yes { jamDeclined.insert(key) }
+        if !yes {
+            jamMuteUntil = clock() + TRAFFIC.jamDeclineMuteMs
+            jamDetector.dismiss()
+        }
         if yes { reportedJam() }
         jamAskUntil = nil
         changed()
@@ -331,8 +332,6 @@ final class NavigationSession {
         let first = lastFix == nil
         lastFix = fix
         if !arrived { project(fix, useHint: !first) }
-        // AW18: az indulási terv érkezési ideje az első fixnél (addigra a szakasz-adat is megvan)
-        if first { plannedEtaMs = clock() + remainingS() * 1000 }
         if !arrived && cross <= cfg.offRouteM { watchJam(fix) }
         advance(clock(), accuracy: fix.accuracy)
         changed()
@@ -456,7 +455,6 @@ final class NavigationSession {
                 if let r = routes.first {
                     // az újratervezés maga a friss driving-traffic lekérés a jelenlegi pozíciótól (AW18)
                     self.install(r)
-                    self.hasFresh = true
                     self.offSince = nil
                     self.rerouteSaid = false
                     self.lastAltAt = self.clock()
@@ -529,7 +527,6 @@ final class NavigationSession {
 
     private func setFresh(_ route: NavRoute, _ fromAlongM: Double) {
         fresh = (route, cumOf(route), fromAlongM, routeVersion)
-        hasFresh = true
     }
 
     /// Egy útvonal kumulált ideje: a szakaszokon a határral, a közösségi dugó-adattal.
@@ -619,11 +616,31 @@ final class NavigationSession {
         decimal1(max(0, m) / 1000, lang: lang ?? L10n.lang)
     }
 
+    /// AW23: alternatívák kérése a jelenlegi pozícióból (az útvonal-panel gombja); a navigáció közben nem áll le. A leggyorsabb elöl, a
+    /// jelenlegi útvonallal azonosat `current` jelöli.
+    func requestAlternatives() async throws -> [AltChoice] {
+        guard let f = lastFix else { return [] }
+        let t0 = clock()
+        lastCallAt = t0
+        lastAltAt = t0
+        let routes = try await fetchRoutes(LatLon(lat: f.lat, lon: f.lon), destination.routeTarget, RouteRequestContext(heading: f.heading, reason: .alternatives)).value
+        let choices = routes.map { AltChoice(route: $0, summary: routeSummary($0, data, now: clock()), current: routeOverlap(route, $0) >= 0.9) }
+        return routeOrder(choices.map(\.summary.durationS)).map { choices[$0] }
+    }
+
+    /// AW23: váltás a panelen választott útvonalra.
+    func useRoute(_ r: NavRoute) {
+        offer = nil
+        held = nil
+        install(r)
+        offSince = nil
+        changed()
+    }
+
     func acceptOffer() {
         guard let o = offer else { return }
         offer = nil
         install(o.route)
-        hasFresh = true
         offSince = nil
         changed()
     }
@@ -645,7 +662,6 @@ final class NavigationSession {
         cross = 0
         fresh = nil
         trafficViaDue = false
-        rawCum = cumulative(route.segDurationS)
         jamDetector.rebase()
         recomputeEnforcement()
         // az új útvonal a jelenlegi pozícióról indul: újra illesztünk
@@ -668,22 +684,18 @@ final class NavigationSession {
     /// tervezettbe), a többi a tervezett idő. A dugó-állapot végén azonnal a tervezett idők.
     private func remainingS() -> Double {
         let base = trafficRemainingS(along)
-        guard jamDetector.active, let avg = jamDetector.avgMps else { return base }
+        guard jamDetector.correcting, let avg = jamDetector.avgMps else { return base }
         // a friss forgalmi útvonal annotációja az aktuális; a koordináták az ő kezdőpontjától mérve
-        var ref = route
-        var off = 0.0
-        if let f = fresh, f.version == routeVersion, along >= f.fromAlongM - 50 { ref = f.route; off = f.fromAlongM }
+        let (ref, off) = trafficRef()
         guard let run = jamAheadRun(ref, max(0, along - off)) else { return base }
         let planned = trafficRemainingS(run.startM + off) - trafficRemainingS(run.endM + off)
         return base + jamExtraS(run, avgMps: avg, plannedS: planned)
     }
 
-    /// A várt tempó (m/s) a helyen: a Directions nyers ideje ±250 m-en.
-    private func expectedMpsAt(_ alongM: Double) -> Double {
-        let a = max(0, alongM - 250)
-        let b = min(route.distanceM, alongM + 250)
-        let dt = remainingSeconds(route, rawCum, a) - remainingSeconds(route, rawCum, b)
-        return dt > 0 ? (b - a) / dt : 30
+    /// A forgalmi adat forrása: a friss válasz (a lekérés helyétől mérve), különben a jelenlegi útvonal.
+    private func trafficRef() -> (ref: NavRoute, off: Double) {
+        if let f = fresh, f.version == routeVersion, along >= f.fromAlongM - 50 { return (f.route, f.fromAlongM) }
+        return (route, 0)
     }
 
     /// A szakasz kulcsa a „Nem” válaszhoz: a következő manőver helye (újratervezés után is ugyanaz).
@@ -697,37 +709,44 @@ final class NavigationSession {
 
     private func watchJam(_ fix: GpsFix) {
         let t0 = clock()
-        let change = jamDetector.update(fix.timestamp, along, fix.speed, expectedMpsAt(along))
+        let (ref, off) = trafficRef()
+        let change = jamDetector.update(fix.timestamp, along, fix.speed, JamContext(
+            limitMps: permittedKmhAt(route, along) / 3.6,
+            highway: highwayAt(route, along),
+            nearStopPoint: nearStopPoint(route, along),
+            heavyAhead: heavyAhead(ref, max(0, along - off))
+        ))
         let avg = jamDetector.avgMps ?? 0
         let windowLen = max(1, avg * TRAFFIC.jamWindowMs / 1000)
         if change == .enter {
             lastJamUploadAt = t0
             jamUploads.append(jamSample(.erzekelt, lat: fix.lat, lon: fix.lon, heading: fix.heading, avgMps: avg, lengthM: windowLen))
             let key = stretchKey()
-            if !jamDeclined.contains(key) {
+            if !jamDeclined.contains(key) && t0 >= jamMuteUntil {
                 jamAskKey = key
                 jamAskUntil = t0 + TRAFFIC.jamPromptMs
                 say(.traffic, t(.navVoiceJamAsk, lang: lang))
             }
         } else if change == .exit {
             jamAskUntil = nil
-            jamUploads.append(jamSample(.oldott, lat: fix.lat, lon: fix.lon, heading: fix.heading, avgMps: jamDetector.clearedAvgMps ?? max(0, fix.speed ?? 0), lengthM: TRAFFIC.jamClearM))
+            jamUploads.append(jamSample(.oldott, lat: fix.lat, lon: fix.lon, heading: fix.heading, avgMps: jamDetector.clearedAvgMps ?? max(0, fix.speed ?? 0), lengthM: jamDetector.clearedM))
         } else if jamDetector.active, let last = lastJamUploadAt, t0 - last >= TRAFFIC.jamUploadMs {
             lastJamUploadAt = t0
             jamUploads.append(jamSample(.erzekelt, lat: fix.lat, lon: fix.lon, heading: fix.heading, avgMps: avg, lengthM: windowLen))
         }
     }
 
-    /// A késés (s) az indulási tervhez képest – csak friss adattal (forgalmi lekérés / újratervezés) vagy dugóban.
-    private func delayS(_ t0: Double) -> Double? {
-        if !hasFresh && !jamDetector.active { return nil }
-        return (t0 + remainingS() * 1000 - plannedEtaMs) / 1000
+    /// A dugó-többlet (s) a hátralévő úton: ugyanaz a számítás, mint az útvonalválasztóban (`routeDelayS`).
+    private func delayS() -> Double {
+        let (ref, off) = trafficRef()
+        return routeDelayS(ref, max(0, along - off))
     }
 
     /// A „+N perc dugó” hangja: csak az első alkalommal (≥ 3 perc); a további növekedésnél a sáv némán frissül. A kérdés lejárata.
     private func updateTraffic(_ t0: Double) {
         if let u = jamAskUntil, t0 >= u { jamAskUntil = nil }
-        guard let d = delayS(t0), d >= TRAFFIC.delayShowS else { return }
+        let d = delayS()
+        guard d >= TRAFFIC.delayShowS else { return }
         let min = Int(jsRound(d / 60))
         if !delaySaid {
             delaySaid = true
@@ -811,7 +830,8 @@ final class NavigationSession {
             if idx + 1 < steps.count, step.endManeuver.type != "arrive", left <= cfg.thenWithinM {
                 var m = maneuverOf(steps[idx + 1], steps[idx + 1].distanceM, 0)
                 m.text = thenText(steps[idx + 1], idx + 2 < steps.count ? steps[idx + 2] : nil, m.icon, lang: lang)
-                then = m
+                // AW23: ugyanazt a helyet nem írjuk ki kétszer (a következő manőver és az „Utána” sor is „Március 15. tér” volt)
+                then = m.text == next.text ? nil : m
             }
         }
         let up = items.first { $0.startM > along && $0.startM - along <= cfg.enforcementWarnM }
@@ -839,8 +859,9 @@ final class NavigationSession {
             offer: offer.map(offerView),
             rerouteFailed: rerouteFailed,
             rerouteRetryInS: rerouteFailed && !rerouting ? rerouteRetryAt.map { max(0, Int(ceil(($0 - clock()) / 1000))) } : nil,
-            plannedEtaMs: plannedEtaMs,
-            delayMin: (arrived ? nil : delayS(clock())).flatMap { $0 >= TRAFFIC.delayShowS ? Int(jsRound($0 / 60)) : nil },
+            trafficRoute: trafficRef().ref,
+            trafficAlongM: max(0, along - trafficRef().off),
+            delayMin: arrived || delayS() < TRAFFIC.delayShowS ? nil : Int(jsRound(delayS() / 60)),
             jam: jamDetector.active,
             jamAsk: jamAskUntil != nil && !arrived
         )

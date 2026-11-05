@@ -238,6 +238,18 @@ enum Tokens {
         static let o94: Double = 0.94
     }
 
+    /// AW23: a követő kamera (web + iOS azonos számokkal).
+    nonisolated enum Camera {
+        static let pitch: Double = 58
+        static let focusMaxY: Double = 0.8
+        static let focusMinY: Double = 0.18
+        static let focusGap: Double = 56
+        static let focusTau: Double = 150
+        static let zoomTau: Double = 1500
+        static let recenter: Double = 900
+        static let zoomStops: [(kmh: Double, zoom: Double)] = [(30, 17.2), (50, 16.8), (90, 15.6), (130, 14.8)]
+    }
+
     /// A SwiftUI `shadow(radius:)` a CSS-elmosás fele.
     enum Glow {
         static let hero: CGFloat = 20

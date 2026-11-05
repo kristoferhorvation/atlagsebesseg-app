@@ -1,9 +1,9 @@
-import { NAV_CONFIG, savedChips, SearchController, t, type Place, type SavedPlaces, type SearchState } from '@atlagsebesseg/app-logic';
+import { formatDistance, localMatches, NAV_CONFIG, savedChips, SearchController, t, type Place, type SavedPlaces, type SearchState, type Settings } from '@atlagsebesseg/app-logic';
 import { useEffect, useRef, useState } from 'react';
 import type { SearchFor } from '../nav/useNavigation';
 import { Icon, type IconName } from './Icon';
 
-function PlaceRow({ icon, name, address, onClick }: { icon: IconName; name: string; address: string; onClick: () => void }) {
+function PlaceRow({ icon, name, address, distance, onClick }: { icon: IconName; name: string; address: string; distance?: string; onClick: () => void }) {
   return (
     <button className="place-row" onClick={onClick}>
       <span className="place-icon">
@@ -13,19 +13,23 @@ function PlaceRow({ icon, name, address, onClick }: { icon: IconName; name: stri
         <b>{name}</b>
         {address && <span>{address}</span>}
       </span>
+      {distance && <span className="place-dist num">{distance}</span>}
     </button>
   );
 }
 
 /**
  * Teljes képernyős kereső: a mező alatt a mentett címek vékony chip-sora (Haza, Munka, továbbiak), alatta gépelés
- * közben a találatok (3 karaktertől, 300 ms késleltetéssel), üres mezőnél az utolsó úti célok. Koppintásra a hely a célpont.
+ * közben a találatok (3 karaktertől, 300 ms késleltetéssel; AW23: Search Box, név + rövid cím + távolság, fölöttük a gépelt szöveggel
+ * egyező mentett és korábbi helyek, API-hívás nélkül), üres mezőnél az utolsó úti célok. Koppintásra a hely a célpont.
  */
 export function SearchScreen({
   kind,
   recents,
   saved,
   search,
+  resolve,
+  unit,
   onPick,
   onClose,
 }: {
@@ -33,6 +37,9 @@ export function SearchScreen({
   recents: readonly Place[];
   saved: SavedPlaces;
   search: (query: string) => Promise<Place[]>;
+  /** A találat koordinátája választáskor (`/retrieve`). */
+  resolve: (hit: Place) => Promise<Place>;
+  unit: Settings['egyseg'];
   onPick: (p: Place) => void;
   onClose: () => void;
 }) {
@@ -56,6 +63,16 @@ export function SearchScreen({
 
   const title = kind === 'home' ? t('nav.search.pickHome') : kind === 'work' ? t('nav.search.pickWork') : kind === 'other' ? t('nav.search.pickOther') : null;
   const idle = state.status === 'idle';
+  const local = localMatches(query, saved, recents);
+  const pick = (hit: Place) => {
+    setState({ status: 'loading' });
+    resolve(hit).then(onPick, () => setState({ status: 'error' }));
+  };
+  const distText = (p: Place) => {
+    if (p.distanceM === undefined) return undefined;
+    const d = formatDistance(p.distanceM, unit);
+    return `${d.value} ${d.unit}`;
+  };
   const chips = kind === 'dest' ? savedChips(saved) : [];
   return (
     <div className="search-screen" role="dialog" aria-modal="true" aria-label={title ?? t('map.search')}>
@@ -94,20 +111,27 @@ export function SearchScreen({
         </div>
       )}
       <div className="search-body">
+        {local.map((p) => (
+          <PlaceRow key={`local-${p.id}`} icon="pin" name={p.name} address={p.address} onClick={() => onPick(p)} />
+        ))}
         {state.status === 'loading' && <div className="search-note">{t('nav.search.loading')}</div>}
         {state.status === 'error' && <div className="search-note" data-tone="tul">{t('nav.search.error')}</div>}
-        {state.status === 'ok' && state.places.length === 0 && <div className="search-note">{t('nav.search.empty')}</div>}
-        {state.status === 'ok' && state.places.map((p) => <PlaceRow key={p.id} icon="pin" name={p.name} address={p.address} onClick={() => onPick(p)} />)}
+        {state.status === 'ok' && state.places.length === 0 && local.length === 0 && <div className="search-note">{t('nav.search.empty')}</div>}
+        {state.status === 'ok' && state.places.filter((p) => !local.some((l) => l.id === p.id)).map((p) => <PlaceRow key={p.id} icon="pin" name={p.name} address={p.address} distance={distText(p)} onClick={() => pick(p)} />)}
         {idle && (
           <>
             {query.trim().length > 0 && query.trim().length < NAV_CONFIG.geocodeMinChars && (
               <div className="search-note">{t('nav.search.hint', { n: NAV_CONFIG.geocodeMinChars })}</div>
             )}
-            <div className="group-label">{t('nav.search.recent')}</div>
-            {recents.length === 0 && <div className="search-note">{t('nav.search.noRecent')}</div>}
-            {recents.map((p) => (
-              <PlaceRow key={p.id} icon="pin" name={p.name} address={p.address} onClick={() => onPick(p)} />
-            ))}
+            {query.trim().length === 0 && (
+              <>
+                <div className="group-label">{t('nav.search.recent')}</div>
+                {recents.length === 0 && <div className="search-note">{t('nav.search.noRecent')}</div>}
+                {recents.map((p) => (
+                  <PlaceRow key={p.id} icon="pin" name={p.name} address={p.address} onClick={() => onPick(p)} />
+                ))}
+              </>
+            )}
           </>
         )}
       </div>

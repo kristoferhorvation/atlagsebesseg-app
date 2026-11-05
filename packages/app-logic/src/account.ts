@@ -1,5 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
-import { t, type TKey } from './i18n';
+import { getLanguage, t, type TKey } from './i18n';
 import { addRecent, parseRecents, parseSaved, type SavedPlaces } from './navigation/places';
 import type { Place } from './navigation/types';
 import { normalizeName, parseSettings, type Settings } from './settings';
@@ -517,12 +517,13 @@ export async function startEmailSignIn(client: SupabaseClient, email: string, re
   const addr = email.trim();
   const { data } = await client.auth.getSession();
   if (data.session?.user.is_anonymous) {
-    const { error } = await client.auth.updateUser({ email: addr }, { emailRedirectTo: redirectTo });
+    const { error } = await client.auth.updateUser({ email: addr, data: { lang: getLanguage() } }, { emailRedirectTo: redirectTo });
     if (!error) return;
     if (!isIdentityTaken(error)) throw error;
     store.setPendingMerge(await prepareMerge(client));
   }
-  const { error } = await client.auth.signInWithOtp({ email: addr, options: { emailRedirectTo: redirectTo } });
+  // AW23: a levél nyelve az app nyelve (a sablon a `lang` metaadatból választ)
+  const { error } = await client.auth.signInWithOtp({ email: addr, options: { emailRedirectTo: redirectTo, data: { lang: getLanguage() } } });
   if (error) throw error;
 }
 

@@ -203,6 +203,6 @@ nonisolated func routeSummary(_ route: NavRoute, _ data: EnforcementData, now: D
         sections: items.filter { $0.kind == .section }.count,
         cameras: items.filter { $0.kind == .camera }.count,
         camerasVerified: items.filter { $0.kind == .camera && $0.verified == true }.count,
-        delayS: trafficDelayS(route)
+        delayS: routeDelayS(route)
     )
 }

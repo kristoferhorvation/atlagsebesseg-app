@@ -60,6 +60,10 @@ targets:
       - path: ../../packages/app-logic/src/navigation/fixtures/budapest-gyor.directions.json
         group: SharedData
         buildPhase: resources
+      # AW23: valódi 1 Hz-es GPS-nyomat a jelölő egyenletes mozgásának méréséhez
+      - path: ../../packages/app-logic/src/fixtures/gps-trace-1hz.json
+        group: SharedData
+        buildPhase: resources
     dependencies:
       - package: AtlagsebessegCore
         product: AtlagsebessegCore

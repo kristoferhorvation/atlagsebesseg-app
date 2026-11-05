@@ -1,4 +1,4 @@
-import { DirectionsClient, geocodeUrl, getLanguage, parseGeocode, RequestCounter, type Place, type SyncStore } from '@atlagsebesseg/app-logic';
+import { DirectionsClient, getLanguage, parseRetrieve, parseSuggest, RequestCounter, retrieveUrl, SearchSession, suggestUrl, type Place, type SyncStore } from '@atlagsebesseg/app-logic';
 import type { LatLon } from '@atlagsebesseg/core';
 
 /** localStorage szinkron burokban; tiltott tárhelynél csendben üres / nem ment. */
@@ -34,10 +34,23 @@ export const directionsClient = TOKEN
     })
   : null;
 
-/** Élő keresés a Mapbox Geocoding API-n. */
+/** AW23: egy nyitott keresés egy Search Box-munkamenet (a token újrahasznosul, választáskor zárul). */
+const searchSession = new SearchSession(() => crypto.randomUUID());
+
+/** Élő keresés a Mapbox Search Box API-n (cím, üzlet, étterem, pláza, nevezetesség). */
 export async function searchPlaces(query: string, near: LatLon | null): Promise<Place[]> {
   if (!TOKEN) return [];
-  const res = await fetch(geocodeUrl(query, getLanguage(), TOKEN, near));
-  if (!res.ok) throw new Error(`geocoding ${res.status}`);
-  return parseGeocode(await res.json());
+  const res = await fetch(suggestUrl(query, getLanguage(), TOKEN, searchSession.suggestToken(), near));
+  if (!res.ok) throw new Error(`searchbox ${res.status}`);
+  return parseSuggest(await res.json(), query);
+}
+
+/** A választott találat koordinátája (a mentett és a korábbi helyeknél nincs hívás). */
+export async function resolvePlace(hit: Place): Promise<Place> {
+  if (!hit.retrieveId) return hit;
+  const res = await fetch(retrieveUrl(hit.retrieveId, getLanguage(), TOKEN, searchSession.retrieveToken()));
+  if (!res.ok) throw new Error(`searchbox ${res.status}`);
+  const place = parseRetrieve(await res.json(), hit);
+  if (!place) throw new Error('searchbox: nincs hely');
+  return place;
 }

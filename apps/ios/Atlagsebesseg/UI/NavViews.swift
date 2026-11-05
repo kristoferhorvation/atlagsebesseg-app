@@ -225,7 +225,7 @@ struct SearchPanel: View {
                     .autocorrectionDisabled()
                     .textInputAutocapitalization(.words)
                     .onSubmit {
-                        if case .ok(let places) = model.searchState, let first = places.first { model.choose(first) }
+                        if case .ok(let places) = model.searchState, let first = places.first { model.chooseHit(first) }
                     }
                 Button { model.closeSearch() } label: {
                     Icon(name: .close, size: 20).frame(width: 44, height: 44).contentShape(Rectangle())
@@ -291,25 +291,41 @@ struct SearchPanel: View {
 
     @ViewBuilder private var content: some View {
         switch model.searchState {
-        case .loading: note(t(.navSearchLoading))
-        case .error: note(t(.navSearchError), color: Tokens.Colors.over)
+        case .loading:
+            localRows
+            note(t(.navSearchLoading))
+        case .error:
+            localRows
+            note(t(.navSearchError), color: Tokens.Colors.over)
         case .ok(let places):
-            if places.isEmpty { note(t(.navSearchEmpty)) }
-            ForEach(places) { p in row(.pin, p.name, p.address) { model.choose(p) } }
+            localRows
+            let hits = places.filter { p in !local.contains { $0.id == p.id } }
+            if hits.isEmpty && local.isEmpty { note(t(.navSearchEmpty)) }
+            ForEach(hits) { p in row(.pin, p.name, p.address, distance: p.distanceM) { model.chooseHit(p) } }
         case .idle:
             let q = model.searchQuery.trimmingCharacters(in: .whitespaces)
             if !q.isEmpty && q.count < NAV_CONFIG.geocodeMinChars {
                 note(t(.navSearchHint, ["n": String(NAV_CONFIG.geocodeMinChars)]))
             }
-            Text(t(.navSearchRecent))
-                .font(.inter(Tokens.Typography.caption.size, Tokens.FontWeight.w600))
-                .foregroundStyle(Tokens.Colors.textFaint)
-                .padding(.horizontal, Tokens.Space.s4)
-                .padding(.top, Tokens.Space.s2)
-                .padding(.bottom, Tokens.Space.s1)
-            if model.recents.isEmpty { note(t(.navSearchNoRecent)) }
-            ForEach(model.recents) { p in row(.pin, p.name, p.address) { model.choose(p) } }
+            localRows
+            if q.isEmpty {
+                Text(t(.navSearchRecent))
+                    .font(.inter(Tokens.Typography.caption.size, Tokens.FontWeight.w600))
+                    .foregroundStyle(Tokens.Colors.textFaint)
+                    .padding(.horizontal, Tokens.Space.s4)
+                    .padding(.top, Tokens.Space.s2)
+                    .padding(.bottom, Tokens.Space.s1)
+                if model.recents.isEmpty { note(t(.navSearchNoRecent)) }
+                ForEach(model.recents) { p in row(.pin, p.name, p.address) { model.choose(p) } }
+            }
         }
+    }
+
+    /// AW23: a gépelt szöveggel egyező mentett és korábbi helyek, API-hívás nélkül, a találatok fölött.
+    private var local: [Place] { localMatches(model.searchQuery, saved: model.saved, recents: model.recents) }
+
+    @ViewBuilder private var localRows: some View {
+        ForEach(local) { p in row(.pin, p.name, p.address) { model.choose(p) } }
     }
 
     private func note(_ text: String, color: Color = Tokens.Colors.textMuted) -> some View {
@@ -320,7 +336,7 @@ struct SearchPanel: View {
             .padding(.vertical, Tokens.Space.s3)
     }
 
-    private func row(_ icon: IconName, _ name: String, _ address: String, _ action: @escaping () -> Void) -> some View {
+    private func row(_ icon: IconName, _ name: String, _ address: String, distance: Double? = nil, _ action: @escaping () -> Void) -> some View {
         Button(action: action) {
             HStack(spacing: Tokens.Space.s3) {
                 Icon(name: icon, size: 22)
@@ -334,6 +350,14 @@ struct SearchPanel: View {
                     }
                 }
                 Spacer(minLength: 0)
+                // AW23: a találat távolsága (a webes `.place-dist`)
+                if let distance {
+                    Text(dist(distance, model.settings.egyseg))
+                        .css(Tokens.Typography.caption.size, Tokens.FontWeight.w600, num: true)
+                        .foregroundStyle(Tokens.Colors.textMuted)
+                        .lineLimit(1)
+                        .fixedSize()
+                }
             }
             .padding(.horizontal, Tokens.Space.s4)
             .frame(minHeight: Tokens.Size.touch)
@@ -402,8 +426,10 @@ struct RoutePickerCard: View {
 
     private var routes: some View {
         VStack(spacing: 10) {
-            ForEach(Array(plan.routes.enumerated()), id: \.element.id) { i, _ in
-                if i < model.summaries.count { option(i, model.summaries[i]) }
+            // AW23: a leggyorsabb mindig legfelül
+            let order = routeOrder(plan.routes.indices.map { $0 < model.summaries.count ? model.summaries[$0].durationS : .infinity })
+            ForEach(Array(order.enumerated()), id: \.element) { pos, i in
+                if i < model.summaries.count { option(i, pos, model.summaries[i]) }
             }
         }
     }
@@ -419,24 +445,29 @@ struct RoutePickerCard: View {
     }
 
     /// A webes `.route-opt`: nagy perc, mellette km · idő, „Leggyorsabb” jobbra; alatta a szakaszok, a kamerák és a dugó, „·” nélkül.
-    private func option(_ i: Int, _ s: RouteSummary) -> some View {
+    private func option(_ i: Int, _ pos: Int, _ s: RouteSummary) -> some View {
         let selected = plan.selected == i
         let shape = RoundedRectangle(cornerRadius: Tokens.Radius.tile, style: .continuous)
         return Button { model.selectRoute(i) } label: {
             VStack(alignment: .leading, spacing: 6) {
-                Flow(hGap: Tokens.Space.s3, vGap: Tokens.Space.s1, baseline: true) {
+                // AW23: a címke minden kártyán ugyanott, soha nem törik; a km · érkezés külön sorban
+                HStack(alignment: .firstTextBaseline, spacing: Tokens.Space.s3) {
                     Text(formatTripDuration(s.durationS))
                         .css(Tokens.FontSize.f28, Tokens.FontWeight.w680, tracking: -0.02, num: true)
                         .foregroundStyle(Tokens.Colors.text)
-                    Text("\(dist(s.distanceM, unit)) · \(formatClock(model.nowMs() + s.durationS * 1000))")
-                        .css(Tokens.FontSize.f18, Tokens.FontWeight.w400, num: true)
-                        .foregroundStyle(Tokens.Colors.textMuted)
+                        .lineLimit(1)
+                    Spacer(minLength: 0)
                     // AW18: a „Leggyorsabb” a legkisebb menetidejű (nem a Mapbox 0. indexe)
-                    Text(routeTagText(i, model.fastestRoute))
+                    Text(routeTagText(pos, 0))
                         .css(Tokens.FontSize.f16, Tokens.FontWeight.w620)
                         .foregroundStyle(Tokens.Colors.brand)
-                        .flowPushRight()
+                        .lineLimit(1)
+                        .fixedSize()
                 }
+                Text("\(dist(s.distanceM, unit)) · \(formatClock(model.nowMs() + s.durationS * 1000))")
+                    .css(Tokens.FontSize.f18, Tokens.FontWeight.w400, num: true)
+                    .foregroundStyle(Tokens.Colors.textMuted)
+                    .lineLimit(1)
                 Flow(hGap: 14, vGap: Tokens.Space.s1) {
                     metaItem(.rendorseg, t(.navPickerSections, ["n": String(s.sections)]), zero: s.sections == 0)
                     metaItem(.cam_speed, t(.navPickerCameras, ["n": String(s.cameras), "v": String(s.camerasVerified)]), zero: s.cameras == 0)
@@ -463,6 +494,116 @@ struct RoutePickerCard: View {
             Text(text).css(Tokens.FontSize.f16, Tokens.FontWeight.w400).lineLimit(1)
         }
         .foregroundStyle(zero ? Tokens.Colors.textMuted : Tokens.Colors.text)
+    }
+}
+
+// MARK: AW23 – útvonal-panel
+
+/// A webes `apps/web/src/ui/NavPanel.tsx` (`.nav-panel`): vízszintes sáv a hátralévő útról, rajta a várható események a távval arányos
+/// helyen; alatta „Alternatív útvonalak” (a jelenlegi pozícióból, az útvonalválasztó kompakt formája). A navigáció közben nem áll le.
+struct NavRoutePanel: View {
+    @Bindable var model: AppModel
+    let view: NavView
+    let unit: SpeedUnit
+
+    private var events: [TimelineEvent] {
+        let shift = view.trafficAlongM - view.alongM
+        let items = view.enforcement.filter { $0.startM > view.alongM }.map { var x = $0; x.startM += shift; return x }
+        return routeTimeline(view.trafficRoute, view.trafficAlongM, items, model.reports.map { LatLon(lat: $0.lat, lon: $0.lon) })
+    }
+
+    var body: some View {
+        VStack(spacing: Tokens.Space.s3) {
+            timeline.frame(height: 44)
+            HStack {
+                Text(formatTripDuration(view.remainingS))
+                Spacer()
+                Text(dist(view.remainingM, unit))
+            }
+            .css(Tokens.Typography.caption.size, Tokens.FontWeight.w600, num: true)
+            .foregroundStyle(Tokens.Colors.textMuted)
+            .padding(.top, -Tokens.Space.s2)
+            switch model.panelAlts {
+            case .idle:
+                Button { model.requestPanelAlts() } label: {
+                    Text(t(.navPanelAlternatives))
+                }
+                .buttonStyle(WideButtonStyle())
+            case .loading:
+                Text(t(.navPanelLoading)).css(Tokens.Typography.caption.size + 1, Tokens.FontWeight.w500).foregroundStyle(Tokens.Colors.textMuted)
+            case .error:
+                Text(t(.navPanelError)).css(Tokens.Typography.caption.size + 1, Tokens.FontWeight.w500).foregroundStyle(Tokens.Colors.over)
+                cancel
+            case .ok(let choices):
+                if !choices.contains(where: { !$0.current }) {
+                    Text(t(.navPanelNone)).css(Tokens.Typography.caption.size + 1, Tokens.FontWeight.w500).foregroundStyle(Tokens.Colors.textMuted)
+                }
+                ForEach(Array(choices.enumerated()), id: \.element.id) { i, c in option(c, i) }
+                cancel
+            }
+        }
+        .padding(Tokens.Space.s4)
+        .background(Tokens.Colors.surfaceStrong, in: RoundedRectangle(cornerRadius: Tokens.Radius.card, style: .continuous))
+        .accessibilityLabel(t(.navPanelAria))
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("nav-panel")
+    }
+
+    private var cancel: some View {
+        Button { model.cancelPanelAlts() } label: { Text(t(.navPanelCancel)) }
+            .buttonStyle(WideButtonStyle())
+    }
+
+    private func option(_ c: AltChoice, _ i: Int) -> some View {
+        Button { c.current ? model.cancelPanelAlts() : model.choosePanelAlt(c) } label: {
+            VStack(alignment: .leading, spacing: 4) {
+                HStack(alignment: .firstTextBaseline) {
+                    Text(formatTripDuration(c.summary.durationS)).css(Tokens.FontSize.f28, Tokens.FontWeight.w680, tracking: -0.02, num: true).foregroundStyle(Tokens.Colors.text).lineLimit(1)
+                    Spacer(minLength: 0)
+                    Text(c.current ? t(.navPanelCurrent) : routeTagText(i, 0)).css(Tokens.FontSize.f16, Tokens.FontWeight.w620).foregroundStyle(Tokens.Colors.brand).lineLimit(1).fixedSize()
+                }
+                Text("\(dist(c.summary.distanceM, unit)) · \(formatClock(model.nowMs() + c.summary.durationS * 1000))")
+                    .css(Tokens.FontSize.f18, Tokens.FontWeight.w400, num: true).foregroundStyle(Tokens.Colors.textMuted).lineLimit(1)
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 14)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(c.current ? Tokens.Colors.accent.opacity(Tokens.Opacity.o14) : Tokens.Colors.surfaceRaised, in: RoundedRectangle(cornerRadius: Tokens.Radius.tile, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: Tokens.Radius.tile, style: .continuous).strokeBorder(c.current ? Tokens.Colors.accent : Tokens.Colors.stroke, lineWidth: 2))
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+    }
+
+    private var timeline: some View {
+        GeometryReader { g in
+            let w = max(1, g.size.width - 18)
+            ZStack(alignment: .leading) {
+                Capsule().fill(Tokens.Colors.route).frame(width: w, height: 6).position(x: w / 2, y: g.size.height / 2)
+                Circle().fill(Tokens.Colors.brand).overlay(Circle().strokeBorder(Tokens.Colors.signFace, lineWidth: 2)).frame(width: 14, height: 14).position(x: 1, y: g.size.height / 2)
+                ForEach(Array(events.enumerated()), id: \.offset) { _, e in
+                    Icon(name: e.kind == .section || e.kind == .planned ? .rendorseg : e.kind == .camera ? .cam_speed : e.kind == .jam ? .dugo : .report, size: 16)
+                        .foregroundStyle(e.kind == .jam ? Tokens.Colors.over : e.kind == .report || e.kind == .planned ? Tokens.Colors.near : Tokens.Colors.text)
+                        .frame(width: 28, height: 28)
+                        .background(Tokens.Colors.surfaceStrong, in: Circle())
+                        .overlay(Circle().strokeBorder(Tokens.Colors.strokeStrong, lineWidth: 1.5))
+                        .position(x: w * min(1, e.at), y: g.size.height / 2)
+                        .accessibilityLabel(t(eventLabel(e.kind)))
+                }
+                Icon(name: .pin, size: 18).foregroundStyle(Tokens.Colors.text).position(x: g.size.width - 9, y: g.size.height / 2)
+            }
+        }
+        .padding(.horizontal, Tokens.Space.s2)
+    }
+
+    private func eventLabel(_ k: TimelineKind) -> L10nKey {
+        switch k {
+        case .section: .navPanelEvSection
+        case .camera: .navPanelEvCamera
+        case .planned: .navPanelEvPlanned
+        case .jam: .navPanelEvJam
+        case .report: .navPanelEvReport
+        }
     }
 }
 

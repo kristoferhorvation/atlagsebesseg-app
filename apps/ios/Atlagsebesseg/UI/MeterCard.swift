@@ -313,7 +313,12 @@ struct MeterCard: View {
                         .foregroundStyle(Tokens.Colors.textMuted)
                 }
                 .fixedSize()
-                GreedyText(text: gpsReady ? t(.hudNoneNear) : t(.hudNoneWaiting), font: .inter(Tokens.Typography.body.size, Tokens.Typography.body.weight), lineHeight: 1.2 * Tokens.Typography.body.size)
+                // AW23: egysoros (a webes `FitText`): soha nem törik, ha nem fér ki, arányosan kisebb
+                Text(gpsReady ? t(.hudNoneNear) : t(.hudNoneWaiting))
+                    .font(.inter(Tokens.Typography.body.size, Tokens.Typography.body.weight))
+                    .foregroundStyle(Tokens.Colors.textMuted)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.6)
             }
         }
     }

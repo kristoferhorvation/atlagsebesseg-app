@@ -86,7 +86,21 @@ extension AppModel {
         }
         guard let token = mapboxToken else { return Task { throw DirectionsError(code: "notoken") } }
         let near = view.lastFix.map { LatLon(lat: $0.lat, lon: $0.lon) }
-        return geocodeSearch(q, lang: L10n.lang, token: token, near: near)
+        return searchBoxSuggest(q, lang: L10n.lang, token: token, session: searchBoxSession, near: near)
+    }
+
+    /// AW23: koppintás egy Search Box-találatra: előbb a koordináta (`/retrieve`), utána a szokásos választás.
+    func chooseHit(_ hit: Place) {
+        guard hit.retrieveId != nil else { return choose(hit) }
+        guard let token = mapboxToken else { return }
+        searchState = .loading
+        let req = searchBoxRetrieve(hit, lang: L10n.lang, token: token, session: searchBoxSession)
+        Task { [weak self] in
+            switch await req.result {
+            case .success(let place): self?.choose(place)
+            case .failure: self?.searchState = .error
+            }
+        }
     }
 
     /// Koppintás egy találatra / utolsó célra / chipre: a hely a célpont – vagy (a Beállításokból) a mentett hely.
@@ -238,9 +252,36 @@ extension AppModel {
         if let sim, sim.fixture.nav != nil, !sim.playing { sim.start() }
     }
 
+    // MARK: AW23 – útvonal-panel
+
+    /// Az alternatívák kérése a jelenlegi pozícióból; a navigáció közben nem áll le.
+    func requestPanelAlts() {
+        guard let s = navSession else { return }
+        panelAlts = .loading
+        Task { [weak self] in
+            do {
+                let choices = try await s.requestAlternatives()
+                self?.panelAlts = .ok(choices)
+            } catch {
+                self?.panelAlts = .error
+            }
+        }
+    }
+
+    func cancelPanelAlts() { panelAlts = .idle }
+
+    func choosePanelAlt(_ c: AltChoice) {
+        navSession?.useRoute(c.route)
+        panelAlts = .idle
+        navPanelOpen = false
+        navChanged()
+    }
+
     func endNav() {
         guard let s = navSession else { return }
         s.dispose()
+        navPanelOpen = false
+        panelAlts = .idle
         navSession = nil
         nav = nil
         syncTripNav()

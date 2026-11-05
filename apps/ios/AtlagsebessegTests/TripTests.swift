@@ -174,7 +174,8 @@ struct TripRecorderSampleTests {
         let trip = try #require(saved(record(good + bad).ended).first)
         #expect(trip.maxKmh == 72)
         #expect(trip.distanceM == jsRound(59 * 20))
-        #expect(trip.samples == 70)
+        // AW23: krúzingban a pontatlan minta szünet, a záró szünet nem kerül a naplóba
+        #expect(trip.samples == 60)
     }
 
     @Test("1 Hz: a sűrűbb fixekből csak egy minta kerül a tárolóba")
@@ -337,7 +338,7 @@ struct TripRecorderNavTests {
         #expect(trip.measurements[0].tooFast)
     }
 
-    @Test("a navigáció előtt indult út a később adott célt kapja")
+    @Test("a navigáció előtti krúzing lezárul: a navigált út külön út, a célt az kapja")
     func kesobbiCel() {
         let rec = TripRecorder(newId: ids())
         for (i, f) in northDrive([(72, 100)]).enumerated() {
@@ -345,7 +346,60 @@ struct TripRecorderNavTests {
             if i == 60 { rec.setDestination("Győr") }
         }
         rec.stop()
-        #expect(saved(rec.drainEnded()).first?.destination == "Győr")
+        #expect(saved(rec.drainEnded()).map(\.destination) == [nil, "Győr"])
+    }
+}
+
+@Suite("AW23: a krúzing szabályai")
+struct CruiseRuleTests {
+    @Test("navigáció alatt nincs krúzing; a navigáció vége után 0-ról indul")
+    func navVege() {
+        let rec = TripRecorder(newId: ids())
+        rec.setDestination("Győr")
+        let nav = northDrive([(72, 120)])
+        for f in nav { rec.onFix(f) }
+        #expect(rec.view(nav.last!.timestamp) == nil)
+        rec.setDestination(nil)
+        #expect(rec.view(nav.last!.timestamp) == nil)
+        #expect(saved(rec.drainEnded()).map(\.destination) == ["Győr"])
+        let after = northDrive([(72, 10)], t0: nav.last!.timestamp + 1000, lat: nav.last!.lat + 20 / M_PER_DEG)
+        for f in after { rec.onFix(f) }
+        #expect(rec.view(after.last!.timestamp) == nil)
+        let more = northDrive([(72, 30)], t0: after.last!.timestamp + 1000, lat: after.last!.lat + 20 / M_PER_DEG)
+        for f in more { rec.onFix(f) }
+        let v = rec.view(more.last!.timestamp)!
+        #expect(v.distanceM < 40 * 20 + 1)
+        #expect(v.elapsedS < 41)
+    }
+
+    @Test("4 km/h-s séta 10 percig: 0 km, nincs krúzing")
+    func seta() {
+        let fixes = northDrive([(4, 600)])
+        let r = record(fixes, stop: false)
+        #expect(r.rec.view(fixes.last!.timestamp) == nil)
+        #expect(r.ended.isEmpty)
+    }
+
+    @Test("±72 m-es pontosság: nem számol, nem is indul")
+    func pontatlan() {
+        let fixes = northDrive([(60, 300)], accuracy: 72)
+        let r = record(fixes, stop: false)
+        #expect(r.rec.view(fixes.last!.timestamp) == nil)
+        #expect(r.ended.isEmpty)
+    }
+
+    @Test("krúzing közben 15 km/h alatt és gyenge pontosságnál szünetel; a küszöbök 15 km/h, 30 s, 30 m")
+    func szunet() {
+        #expect([TRIP.startKmh, TRIP.startHoldS, TRIP.maxAccuracyM] == [15, 30, 30])
+        let drive = northDrive([(72, 60)])
+        let slow = northDrive([(10, 120)], t0: drive.last!.timestamp + 1000, lat: drive.last!.lat)
+        let rec = TripRecorder(newId: ids())
+        for f in drive { rec.onFix(f) }
+        let before = rec.view(drive.last!.timestamp)!
+        for f in slow { rec.onFix(f) }
+        let during = rec.view(slow.last!.timestamp)!
+        #expect(during.distanceM == before.distanceM)
+        #expect(during.elapsedS == before.elapsedS)
     }
 }
 
@@ -624,14 +678,6 @@ struct AOS17Tests {
     func szoSzerint() {
         #expect(t(.reportNoteDefault, lang: .hu) == "A jelenlegi helyed és haladási irányod kerül a bejelentésbe. Ideiglenes szakasz: a mérés végén a „Vége” gomb jelenti be a záró kaput.")
         #expect(t(.reportTypeSzakaszHiba, lang: .hu) == "Térképhiba")
-    }
-
-    @Test("a követő kamera zoomja a webes görbe: közeli, a sebességgel távolodik")
-    func kamera() {
-        #expect(idleFollowZoom(0) == 17.3)
-        #expect(idleFollowZoom(40) == 17.3)
-        #expect(abs(idleFollowZoom(100) - 16.28) < 1e-9)
-        #expect(idleFollowZoom(200) == 15.5)
     }
 
     @Test("a térképkép színei: a világos forrás sötét lesz, a rárajzolt útvonal és a státusz-színek nem változnak")

@@ -107,6 +107,11 @@ final class AppModel {
     var fitVersion = 0
     /// AW15: a kézi mérés pillje navigáció közben (`nil`: nincs navigáció vagy nem fut kézi mérés – a nagy kártya).
     private(set) var manualPill: ManualPillState?
+    /// AW23: az alsó sávra koppintva nyíló útvonal-panel és a benne kért alternatívák.
+    var navPanelOpen = false
+    var panelAlts: PanelAlts = .idle
+    /// AW23: egy nyitott keresés egy Search Box-munkamenet.
+    @ObservationIgnored let searchBoxSession = SearchSession()
     @ObservationIgnored private var pillTimer: Timer?
     /// AW18: a közösségi dugó-adat utolsó lekérése (ms).
     @ObservationIgnored var lastJamFetchAt: Double?
@@ -268,6 +273,9 @@ final class AppModel {
             // `-parityNoFollow YES` (AOS18): a követés kikapcsolva – a „Vissza a helyemre” gomb látszik (a térkép elhúzásának párja)
             if args.bool(forKey: "parityNoFollow") { follow = false }
         }
+        #if DEBUG
+        if args.object(forKey: "gpsTrace") != nil { start() }
+        #endif
     }
 
     /// Óra (ms): szimulátorban a lejátszás ideje.
@@ -291,7 +299,12 @@ final class AppModel {
     func start() {
         guard !started else { return }
         started = true
+        #if DEBUG
+        // `-gpsTrace 0` (AW23): a rögzített valódi 1 Hz-es nyomat a valódi helyzet útján
+        let s: LocationSource = UserDefaults.standard.object(forKey: "gpsTrace") != nil ? TraceLocationSource(trace: UserDefaults.standard.integer(forKey: "gpsTrace")) : CoreLocationSource()
+        #else
         let s = CoreLocationSource()
+        #endif
         attach(s)
         s.start()
         beginTicking()
@@ -584,7 +597,11 @@ final class AppModel {
 
     /// Óra-lépés: minden mérés- és navigáció-változásnál, és amíg aktív, negyed másodpercenként (az 5 s pontosan teljen le).
     func updateManualPill() {
-        let active = nav != nil && view.phase == .kezi
+        var active = nav != nil && view.phase == .kezi
+        #if DEBUG
+        // `-miniAlways YES` (AW23): a ManualMini navigáció nélkül is – a gombsor mind a négy kombinációjának méréséhez
+        if UserDefaults.standard.bool(forKey: "miniAlways"), view.phase == .kezi { active = true }
+        #endif
         let space = nav.map {
             navNeedsSpace(maneuverM: $0.phase == .arrived ? nil : $0.next.distanceM, offer: $0.offer != nil, cameraNear: $0.cameraNear != nil)
         } ?? false

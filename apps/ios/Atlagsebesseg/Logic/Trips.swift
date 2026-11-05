@@ -2,7 +2,7 @@ import AtlagsebessegCore
 import Foundation
 
 // AW19: krúzing mód és az utak naplója – a packages/app-logic/src/trips.ts 1:1 portja (a tesztek: TripTests.swift, a
-// trips.test.ts azonos nevű párjai). Cél nélkül is: ha a kocsi mozog (≥ `startKmh` legalább `startHoldS`-ig), egy „út”
+// trips.test.ts azonos nevű párjai). AW23: a navigált út külön út (`setDestination`), krúzingban ≥ 15 km/h és ±30 m. Cél nélkül is: ha a kocsi mozog (≥ `startKmh` legalább `startHoldS`-ig), egy „út”
 // felvétele indul; `stopIdleS` állás vagy a GPS leállása zárja. A navigáció és a szakaszmérés ugyanabba az útba kerül.
 // Minden adat helyben marad (`TripStore`, SQLite) – szerverre semmi. A küszöbök a generált `TRIP`-ben.
 
@@ -263,6 +263,8 @@ nonisolated final class TripRecorder {
         var segments: [[LatLon]] = [[]]
         var samples = 0
 
+        /// Navigált út (a navigáció alatt indult); különben krúzing.
+        var nav = false
         init(id: String, startedAt: Double, destination: String?) {
             self.id = id
             self.startedAt = startedAt
@@ -312,9 +314,11 @@ nonisolated final class TripRecorder {
             add(r, fix, kmh)
             return
         }
-        if let kmh, kmh >= TRIP.startKmh, accurate(fix) {
+        // a navigált út az első mozgással indul; a krúzing csak tartós haladásnál
+        let nav = destination != nil
+        if let kmh, kmh >= (nav ? TRIP.idleKmh : TRIP.startKmh), accurate(fix) {
             pending.append((fix, kmh))
-            if fix.timestamp - pending[0].fix.timestamp >= TRIP.startHoldS * 1000 { begin() }
+            if nav || fix.timestamp - pending[0].fix.timestamp >= TRIP.startHoldS * 1000 { begin() }
         } else {
             pending = []
         }
@@ -359,15 +363,24 @@ nonisolated final class TripRecorder {
     func setLimit(_ kmh: Double?) { limitKmh = kmh }
 
     /// A navigáció célja (`nil`: nincs navigáció); a futó útra és a következőre is.
+    /// Fut-e navigáció (van cél).
+    var navigating: Bool { destination != nil }
+
     func setDestination(_ name: String?) {
+        let changed = (destination == nil) != (name == nil)
         destination = name
-        if let r = run, let name { r.destination = name }
+        if changed {
+            pending = []
+            if run != nil { finish() }
+        } else if let r = run, let name {
+            r.destination = name
+        }
     }
 
-    /// A futó út (az állapotsorhoz); `nil`, ha nincs.
+    /// A futó krúzing (az állapotsorhoz); navigáció alatt és út nélkül `nil`. AW23: az idő a számolt (mozgó) idő, a szünet nem számít.
     func view(_ now: Double) -> CruiseView? {
-        guard let r = run else { return nil }
-        return CruiseView(tripId: r.id, startedAt: r.startedAt, distanceM: r.distanceM, elapsedS: max(0, now - r.startedAt) / 1000, movingS: r.movingS, dirChanges: turnsTotal(r.turns.turns))
+        guard let r = run, !r.nav else { return nil }
+        return CruiseView(tripId: r.id, startedAt: r.startedAt, distanceM: r.distanceM, elapsedS: r.movingS, movingS: r.movingS, dirChanges: turnsTotal(r.turns.turns))
     }
 
     /// Az új minták (a tárolónak).
@@ -411,6 +424,7 @@ nonisolated final class TripRecorder {
     private func begin() {
         let first = pending[0].fix
         let r = Running(id: newId(first.timestamp), startedAt: first.timestamp, destination: destination)
+        r.nav = destination != nil
         run = r
         let queued = pending
         pending = []
@@ -421,7 +435,8 @@ nonisolated final class TripRecorder {
         let t = fix.timestamp
         let dt = max(0, t - r.lastT) / 1000
         r.lastT = t
-        let moving = kmh.map { $0 >= TRIP.idleKmh } ?? false
+        // AW23: krúzingban csak a tartós, pontos haladás számít; alatta szünetel (a `good`-ot lent is használjuk)
+        let moving = kmh.map { r.nav ? $0 >= TRIP.idleKmh : $0 >= TRIP.startKmh && accurate(fix) } ?? false
         let good = accurate(fix)
         let sample = TripSample(
             tripId: r.id, t: t, lat: fix.lat, lon: fix.lon, speedKmh: kmh.map { jsRound($0 * 10) / 10 }, heading: fix.heading,
@@ -433,7 +448,8 @@ nonisolated final class TripRecorder {
             r.idlePendingS += dt
             r.idleBuf.append(sample)
             if good { r.prev = (fix.lat, fix.lon, t) }
-            if t - r.lastMovingT >= TRIP.stopIdleS * 1000 { finish() }
+            // a navigált út a navigáció végéig tart
+            if !r.nav && t - r.lastMovingT >= TRIP.stopIdleS * 1000 { finish() }
             return
         }
         // mozgás: az addigi állás az út része volt
@@ -448,7 +464,7 @@ nonisolated final class TripRecorder {
         if let p = r.prev {
             let d = haversineM(LatLon(lat: p.lat, lon: p.lon), fix)
             let dts = (t - p.t) / 1000
-            if dts > 0, d / dts * 3.6 <= TRIP.maxJumpKmh {
+            if dts > 0, d / dts * 3.6 <= TRIP.maxJumpKmh, r.nav || dts <= TRIP.cruiseGapS {
                 r.distanceM += d
             } else if !(r.segments.last?.isEmpty ?? true) {
                 r.segments.append([])

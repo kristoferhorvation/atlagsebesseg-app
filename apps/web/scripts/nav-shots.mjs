@@ -694,12 +694,12 @@ try {
     await m('mouseMoved', 230, 340);
     await m('mouseMoved', 270, 380);
     await m('mouseReleased', 270, 380, { buttons: 0 });
-    await kp.waitFor(q('.actions .recenter-above'), 15_000, 'gomb a gombsor fölött');
+    await kp.waitFor(q('.actions-upper .recenter'), 15_000, 'gomb a gombsor fölött');
     await sleep(800);
-    const up = await kp.evaluate(`(() => { const b = ${q('.actions .recenter-above')}.getBoundingClientRect(); const m = ${q('.manual-mini')}; const mr = m?.getBoundingClientRect(); const r = ${q('.actions .report')}.getBoundingClientRect(); return { miniL: mr?.left, miniR: mr?.right, repL: r.left, repT: r.top, right: innerWidth - b.right, gap: r.top - b.bottom, sameX: b.left === r.left, slot: !!${q('.actions .recenter-slot')} }; })()`);
-    check('AW22: ManualMini mellett a „Vissza a helyemre” a jobb oldali gombsor fölött (12 px), nincs fenntartott hely', up.right === 12 && up.gap === 12 && up.sameX && !up.slot, JSON.stringify(up));
+    const up = await kp.evaluate(`(() => { const b = ${q('.actions-upper .recenter')}.getBoundingClientRect(); const m = ${q('.manual-mini')}; const mr = m?.getBoundingClientRect(); const r = ${q('.actions .report')}.getBoundingClientRect(); return { miniL: mr?.left, miniR: mr?.right, repL: r.left, repT: r.top, right: innerWidth - b.right, gap: r.top - b.bottom, sameX: b.left === r.left, slot: !!${q('.actions .recenter-slot')} }; })()`);
+    check('AW23: ManualMini mellett a „Vissza a helyemre” a Bejelentés fölött (12 px)', up.right === 12 && up.gap === 12 && up.sameX, JSON.stringify(up));
     check('AW22: a gomb megjelenésére a mini és a Bejelentés nem mozdul', up.miniL === before.miniL && up.miniR === before.miniR && up.repL === before.repL && up.repT === before.repT, JSON.stringify({ before, up }));
-    await click(kp, '.actions .recenter-above');
+    await click(kp, '.actions-upper .recenter');
     await kp.waitFor(`!${q('.actions .recenter')}`, 10_000, 'visszaállt a követés');
   }
   check('a zsugorított kártya átlag-száma a kézi mérés accent színében, nem státusz-színben', k1.tone === 'kezi' && k1.bigColor === k1.accent, JSON.stringify(k1));
@@ -810,20 +810,20 @@ try {
       await m('mouseMoved', 280, 380);
       await m('mouseReleased', 280, 380, { buttons: 0 });
     };
-    const place = `(() => { const b = ${q('.actions .recenter')}; const r = b?.getBoundingClientRect(); const rep = ${q('.actions .report')}.getBoundingClientRect(); const next = ${q('.actions')}.nextElementSibling?.getBoundingClientRect(); return r ? { right: innerWidth - r.right, gap: next ? next.top - r.bottom : null, sameRow: r.bottom === rep.bottom, afterReport: r.left > rep.left, float: !!${q('.hud-float .recenter')}, sign: !!${q('.hud-float .sign')} } : null; })()`;
+    const place = `(() => { const b = ${q('.actions .recenter')}; const r = b?.getBoundingClientRect(); const rep = ${q('.actions .report')}.getBoundingClientRect(); const next = ${q('.actions')}.nextElementSibling?.getBoundingClientRect(); return r ? { right: innerWidth - r.right, gap: next ? next.top - r.bottom : null, overReport: r.left === rep.left && rep.top - r.bottom === 12, float: !!${q('.hud-float .recenter')}, sign: !!${q('.actions-upper .sign')} } : null; })()`;
     await rc.goto('/?navsim&panel=0&heat=ki&speed=7');
     await rc.waitFor(MAP_READY, 60_000, 'térkép');
     check('AOS18-javítás: a követés alatt nincs „Vissza a helyemre”', await rc.evaluate(`!${q('.recenter')}`));
     await dragMap();
     await rc.waitFor(q('.actions .recenter'), 15_000, 'gomb');
     const free = await rc.evaluate(place);
-    check('AOS18-javítás: „Vissza a helyemre” tábla nélkül a gombsor jobb szélén (12 px a széltől, 12 px a kártyától)', free.right === 12 && free.gap === 12 && free.sameRow && free.afterReport && !free.float && !free.sign, JSON.stringify(free));
+    check('AW23: „Vissza a helyemre” tábla nélkül a Bejelentés fölött (12 px a széltől)', free.right === 12 && free.overReport && !free.float && !free.sign, JSON.stringify(free));
     await rc.goto('/?navsim&stage=nav&panel=0&speed=7&at=60');
-    await rc.waitFor(`${q('.nav-top')} && ${q('.hud-float .sign')}`, 60_000, 'navigáció táblával');
+    await rc.waitFor(`${q('.nav-top')} && ${q('.actions-upper .sign')}`, 60_000, 'navigáció táblával');
     await dragMap();
     await rc.waitFor(q('.actions .recenter'), 15_000, 'gomb táblával');
     const signed = await rc.evaluate(place);
-    check('AOS18-javítás: táblával is ugyanott', signed.right === 12 && signed.gap === 12 && signed.sameRow && signed.afterReport && !signed.float && signed.sign, JSON.stringify(signed));
+    check('AW23: táblával is ugyanott', signed.right === 12 && signed.overReport && !signed.float && signed.sign, JSON.stringify(signed));
     await rc.close();
   }
   // navigáció közben a manőverkártya alatt (a kamera-sor helyén), ugyanígy

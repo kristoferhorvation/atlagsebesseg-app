@@ -91,22 +91,6 @@ export const CAMERA_ALERT = {
 } as const;
 
 /**
- * Követő kamera navigáció közben: zoom a sebességgel (km/h → zoom, között lineáris, a széleken állandó), a
- * haladási irány követésének ideje (ms), és az autó helye a képernyőn (0 = fent, 1 = lent: az alsó harmadban, hogy az
- * út előre látsszon), legalább `focusGapPx`-szel az alsó kártya fölött.
- */
-export const NAV_FOLLOW = {
-  zoomStops: [
-    [40, 17],
-    [90, 15.5],
-    [130, 14.5],
-  ] as readonly (readonly [number, number])[],
-  bearingMs: 400,
-  focusY: 0.72,
-  focusGapPx: 56,
-} as const;
-
-/**
  * Kézi mérés navigáció közben (AW15, AW16): a kártya `collapseAfterMs` után a mérőkártya lekicsinyített változatává
  * zsugorodik (a jobb oldalon), és akkor is, ha a navigációnak hely kell – a következő manőver `maneuverNearM`-en belül,
  * ajánlat-kártya vagy közeli kamera. Indítás után az első `collapseAfterMs`-ban a hely-igény sem csukja azonnal: ekkor

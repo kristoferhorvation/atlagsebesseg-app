@@ -16,4 +16,4 @@ createRoot(document.getElementById('root')!).render(
     <App />
   </StrictMode>,
 );
-registerServiceWorker();
+registerServiceWorker(() => document.documentElement.dataset.busy === '1');

@@ -49,13 +49,6 @@ nonisolated enum CAMERA_ALERT {
     static let leadS = 10.0
 }
 /// Követő kamera navigáció közben (AW12): zoom a sebességből (km/h → zoom), irány-követés ideje (ms), a pozíció
-/// helye a képernyőn (0 = fent, 1 = lent) és a távolsága az alsó kártyától (pt).
-nonisolated enum NAV_FOLLOW {
-    static let zoomStops: [(kmh: Double, zoom: Double)] = [(40.0, 17.0), (90.0, 15.5), (130.0, 14.5)]
-    static let bearingMs = 400.0
-    static let focusY = 0.72
-    static let focusGapPx = 56.0
-}
 /// A kézi mérés pillje navigáció közben (AW15): `collapseAfterMs` után, vagy ha a következő manőver `maneuverNearM`-en
 /// belül van (ajánlat, közeli kamera mellett is), a kártya pillé zsugorodik.
 nonisolated enum MANUAL_PILL {
@@ -75,15 +68,24 @@ nonisolated enum CAMERA_CARD {
     static let sameDirDeg = 90.0
 }
 /// AW18: élő forgalom (2 perces friss lekérés), „+N perc dugó” (≥ `delayShowS`, hang csak először),
-/// helyi dugó-érzékelés (`jamWindowMs` ablak a várt tempó `jamSlowFraction`-ja alatt; vége `jamClearM` a `jamNearFraction` fölött),
+/// helyi dugó-érzékelés (`jamWindowMs` ablak a megengedett sebesség `jamSlowFraction`-ja alatt; vége a `jamClearFraction` fölött),
 /// a „Dugóba kerültél?” kártya `jamPromptMs`-ig, közösségi dugó-adat `communityMaxAgeMs`-ig, újratervezés-backoff (s).
 nonisolated enum TRAFFIC {
     static let refreshMs = 120000.0
     static let delayShowS = 180.0
-    static let jamWindowMs = 120000.0
-    static let jamSlowFraction = 0.5
-    static let jamNearFraction = 0.8
-    static let jamClearM = 500.0
+    static let delayMaxFraction = 0.5
+    static let jamWindowMs = 180000.0
+    static let jamSlowFraction = 0.4
+    static let jamStartMovedM = 100.0
+    static let jamStoppedMps = 1.4
+    static let lightNearM = 60.0
+    static let lightPatienceMs = 120000.0
+    static let jamClearFraction = 0.7
+    static let jamClearCityM = 1000.0
+    static let jamClearCityMs = 120000.0
+    static let jamClearHighwayM = 3000.0
+    static let jamClearHighwayMs = 180000.0
+    static let jamDeclineMuteMs = 600000.0
     static let jamPromptMs = 15000.0
     static let jamAheadMaxM = 2000.0
     static let jamNoDataMaxM = 1000.0
@@ -99,11 +101,12 @@ nonisolated enum TRAFFIC {
 /// pontosság és ugrás-szűrés, kanyar-felismerés (`turnDeg` / `turnWindowS`, vége `turnSettleS` / `turnSettleDeg`),
 /// Douglas–Peucker (`simplifyM`), H3-felbontás, 1 Hz-es mintavétel, a legrövidebb mentett út.
 nonisolated enum TRIP {
-    static let startKmh = 10.0
+    static let startKmh = 15.0
     static let startHoldS = 30.0
     static let idleKmh = 5.0
     static let stopIdleS = 300.0
-    static let maxAccuracyM = 50.0
+    static let maxAccuracyM = 30.0
+    static let cruiseGapS = 30.0
     static let maxJumpKmh = 250.0
     static let turnDeg = 60.0
     static let turnWindowS = 5.0

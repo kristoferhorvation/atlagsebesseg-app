@@ -14,6 +14,10 @@ nonisolated struct Place: Identifiable, Hashable, Codable, Sendable {
     /// Az útvonal célpontja, ha eltér a címtől: a Geocoding `routable_points` (a ház útra eső bejárata). A ház pontját a
     /// Directions a legközelebbi útra illeszti – sarki háznál a mellékutcára –, ezért a tervezés ide megy, a jelölő a címen marad.
     var routable: LatLon? = nil
+    /// AW23: Search Box-találat: a koordináta választáskor jön (`/retrieve`), addig 0.
+    var retrieveId: String? = nil
+    /// AW23: a távolság a jelenlegi helyzettől (m), ha a találat adja.
+    var distanceM: Double? = nil
 
     var latLon: LatLon { LatLon(lat: lat, lon: lon) }
     /// A tervezés célpontja: a cím útra illesztett pontja, ha van, különben maga a cím.
@@ -65,6 +69,10 @@ nonisolated struct NavStep: Hashable, Sendable {
     /// A lépés végén következő manőverre vonatkozó szalag-szövegek (a Directions `bannerInstructions`-e).
     var banners: [NavBanner]
     var voice: [NavVoice]
+    /// A Directions `duration_typical`-ja (s); `nil`, ha nincs.
+    var durationTypicalS: Double? = nil
+    /// AW23: útkategória (`mapbox_streets_v8.class`: motorway, trunk, primary, street…); `nil`, ha nincs adat.
+    var roadClass: String? = nil
 }
 
 /// Egy útvonal a Directions-válaszból, az app számára kényelmes alakban.
@@ -81,6 +89,8 @@ nonisolated struct NavRoute: Identifiable, Hashable, Sendable {
     var segLimitKmh: [Double?]
     var segCongestion: [Congestion]
     var segDurationS: [Double]
+    /// AW23: jelzőlámpák, kereszteződések és kanyarok helye (m, növekvő) – a lámpa-türelemhez.
+    var stopPointsM: [Double] = []
 }
 
 nonisolated struct NavDestination: Hashable, Sendable {

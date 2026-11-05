@@ -8,7 +8,8 @@ import { ALT_OFFER, CAMERA_ALERT, NAV_CONFIG, type NavConfig } from './config';
 import { limitAt } from './directions';
 import { adjustedDurations, cumulative, firstNewManeuver, NO_ENFORCEMENT_DATA, remainingSeconds, routeEnforcement, routeOverlap, type EnforcementData } from './enforcement';
 import { maneuverIcon, type ManeuverIcon } from './maneuver';
-import { applyCommunityJams, JamDetector, jamAheadRun, jamExtraS, jamSample, rerouteRetryDelayMs, routeErrorKind, TRAFFIC, type CommunityJam, type JamSampleInsert } from './traffic';
+import { applyCommunityJams, heavyAhead, highwayAt, JamDetector, jamAheadRun, jamExtraS, jamSample, nearStopPoint, permittedKmhAt, rerouteRetryDelayMs, routeDelayS, routeOrder, routeErrorKind, TRAFFIC, type CommunityJam, type JamSampleInsert } from './traffic';
+import { routeSummary, type RouteSummary } from './summary';
 import { routeTarget, type EnforcementItem, type NavDestination, type NavRoute, type NavStep } from './types';
 
 export type VoiceKind = 'instruction' | 'section' | 'tooFast' | 'reroute' | 'faster' | 'traffic';
@@ -112,14 +113,23 @@ export interface NavView {
   rerouteFailed: boolean;
   /** AW18: sikertelen újratervezés után a következő automatikus próbáig hátralévő másodperc (koppintásra azonnal). */
   rerouteRetryInS: number | null;
-  /** AW18: az indulási terv érkezési ideje (a „+N perc dugó” viszonyítási alapja). */
-  plannedEtaMs: number;
-  /** AW18: „+N perc dugó” – a friss (Mapbox / helyi dugó) ETA legalább 3 perccel az indulási terv után; különben `null`. */
+  /** AW23: a térképen ez az útvonal látszik: a friss forgalmi válasz, ha van (a felirat és a szín egy forrásból). */
+  trafficRoute: NavRoute;
+  /** AW23: a helyzet a `trafficRoute` mentén (m). */
+  trafficAlongM: number;
+  /** AW23: „+N perc dugó” – a hátralévő út dugó-többlete (`routeDelayS`) legalább 3 perc; különben `null`. */
   delayMin: number | null;
   /** AW18: helyi dugó-állapot (a mért tempó tartósan a várt alatt). */
   jam: boolean;
   /** AW18: a „Dugóba kerültél? Igen / Nem” kártya látszik (dugóba lépéskor, 15 s-ig vagy válaszig). */
   jamAsk: boolean;
+}
+
+/** AW23: egy választható útvonal a navigáció közbeni panelen. */
+export interface AltChoice {
+  route: NavRoute;
+  summary: RouteSummary;
+  current: boolean;
 }
 
 export interface NavSessionDeps {
@@ -195,22 +205,18 @@ export class NavigationSession {
   private cached: NavView | null = null;
 
   // AW18: forgalom
-  /** Az indulási terv érkezési ideje (ms). */
-  private plannedEtaMs = 0;
   /** A friss forgalmi útvonal (a jelenlegi útvonalon, `fromAlongM`-től), a szakaszokkal és a közösségi adattal számolt idővel. */
   private fresh: { route: NavRoute; cum: number[]; fromAlongM: number; version: number } | null = null;
-  /** Volt már friss forgalmi adat (lekérés vagy újratervezés) – a „+N perc dugó” csak ettől (vagy dugóban) látszik. */
-  private hasFresh = false;
   /** Az alternatívák között nem volt meg a jelenlegi útvonal: forgalom-lekérés köztes ponttal esedékes. */
   private trafficViaDue = false;
   private trafficPending = false;
   private communityJams: readonly CommunityJam[] = [];
-  /** A nyers (Directions) idők kumulálva – a várt tempóhoz. */
-  private rawCum: number[] = [];
   private readonly jamDetector = new JamDetector();
   private jamAskUntil: number | null = null;
   private jamAskKey: string | null = null;
   private readonly jamDeclined = new Set<string>();
+  /** „Nem” után eddig nincs újabb kérdés (ms). */
+  private jamMuteUntil = 0;
   private lastJamUploadAt: number | null = null;
   private jamUploads: JamSampleInsert[] = [];
   /** A „+N perc dugó” hangja már elhangzott (AW18-javítás: csak egyszer). */
@@ -229,7 +235,6 @@ export class NavigationSession {
     this.log = deps.log ?? ((m) => console.warn(m));
     this.lastAltAt = this.clock();
     this.install(route);
-    this.plannedEtaMs = this.clock() + this.remainingS() * 1000;
   }
 
   // ---------------------------------------------------------------------------
@@ -298,10 +303,14 @@ export class NavigationSession {
 
   /**
    * AW18: „Dugóba kerültél?” válasz. Igen: a platform a „Dugó” bejelentést küldi (a meglévő folyamattal), itt a közösségi
-   * minta kerül a sorba; Nem: ebben az útban ugyanarra a szakaszra (a következő manőverig) nem kérdez újra.
+   * minta kerül a sorba; Nem: ugyanarra a szakaszra nem kérdez újra, `jamDeclineMuteMs`-ig sehol, és a dugó-állapot törlődik.
    */
   answerJam(yes: boolean): void {
     if (this.jamAskKey !== null && !yes) this.jamDeclined.add(this.jamAskKey);
+    if (!yes) {
+      this.jamMuteUntil = this.clock() + TRAFFIC.jamDeclineMuteMs;
+      this.jamDetector.dismiss();
+    }
     if (yes) this.reportedJam();
     this.jamAskUntil = null;
     this.changed();
@@ -345,8 +354,6 @@ export class NavigationSession {
     const first = this.lastFix === null;
     this.lastFix = fix;
     if (!this.arrived) this.project(fix, !first);
-    // AW18: az indulási terv érkezési ideje az első fixnél (addigra a szakasz-adat is megvan)
-    if (first) this.plannedEtaMs = this.clock() + this.remainingS() * 1000;
     if (!this.arrived && this.cross <= this.cfg.offRouteM) this.watchJam(fix);
     this.advance(this.clock(), fix.accuracy);
     this.changed();
@@ -478,7 +485,6 @@ export class NavigationSession {
         if (r) {
           // az újratervezés maga a friss driving-traffic lekérés a jelenlegi pozíciótól (AW18)
           this.install(r);
-          this.hasFresh = true;
           this.offSince = null;
           this.rerouteSaid = false;
           this.lastAltAt = this.clock();
@@ -564,7 +570,6 @@ export class NavigationSession {
 
   private setFresh(route: NavRoute, fromAlongM: number): void {
     this.fresh = { route, cum: this.cumOf(route), fromAlongM, version: this.routeVersion };
-    this.hasFresh = true;
   }
 
   /** Egy útvonal kumulált ideje: a szakaszokon a határral, a közösségi dugó-adattal. */
@@ -654,7 +659,30 @@ export class NavigationSession {
     if (!o) return;
     this.offer = null;
     this.install(o.route);
-    this.hasFresh = true;
+    this.offSince = null;
+    this.changed();
+  }
+
+  /**
+   * AW23: alternatívák kérése a jelenlegi pozícióból (az útvonal-panel gombja); a navigáció közben nem áll le. A leggyorsabb elöl,
+   * a jelenlegi útvonallal azonosat `current` jelöli.
+   */
+  async requestAlternatives(): Promise<AltChoice[]> {
+    const f = this.lastFix;
+    if (!f) return [];
+    const t0 = this.clock();
+    this.lastCallAt = t0;
+    this.lastAltAt = t0;
+    const routes = await this.fetchRoutes({ lat: f.lat, lon: f.lon }, routeTarget(this.destination), { heading: f.heading, reason: 'alternatives' });
+    const choices = routes.map((route) => ({ route, summary: routeSummary(route, this.data, this.clock()), current: routeOverlap(this.route, route) >= 0.9 }));
+    return routeOrder(choices.map((c) => c.summary.durationS)).map((i) => choices[i]!);
+  }
+
+  /** AW23: váltás a panelen választott útvonalra. */
+  useRoute(route: NavRoute): void {
+    this.offer = null;
+    this.held = null;
+    this.install(route);
     this.offSince = null;
     this.changed();
   }
@@ -678,7 +706,6 @@ export class NavigationSession {
     this.cross = 0;
     this.fresh = null;
     this.trafficViaDue = false;
-    this.rawCum = cumulative(route.segDurationS);
     this.jamDetector.rebase();
     this.recomputeEnforcement();
     // az új útvonal a jelenlegi pozícióról indul: újra illesztünk
@@ -705,12 +732,9 @@ export class NavigationSession {
   private remainingS(): number {
     const base = this.trafficRemainingS(this.along);
     const avg = this.jamDetector.avgMps;
-    if (!this.jamDetector.active || avg === null) return base;
+    if (!this.jamDetector.correcting || avg === null) return base;
     // a friss forgalmi útvonal annotációja az aktuális; a koordináták az ő kezdőpontjától mérve
-    const f = this.fresh;
-    const useFresh = f !== null && f.version === this.routeVersion && this.along >= f.fromAlongM - 50;
-    const ref = useFresh ? f.route : this.route;
-    const off = useFresh ? f.fromAlongM : 0;
+    const { ref, off } = this.trafficRef();
     const run = jamAheadRun(ref, Math.max(0, this.along - off));
     if (!run) return base;
     const a = run.startM + off;
@@ -719,12 +743,10 @@ export class NavigationSession {
     return base + jamExtraS(run, avg, planned);
   }
 
-  /** A várt tempó (m/s) a helyen: a Directions nyers ideje ±250 m-en. */
-  private expectedMpsAt(alongM: number): number {
-    const a = Math.max(0, alongM - 250);
-    const b = Math.min(this.route.distanceM, alongM + 250);
-    const dt = remainingSeconds(this.route, this.rawCum, a) - remainingSeconds(this.route, this.rawCum, b);
-    return dt > 0 ? (b - a) / dt : 30;
+  /** A forgalmi adat forrása: a friss válasz (a lekérés helyétől mérve), különben a jelenlegi útvonal. */
+  private trafficRef(): { ref: NavRoute; off: number } {
+    const f = this.fresh;
+    return f !== null && f.version === this.routeVersion && this.along >= f.fromAlongM - 50 ? { ref: f.route, off: f.fromAlongM } : { ref: this.route, off: 0 };
   }
 
   /** A szakasz kulcsa a „Nem” válaszhoz: a következő manőver helye (újratervezés után is ugyanaz). */
@@ -739,37 +761,43 @@ export class NavigationSession {
 
   private watchJam(fix: GpsFix): void {
     const t0 = this.clock();
-    const change = this.jamDetector.update(fix.timestamp, this.along, fix.speed, this.expectedMpsAt(this.along));
+    const { ref, off } = this.trafficRef();
+    const change = this.jamDetector.update(fix.timestamp, this.along, fix.speed, {
+      limitMps: permittedKmhAt(this.route, this.along) / 3.6,
+      highway: highwayAt(this.route, this.along),
+      nearStopPoint: nearStopPoint(this.route, this.along),
+      heavyAhead: heavyAhead(ref, Math.max(0, this.along - off)),
+    });
     const avg = this.jamDetector.avgMps ?? 0;
     if (change === 'enter') {
       this.lastJamUploadAt = t0;
       this.jamUploads.push(jamSample('erzekelt', fix, avg, Math.max(1, (avg * TRAFFIC.jamWindowMs) / 1000)));
       const key = this.stretchKey();
-      if (!this.jamDeclined.has(key)) {
+      if (!this.jamDeclined.has(key) && t0 >= this.jamMuteUntil) {
         this.jamAskKey = key;
         this.jamAskUntil = t0 + TRAFFIC.jamPromptMs;
         this.say('traffic', t('nav.voice.jamAsk'));
       }
     } else if (change === 'exit') {
       this.jamAskUntil = null;
-      this.jamUploads.push(jamSample('oldott', fix, this.jamDetector.clearedAvgMps ?? Math.max(0, fix.speed ?? 0), TRAFFIC.jamClearM));
+      this.jamUploads.push(jamSample('oldott', fix, this.jamDetector.clearedAvgMps ?? Math.max(0, fix.speed ?? 0), this.jamDetector.clearedM));
     } else if (this.jamDetector.active && this.lastJamUploadAt !== null && t0 - this.lastJamUploadAt >= TRAFFIC.jamUploadMs) {
       this.lastJamUploadAt = t0;
       this.jamUploads.push(jamSample('erzekelt', fix, avg, Math.max(1, (avg * TRAFFIC.jamWindowMs) / 1000)));
     }
   }
 
-  /** A késés (s) az indulási tervhez képest – csak friss adattal (forgalmi lekérés / újratervezés) vagy dugóban. */
-  private delayS(t0: number): number | null {
-    if (!this.hasFresh && !this.jamDetector.active) return null;
-    return (t0 + this.remainingS() * 1000 - this.plannedEtaMs) / 1000;
+  /** A dugó-többlet (s) a hátralévő úton: ugyanaz a számítás, mint az útvonalválasztóban (`routeDelayS`). */
+  private delayS(): number {
+    const { ref, off } = this.trafficRef();
+    return routeDelayS(ref, Math.max(0, this.along - off));
   }
 
   /** A „+N perc dugó” hangja: csak az első alkalommal (≥ 3 perc); a további növekedésnél a sáv némán frissül. A kérdés lejárata. */
   private updateTraffic(t0: number): void {
     if (this.jamAskUntil !== null && t0 >= this.jamAskUntil) this.jamAskUntil = null;
-    const d = this.delayS(t0);
-    if (d === null || d < TRAFFIC.delayShowS) return;
+    const d = this.delayS();
+    if (d < TRAFFIC.delayShowS) return;
     const min = Math.round(d / 60);
     if (!this.delaySaid) {
       this.delaySaid = true;
@@ -862,6 +890,8 @@ export class NavigationSession {
     if (following && step.endManeuver.type !== 'arrive' && left <= this.cfg.thenWithinM) {
       const m = this.maneuverOf(following, following.distanceM, 0);
       then = { ...m, text: thenText(following, steps[idx + 2], m.icon) };
+      // AW23: ugyanazt a helyet nem írjuk ki kétszer (a következő manőver és az „Utána” sor is „Március 15. tér” volt)
+      if (then.text === next.text) then = null;
     }
     const up = this.items.find((it) => it.startM > this.along && it.startM - this.along <= this.cfg.enforcementWarnM) ?? null;
     const camM = cameraAlertM(this.lastFix?.speed ?? null);
@@ -889,10 +919,11 @@ export class NavigationSession {
       rerouteFailed: this.rerouteFailed,
       rerouteRetryInS:
         this.rerouteFailed && !this.rerouting && this.rerouteRetryAt !== null ? Math.max(0, Math.ceil((this.rerouteRetryAt - this.clock()) / 1000)) : null,
-      plannedEtaMs: this.plannedEtaMs,
+      trafficRoute: this.trafficRef().ref,
+      trafficAlongM: Math.max(0, this.along - this.trafficRef().off),
       delayMin: (() => {
-        const d = this.arrived ? null : this.delayS(this.clock());
-        return d !== null && d >= TRAFFIC.delayShowS ? Math.round(d / 60) : null;
+        const d = this.arrived ? 0 : this.delayS();
+        return d >= TRAFFIC.delayShowS ? Math.round(d / 60) : null;
       })(),
       jam: this.jamDetector.active,
       jamAsk: this.jamAskUntil !== null && !this.arrived,

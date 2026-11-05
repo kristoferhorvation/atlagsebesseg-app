@@ -67,6 +67,12 @@ export async function webShot(browser, device, state, windows) {
   await page.goto(`${WEB_BASE}${resolveAt(web.path, windows)}`);
   await page.addStyleTag({ content: FLAT_CSS(color.parityBackdrop) });
   await page.waitForSelector(web.ready, { timeout: 120_000, state: 'attached' });
+  if (web.mini) {
+    // AW23: a ManualMini – kézi mérés indul, a harness rögzített órája miatt bökésre zsugorodik
+    await page.locator('button[aria-label="Kézi átlagmérés indítása"]').first().click();
+    await page.locator('.hud > .card[aria-label="Kézi átlagmérés"] .chip').first().click();
+    await page.waitForSelector('.manual-mini', { timeout: 30_000 });
+  }
   if (web.recenter) {
     // a térkép elhúzása a szabad részen (a felső kártya alatt, az alsó csoport fölött): a követés kikapcsol, a „Vissza a helyemre” megjelenik
     const box = page.viewportSize();

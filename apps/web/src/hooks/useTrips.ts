@@ -95,7 +95,11 @@ export function useTrips(now: () => number, nav: NavView | null, view: SessionVi
 
   // navigáció: a cél, az újratervezések (a felfutó él) és a helyi dugó-állapot
   const destination = nav?.destination.name ?? null;
-  useEffect(() => rec.setDestination(destination), [rec, destination]);
+  // AW23: a navigáció kezdete és vége lezárja a futó utat (a navigált út külön út, utána a krúzing 0-ról indul)
+  useEffect(() => {
+    rec.setDestination(destination);
+    pump();
+  }, [rec, destination, pump]);
   const rerouting = nav?.rerouting ?? false;
   useEffect(() => {
     if (rerouting) rec.noteReroute();

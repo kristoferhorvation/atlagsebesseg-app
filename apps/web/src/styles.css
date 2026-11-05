@@ -234,12 +234,17 @@ select:focus-visible {
   position: absolute;
   left: max(12px, env(safe-area-inset-left));
   right: max(12px, env(safe-area-inset-right));
-  bottom: calc(100% + 12px);
+  /* a felső gombsor (64 + 12) fölött; a magasabb ManualMini mellett feljebb */
+  bottom: calc(100% + 88px);
   display: flex;
   flex-direction: column;
   gap: 12px;
   pointer-events: none;
   transition: transform var(--motion-base) var(--motion-ease);
+}
+
+.hud-float[data-mini='true'] {
+  bottom: calc(100% + 116px);
 }
 
 .hud-float > * {
@@ -251,10 +256,27 @@ select:focus-visible {
   transform: translateY(-84px);
 }
 
-.recenter-row {
+/* AW23: a felső sor a gombsor fölött (web és iOS azonos): tábla balra, ManualMini, „Vissza a helyemre” pontosan a Bejelentés fölött */
+.actions-upper {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: calc(100% + 12px);
   display: flex;
   justify-content: flex-end;
+  align-items: flex-end;
+  gap: 12px;
   pointer-events: none;
+  transition: transform var(--motion-base) var(--motion-ease);
+}
+
+.actions-upper > * {
+  pointer-events: auto;
+}
+
+/* mérés közben a „Lassíts” sáv helye szabadon marad */
+.actions-upper[data-raised='true'] {
+  transform: translateY(-84px);
 }
 
 .recenter-slot {
@@ -271,11 +293,8 @@ select:focus-visible {
   animation: rise var(--motion-base) var(--motion-ease);
 }
 
-/* AW22: ManualMini mellett a gomb a jobb oldali gombsor fölött (a gombsor és a mini nem mozdul) */
-.recenter-above {
-  position: absolute;
-  right: 0;
-  bottom: calc(100% + 12px);
+.actions-upper .sign-slot {
+  margin-right: auto;
 }
 
 /* ---------- bejelentés a térképen ---------- */
@@ -419,6 +438,14 @@ select:focus-visible {
 
 .compact-row .body {
   line-height: 1.2;
+}
+
+/* AW23: egysoros felirat (`FitText`) */
+.fit-text {
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
 }
 
 /* AW17: mérés + ajánlat – a mérőkártya egy sorban (átlag · most · várható · tábla) */
@@ -1793,16 +1820,6 @@ a.list-row {
 
 /* ---------- navigáció (A8) ---------- */
 
-.recenter-row {
-  justify-content: space-between;
-  align-items: flex-end;
-}
-
-.recenter-row .sign-slot {
-  margin-right: auto;
-  pointer-events: auto;
-}
-
 /* kereső: teljes képernyő */
 .search-screen {
   position: fixed;
@@ -1944,6 +1961,15 @@ a.list-row {
   color: var(--color-brand);
 }
 
+.place-dist {
+  flex: none;
+  margin-left: auto;
+  padding-left: 8px;
+  font-size: var(--type-caption-size);
+  font-weight: 600;
+  color: var(--color-text-muted);
+}
+
 .place-text {
   min-width: 0;
   display: flex;
@@ -2057,6 +2083,11 @@ a.list-row {
   font-size: 16px;
   font-weight: 620;
   color: var(--color-brand);
+}
+
+.route-opt-main > span.num {
+  /* AW23: a km · érkezés mindig külön sorban: a címke soha nem törik másképp a kártyákon */
+  flex: 1 0 100%;
 }
 
 .route-opt-meta {
@@ -3084,4 +3115,89 @@ button.nav-reroute {
     padding: 0 12px;
     font-size: 16px;
   }
+}
+
+/* AW23: az alsó sávra koppintva felnyíló útvonal-panel: a sáv fölött lebeg, nem mozdít semmit */
+.nav-panel {
+  position: absolute;
+  left: max(12px, env(safe-area-inset-left));
+  right: max(12px, env(safe-area-inset-right));
+  padding: 16px;
+  border-radius: var(--radius-card);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  background: var(--color-surface-strong);
+  z-index: 3;
+  animation: rise var(--motion-base) var(--motion-ease);
+}
+
+.timeline {
+  position: relative;
+  height: 44px;
+  margin: 0 8px 0 8px;
+  padding-right: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  color: var(--color-text);
+}
+
+.timeline-line {
+  position: absolute;
+  left: 0;
+  right: 18px;
+  top: 50%;
+  height: 6px;
+  margin-top: -3px;
+  border-radius: 3px;
+  background: var(--color-route);
+}
+
+.timeline-here {
+  position: absolute;
+  left: -6px;
+  top: 50%;
+  width: 14px;
+  height: 14px;
+  margin-top: -7px;
+  border-radius: 50%;
+  background: var(--color-brand);
+  border: 2px solid var(--color-sign-face);
+}
+
+.timeline-ev {
+  position: absolute;
+  top: 50%;
+  width: 28px;
+  height: 28px;
+  margin: -14px 0 0 -14px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  color: var(--color-text);
+  background: var(--color-surface-strong);
+  border: 1.5px solid var(--color-stroke-strong);
+}
+
+.timeline-ev[data-kind='jam'] {
+  color: var(--color-over);
+}
+
+.timeline-ev[data-kind='report'],
+.timeline-ev[data-kind='planned'] {
+  color: var(--color-near);
+}
+
+.timeline-foot {
+  display: flex;
+  justify-content: space-between;
+  margin-top: -8px;
+  font-size: var(--type-caption-size);
+  font-weight: 600;
+  color: var(--color-text-muted);
+}
+
+.nav-panel-alt {
+  width: 100%;
 }

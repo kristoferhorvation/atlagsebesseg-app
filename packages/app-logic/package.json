@@ -20,6 +20,7 @@
   "dependencies": {
     "@atlagsebesseg/core": "*",
     "@atlagsebesseg/data": "*",
+    "@atlagsebesseg/design-tokens": "*",
     "@supabase/supabase-js": "^2.118.0"
   },
   "devDependencies": {

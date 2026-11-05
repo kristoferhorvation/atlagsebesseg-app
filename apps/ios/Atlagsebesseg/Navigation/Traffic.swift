@@ -6,6 +6,11 @@ import Foundation
 
 // MARK: útvonalválasztó
 
+/// AW23: a kártyák sorrendje: a leggyorsabb legfelül, a többi menetidő szerint (egyenlőnél az eredeti sorrend).
+nonisolated func routeOrder(_ durationsS: [Double]) -> [Int] {
+    durationsS.enumerated().sorted { $0.element != $1.element ? $0.element < $1.element : $0.offset < $1.offset }.map(\.offset)
+}
+
 /// A „Leggyorsabb”: a legkisebb menetidejű útvonal indexe (egyenlőnél az előbbi); üres listánál 0.
 nonisolated func fastestRouteIndex(_ durationsS: [Double]) -> Int {
     var best = 0
@@ -42,50 +47,89 @@ nonisolated enum JamChange: String, Sendable {
     case enter, exit
 }
 
-/// Dugó-állapot a mért haladásból. A megtett utat az útvonal menti legtávolabbi elért pont növekedése adja (álló
-/// helyzetben az oda-vissza GPS-zaj nem „halad”); útvonal-csere után `rebase()`. Belépés: legalább `jamWindowMs` adat, és
-/// az ablak átlaga a várt tempó `jamSlowFraction`-ja alatt. Kilépés: legalább `jamClearM` megszakítás nélkül a várt tempó
-/// `jamNearFraction`-ja fölött.
+/// A dugó-érzékelés bemenete a jelenlegi helyről.
+nonisolated struct JamContext: Sendable {
+    /// A megengedett sebesség (m/s): `permittedKmhAt`.
+    var limitMps: Double
+    /// Autópálya vagy autóút: nincs lámpa-türelem, nagyobb a kilépési táv.
+    var highway: Bool
+    /// Jelzőlámpa, kereszteződés vagy kanyar `lightNearM`-en belül.
+    var nearStopPoint: Bool
+    /// A hátralévő úton van heavy / severe szakasz: a helyi ETA-korrekció addig nem jár le.
+    var heavyAhead: Bool
+}
+
+/// Dugó-állapot a mért haladásból (AW23). A megtett utat az útvonal menti legtávolabbi elért pont növekedése adja (álló
+/// helyzetben az oda-vissza GPS-zaj nem „halad”); útvonal-csere után `rebase()`. Az ablak „érvényes” időben mér: a lámpa-türelem
+/// alatti állás nem számít bele. Belépés: `jamWindowMs` érvényes idő átlaga a megengedett sebesség `jamSlowFraction`-ja alatt, és
+/// az ablak előtt már haladtunk. Kilépés: az útkategória szerinti ablakban a megengedett sebesség `jamClearFraction`-ja fölött.
 nonisolated final class JamDetector {
     private var odo = 0.0
     /// Az útvonal mentén eddig elért legtávolabbi pont: csak ennek növekedése haladás (a zaj oda-vissza nem).
     private var maxAlong: Double?
-    private var hist: [(t: Double, odo: Double)] = []
+    /// Érvényes idő (ms): a lámpa-türelem nélkül.
+    private var eff = 0.0
+    private var lastT: Double?
+    private var hist: [(eff: Double, odo: Double)] = []
+    private var hold: (odo: Double, ms: Double)?
     private var jam = false
-    private var clear: (odo: Double, t: Double)?
-    private var lastClearAvg: Double?
+    /// A tempó helyreállt, de a hátralévő úton még van heavy / severe: az ETA-korrekció marad.
+    private var etaHold = false
+    private var lastClear: (avgMps: Double, m: Double)?
 
-    /// Új fix: `t` (ms), útvonal menti hely (m), pillanatnyi sebesség (m/s; `nil`: a haladásból), várt tempó (m/s).
-    func update(_ t: Double, _ alongM: Double, _ speedMps: Double?, _ expectedMps: Double) -> JamChange? {
-        let prev = hist.last
+    /// Új fix: `t` (ms), útvonal menti hely (m), pillanatnyi sebesség (m/s; `nil`: a haladásból).
+    func update(_ t: Double, _ alongM: Double, _ speedMps: Double?, _ ctx: JamContext) -> JamChange? {
+        let before = odo
         if let m = maxAlong { odo += max(0, alongM - m) }
         maxAlong = max(maxAlong ?? alongM, alongM)
-        hist.append((t, odo))
-        while hist.count > 2 && hist[1].t <= t - TRAFFIC.jamWindowMs { hist.removeFirst() }
-        let speed = speedMps ?? (prev.map { t > $0.t ? (odo - $0.odo) * 1000 / (t - $0.t) : 0 } ?? 0)
+        let dt = lastT.map { max(0, t - $0) } ?? 0
+        let speed = speedMps ?? (dt > 0 ? (odo - before) * 1000 / dt : 0)
+        lastT = t
+        // lámpa-türelem: csak nem autópálya-jellegű úton, pontonként legfeljebb `lightPatienceMs`
+        var counted = true
+        if !ctx.highway && ctx.nearStopPoint && speed <= TRAFFIC.jamStoppedMps {
+            if hold == nil || odo - hold!.odo > TRAFFIC.lightNearM { hold = (odo, 0) }
+            hold!.ms += dt
+            counted = hold!.ms > TRAFFIC.lightPatienceMs
+        } else if let h = hold, odo - h.odo > TRAFFIC.lightNearM {
+            hold = nil
+        }
+        if counted { eff += dt }
+        hist.append((eff, odo))
+        let keep = max(TRAFFIC.jamWindowMs, TRAFFIC.jamClearHighwayMs)
+        while hist.count > 2 && hist[1].eff <= eff - keep { hist.removeFirst() }
         if !jam {
-            let span = t - hist[0].t
-            if let avg = avgMps, span >= TRAFFIC.jamWindowMs - 1000, avg < TRAFFIC.jamSlowFraction * expectedMps {
+            if etaHold && !ctx.heavyAhead { etaHold = false }
+            if let w = windowOf(TRAFFIC.jamWindowMs), w.startOdo >= TRAFFIC.jamStartMovedM, w.avgMps < TRAFFIC.jamSlowFraction * ctx.limitMps {
                 jam = true
-                clear = nil
+                etaHold = false
                 return .enter
             }
             return nil
         }
-        if speed >= TRAFFIC.jamNearFraction * expectedMps {
-            if clear == nil { clear = (odo, t) }
-            if let c = clear, odo - c.odo >= TRAFFIC.jamClearM {
-                lastClearAvg = t > c.t ? (odo - c.odo) * 1000 / (t - c.t) : speed
-                jam = false
-                clear = nil
-                // a dugós ablak ne indítson azonnal újra
-                hist = [(t, odo)]
-                return .exit
-            }
-        } else {
-            clear = nil
+        if let w = windowOf(ctx.highway ? TRAFFIC.jamClearHighwayMs : TRAFFIC.jamClearCityMs),
+           w.m >= (ctx.highway ? TRAFFIC.jamClearHighwayM : TRAFFIC.jamClearCityM), w.avgMps >= TRAFFIC.jamClearFraction * ctx.limitMps {
+            lastClear = (w.avgMps, w.m)
+            jam = false
+            etaHold = ctx.heavyAhead
+            // a dugós ablak ne indítson azonnal újra
+            hist = [(eff, odo)]
+            return .exit
         }
         return nil
+    }
+
+    /// A legutóbbi `ms` érvényes idő átlaga és hossza; `nil`, ha még nincs ennyi adat.
+    private func windowOf(_ ms: Double) -> (avgMps: Double, m: Double, startOdo: Double)? {
+        guard let b = hist.last else { return nil }
+        var a: (eff: Double, odo: Double)?
+        for h in hist {
+            if h.eff > b.eff - ms { break }
+            a = h
+        }
+        guard let a, b.eff > a.eff else { return nil }
+        let m = b.odo - a.odo
+        return (m * 1000 / (b.eff - a.eff), m, a.odo)
     }
 
     /// Új útvonal: a hely mostantól az új útvonalon mérődik (a megtett út megmarad).
@@ -93,19 +137,124 @@ nonisolated final class JamDetector {
         maxAlong = nil
     }
 
+    /// „Nem” válasz: a sofőr szerint nincs dugó, az állapot és az ablak törlődik.
+    func dismiss() {
+        jam = false
+        etaHold = false
+        hist = hist.last.map { [$0] } ?? []
+    }
+
     var active: Bool { jam }
 
-    /// Az utolsó (legfeljebb `jamWindowMs`-os) ablak átlaga (m/s); egy mintánál `nil`.
+    /// A helyi ETA-korrekció él: dugóban, vagy amíg a hátralévő úton heavy / severe szakasz van.
+    var correcting: Bool { jam || etaHold }
+
+    /// Az utolsó ablak átlaga (m/s); egy mintánál `nil`.
     var avgMps: Double? {
-        guard let a = hist.first, let b = hist.last, b.t > a.t else { return nil }
-        return (b.odo - a.odo) * 1000 / (b.t - a.t)
+        guard let a = hist.first, let b = hist.last, b.eff > a.eff else { return nil }
+        return (b.odo - a.odo) * 1000 / (b.eff - a.eff)
     }
 
     /// A dugó végét jelző szakasz átlaga (m/s) – a „feloldva” közösségi mintához.
-    var clearedAvgMps: Double? { lastClearAvg }
+    var clearedAvgMps: Double? { lastClear?.avgMps }
+
+    /// A dugó végét jelző szakasz hossza (m).
+    var clearedM: Double { lastClear?.m ?? TRAFFIC.jamClearCityM }
 
     /// A megtett út (m) – a minta hosszához.
     var odometerM: Double { odo }
+}
+
+// MARK: a megengedett sebesség, útkategória, lámpák
+
+/// Az útkategória országos alapértelmezése (km/h), ha a szakaszon nincs táblaadat (magyar értékek: a célpiac).
+nonisolated enum DEFAULT_LIMIT_KMH {
+    static let motorway = 130.0
+    static let trunk = 110.0
+    static let rural = 90.0
+    static let city = 50.0
+}
+
+private nonisolated let highwayClasses: Set<String> = ["motorway", "motorway_link", "trunk", "trunk_link"]
+private nonisolated let ruralClasses: Set<String> = ["primary", "primary_link", "secondary", "secondary_link"]
+
+/// A lépés a hely alatt.
+nonisolated func stepAt(_ route: NavRoute, _ alongM: Double) -> NavStep? {
+    var found = route.steps.first
+    for s in route.steps {
+        if s.startM > alongM { break }
+        found = s
+    }
+    return found
+}
+
+/// A nyers Directions-tempó (km/h) a szakaszon: útkategória nélkül ebből becsülünk.
+private nonisolated func rawKmhAt(_ route: NavRoute, _ i: Int) -> Double {
+    let b = i + 1 < route.segStartM.count ? route.segStartM[i + 1] : route.distanceM
+    let d = i < route.segDurationS.count ? route.segDurationS[i] : 0
+    return d > 0 ? (b - route.segStartM[i]) / d * 3.6 : 0
+}
+
+/// A megengedett sebesség (km/h) a helyen: a tábla (maxspeed), ennek hiányában az útkategória alapértelmezése.
+nonisolated func permittedKmhAt(_ route: NavRoute, _ alongM: Double) -> Double {
+    let i = segmentAt(route, alongM)
+    if i < route.segLimitKmh.count, let sign = route.segLimitKmh[i] { return sign }
+    if let cls = stepAt(route, alongM)?.roadClass {
+        if cls == "motorway" || cls == "motorway_link" { return DEFAULT_LIMIT_KMH.motorway }
+        if cls == "trunk" || cls == "trunk_link" { return DEFAULT_LIMIT_KMH.trunk }
+        return ruralClasses.contains(cls) ? DEFAULT_LIMIT_KMH.rural : DEFAULT_LIMIT_KMH.city
+    }
+    let raw = rawKmhAt(route, i)
+    return raw >= 90 ? DEFAULT_LIMIT_KMH.motorway : raw >= 60 ? DEFAULT_LIMIT_KMH.rural : DEFAULT_LIMIT_KMH.city
+}
+
+/// Autópálya-jellegű-e az út a helyen (autópálya, autóút; kategória nélkül a 100 km/h feletti tábla).
+nonisolated func highwayAt(_ route: NavRoute, _ alongM: Double) -> Bool {
+    if let cls = stepAt(route, alongM)?.roadClass { return highwayClasses.contains(cls) }
+    return permittedKmhAt(route, alongM) >= 100
+}
+
+/// Jelzőlámpa, kereszteződés vagy kanyar `lightNearM`-en belül (a Directions-lépések kereszteződései és manőverei).
+nonisolated func nearStopPoint(_ route: NavRoute, _ alongM: Double) -> Bool {
+    route.stopPointsM.contains { abs($0 - alongM) <= TRAFFIC.lightNearM }
+}
+
+/// A hátralévő úton van-e heavy / severe szakasz.
+nonisolated func heavyAhead(_ route: NavRoute, _ alongM: Double) -> Bool {
+    route.segCongestion[min(route.segCongestion.count, segmentAt(route, alongM))...].contains { $0 == .heavy || $0 == .severe }
+}
+
+/// A dugó-többlet (s) a hátralévő úton – EGY számítás az útvonalválasztónak és a navigációnak (AW23). Heavy / severe szakasz
+/// nélkül 0 (nincs felirat térképi szakasz nélkül). Különben a hátralévő idő a tipikus fölött (a lépések `duration_typical`-ja;
+/// ha nincs, a dugós idő fele), legfeljebb a dugós szakaszok ideje és a hátralévő idő `delayMaxFraction`-ja.
+nonisolated func routeDelayS(_ route: NavRoute, _ alongM: Double = 0) -> Double {
+    let n = route.segDurationS.count
+    guard n > 0 else { return 0 }
+    let first = min(n - 1, segmentAt(route, alongM))
+    var remS = 0.0
+    var heavyS = 0.0
+    for i in first..<n {
+        let a = route.segStartM[i]
+        let b = i + 1 < route.segStartM.count ? route.segStartM[i + 1] : route.distanceM
+        let part = i == first && b > a ? max(0, min(1, (b - alongM) / (b - a))) : 1
+        let d = route.segDurationS[i] * part
+        remS += d
+        if route.segCongestion[i] == .heavy || route.segCongestion[i] == .severe { heavyS += d }
+    }
+    if heavyS <= 0 { return 0 }
+    var typicalS: Double? = 0
+    for s in route.steps {
+        let end = s.startM + s.distanceM
+        if end <= alongM { continue }
+        guard let tp = s.durationTypicalS else {
+            typicalS = nil
+            break
+        }
+        typicalS! += tp * (s.startM >= alongM || s.distanceM <= 0 ? 1 : (end - alongM) / s.distanceM)
+    }
+    if typicalS == nil, let tp = route.typicalDurationS { typicalS = tp * max(0, route.distanceM - alongM) / (route.distanceM != 0 ? route.distanceM : 1) }
+    let excess = typicalS.map { max(0, remS - $0) } ?? heavyS / 2
+    return jsRound(min(excess, heavyS, TRAFFIC.delayMaxFraction * remS))
 }
 
 // MARK: közösségi dugó-adat
@@ -260,4 +409,56 @@ nonisolated func jamExtraS(_ run: JamRun, avgMps: Double, plannedS: Double) -> D
     let v = max(avgMps, TRAFFIC.jamMinKmh / 3.6)
     let slow = d / v
     return max(0, run.linear ? (slow - plannedS) / 2 : slow - plannedS)
+}
+
+// MARK: AW23 – a hátralévő út eseményei (timeline.ts)
+
+nonisolated enum TimelineKind: String, Sendable {
+    case section, camera, planned, jam, report
+}
+
+/// Egy esemény a hátralévő út sávján: `aheadM` a mostani helytől, `at` a sáv mentén (0 = itt, 1 = a cél).
+nonisolated struct TimelineEvent: Equatable, Sendable {
+    var kind: TimelineKind
+    var aheadM: Double
+    var at: Double
+}
+
+/// A hátralévő út eseményei a távval arányos helyen: szakaszellenőrzés, kamera, tervezett mérés (az `enforcement`-ből), dugó (a heavy /
+/// severe szakaszok eleje), bejelentés (az útvonal sávjában lévők).
+nonisolated func routeTimeline(_ route: NavRoute, _ alongM: Double, _ enforcement: [EnforcementItem], _ reports: [LatLon]) -> [TimelineEvent] {
+    let rest = max(1, route.distanceM - alongM)
+    var out: [TimelineEvent] = []
+    func add(_ kind: TimelineKind, _ m: Double) {
+        if m >= alongM && m <= route.distanceM { out.append(TimelineEvent(kind: kind, aheadM: m - alongM, at: (m - alongM) / rest)) }
+    }
+    for it in enforcement { add(TimelineKind(rawValue: it.kind.rawValue) ?? .section, it.startM) }
+    func heavy(_ i: Int) -> Bool { route.segCongestion[i] == .heavy || route.segCongestion[i] == .severe }
+    let first = segmentAt(route, alongM)
+    if first < route.segCongestion.count {
+        for i in first..<route.segCongestion.count where heavy(i) && (i == first || !heavy(i - 1)) {
+            add(.jam, max(alongM, route.segStartM[i]))
+        }
+    }
+    if !reports.isEmpty, let core = coreRoute(route) {
+        for r in reports {
+            let p = core.project(r)
+            if p.crossM <= ROUTE_MATCH_M { add(.report, p.alongM) }
+        }
+    }
+    return out.enumerated().sorted { $0.element.aheadM != $1.element.aheadM ? $0.element.aheadM < $1.element.aheadM : $0.offset < $1.offset }.map(\.element)
+}
+
+/// AW23: egy választható útvonal a navigáció közbeni panelen.
+nonisolated struct AltChoice: Identifiable, Sendable {
+    var route: NavRoute
+    var summary: RouteSummary
+    var current: Bool
+    var id: String { route.id }
+}
+
+/// A panel alternatíva-állapota.
+enum PanelAlts {
+    case idle, loading, error
+    case ok([AltChoice])
 }

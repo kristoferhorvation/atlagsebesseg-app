@@ -338,17 +338,19 @@ extension AppModel {
     func sendEmailLink(_ raw: String) {
         guard let client = backend.client, let redirect = URL(string: AUTH_REDIRECT_IOS) else { return }
         let email = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        // AW23: a levél nyelve az app nyelve (a sablon a `lang` metaadatból választ)
+        let lang: [String: AnyJSON] = ["lang": .string(L10n.lang.rawValue)]
         run { [self] in
             if let s = try? await client.auth.session, s.user.isAnonymous {
                 do {
-                    _ = try await client.auth.update(user: UserAttributes(email: email), redirectTo: redirect)
+                    _ = try await client.auth.update(user: UserAttributes(email: email, data: lang), redirectTo: redirect)
                     emailSentTo = email
                     return
                 } catch where taken(error) {
                     defaults.set(try await backend.prepareMerge(), forKey: MERGE_KEY)
                 }
             }
-            try await client.auth.signInWithOTP(email: email, redirectTo: redirect)
+            try await client.auth.signInWithOTP(email: email, redirectTo: redirect, data: lang)
             emailSentTo = email
         }
     }

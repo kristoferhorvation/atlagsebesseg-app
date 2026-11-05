@@ -160,38 +160,38 @@ struct ParityTests {
         close(greet.height, try g.part("root").box.h, "köszöntés")
     }
 
-    @Test("AOS18-javítás: a „Vissza a helyemre” a gombsor jobb szélén, a gombsor és az alatta lévő kártya között a webes 12 pt")
+    @Test("AW23: a Bejelentés a jobb szélen, fölötte a „Vissza a helyemre”; az alsó sorban nincs fenntartott hely")
     func vissza() throws {
         let s = try ParitySpec.load("recenter")
         let b = try s.part("button").box
-        #expect(b.x + b.w == 402 - Tokens.Space.s3)
-        #expect(b.y == (try s.part("report").box.y))
-        #expect(b.x > (try s.part("report").box.x))
-        #expect((try s.part("card").box.y) - (b.y + b.h) == Tokens.Space.s3)
-        let source = try String(contentsOf: Repo.iosDir.appendingPathComponent("Atlagsebesseg/UI/DriveView.swift"), encoding: .utf8)
-        let floatBody = try #require(source.range(of: "private var float: some View")).upperBound
-        let hudBody = try #require(source.range(of: "private var hud: some View")).lowerBound
-        // AW21: fenntartott hely – a hely a gomb nélkül is ott van (a Bejelentés x-e nem függ a Vissza láthatóságától)
+        let rep = try s.part("report").box
+        #expect(rep.x + rep.w == 402 - Tokens.Space.s3, "a Bejelentés a jobb szélen")
+        #expect(b.x == rep.x && b.w == rep.w, "a gomb pontosan a Bejelentés fölött")
+        #expect(rep.y - (b.y + b.h) == Tokens.Space.s3, "12 pt a gombsor fölött")
+        #expect((try s.part("card").box.y) - (rep.y + rep.h) == Tokens.Space.s3, "12 pt a gombsor és a kártya között")
         let slot = try s.part("slot").box
-        #expect(slot.w == b.w && slot.x == b.x && slot.y == b.y, "a fenntartott hely pontosan a gomb helye")
-        #expect(slot.x - (try s.part("report").box.x + (try s.part("report").box.w)) == Tokens.Space.s3, "a Bejelentés és a hely közt 12 pt")
-        #expect(source.contains(".frame(width: Tokens.Size.roundButton, height: Tokens.Size.roundButton)"), "a hely fix méretű")
-        #expect(!source[floatBody..<hudBody].contains("mapRecenter"), "a gomb nem kerülhet vissza a lebegő rétegbe (ott a helye a táblától és a mérőkártyától függene)")
+        #expect(slot.w == b.w && slot.x == b.x && slot.y == b.y, "a hely pontosan a gomb helye")
+        let source = try String(contentsOf: Repo.iosDir.appendingPathComponent("Atlagsebesseg/UI/DriveView.swift"), encoding: .utf8)
+        let row = try #require(source.range(of: "private var upperRow: some View")).upperBound
+        let hud = try #require(source.range(of: "private var hud: some View")).upperBound
+        #expect(source[row...].contains(".frame(width: Tokens.Size.roundButton, height: Tokens.Size.roundButton)"), "a hely fix méretű")
+        #expect(source[hud...].contains("mapReport"), "a Bejelentés az alsó sorban")
+        let hudEnd = try #require(source[hud...].range(of: ".overlay(alignment: .top) { upperRow }")).lowerBound
+        #expect(!source[hud..<hudEnd].contains("mapRecenter"), "a „Vissza a helyemre” nincs az alsó sorban")
+        #expect(!source[hud..<hudEnd].contains("ManualMini"), "a ManualMini nincs az alsó sorban")
     }
 
-    @Test("AW22: ManualMini mellett a „Vissza a helyemre” a gombsor fölött, a mini az AW21 előtti helyén")
+    @Test("AW23: a ManualMini közvetlenül a „Vissza a helyemre” helyétől balra; a Bejelentés nem mozdul")
     func visszaMini() throws {
         let s = try ParitySpec.load("recenter-mini")
         let b = try s.part("button").box
         let rep = try s.part("report").box
         let mini = try s.part("mini").box
-        #expect(rep.x + rep.w == 402 - Tokens.Space.s3, "a mini mellett nincs fenntartott hely: a Bejelentés a jobb szélen, mint az AW21 előtt")
-        #expect(mini.x + mini.w == rep.x - Tokens.Space.s3, "a mini a Bejelentés mellett")
+        #expect(rep.x + rep.w == 402 - Tokens.Space.s3, "a Bejelentés a jobb szélen")
         #expect(b.x == rep.x && b.w == rep.w, "a gomb a Bejelentés fölött")
         #expect(rep.y - (b.y + b.h) == Tokens.Space.s3, "12 pt a gombsor fölött")
-        let source = try String(contentsOf: Repo.iosDir.appendingPathComponent("Atlagsebesseg/UI/DriveView.swift"), encoding: .utf8)
-        #expect(source.contains("recenterButton.offset(y: -(Tokens.Size.roundButton + Tokens.Space.s3))"), "a gomb a gombsor fölött, a sort nem tolja")
-        #expect(source.contains("if !model.manualPillCollapsed {"), "a mini mellett nincs fenntartott hely")
+        #expect(mini.x + mini.w == b.x - Tokens.Space.s3, "a mini a gomb helyétől balra")
+        #expect(mini.y + mini.h == b.y + b.h, "a mini alja a gomb aljával egy vonalban")
     }
 
     @Test("AW22: a Fiók kártya: nagy, hivatalos fehér Apple-gomb, alatta kisebben a Google és az e-mail; az ajánlat gombjai")

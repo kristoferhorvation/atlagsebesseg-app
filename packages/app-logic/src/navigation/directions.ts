@@ -1,5 +1,5 @@
 import type { LatLon } from '@atlagsebesseg/core';
-import { haversineM } from '@atlagsebesseg/core';
+import { haversineM, Route } from '@atlagsebesseg/core';
 import { directionsLanguage, type Lang } from '../i18n';
 import { NAV_CONFIG } from './config';
 import type { BannerText, Congestion, NavBanner, NavRoute, NavStep, NavVoice } from './types';
@@ -62,6 +62,15 @@ const bannerText = (v: unknown): BannerText | null => {
 function exitOf(components: unknown): string | null {
   const parts = arr(components).flatMap((c) => (isObj(c) && (c.type === 'exit' || c.type === 'exit-number') && typeof c.text === 'string' && c.text.trim() ? [c.text.trim()] : []));
   return parts.length > 0 ? parts.join(' ') : null;
+}
+
+/** Az útkategória a lépés első kereszteződéséből (`mapbox_streets_v8.class`); `null`, ha nincs adat. */
+function roadClassOf(s: J): string | null {
+  for (const x of arr(s.intersections).filter(isObj)) {
+    const c = isObj(x.mapbox_streets_v8) ? x.mapbox_streets_v8.class : undefined;
+    if (typeof c === 'string') return c;
+  }
+  return null;
 }
 
 const KMH_PER_MPH = 1.609344;
@@ -146,6 +155,8 @@ function parseRoute(r: J, id: string): NavRoute {
       durationS: num(s.duration),
       startM,
       name: typeof s.name === 'string' ? s.name : '',
+      durationTypicalS: typeof s.duration_typical === 'number' ? s.duration_typical : null,
+      roadClass: roadClassOf(s),
       endManeuver: {
         type: typeof man.type === 'string' ? man.type : 'arrive',
         modifier: typeof man.modifier === 'string' ? man.modifier : null,
@@ -157,6 +168,21 @@ function parseRoute(r: J, id: string): NavRoute {
     });
     startM += dist;
   });
+  // AW23: a lámpák, kereszteződések és kanyarok helye az útvonal mentén (a lépés kereszteződéseiből és a manőverekből)
+  const core = new Route(points, distanceM);
+  const stopPointsM: number[] = [];
+  rawSteps.forEach((s, i) => {
+    const st = steps[i]!;
+    const hint = { fromM: st.startM - 30, toM: st.startM + st.distanceM + 30 };
+    for (const x of arr(s.intersections).filter(isObj)) {
+      const signal = x.traffic_signal === true;
+      if (!signal && arr(x.bearings).length < 3) continue;
+      const loc = arr(x.location);
+      if (typeof loc[0] === 'number' && typeof loc[1] === 'number') stopPointsM.push(core.project({ lat: loc[1], lon: loc[0] }, hint).alongM);
+    }
+    if (st.endManeuver.type !== 'arrive') stopPointsM.push(st.startM + st.distanceM);
+  });
+  stopPointsM.sort((a, b) => a - b);
   absorbArrivalStub(steps);
 
   return {
@@ -170,6 +196,7 @@ function parseRoute(r: J, id: string): NavRoute {
     segLimitKmh: pad(limits, () => null),
     segCongestion: pad(congestion, () => 'unknown'),
     segDurationS: pad(durations, avgDur),
+    stopPointsM,
   };
 }
 
@@ -225,6 +252,3 @@ export function congestionRuns(route: NavRoute): { points: LatLon[]; level: 'nor
   });
   return runs;
 }
-
-/** A dugó miatti késés másodpercben (a tipikus időhöz képest), 0 alá nem megy. */
-export const trafficDelayS = (route: NavRoute): number => (route.typicalDurationS === null ? 0 : Math.max(0, Math.round(route.durationS - route.typicalDurationS)));

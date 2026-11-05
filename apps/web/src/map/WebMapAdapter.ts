@@ -13,7 +13,6 @@ export interface WebMapState extends MapState {
   /** Az autó függőleges helye a képernyőn (0 = fent, 1 = lent) – a HUD fölé kerül. */
   focusY: number;
   /** Navigáció közbeni követés (AW12): zoom a sebességgel (`navFollowZoom`), gyorsabb irány-követés. */
-  navFollow: boolean;
   /** Színes / világos (Standard `default` téma) vagy visszafogott (`monochrome`); a világos fényét az app adja (`mapLightPreset`). */
   look: MapLook;
   reports: readonly MapReport[];
@@ -118,7 +117,6 @@ export interface WebMapAdapter extends MapController {
   setPosition(fix: GpsFix | null): void;
   setProgress(progress: number | null, tone: string): void;
   setFocusY(y: number): void;
-  setNavFollow(on: boolean): void;
   setLook(look: MapLook): void;
   showReports(reports: readonly MapReport[], selectedId: string | null): void;
   showCameras(cameras: readonly MapCamera[], zones: readonly MapZone[], selectedId: string | null): void;

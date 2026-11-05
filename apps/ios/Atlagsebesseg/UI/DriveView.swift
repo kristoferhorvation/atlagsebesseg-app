@@ -28,7 +28,7 @@ struct DriveView: View {
     private var measuringLayout: Bool { measuring && !model.manualPillCollapsed }
     /// AW17: navigáció közben az alsó sáv MINDIG a képernyő alján; a mérőkártya (és minden más kártya) fölötte, soha nem
     /// alatta és nem helyette. Szakasz nélkül (vagy a zsugorított kézi mérésnél) csak a sáv látszik, kártya nélkül.
-    private var hudCardHidden: Bool { model.nav != nil && (view.phase == .nincsSzakasz || model.manualPillCollapsed) }
+    private var hudCardHidden: Bool { (model.nav != nil && view.phase == .nincsSzakasz) || model.manualPillCollapsed }
     /// Navigáció közben a kézi mérés teljes kártyája bökésre zsugorodik (AW15).
     private var collapseManual: (() -> Void)? {
         guard model.manualPill != nil else { return nil }
@@ -78,7 +78,8 @@ struct DriveView: View {
                                 .transition(.move(edge: .bottom).combined(with: .opacity))
                         } else {
                             // a záradék az ehhez az elrendezéshez tartozó sáv-állapotot látja (nem a következő renderét)
-                            let strip = stripShown, stripSpace = stripH + Tokens.Space.s3, floatSpace = hudFloatH > 0 ? hudFloatH + Tokens.Space.s3 : 0
+                            // AW23: a felső gombsor (és fölötte a lebegő kártyák) a gombsor fölött
+                            let strip = stripShown, stripSpace = stripH + Tokens.Space.s3, floatSpace = upperRowSpace + (hudFloatH > 0 ? hudFloatH + Tokens.Space.s3 : 0)
                             VStack(spacing: Tokens.Space.s3) { hud }
                                 // a webes `.slowdown` és `.hud-float`: a HUD fölött lebegnek, a magasságát nem növelik (a gombsor a kártya fölött 12 pt-re marad)
                                 .overlay(alignment: .top) { floats }
@@ -245,7 +246,14 @@ struct DriveView: View {
         )
     }
 
-    /// A `.slowdown` (a HUD teteje fölött 4 pt-re, középen) és a `.hud-float` (12 pt-re, mérés közben 84 pt-tel feljebb, hogy a sáv helye szabad maradjon).
+    /// AW23: a felső gombsor helye a gombsor fölött (64 + 12).
+    private var upperRowSpace: CGFloat { Tokens.Size.roundButton + Tokens.Space.s3 }
+    /// A `.hud-float` alja: a felső gombsor fölött (88 pt), a magasabb ManualMini mellett 116 pt, mérés közben 84 pt-tel feljebb.
+    private var floatPad: CGFloat {
+        Tokens.Space.s3 + upperRowSpace + (model.manualPillCollapsed ? Tokens.Space.s4 + Tokens.Space.s3 : 0) + (view.phase == .meres ? 84 : 0)
+    }
+
+    /// A `.slowdown` (a HUD teteje fölött 4 pt-re, középen) és a `.hud-float` (mérés közben 84 pt-tel feljebb, hogy a sáv helye szabad maradjon).
     private var floats: some View {
         ZStack(alignment: .bottom) {
             if view.phase == .meres, slowDownBarShown(navMeterCompact(view.phase, offer: model.nav?.offer != nil)) {
@@ -253,8 +261,8 @@ struct DriveView: View {
                     .padding(.bottom, Tokens.Space.s1)
             }
             VStack(spacing: Tokens.Space.s3) { float }
-                .padding(.bottom, view.phase == .meres ? Tokens.Space.s3 + 84 : Tokens.Space.s3)
-                .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { hudFloatH = max(0, $0 - (view.phase == .meres ? Tokens.Space.s3 + 84 : Tokens.Space.s3)) }
+                .padding(.bottom, floatPad)
+                .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { hudFloatH = max(0, $0 - floatPad) }
         }
         .frame(height: 0, alignment: .bottom)
     }
@@ -317,23 +325,36 @@ struct DriveView: View {
             }, onLater: { model.signInNudge = false })
             .transition(.opacity.combined(with: .offset(y: 12)))
         }
-        // a bal alsó tábla a gombsor fölött (a webes `.recenter-row`)
-        if navSign, let nav = model.nav {
-            HStack {
+    }
+
+    /// AW23: a felső sor a gombsor fölött (a webes `.actions-upper`): a „Vissza a helyemre” pontosan a Bejelentés fölött, tőle balra a ManualMini,
+    /// a bal szélen a tábla. Mindegyik helye rögzített: ha valamelyik rejtett, a helye üres marad, és semmi nem rendeződik át.
+    private var upperRow: some View {
+        HStack(alignment: .bottom, spacing: Tokens.Space.s3) {
+            // adat nélkül nincs tábla (a „–” félrevezető)
+            if navSign, let nav = model.nav, nav.limitKmh != nil {
                 LimitSign(kmh: nav.limitKmh, unit: unit, small: true)
-                Spacer()
             }
+            Spacer(minLength: 0)
+            if model.manualPillCollapsed {
+                ManualMini(view: view, unit: unit, onExpand: model.tapManualPill)
+            }
+            ZStack {
+                if recenterShown { recenterButton }
+            }
+            .frame(width: Tokens.Size.roundButton, height: Tokens.Size.roundButton)
         }
+        .frame(height: 0, alignment: .bottom)
+        .offset(y: -(Tokens.Space.s3 + (view.phase == .meres ? 84 : 0)))
+        .animation(.easeOut(duration: Tokens.Motion.base), value: view.phase == .meres)
     }
 
     /// Az alsó rész (a webes `.hud`): gombsor, lépés-sáv, mérőkártya, érkezés-sáv – 12 pt-es térközzel.
     @ViewBuilder private var hud: some View {
-        // a gombsor jobbra zárva; Beállítások és stopper mérés / közeledés / kézi eredmény közben nincs (a webes feltétel)
+        // AW23: az alsó akciósor jobbra zárva, a Bejelentés a jobb szélen, üres fenntartott hely nélkül; soha nem mozdul. Beállítások és stopper mérés /
+        // közeledés / kézi eredmény közben nincs (a webes feltétel)
         HStack(alignment: .bottom, spacing: Tokens.Space.s3) {
             Spacer()
-            if model.manualPillCollapsed {
-                ManualMini(view: view, unit: unit, onExpand: model.tapManualPill)
-            }
             if !driving && view.phase != .keziEredmeny {
                 Button { settingsOpen = true } label: { Icon(name: .sliders, size: 26) }
                     .buttonStyle(RoundButtonStyle())
@@ -346,20 +367,8 @@ struct DriveView: View {
             Button { model.reportSheetOpen = true } label: { Icon(name: .report, size: 28).foregroundStyle(Tokens.Colors.near) }
                 .buttonStyle(RoundButtonStyle())
                 .accessibilityLabel(t(.mapReport))
-            // AW21: a webes `.recenter-slot`: a gombnak saját, mindig fenntartott helye van a sor jobb szélén; rejtve a hely üres, a többi gomb nem mozdul.
-            // AW22: a ManualMini helye soha nem mozdul – amíg látszik, nincs fenntartott hely, a gomb a jobb oldali gombsor fölé kerül (`.recenter-above`)
-            if !model.manualPillCollapsed {
-                ZStack {
-                    if recenterShown { recenterButton }
-                }
-                .frame(width: Tokens.Size.roundButton, height: Tokens.Size.roundButton)
-            }
         }
-        .overlay(alignment: .bottomTrailing) {
-            if model.manualPillCollapsed && recenterShown {
-                recenterButton.offset(y: -(Tokens.Size.roundButton + Tokens.Space.s3))
-            }
-        }
+        .overlay(alignment: .top) { upperRow }
         if let nav = model.nav, stripShown { strip(nav) }
         if !hudCardHidden {
             MeterCard(
@@ -381,6 +390,18 @@ struct DriveView: View {
                 view: nav, unit: unit, currentKmh: view.currentKmh, showSpeed: navBottomShowsSpeed(view.phase),
                 over: navSpeedOver(view.currentKmh, nav.limitKmh), onEnd: model.endNav
             )
+            // AW23: a sávra koppintva felnyílik az útvonal-panel; a sáv fölött lebeg, nem mozdít semmit
+            .contentShape(Rectangle())
+            .onTapGesture { model.navPanelOpen.toggle() }
+            .overlay(alignment: .top) {
+                if model.navPanelOpen {
+                    NavRoutePanel(model: model, view: nav, unit: unit)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .frame(height: 0, alignment: .bottom)
+                        .offset(y: -Tokens.Space.s3)
+                        .transition(.opacity)
+                }
+            }
             .onGeometryChange(for: CGFloat.self) { $0.frame(in: .global).minY } action: { if hudCardHidden { model.navCardTop = $0 } }
         }
     }

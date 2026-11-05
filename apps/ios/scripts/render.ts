@@ -1,4 +1,4 @@
-import { HEAT, SPEED_TONE, ALT_OFFER, CAMERA_ALERT, CAMERA_CARD, TRAFFIC, TRIP, DICTIONARIES, MEGSZOLITAS_MAX, REPORT_PROMPT, type ActiveReport, LANGUAGE_FLAGS, LANGUAGE_NAMES, LANGUAGES, MANUAL_PILL, NAV_CONFIG, NAV_COUNTRIES, NAV_FOLLOW, PLANNED_MATCH_M, PLANNED_OFF_FIXES, ROUTE_MATCH_M, type FixedCamera, type PlannedCheck, type TKey } from '@atlagsebesseg/app-logic';
+import { HEAT, SPEED_TONE, ALT_OFFER, CAMERA_ALERT, CAMERA_CARD, TRAFFIC, TRIP, DICTIONARIES, MEGSZOLITAS_MAX, REPORT_PROMPT, type ActiveReport, LANGUAGE_FLAGS, LANGUAGE_NAMES, LANGUAGES, MANUAL_PILL, NAV_CONFIG, NAV_COUNTRIES, PLANNED_MATCH_M, PLANNED_OFF_FIXES, ROUTE_MATCH_M, type FixedCamera, type PlannedCheck, type TKey } from '@atlagsebesseg/app-logic';
 import { Route, type LatLon } from '@atlagsebesseg/core';
 import { testCourse } from '@atlagsebesseg/core/test/helpers/trace';
 import { toSwift } from '@atlagsebesseg/design-tokens';
@@ -76,13 +76,6 @@ function appLogicConstants(): string {
     ...Object.entries(CAMERA_ALERT).map(([k, v]) => `    static let ${k} = ${num(v)}`),
     '}',
     '/// Követő kamera navigáció közben (AW12): zoom a sebességből (km/h → zoom), irány-követés ideje (ms), a pozíció',
-    '/// helye a képernyőn (0 = fent, 1 = lent) és a távolsága az alsó kártyától (pt).',
-    'nonisolated enum NAV_FOLLOW {',
-    `    static let zoomStops: [(kmh: Double, zoom: Double)] = [${NAV_FOLLOW.zoomStops.map(([s, z]) => `(${num(s)}, ${num(z)})`).join(', ')}]`,
-    `    static let bearingMs = ${num(NAV_FOLLOW.bearingMs)}`,
-    `    static let focusY = ${num(NAV_FOLLOW.focusY)}`,
-    `    static let focusGapPx = ${num(NAV_FOLLOW.focusGapPx)}`,
-    '}',
     '/// A kézi mérés pillje navigáció közben (AW15): `collapseAfterMs` után, vagy ha a következő manőver `maneuverNearM`-en',
     '/// belül van (ajánlat, közeli kamera mellett is), a kártya pillé zsugorodik.',
     'nonisolated enum MANUAL_PILL {',
@@ -98,7 +91,7 @@ function appLogicConstants(): string {
     ...Object.entries(CAMERA_CARD).map(([k, v]) => `    static let ${k} = ${num(v)}`),
     '}',
     '/// AW18: élő forgalom (2 perces friss lekérés), „+N perc dugó” (≥ `delayShowS`, hang csak először),',
-    '/// helyi dugó-érzékelés (`jamWindowMs` ablak a várt tempó `jamSlowFraction`-ja alatt; vége `jamClearM` a `jamNearFraction` fölött),',
+    '/// helyi dugó-érzékelés (`jamWindowMs` ablak a megengedett sebesség `jamSlowFraction`-ja alatt; vége a `jamClearFraction` fölött),',
     '/// a „Dugóba kerültél?” kártya `jamPromptMs`-ig, közösségi dugó-adat `communityMaxAgeMs`-ig, újratervezés-backoff (s).',
     'nonisolated enum TRAFFIC {',
     ...Object.entries(TRAFFIC).map(([k, v]) => (Array.isArray(v) ? `    static let ${k}: [Double] = [${v.map(num).join(', ')}]` : `    static let ${k} = ${num(v as number)}`)),

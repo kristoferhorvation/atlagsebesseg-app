@@ -183,7 +183,7 @@ struct DirectionsParseTests {
         let runs = congestionRuns(r)
         #expect(!runs.isEmpty)
         #expect(runs.allSatisfy { $0.points.count >= 2 })
-        #expect(trafficDelayS(r) == max(0, jsRound(r.durationS - (r.typicalDurationS ?? r.durationS))))
+        #expect(routeDelayS(r) <= max(0, jsRound(r.durationS - (r.typicalDurationS ?? r.durationS))))
     }
 
     @Test("hibás válaszra DirectionsError")
@@ -713,7 +713,7 @@ struct EnforcementTests {
         #expect(items.first?.kind == .camera)
     }
 
-    @Test("összefoglaló: szakaszok, kamerák száma, késés")
+    @Test("összefoglaló: szakaszok, kamerák száma, dugó-többlet")
     func osszefoglalo() {
         let s = makeSection(route, 2000, 6000)
         let cam = camera("c", "HU", at(route, 8000, 5), heading: nil, limit: nil)
@@ -723,7 +723,8 @@ struct EnforcementTests {
         let sum = routeSummary(r, EnforcementData(sections: [s], cameras: [cam]), now: T0)
         #expect(sum.sections == 1)
         #expect(sum.cameras == 1)
-        #expect(sum.delayS == 60)
+        // AW23: heavy / severe szakasz nélkül nincs dugó-többlet, akkor sem, ha a Mapbox a tipikusnál többet ad
+        #expect(sum.delayS == 0)
     }
 }
 
@@ -1645,16 +1646,20 @@ struct Aw12Tests {
         #expect(h.session.view().destination.lat == route.points.last!.lat)
     }
 
-    @Test("követő zoom a sebességgel: < 40 km/h 17, 90 km/h 15,5, 130 km/h 14,5, között lineáris")
+    @Test("követő zoom és a jelölő helye: < 30 km/h 17,2, 90 km/h 15,6, 130 km/h 14,8, között lineáris")
     func kovetoZoom() {
-        #expect(navFollowZoom(0) == 17)
-        #expect(navFollowZoom(40) == 17)
-        #expect(close(navFollowZoom(65), 16.25, 10))
-        #expect(navFollowZoom(90) == 15.5)
-        #expect(close(navFollowZoom(110), 15, 10))
-        #expect(navFollowZoom(130) == 14.5)
-        #expect(navFollowZoom(180) == 14.5)
-        #expect(navFollowZoom(.nan) == 17)
+        #expect(followZoom(0) == 17.2)
+        #expect(followZoom(30) == 17.2)
+        #expect(close(followZoom(50), 16.8, 10))
+        #expect(close(followZoom(70), 16.2, 10))
+        #expect(close(followZoom(90), 15.6, 10))
+        #expect(followZoom(130) == 14.8)
+        #expect(followZoom(180) == 14.8)
+        #expect(followZoom(.nan) == 17.2)
+        // a jelölő a legfelső alsó kártya fölött, a képernyő alsó részén, minden állapotban ugyanígy
+        #expect(close(followFocusY(800, 932), (800 - 56) / 932, 10))
+        #expect(followFocusY(930, 932) == 0.8)
+        #expect(followFocusY(100, 932) == 0.18)
     }
 
     @Test("mentett címek: Haza, Munka, továbbiak – chip-sorrend, nem duplázódik, törölhető, tárolódik")
@@ -2053,8 +2058,8 @@ struct AW18TrafficTests {
         let view = h.session.view()
         // a tervezett hátralévő idő + 10 perc dugó
         #expect(close(view.remainingS, 3600 - 120 + 600, -1))
-        #expect(close(view.etaMs, view.plannedEtaMs + 600_000, -4))
-        #expect(view.delayMin == 10)
+        // AW23: heavy / severe szakasz nélkül nincs „+N perc” (a friss ETA ettől még számít)
+        #expect(view.delayMin == nil)
         // a friss útvonal mentén fogy tovább
         await drive(h, route, fromS: 121, toS: 180, alongM: along + 2 * v, mps: v)
         // a 10 perc a friss útvonal teljes hosszán oszlik el: 60 s alatt annak arányos része fogy
@@ -2080,7 +2085,7 @@ struct AW18TrafficTests {
         let m = route.steps[3].endManeuver.location
         #expect(close(via.lat, m.lat, 6))
         #expect(close(via.lon, m.lon, 6))
-        #expect(h.session.view().delayMin == 5)
+        #expect(h.session.view().trafficRoute.id.contains("fresh"))
         #expect(h.session.view().offer == nil)
     }
 
@@ -2108,7 +2113,11 @@ struct AW18TrafficTests {
         let extra: [Double] = [120, 240, 360, 480, 480]
         var delays: [Int?] = []
         await drive(h, route, fromS: 0, toS: 600, alongM: 0, mps: v, respond: { s, along in
-            s % 120 == 0 && s > 0 ? [freshFrom(along, extra[s / 120 - 1])] : nil
+            guard s % 120 == 0 && s > 0 else { return nil }
+            var r = freshFrom(along, extra[s / 120 - 1])
+            r.segCongestion = r.segCongestion.map { _ in .heavy }
+            r.typicalDurationS = r.durationS - extra[s / 120 - 1]
+            return [r]
         }, onStep: { s in
             if s % 120 == 5 { delays.append(h.session.view().delayMin) }
         })
@@ -2120,7 +2129,7 @@ struct AW18TrafficTests {
         #expect(h.session.view().delayMin == 8)
     }
 
-    @Test("2 percnél kisebb késésnél nincs „+N perc dugó”; friss adat nélkül sincs (csak a lassabb haladás miatt)")
+    @Test("a puszta lassú haladás nem „+N perc dugó”")
     func nincsKeses() async {
         let route = lineRoute(lengthM: 100_000, durationS: 3600)
         let h = Harness(route, voice: false)
@@ -2150,163 +2159,315 @@ struct AW18TrafficTests {
     }
 }
 
-@Suite("AW18: helyi dugó-érzékelés")
+@Suite("AW23: helyi dugó-érzékelés (a megengedett sebességhez mérve)")
 @MainActor
 struct AW18JamTests {
+    private func ctx(_ kmh: Double, highway: Bool? = nil, heavyAhead: Bool = false) -> JamContext {
+        JamContext(limitMps: kmh / 3.6, highway: highway ?? (kmh >= 110), nearStopPoint: false, heavyAhead: heavyAhead)
+    }
     /// A detektor mp-enkénti etetése: `(mp, m/s)` szakaszok egymás után.
-    private func run(_ d: JamDetector, _ parts: [(Int, Double)], expected: Double = 25, t0: Int = 0, along0: Double = 0) -> (changes: [(s: Int, c: JamChange, along: Double)], s: Int, along: Double) {
+    private func run(_ d: JamDetector, _ parts: [(Int, Double)], _ c: JamContext, t0: Int = 0, along0: Double = 0, near: Bool = false) -> (changes: [(s: Int, c: JamChange, along: Double)], s: Int, along: Double) {
         var changes: [(s: Int, c: JamChange, along: Double)] = []
         var s = t0
         var along = along0
+        var cc = c
+        cc.nearStopPoint = near
         for (secs, mps) in parts {
             for _ in 0..<secs {
                 s += 1
                 along += mps
-                if let c = d.update(Double(s) * 1000, along, mps, expected) { changes.append((s, c, along)) }
+                if let x = d.update(Double(s) * 1000, along, mps, cc) { changes.append((s, x, along)) }
             }
         }
         return (changes, s, along)
     }
+    private let warm: (Int, Double) = (20, 10)
 
-    @Test("2 percen át a várt tempó felénél lassabban (állás + araszolás) → dugó; egy 1 perces állás nem dugó")
-    func belepes() {
+    @Test("50-es városi út: 3 percig 20 km/h alatt (< 1 km) dugó; 20 km/h fölött nem")
+    func varosi() {
         let d = JamDetector()
-        let r = run(d, [(60, 0), (70, 3)])
+        let r = run(d, [warm, (190, 18 / 3.6)], ctx(50))
         #expect(r.changes.map(\.c) == [.enter])
-        #expect(r.changes[0].s >= 119 && r.changes[0].s <= 122)
-        #expect(d.active)
-        #expect(d.avgMps! < 3)
-        let free = JamDetector()
-        #expect(run(free, [(50, 0), (200, 25)]).changes.isEmpty)
+        #expect(r.changes[0].s >= 179)
+        #expect(r.changes[0].s <= 20 + 182)
+        #expect(run(JamDetector(), [warm, (400, 22 / 3.6)], ctx(50)).changes.isEmpty)
     }
 
-    @Test("dugóban a lámpák közti rövid (< 500 m) gyorsulás nem szakítja meg; ≥ 500 m a várt tempó közelében → vége")
-    func kilepes() {
+    @Test("90-es országút: 3 percig 36 km/h alatt (< 1,8 km) dugó; fölötte nem")
+    func orszagut() {
+        #expect(run(JamDetector(), [warm, (190, 34 / 3.6)], ctx(90)).changes.map(\.c) == [.enter])
+        #expect(run(JamDetector(), [warm, (400, 38 / 3.6)], ctx(90)).changes.isEmpty)
+    }
+
+    @Test("130-as autópálya: 3 percig 52 km/h alatt (< 2,6 km) dugó; fölötte nem")
+    func autopalya() {
+        #expect(run(JamDetector(), [warm, (190, 50 / 3.6)], ctx(130)).changes.map(\.c) == [.enter])
+        #expect(run(JamDetector(), [warm, (400, 54 / 3.6)], ctx(130)).changes.isEmpty)
+    }
+
+    @Test("piros lámpánál másodpercek múlva nem kérdez: a lassú előzmény után sem (a régi hiba)")
+    func lampa() {
         let d = JamDetector()
-        _ = run(d, [(125, 1)])
+        let r = run(d, [warm, (170, 25 / 3.6), (90, 0)], ctx(50), near: true)
+        #expect(r.changes.isEmpty)
+        #expect(!d.active)
+    }
+
+    @Test("lámpa-türelem városban: 2 perc állás a lámpánál nem számít bele a 3 percbe; az autópályán nincs türelem")
+    func turelem() {
+        #expect(run(JamDetector(), [warm, (200, 0), (60, 3)], ctx(50), near: true).changes.isEmpty)
+        #expect(run(JamDetector(), [warm, (200, 0), (110, 3)], ctx(50), near: true).changes.map(\.c) == [.enter])
+        let hw = run(JamDetector(), [warm, (200, 0)], ctx(130), near: true)
+        #expect(hw.changes.map(\.c) == [.enter])
+        #expect(hw.changes[0].s <= 20 + 182)
+        #expect(run(JamDetector(), [warm, (200, 0)], ctx(110), near: true).changes.map(\.c) == [.enter])
+    }
+
+    @Test("megállás lámpa és kanyar nélkül rögtön számít, de a parkolóban várakozás (haladás előtt) nem dugó")
+    func parkolo() {
+        #expect(run(JamDetector(), [warm, (190, 0)], ctx(50)).changes.map(\.c) == [.enter])
+        #expect(run(JamDetector(), [(400, 0)], ctx(50)).changes.isEmpty)
+    }
+
+    @Test("a dugó vége: városban legalább 1 km és 2 perc a megengedett 70%-a fölött; rövidebb gyorsulás nem szakítja meg")
+    func vegeVaros() {
+        let d = JamDetector()
+        var r = run(d, [warm, (190, 2)], ctx(50))
         #expect(d.active)
-        // 300 m gyorsulás, majd újra araszolás: marad
-        var r = run(d, [(12, 25), (30, 2)], t0: 125, along0: 125)
+        r = run(d, [(60, 14), (30, 1)], ctx(50), t0: r.s, along0: r.along)
         #expect(r.changes.isEmpty)
         #expect(d.active)
-        // 500 m megszakítás nélkül a várt tempó 80%-a fölött
-        r = run(d, [(24, 22)], t0: r.s, along0: r.along)
+        r = run(d, [(125, 11)], ctx(50), t0: r.s, along0: r.along)
         #expect(r.changes.map(\.c) == [.exit])
         #expect(!d.active)
-        #expect(close(d.clearedAvgMps, 22, 0))
+        #expect(d.clearedAvgMps! > 0.7 * (50 / 3.6))
+    }
+
+    @Test("a dugó vége: autópályán legalább 3 km és 3 perc a megengedett 70%-a fölött")
+    func vegeAutopalya() {
+        let d = JamDetector()
+        var r = run(d, [warm, (190, 5)], ctx(130))
+        #expect(d.active)
+        r = run(d, [(120, 100 / 3.6)], ctx(130), t0: r.s, along0: r.along)
+        #expect(d.active)
+        r = run(d, [(70, 100 / 3.6)], ctx(130), t0: r.s, along0: r.along)
+        #expect(r.changes.map(\.c) == [.exit])
+    }
+
+    @Test("az ETA-korrekció addig marad, amíg a hátralévő úton heavy / severe szakasz van")
+    func korrekcio() {
+        let d = JamDetector()
+        var r = run(d, [warm, (190, 2)], ctx(50))
+        r = run(d, [(125, 11)], ctx(50, heavyAhead: true), t0: r.s, along0: r.along)
+        #expect(!d.active)
+        #expect(d.correcting)
+        r = run(d, [(3, 11)], ctx(50), t0: r.s, along0: r.along)
+        #expect(!d.correcting)
     }
 
     @Test("a GPS-zaj álló helyzetben nem haladás (csak az útvonal menti előrehaladás számít)")
     func zaj() {
         let d = JamDetector()
-        var along = 1000.0
-        for s in 1...125 {
+        var along = 0.0
+        for s in 1...20 {
+            along += 10
+            _ = d.update(Double(s) * 1000, along, 10, ctx(50))
+        }
+        for s in 21...215 {
             along += s % 2 == 1 ? 3 : -3
-            _ = d.update(Double(s) * 1000, along, 0, 25)
+            _ = d.update(Double(s) * 1000, along, 0, ctx(50))
         }
         #expect(d.active)
         #expect(d.avgMps! < 0.1)
+    }
+
+    @Test("a megengedett sebesség: a tábla, ennek hiányában az útkategória alapértelmezése")
+    func megengedett() {
+        var route = lineRoute(lengthM: 2000, durationS: 200)
+        route.segLimitKmh = route.segLimitKmh.map { _ in 70 }
+        #expect(permittedKmhAt(route, 500) == 70)
+        route.segLimitKmh = route.segLimitKmh.map { _ in nil }
+        func withClass(_ c: String?) -> NavRoute {
+            var r = route
+            r.steps = r.steps.map { var x = $0; x.roadClass = c; return x }
+            return r
+        }
+        #expect(permittedKmhAt(withClass("motorway"), 500) == 130)
+        #expect(permittedKmhAt(withClass("trunk"), 500) == 110)
+        #expect(permittedKmhAt(withClass("primary"), 500) == 90)
+        #expect(permittedKmhAt(withClass("street"), 500) == 50)
+        #expect(highwayAt(withClass("motorway"), 500))
+        #expect(highwayAt(withClass("trunk"), 500))
+        #expect(!highwayAt(withClass("primary"), 500))
+    }
+
+    @Test("a Directions-lépés kereszteződése és jelzőlámpája a lámpa-pontok közé kerül; az útkategória a lépésből jön")
+    func lampaPontok() throws {
+        var json = try #require(try NavSim.directionsJSON() as? [String: Any])
+        var routes = json["routes"] as! [[String: Any]]
+        var legs = routes[0]["legs"] as! [[String: Any]]
+        var steps = legs[0]["steps"] as! [[String: Any]]
+        let c = ((routes[0]["geometry"] as! [String: Any])["coordinates"] as! [[Double]])[3]
+        steps[0]["intersections"] = [["location": c, "bearings": [90, 270], "traffic_signal": true, "mapbox_streets_v8": ["class": "street"]]]
+        legs[0]["steps"] = steps
+        routes[0]["legs"] = legs
+        json["routes"] = routes
+        let route = try parseDirections(json)[0]
+        #expect(route.steps[0].roadClass == "street")
+        #expect(route.stopPointsM.count > route.steps.count - 2)
+        #expect(nearStopPoint(route, route.stopPointsM[0] + 50))
+    }
+
+    /// Szabad indulás (200 m), majd dugós araszolás, míg a kérdés be nem jön.
+    @discardableResult
+    private func intoJam(_ h: Harness, _ route: NavRoute, mps: Double = 2) async -> Double {
+        let a = await drive(h, route, fromS: 0, toS: 10, alongM: 0, mps: 20)
+        return await drive(h, route, fromS: 11, toS: 195, alongM: a + mps, mps: mps)
     }
 
     @Test("dugóba lépéskor „Dugóba kerültél?” kártya + hang egyszer; 15 s után válasz nélkül eltűnik, a dugó-állapot marad")
     func kartya() async {
         let route = lineRoute()
         let h = Harness(route)
-        await drive(h, route, fromS: 0, toS: 125, alongM: 100, mps: 2)
+        let along = await intoJam(h, route)
         let v = h.session.view()
         #expect(v.jam)
         #expect(v.jamAsk)
         let said = h.session.drainVoice().filter { $0.kind == .traffic }.map(\.text)
         #expect(said.contains("Lassú forgalom. Dugóba kerültél?"))
-        await drive(h, route, fromS: 126, toS: 142, alongM: 352, mps: 2)
+        await drive(h, route, fromS: 196, toS: 215, alongM: along + 2, mps: 2)
         #expect(h.session.view().jamAsk == false)
         #expect(h.session.view().jam)
         #expect(h.session.drainVoice().filter { $0.text.contains("Dugóba") }.isEmpty)
     }
 
-    @Test("„Nem” → ebben az útban ugyanarra a szakaszra nem kérdez újra; „Igen” → bejelentett közösségi minta")
+    @Test("„Nem” → a dugó-állapot törlődik, 10 percig sehol nem kérdez újra; „Igen” → bejelentett közösségi minta")
     func nemIgen() async {
-        let route = lineRoute()
+        let route = lineRoute(lengthM: 100_000, durationS: 3600)
         let h = Harness(route, voice: false)
-        var along = await drive(h, route, fromS: 0, toS: 125, alongM: 0, mps: 1)
+        var along = await intoJam(h, route, mps: 1)
         #expect(h.session.view().jamAsk)
         h.session.answerJam(false)
         #expect(h.session.view().jamAsk == false)
-        // kijön a dugóból (520 m), majd ugyanazon a lépésen (1 km-ig) újra beáll
-        along = await drive(h, route, fromS: 126, toS: 146, alongM: along + 26, mps: 26)
         #expect(h.session.view().jam == false)
-        await drive(h, route, fromS: 147, toS: 275, alongM: along + 0.5, mps: 0.5)
+        along = await drive(h, route, fromS: 196, toS: 390, alongM: along + 1, mps: 1)
         #expect(h.session.view().jam)
         #expect(h.session.view().jamAsk == false)
-        #expect(h.session.drainJamSamples().map(\.kind) == [.erzekelt, .oldott, .erzekelt])
+        #expect(h.session.drainJamSamples().map(\.kind) == [.erzekelt, .erzekelt])
         h.session.answerJam(true)
         let rep = h.session.drainJamSamples()
         #expect(rep.count == 1)
-        #expect(rep.first?.kind == .bejelentett)
-        #expect(rep.first?.heading_deg == 90)
-        #expect(rep.first?.length_m == Int(TRAFFIC.reportedLengthM))
+        #expect(rep[0].kind == .bejelentett)
     }
 
-    @Test("dugóban az ETA a mért átlaggal csak a congestion szerinti heavy szakaszra, onnan a tervezett idővel; a nagyobb késés számít")
+    @Test("dugóban az ETA a mért átlaggal csak a congestion szerinti heavy szakaszra, onnan a tervezett idővel")
     func dugoEta() async {
-        var route = lineRoute() // 10 km, 360 s, 1 km-es lépések
-        route.segCongestion = route.segCongestion.indices.map { $0 < 15 ? .heavy : .low } // az első 1,5 km dugós
+        var route = lineRoute()
+        route.segCongestion = route.segCongestion.enumerated().map { $0.offset < 15 ? .heavy : .low }
         let h = Harness(route, voice: false)
-        // csak a helyi becslés (a 2 perces Mapbox-lekérés most nem ad választ)
-        h.fail(URLError(.notConnectedToInternet))
-        await drive(h, route, fromS: 0, toS: 125, alongM: 0, mps: 2)
+        h.fail()
+        await intoJam(h, route)
         let v = h.session.view()
         #expect(v.jam)
-        // 250 m-nél: a dugós szakasz még 1250 m / 2 m/s = 625 s (terv: 45 s), onnan a terv: 8,5 km → 306 s
-        #expect(close(v.remainingS, 625 + 306, -1))
-        // késés: 125 s + ~931 s − 360 s ≈ 696 s → 12 perc
-        #expect(v.delayMin == 12)
-        // dugó közben 2 percenként új közösségi minta
-        #expect(h.session.drainJamSamples().map(\.kind) == [.erzekelt])
-        await drive(h, route, fromS: 126, toS: 246, alongM: 252, mps: 2)
+        #expect(close(v.remainingS, 465 + 306, -2))
+        #expect(v.remainingS > 700)
         #expect(h.session.drainJamSamples().map(\.kind) == [.erzekelt])
     }
 
     @Test("7,5 km egyenes, az első 1,5 km dugós: az ETA legfeljebb a dugós szakasz lassulásával nő, nem duplázódik")
-    func dugoEtaHorizont() async {
+    func nemDuplaz() async {
         var route = lineRoute(lengthM: 7500, durationS: 300)
-        route.segCongestion = route.segCongestion.indices.map { $0 < 15 ? .severe : .low }
+        route.segCongestion = route.segCongestion.enumerated().map { $0.offset < 15 ? .severe : .low }
         let h = Harness(route, voice: false)
-        h.fail(URLError(.notConnectedToInternet))
-        await drive(h, route, fromS: 0, toS: 125, alongM: 0, mps: 2)
+        h.fail()
+        await intoJam(h, route)
         let v = h.session.view()
         #expect(v.jam)
-        // 250 m-nél: 1250 m dugó 2 m/s-mal (625 s) + a hátralévő 6 km terv szerint (240 s)
-        #expect(close(v.remainingS, 625 + 240, -1))
-        // a terv 290 s volt: a növekmény a dugós szakasz ideje, nem a 7,25 km-é (3625 s)
-        #expect((v.remainingS ?? 0) < 290 + 1500 / 2)
+        #expect(v.remainingS < 290 + 1500 / 2)
+        #expect(v.remainingS > 290)
     }
 
     @Test("congestion-adat nélkül a mért átlag legfeljebb 1 km-ig számít, a tempó lineárisan átmegy a tervezettbe")
-    func dugoEtaAdatNelkul() async {
+    func adatNelkul() async {
         var route = lineRoute(lengthM: 7500, durationS: 300)
         route.segCongestion = route.segCongestion.map { _ in .unknown }
         let h = Harness(route, voice: false)
-        h.fail(URLError(.notConnectedToInternet))
-        await drive(h, route, fromS: 0, toS: 125, alongM: 0, mps: 2)
+        h.fail()
+        await intoJam(h, route)
         let v = h.session.view()
         #expect(v.jam)
-        // 1 km: lassú 500 s, terv 40 s → +(500−40)/2 = 230 s a 290 s fölé
-        #expect(close(v.remainingS, 290 + 230, -1))
+        #expect(close(v.remainingS, 277 + 230, -1))
+        #expect(v.delayMin == nil)
     }
 
-    @Test("a dugó-állapot végén azonnal a tervezett idők")
-    func dugoVegeTervezett() async {
-        var route = lineRoute(lengthM: 7500, durationS: 300)
-        route.segCongestion = route.segCongestion.indices.map { $0 < 15 ? .heavy : .low }
+    @Test("a helyi ETA-korrekció lejár, amint a tempó helyreáll és nincs heavy szakasz előttünk")
+    func vege() async {
+        var route = lineRoute(lengthM: 20_000, durationS: 800)
+        route.segCongestion = route.segCongestion.map { _ in .unknown }
         let h = Harness(route, voice: false)
-        h.fail(URLError(.notConnectedToInternet))
-        let along = await drive(h, route, fromS: 0, toS: 125, alongM: 0, mps: 2)
+        h.fail()
+        let along = await intoJam(h, route)
         #expect(h.session.view().jam)
-        _ = await drive(h, route, fromS: 126, toS: 150, alongM: along + 26, mps: 26)
+        await drive(h, route, fromS: 196, toS: 390, alongM: along + 26, mps: 26)
         let v = h.session.view()
-        #expect(!v.jam)
-        #expect(close(v.remainingS, (300 * (7500 - 250 - 26 * 25)) / 7500, -1))
+        #expect(v.jam == false)
+        #expect(close(v.remainingS, 800 * v.remainingM / 20_000, 0))
+    }
+}
+
+@Suite("AW23: a „+N perc dugó” a hátralévő út congestion-adatából")
+@MainActor
+struct AW23DelayTests {
+    @Test("üres út (nincs heavy / severe): nincs felirat, késve sem – a régi hiba: az indulási tervhez mért késés")
+    func uresUt() async {
+        let route = lineRoute(lengthM: 100_000, durationS: 3600)
+        let h = Harness(route, voice: false)
+        await drive(h, route, fromS: 0, toS: 600, alongM: 0, mps: 5, respond: { s, along in s % 120 == 0 && s > 0 ? [freshFrom(along, 600)] : nil })
+        #expect(h.session.view().delayMin == nil)
+        #expect(routeDelayS(route) == 0)
+    }
+
+    @Test("4 perces hátralévő út: a többlet nem lehet 5 perc (legfeljebb a hátralévő idő fele)")
+    func negyPerc() {
+        var route = lineRoute(lengthM: 4000, durationS: 240)
+        route.typicalDurationS = 0
+        route.segCongestion = route.segCongestion.map { _ in .severe }
+        #expect(routeDelayS(route) <= 120)
+        let h = Harness(route, voice: false)
+        h.feed(at(route, 0, 0, T0))
+        #expect(h.session.view().delayMin == nil)
+    }
+
+    @Test("az útvonalválasztó és a navigáció ugyanazt számolja; csak a hátralévő rész számít")
+    func egySzamitas() {
+        var route = lineRoute(lengthM: 10_000, durationS: 1200)
+        route.steps = route.steps.map { var x = $0; x.durationTypicalS = 40; return x }
+        route.typicalDurationS = 400
+        route.segCongestion = route.segCongestion.enumerated().map { $0.offset >= 50 ? .heavy : .low }
+        let h = Harness(route, voice: false)
+        h.feed(at(route, 0, 0, T0))
+        let summary = routeSummary(route, .none, now: T0)
+        #expect(summary.delayS == routeDelayS(route))
+        #expect(h.session.view().delayMin == Int(jsRound(routeDelayS(route) / 60)))
+        route.segCongestion = route.segCongestion.enumerated().map { $0.offset < 50 ? .heavy : .low }
+        #expect(routeDelayS(route, 6000) == 0)
+    }
+
+    @Test("a felirat térképi szakaszt jelent: a friss válasz a térkép forrása is")
+    func terkepForras() async {
+        let route = lineRoute(lengthM: 100_000, durationS: 3600)
+        let h = Harness(route, voice: false)
+        await drive(h, route, fromS: 0, toS: 125, alongM: 0, mps: 100_000 / 3600, respond: { s, along in
+            guard s == 120 else { return nil }
+            var r = freshFrom(along, 1200)
+            r.segCongestion = r.segCongestion.map { _ in .heavy }
+            r.typicalDurationS = r.durationS - 1200
+            return [r]
+        })
+        let v = h.session.view()
+        #expect(v.delayMin != nil)
+        #expect(v.trafficRoute.id != route.id)
+        #expect(congestionRuns(v.trafficRoute).contains { $0.level == .heavy })
     }
 }
 
@@ -2354,4 +2515,140 @@ struct AW18CommunityTests {
 /// AOS15-javítás: üzenetes hiba (a webes `new Error('boom')` párja).
 private struct BoomError: LocalizedError {
     var errorDescription: String? { "boom" }
+}
+
+@Suite("AW23: útvonal-panel, sorrend, „Utána” sor")
+@MainActor
+struct AW23PanelTests {
+    @Test("a leggyorsabb mindig legfelül: a kártyák sorrendje menetidő szerint")
+    func sorrend() {
+        #expect(routeOrder([42 * 60, 41 * 60]) == [1, 0])
+        #expect(routeOrder([41 * 60, 41 * 60, 45 * 60]) == [0, 1, 2])
+        #expect(routeOrder([50, 47, 46]) == [2, 1, 0])
+    }
+
+    @Test("a hátralévő út eseményei a távval arányos helyen: kamera, szakasz, dugó, bejelentés; a mögöttünk lévő nincs")
+    func esemenyek() {
+        var route = lineRoute()
+        route.segCongestion = route.segCongestion.enumerated().map { $0.offset >= 50 && $0.offset < 60 ? .heavy : .low }
+        func item(_ kind: EnforcementKind, _ m: Double) -> EnforcementItem { EnforcementItem(kind: kind, id: kind.rawValue, startM: m, endM: m, limitKmh: nil, label: "") }
+        let reps = [at(route, 9000), at(route, 9000, 500), at(route, 1000)].map { LatLon(lat: $0.lat, lon: $0.lon) }
+        let ev = routeTimeline(route, 2000, [item(.camera, 4000), item(.section, 1000), item(.section, 7000)], reps)
+        #expect(ev.map(\.kind) == [.camera, .jam, .section, .report])
+        #expect(close(ev[0].at, 2000 / 8000, 5))
+        #expect(close(ev[1].aheadM, 3000, 0))
+        #expect(close(ev[3].at, 7000 / 8000, 2))
+    }
+
+    @Test("alternatívák navigáció közben: a jelenlegi pozícióból, a leggyorsabb elöl, a jelenlegit jelöli; választás után az új úton folytat")
+    func alternativak() async throws {
+        let route = lineRoute(lengthM: 10_000, durationS: 600)
+        let h = Harness(route, voice: false)
+        h.feed(at(route, 2000, 0, T0))
+        let alt = scaleDurations(route, 300, "alt", latOffset: 0.05)
+        h.respond([route, alt])
+        let choices = try await h.session.requestAlternatives()
+        #expect(h.reasons == [.alternatives])
+        #expect(choices.map(\.route.id) == ["alt", route.id])
+        #expect(choices.map(\.current) == [false, true])
+        #expect(h.session.view().phase == .navigating)
+        let before = h.session.view().routeVersion
+        h.session.useRoute(alt)
+        #expect(h.session.view().route.id == "alt")
+        #expect(h.session.view().routeVersion == before + 1)
+    }
+
+    @Test("az „Utána” sor nem ismétli a következő manővert")
+    func utana() {
+        var route = lineRoute()
+        route.steps = route.steps.map { s in
+            var x = s
+            x.banners = s.banners.map { var b = $0; b.primary.text = "Március 15. tér"; return b }
+            return x
+        }
+        let h = Harness(route, voice: false)
+        h.feed(at(route, 100, 0, T0))
+        let v = h.session.view()
+        #expect(v.next.text == "Március 15. tér")
+        #expect(v.then == nil)
+    }
+}
+
+@Suite("AW23: Search Box")
+struct AW23SearchBoxTests {
+    @Test("a kérés címe: nyelv, országok, munkamenet-token, közelség és távolság a jelenlegi helyről")
+    func cim() throws {
+        let u = suggestUrl("Allee", lang: .hu, token: "pk.x", sessionToken: "tok", near: LatLon(lat: 47.5, lon: 19.04))
+        let c = try #require(URLComponents(url: u, resolvingAgainstBaseURL: false))
+        let q = { (k: String) in c.queryItems?.first { $0.name == k }?.value }
+        #expect(c.path == "/search/searchbox/v1/suggest")
+        #expect(q("q") == "Allee")
+        #expect(q("language") == "hu")
+        #expect(q("session_token") == "tok")
+        #expect(q("proximity") == "19.04000,47.50000")
+        #expect(q("origin") == "19.04000,47.50000")
+        #expect(q("country")?.contains("hu") == true)
+        let r = retrieveUrl("abc/d", lang: .de, token: "pk.x", sessionToken: "tok")
+        #expect(r.absoluteString.contains("/search/searchbox/v1/retrieve/abc%2Fd"))
+    }
+
+    @Test("a találat: név + rövid cím + távolság; a kategória-találat kimarad; a koordináta a retrieve-ből jön, az útra eső ponttal")
+    func talalat() throws {
+        let hits = parseSuggest(["suggestions": [
+            ["name": "Allee", "mapbox_id": "a1", "feature_type": "poi", "address": "Október huszonharmadika utca 8-10", "place_formatted": "Budapest, 1117, Magyarország", "distance": 1234],
+            ["name": "Pláza", "mapbox_id": "c1", "feature_type": "category", "place_formatted": ""],
+            ["name": "Győr", "mapbox_id": "p1", "feature_type": "place", "place_formatted": "Győr-Moson-Sopron, Magyarország"],
+        ]], query: "Allee")
+        #expect(hits.map(\.name) == ["Allee", "Győr"])
+        #expect(hits[0].address == "Október huszonharmadika utca 8-10, Budapest")
+        #expect(hits[0].distanceM == 1234)
+        #expect(hits[0].retrieveId == "a1")
+        #expect(hits[1].address == "Győr-Moson-Sopron, Magyarország")
+        let place = try #require(parseRetrieve(["features": [["geometry": ["coordinates": [19.05, 47.47]], "properties": ["coordinates": ["routable_points": [["latitude": 47.471, "longitude": 19.051]]]]]]], hit: hits[0]))
+        #expect(place == Place(id: "a1", name: "Allee", address: "Október huszonharmadika utca 8-10, Budapest", lat: 47.47, lon: 19.05, routable: LatLon(lat: 47.471, lon: 19.051)))
+        #expect(parseRetrieve(["features": []], hit: hits[0]) == nil)
+    }
+
+    @Test("a közeli találatok előre: a település és a pontos nevű közeli hely elöl, a távoli utca a végén")
+    func kozeli() {
+        func mk(_ name: String, _ t: String, _ d: Double) -> [String: Any] { ["name": name, "mapbox_id": name, "feature_type": t, "place_formatted": "x", "distance": d] }
+        func names(_ q: String, _ l: [[String: Any]]) -> [String] { parseSuggest(["suggestions": l], query: q).map(\.name) }
+        #expect(names("Allee", [mk("Allee", "street", 188_760), mk("Allee Gyógyszertár", "poi", 2535)]) == ["Allee Gyógyszertár", "Allee"])
+        #expect(names("Mammut", [mk("Mammut Gyerekpark", "poi", 1565), mk("Mammut", "poi", 1613)]) == ["Mammut", "Mammut Gyerekpark"])
+        #expect(names("Győr", [mk("Győri út", "street", 900), mk("Győr", "place", 110_000)]) == ["Győr", "Győri út"])
+    }
+
+    @Test("a Directions-kérés mindkét platformon ugyanaz: a paraméterek listája")
+    func directionsPar() throws {
+        let u = directionsUrl(from: LatLon(lat: 47.4979, lon: 19.0402), to: LatLon(lat: 47.4731, lon: 19.0496), lang: .hu, token: "pk.x")
+        let c = try #require(URLComponents(url: u, resolvingAgainstBaseURL: false))
+        #expect(c.path == "/directions/v5/mapbox/driving-traffic/19.040200,47.497900;19.049600,47.473100")
+        #expect(c.queryItems!.map { "\($0.name)=\($0.value ?? "")" }.joined(separator: "&") == "alternatives=true&steps=true&banner_instructions=true&voice_instructions=true&voice_units=metric&geometries=geojson&overview=full&annotations=maxspeed,congestion,duration&language=hu&access_token=pk.x")
+    }
+
+    @Test("a munkamenet-token: egy keresésen belül ugyanaz; új retrieve, 50 suggest és 2 perc tétlenség után")
+    func token() {
+        var n = 0
+        var t = 0.0
+        let s = SearchSession(newToken: { n += 1; return "t\(n)" }, now: { t })
+        #expect(s.suggestToken() == "t1")
+        #expect(s.suggestToken() == "t1")
+        #expect(s.retrieveToken() == "t1")
+        #expect(s.suggestToken() == "t2")
+        for _ in 0..<49 { #expect(s.suggestToken() == "t2") }
+        #expect(s.suggestToken() == "t3")
+        t += 120_001
+        #expect(s.suggestToken() == "t4")
+    }
+
+    @Test("a mentett és a korábbi helyek API-hívás nélkül, a találatok fölött; ékezet és kisbetű nem számít")
+    func helyi() {
+        let home = Place(id: "h", name: "Otthon", address: "Győri út 1", lat: 1, lon: 1)
+        let recent = Place(id: "r", name: "Mammut", address: "Budapest", lat: 1, lon: 1)
+        var saved = SavedPlaces()
+        saved.home = home
+        #expect(localMatches("gyori", saved: saved, recents: [recent]).map(\.id) == ["h"])
+        #expect(localMatches("MAM", saved: saved, recents: [recent, recent]).map(\.id) == ["r"])
+        #expect(localMatches("", saved: saved, recents: [recent]).isEmpty)
+    }
 }

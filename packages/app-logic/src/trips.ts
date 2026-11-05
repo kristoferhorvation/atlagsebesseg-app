@@ -7,13 +7,15 @@ import { formatTripDuration } from './navigation/maneuver';
 
 /**
  * AW19: krúzing mód és az utak naplója (platformfüggetlen; a Swift-pár: `Logic/Trips.swift`, azonos nevű tesztekkel).
- * Cél nélkül is: ha a kocsi mozog (≥ `startKmh` legalább `startHoldS`-ig), egy „út” felvétele indul; `stopIdleS` állás
- * vagy a GPS leállása zárja. A navigáció és a szakaszmérés ugyanabba az útba kerül (cél neve, újratervezések, mérések).
+ * Krúzing: cél nélkül, ha a kocsi tartósan halad (≥ `startKmh` legalább `startHoldS`-ig, `maxAccuracyM`-nél jobb pontossággal), egy
+ * „út” felvétele indul; alatta szünetel (séta, parkolóház, gyenge GPS nem számít); `stopIdleS` állás vagy a GPS leállása zárja.
+ * AW23: a navigált út KÜLÖN út: a navigáció kezdete lezárja a krúzingot, a vége a navigált utat, utána a krúzing 0-ról indul.
+ * A szakaszmérés a futó útba kerül.
  * Minden adat helyben marad (web: IndexedDB, iOS: SQLite) – szerverre semmi.
  */
 export const TRIP = {
   /** Az út indulása: legalább ekkora sebesség (km/h)… */
-  startKmh: 10,
+  startKmh: 15,
   /** …ennyi ideig megszakítás nélkül (s); az út kezdete e szakasz eleje. */
   startHoldS: 30,
   /** Ez alatt (km/h) áll a kocsi: állásidő, nincs távolság. */
@@ -21,7 +23,9 @@ export const TRIP = {
   /** Ennyi folyamatos állás (s) zárja az utat; a vége az utolsó mozgó minta (a záró állás nem része). */
   stopIdleS: 300,
   /** Ennél rosszabb pontosságú (m) minta nem ad távolságot / max sebességet. */
-  maxAccuracyM: 50,
+  maxAccuracyM: 30,
+  /** Krúzingban ennél hosszabb pontos minta nélküli rés (s) után nincs áthidaló távolság (parkolóház, alagút). */
+  cruiseGapS: 30,
   /** Két minta közti ennél nagyobb látszólagos sebesség (km/h) ugrás: nincs távolság, az útvonal új darabot kezd. */
   maxJumpKmh: 250,
   /** Kanyar: legalább ekkora irányváltás (°)… */
@@ -265,6 +269,8 @@ const round6 = (x: number) => Math.round(x * 1e6) / 1e6;
 
 interface Running {
   id: string;
+  /** Navigált út (a navigáció alatt indult); különben krúzing. */
+  nav: boolean;
   startedAt: number;
   lastT: number;
   lastMovingT: number;
@@ -339,9 +345,11 @@ export class TripRecorder {
       this.add(this.run, fix, kmh);
       return;
     }
-    if (kmh !== null && kmh >= TRIP.startKmh && accurate(fix)) {
+    // a navigált út az első mozgással indul; a krúzing csak tartós haladásnál
+    const nav = this.destination !== null;
+    if (kmh !== null && kmh >= (nav ? TRIP.idleKmh : TRIP.startKmh) && accurate(fix)) {
       this.pending.push({ fix, kmh });
-      if (fix.timestamp - this.pending[0]!.fix.timestamp >= TRIP.startHoldS * 1000) this.begin();
+      if (nav || fix.timestamp - this.pending[0]!.fix.timestamp >= TRIP.startHoldS * 1000) this.begin();
     } else this.pending = [];
   }
 
@@ -393,16 +401,20 @@ export class TripRecorder {
     this.run?.measurements.push(m);
   }
 
-  /** A navigáció célja (`null`: nincs navigáció); a futó útra és a következőre is. */
+  /** A navigáció célja (`null`: nincs navigáció). AW23: a navigáció kezdete és vége lezárja a futó utat (a navigált út külön út). */
   setDestination(name: string | null): void {
+    const changed = (this.destination === null) !== (name === null);
     this.destination = name;
-    if (this.run && name) this.run.destination = name;
+    if (changed) {
+      this.pending = [];
+      if (this.run) this.finish();
+    } else if (this.run && name) this.run.destination = name;
   }
 
-  /** A futó út (az állapotsorhoz); `null`, ha nincs. */
-  view(now: number): CruiseView | null {
+  /** A futó krúzing (az állapotsorhoz); navigáció alatt és út nélkül `null`. AW23: az idő a számolt (mozgó) idő, a szünet nem számít. */
+  view(_now: number): CruiseView | null {
     const r = this.run;
-    return r ? { tripId: r.id, startedAt: r.startedAt, distanceM: r.distanceM, elapsedS: Math.max(0, now - r.startedAt) / 1000 } : null;
+    return r && !r.nav ? { tripId: r.id, startedAt: r.startedAt, distanceM: r.distanceM, elapsedS: r.movingS } : null;
   }
 
   /** Az új minták (a tárolónak). */
@@ -450,6 +462,7 @@ export class TripRecorder {
     const first = this.pending[0]!.fix;
     const r: Running = {
       id: this.newId(first.timestamp),
+      nav: this.destination !== null,
       startedAt: first.timestamp,
       lastT: first.timestamp,
       lastMovingT: first.timestamp,
@@ -480,8 +493,9 @@ export class TripRecorder {
     const t = fix.timestamp;
     const dt = Math.max(0, t - r.lastT) / 1000;
     r.lastT = t;
-    const moving = kmh !== null && kmh >= TRIP.idleKmh;
     const good = accurate(fix);
+    // AW23: krúzingban csak a tartós, pontos haladás számít; alatta szünetel
+    const moving = kmh !== null && (r.nav ? kmh >= TRIP.idleKmh : kmh >= TRIP.startKmh && good);
     const sample: TripSample = {
       tripId: r.id,
       t,
@@ -499,7 +513,8 @@ export class TripRecorder {
       r.idlePendingS += dt;
       r.idleBuf.push(sample);
       if (good) r.prev = { lat: fix.lat, lon: fix.lon, t };
-      if (t - r.lastMovingT >= TRIP.stopIdleS * 1000) this.finish();
+      // a navigált út a navigáció végéig tart
+      if (!r.nav && t - r.lastMovingT >= TRIP.stopIdleS * 1000) this.finish();
       return;
     }
     // mozgás: az addigi állás az út része volt
@@ -515,7 +530,7 @@ export class TripRecorder {
     if (r.prev) {
       const d = haversineM(r.prev, fix);
       const dts = (t - r.prev.t) / 1000;
-      if (dts > 0 && (d / dts) * 3.6 <= TRIP.maxJumpKmh) r.distanceM += d;
+      if (dts > 0 && (d / dts) * 3.6 <= TRIP.maxJumpKmh && (r.nav || dts <= TRIP.cruiseGapS)) r.distanceM += d;
       else if (seg.length > 0) r.segments.push([]);
     }
     r.segments.at(-1)!.push({ lat: fix.lat, lon: fix.lon });

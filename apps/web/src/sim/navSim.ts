@@ -129,13 +129,15 @@ function splice(main: NavRoute, head: readonly LatLon[], joinAlongM: number, id:
     durationS: headLen / (SIM_DETOUR_SPEED_KMH / 3.6),
     startM: 0,
     name: '',
+    durationTypicalS: null,
+    roadClass: null,
     endManeuver: { type: 'merge', modifier: 'slight right', instruction: 'Hajtson vissza az M1-re', location: points[Math.min(headSegs, points.length - 1)]! },
     banners: [{ distanceAlongM: headLen, primary: { text: first?.name || 'M1', type: 'merge', modifier: 'slight right' }, secondary: null, sub: null }],
     voice: [{ distanceAlongM: headLen, text: 'Hajtson vissza az M1-re' }],
   };
   const steps = [headStep, ...rest].map((s, i) => ({ ...s, index: i }));
   const durationS = segDurationS.reduce((a, b) => a + b, 0);
-  return { id, points, distanceM: cum, durationS, typicalDurationS: durationS, steps, segStartM, segLimitKmh, segCongestion, segDurationS };
+  return { id, points, distanceM: cum, durationS, typicalDurationS: durationS, steps, segStartM, segLimitKmh, segCongestion, segDurationS, stopPointsM: [] };
 }
 
 // ---------------------------------------------------------------------------

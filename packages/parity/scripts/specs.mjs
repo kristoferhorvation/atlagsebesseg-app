@@ -19,7 +19,9 @@ const COMPONENTS = [
   { name: 'actions', file: 'apps/web/src/App.tsx', path: NAVSIM, parts: { root: '.actions', button: '.actions .round-btn', report: '.actions .round-btn.report' } },
   { name: 'recenter', file: 'apps/web/src/App.tsx', path: NAVSIM, recenter: true, parts: { root: '.actions', slot: '.actions .recenter-slot', button: '.actions .recenter', report: '.actions .round-btn.report', card: '.hud > .card' } },
   // AW22: ManualMini mellett a gomb a gombsor fölött, a mini az AW21 előtti helyén
-  { name: 'recenter-mini', file: 'apps/web/src/App.tsx', path: '/?navsim&stage=nav&panel=0&speed=1&at=60', mini: true, parts: { root: '.actions', mini: '.manual-mini', button: '.actions .recenter-above', report: '.actions .round-btn.report' } },
+  { name: 'recenter-mini', file: 'apps/web/src/App.tsx', path: '/?navsim&stage=nav&panel=0&speed=1&at=60', mini: true, parts: { root: '.actions', mini: '.manual-mini', button: '.actions .recenter', report: '.actions .round-btn.report' } },
+  // AW23: az útvonal-panel
+  { name: 'nav-panel', file: 'apps/web/src/ui/NavPanel.tsx', path: AT(-295), click: '.nav-bottom-eta', parts: { root: '.nav-panel', line: '.timeline-line', button: '.nav-panel-alt' } },
   { name: 'nav-bottom', file: 'apps/web/src/ui/NavHud.tsx', path: AT(-295), parts: { root: '.nav-bottom', speed: '.nav-bottom-speed', eta: '.nav-bottom-eta b', remaining: '.nav-bottom-eta span', end: '.nav-end' } },
   { name: 'nav-top', file: 'apps/web/src/ui/NavHud.tsx', path: AT(-295), parts: { root: '.nav-top', dist: '.nav-dist', road: '.nav-road', then: '.nav-then' } },
   { name: 'meter-full', file: 'apps/web/src/ui/Hud.tsx', path: `${AT(150)}&alt=aftergate`, parts: { root: '.hud > .card', chip: '.hud > .card .chip', hero: '.hud > .card .hero', unit: '.hud > .card .hero-unit', sign: '.hud > .card .sign', num: '.hud > .card .meter-num', progress: '.hud > .card .progress', progressLabel: '.hud > .card .progress-label' } },
@@ -67,7 +69,7 @@ try {
       await page.mouse.down();
       await page.mouse.move(box.width / 2 + 60, box.height * 0.5 + 50, { steps: 6 });
       await page.mouse.up();
-      await page.waitForSelector('.actions .recenter-above', { timeout: 15_000 });
+      await page.waitForSelector('.actions .recenter', { timeout: 15_000 });
     }
     if (c.click) {
       await page.locator(c.click).first().waitFor({ timeout: 60_000 });

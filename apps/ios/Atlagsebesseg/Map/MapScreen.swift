@@ -8,25 +8,18 @@ import UIKit
 /// szabály szerint, saját pozíció; a kamera követi a pozíciót. A11: tervezett / navigációs útvonal (a kiválasztott
 /// kékkel, dugó-színezéssel; az alternatíva tömör szürkéskéken, casinggel, „+/− perc” címkével, koppintásra vált – A8d),
 /// a cél jelölője; navigációban 3D-s döntésű követés. AOS12: az AW11-es útvonal-tokenek (nappal / éjjel), a címke a
-/// leágazás után 300 m-rel (`altLabels`), az AW12-es követő kamera (a pozíció a képernyő 72 %-án, sebességfüggő zoom,
-/// irány 400 ms alatt), érkezéskor a vonal eltűnik.
+/// leágazás után 300 m-rel (`altLabels`), érkezéskor a vonal eltűnik. AW23: a jelölő és a követő kamera a `FollowDriver`-ből, képkockánként.
 struct MapScreen: View {
     let model: AppModel
     @Binding var follow: Bool
 
     // AOS17: az első helyzetig a webes kiinduló nézet; az első fixre ugrik (nem repül), utána a közeli követés
     @State private var viewport: Viewport = .camera(center: CLLocationCoordinate2D(latitude: 46.5, longitude: 12.5), zoom: 5.2)
-    @State private var firstFixShown = false
+    @State private var driver = FollowDriver(simClock: UserDefaults.standard.string(forKey: "sim") != nil || UserDefaults.standard.bool(forKey: "cruise"))
     @State private var mapEpoch = 0
     @State private var sectionsFC = FeatureCollection(features: [])
     @State private var cameraPoints: [FixedCamera] = []
     @State private var zonesFC = FeatureCollection(features: [])
-    /// A térkép aktuális elforgatása (fok) – a saját pozíció nyila ehhez képest mutat a haladási irányba.
-    @State private var mapBearing: Double = 0
-    /// A térkép dőlése: a pozíció-jelölő a térképpel együtt fekszik (a webes `pitchAlignment: 'map'`).
-    @State private var mapPitch: Double = 0
-    /// Az utolsó ismert haladási irány (irány nélküli fixnél a jelölő ezt tartja, mint a weben).
-    @State private var lastHeading: Double = 0
     @State private var routesFC = FeatureCollection(features: [])
     /// AW20: a hőtérkép pontjai (súllyal); navigáció / mérés közben üres.
     @State private var heatFC = FeatureCollection(features: [])
@@ -37,13 +30,6 @@ struct MapScreen: View {
     @State private var altLabels: [AltLabel] = []
     /// AW17: a címkék képernyő-pontban számolt helye (a buborék közepe), útvonal-azonosító szerint.
     @State private var altLabelAt: [String: CLLocationCoordinate2D] = [:]
-    /// A követő kamera simított értékei (AW12): zoom és a pozíció helye a képernyőn (0 = fent, 1 = lent).
-    @State private var zoomShown: Double?
-    @State private var focusShown: Double = NAV_FOLLOW.focusY
-    @State private var focusAt: Double = 0
-    @State private var lastCenter: CLLocationCoordinate2D?
-    @State private var lastFixAt: Double = 0
-    @State private var cameraSeq = 0
     @State private var lastGestureAt: Double = 0
     @State private var gesturing = false
 
@@ -64,7 +50,15 @@ struct MapScreen: View {
     private var altCasing: Color { dayLike ? Tokens.Colors.routeAltCasingDay : Tokens.Colors.routeAltCasingNight }
 
     var body: some View {
-        MapReader { proxy in map(proxy) }
+        MapReader { proxy in
+            map(proxy)
+                .overlay { PuckOverlay(driver: driver).ignoresSafeArea() }
+                .onAppear {
+                    driver.map = { proxy.map }
+                    driver.start()
+                }
+                .onDisappear { driver.stop() }
+        }
             // AW22: nyelvváltáskor azonnal az új nyelvű feliratok: a csempék a régi nyelven vannak a gyorsítótárban, a térkép újraépül
             .id(mapEpoch)
             .onChange(of: L10n.lang) { refreshMapLanguage() }
@@ -289,13 +283,6 @@ struct MapScreen: View {
                 .allowOverlap(true)
             }
 
-            if let fix = view.lastFix {
-                MapViewAnnotation(coordinate: CLLocationCoordinate2D(latitude: fix.lat, longitude: fix.lon)) {
-                    // a webes `.puck`: a kúp a haladási irányba mutat, a képernyőhöz képest: irány − térkép-elforgatás (kézzel forgatva is)
-                    Puck(rotation: (fix.heading ?? lastHeading) - mapBearing, pitch: mapPitch)
-                }
-                .allowOverlap(true)
-            }
         }
         .mapStyle(.standard(
             theme: mapThemeIsMonochrome(model.settings.terkep) ? .monochrome : .default,
@@ -331,9 +318,6 @@ struct MapScreen: View {
             return false
         }
         .onCameraChanged { e in
-            let b = e.cameraState.bearing
-            if abs(angleDiffDeg(b, mapBearing)) >= 0.5 { mapBearing = b }
-            if abs(e.cameraState.pitch - mapPitch) >= 0.5 { mapPitch = e.cameraState.pitch }
             // AOS14: a látható téglalap a bejelentések lekéréséhez (csempe-rácsra kerekítve – kis mozdulat nem kér újra)
             if let m = proxy.map {
                 let r = m.coordinateBounds(for: CameraOptions(cameraState: e.cameraState))
@@ -355,7 +339,9 @@ struct MapScreen: View {
             rebuildZones()
             applyDebugCamera()
             // a nézet a már futó mérés közben is megjelenhet (szimulátor-ugrás, visszatérés): azonnal a pozícióra áll
-            if follow, let fix = view.lastFix { recenter(fix, animated: false) }
+            if let fix = view.lastFix { driver.onFix(fix) }
+            driver.cardTop = cardTop
+            syncFollow()
         }
         .onChange(of: model.dataVersion) { rebuild() }
         .onChange(of: heatKey) { rebuildHeat() }
@@ -367,13 +353,11 @@ struct MapScreen: View {
         .onChange(of: model.plan == nil) { _, closed in
             guard closed, !UserDefaults.standard.bool(forKey: "parityNoFollow") else { return }
             follow = true
-            if let fix = view.lastFix { recenter(fix, animated: true) }
+            syncFollow()
         }
         .onChange(of: view.lastFix) { _, fix in
             guard let fix else { return }
-            if let h = fix.heading { lastHeading = h }
-            // AOS18: az útvonalválasztó alatt a bounds-fit marad, a követés nem írja felül (a webes `fitRoute` megállítja a követést)
-            if follow, model.plan == nil { recenter(fix, animated: true) }
+            driver.onFix(fix)
             if Int(fix.timestamp / 1000) % 10 == 0 { rebuildCameras(around: fix) }
         }
         // AOS16: mérés közben 5 s tétlenség után magától visszaáll (`followReducer`, a webes `useFollow`; valós órával)
@@ -386,13 +370,11 @@ struct MapScreen: View {
                 if !UserDefaults.standard.bool(forKey: "parityNoFollow"), followReducer(s, .tick(at: Date().timeIntervalSince1970 * 1000, measuring: true)).following { follow = true }
             }
         }
-        .onChange(of: follow) { _, on in
-            if on, model.plan == nil, let fix = view.lastFix { recenter(fix, animated: true) }
-        }
+        .onChange(of: follow) { syncFollow() }
+        // AOS18: az útvonalválasztó alatt a bounds-fit marad, a követés nem írja felül (a webes `fitRoute` megállítja a követést)
+        .onChange(of: model.plan == nil) { syncFollow() }
         // a kártya méretváltásakor a pozíció helye is követi (időalapú simítással)
-        .onChange(of: model.navCardTop) {
-            if follow, model.nav != nil, let fix = view.lastFix { recenter(fix, animated: true) }
-        }
+        .onChange(of: cardTop) { driver.cardTop = cardTop }
     }
 
     /// Útvonal-vonalak (AW11, pt): a kiválasztott 7 + 2 × 2 kontúr, az alternatíva 5 + 2 × 1,5 kontúr (mint a weben).
@@ -400,69 +382,14 @@ struct MapScreen: View {
     private static let routeCasingW = 2.0
     private static let routeAltW = 5.0
     private static let routeAltCasingW = 1.5
-    /// A pozíció képernyő-helyének (focusY) simítási időállandója (ms; a webes `FOCUS_TAU_MS`).
-    private static let focusTauMs = 150.0
+    /// A legfelső alsó kártya teteje: a mért kártya, ennek hiányában a HUD teteje.
+    private var cardTop: Double { Double(model.navCardTop > 0 ? model.navCardTop : model.hudTop) }
 
-    private func recenter(_ fix: GpsFix, animated wanted: Bool) {
-        let animated = wanted && firstFixShown
-        firstFixShown = true
-        let navigating = model.nav != nil
-        let center = CLLocationCoordinate2D(latitude: fix.lat, longitude: fix.lon)
-        let h = UIScreen.main.bounds.height
-        guard navigating else {
-            zoomShown = nil
-            // AOS17: a webes követő kamera – közeli, a sebességgel távolodó zoom, 60°-os dőlés, a pozíció az alsó kártya felső
-            // szélének 60%-án (a webes `setFocusY`)
-            let bearing = fix.heading ?? mapBearing
-            let focus = model.hudTop > 0 ? min(0.5, max(0.18, model.hudTop * 0.6 / h)) : idleFocusDefault
-            let (top, bottom) = (max(0, 2 * focus * h - h), max(0, h - 2 * focus * h))
-            let zoom = idleFollowZoom((fix.speed ?? 0) * 3.6)
-            move(center, animated: animated, split: false) { Viewport.camera(center: $0, zoom: zoom, bearing: bearing, pitch: idleFollowPitch).padding(.top, top).padding(.bottom, bottom) }
-            return
-        }
-        // AW12: zoom a sebességből (a GPS-sebesség zaját simítva), a pozíció a képernyő 72 %-án – de legalább 56 pt-tel
-        // az alsó kártya fölött –, az út előre látszik; a dőlés marad
-        let kmh = (fix.speed ?? 0) * 3.6
-        let zoom = zoomShown.map { $0 + (navFollowZoom(kmh) - $0) * 0.35 } ?? navFollowZoom(kmh)
-        zoomShown = zoom
-        let wanted = model.navCardTop > 0 ? max(0.18, min(NAV_FOLLOW.focusY, (model.navCardTop - NAV_FOLLOW.focusGapPx) / h)) : NAV_FOLLOW.focusY
-        // időalapú simítás (a frissítések ütemétől független)
-        let now = Date().timeIntervalSince1970 * 1000
-        let dt = focusAt > 0 ? min(1000, now - focusAt) : 1000
-        focusAt = now
-        focusShown += (wanted - focusShown) * (1 - exp(-dt / Self.focusTauMs))
-        let bearing = fix.heading ?? mapBearing
-        let (top, bottom) = (max(0, 2 * focusShown * h - h), max(0, h - 2 * focusShown * h))
-        move(center, animated: animated, split: true) { Viewport.camera(center: $0, zoom: zoom, bearing: bearing, pitch: idleFollowPitch).padding(.top, top).padding(.bottom, bottom) }
-    }
-
-    /// A kamera a célra: navigációban (`split`) az irány `NAV_FOLLOW.bearingMs` alatt áll be, a pozíció a fixek közti
-    /// idő alatt egyenletesen halad (két lépésben: a 400 ms-os fordulás alatt a táv egy része, utána a maradék).
-    private func move(_ center: CLLocationCoordinate2D, animated: Bool, split: Bool, camera: @escaping (CLLocationCoordinate2D) -> Viewport) {
-        let target = camera(center)
-        cameraSeq += 1
-        let seq = cameraSeq
-        let now = Date().timeIntervalSince1970
-        let interval = min(1.2, max(0.2, now - lastFixAt))
-        lastFixAt = now
-        let from = lastCenter
-        lastCenter = center
-        guard animated else {
-            viewport = target
-            return
-        }
-        let turn = NAV_FOLLOW.bearingMs / 1000
-        guard split, interval > turn, let from else {
-            withViewportAnimation(.easeOut(duration: split ? min(turn, interval) : Tokens.Motion.data)) { viewport = target }
-            return
-        }
-        let k = turn / interval
-        let mid = CLLocationCoordinate2D(latitude: from.latitude + (center.latitude - from.latitude) * k, longitude: from.longitude + (center.longitude - from.longitude) * k)
-        withViewportAnimation(.easeOut(duration: turn)) { viewport = camera(mid) }
-        DispatchQueue.main.asyncAfter(deadline: .now() + turn) {
-            guard seq == cameraSeq, follow else { return }
-            withViewportAnimation(.linear(duration: interval - turn)) { viewport = target }
-        }
+    /// A követő kamera ki / be; bekapcsoláskor a viewport elenged minden folyó átmenetet (a kamerát a `FollowDriver` viszi).
+    private func syncFollow() {
+        let on = follow && model.plan == nil
+        if on && !driver.following { viewport = .idle }
+        driver.setFollowing(on)
     }
 
     // MARK: útvonalak (A11)
@@ -547,7 +474,11 @@ struct MapScreen: View {
 
     /// Mikor kell újrarajzolni: más útvonalak, más kiválasztás, új navigációs útvonal, megjött az összefoglaló.
     private var routeKey: String {
-        if let n = model.nav { return "nav:\(n.routeVersion):\(n.route.id):\(n.phase.rawValue)" }
+        if let n = model.nav {
+            var alts = ""
+            if case .ok(let choices) = model.panelAlts { alts = choices.map(\.route.id).joined(separator: ",") }
+            return "nav:\(n.routeVersion):\(n.trafficRoute.id):\(n.phase.rawValue):\(alts)"
+        }
         if let p = model.plan, p.status == .ready { return "plan:\(p.routes.map(\.id).joined(separator: ",")):\(p.selected):\(model.summaries.map { Int($0.durationS) })" }
         return ""
     }
@@ -563,7 +494,10 @@ struct MapScreen: View {
         }
         if let n = model.nav {
             // érkezéskor az útvonal maradéka eltűnik (a jelölő a házon marad)
-            routesFC = FeatureCollection(features: n.phase == .arrived ? [] : features(n.route, selected: true))
+            // AW23: a panelen nyitott alternatívák is a térképen (a kiválasztott alatt)
+            var alts: [NavRoute] = []
+            if case .ok(let choices) = model.panelAlts { alts = choices.filter { !$0.current }.map(\.route) }
+            routesFC = FeatureCollection(features: n.phase == .arrived ? [] : alts.flatMap { features($0, selected: false) } + features(n.trafficRoute, selected: true))
             altLabels = []
             return
         }

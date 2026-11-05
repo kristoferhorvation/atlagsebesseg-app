@@ -81,7 +81,7 @@ function JamAskRow({ ask }: { ask: JamAskProps }) {
     <div className="nav-camera report-alert-row jam-ask-row" data-phase="ask" role="alert">
       <div className="report-alert-head">
         <Icon name="dugo" size={40} />
-        <b>{t('report.type.dugo')}</b>
+        {/* AW23: csak a kérdés (a „Dugó” cím ugyanazt mondta) */}
         <span className="report-alert-q">{t('nav.jam.question')}</span>
       </div>
       <div className="btn-row">
@@ -253,6 +253,7 @@ export function NavBottom({
   showSpeed,
   over,
   onEnd,
+  onTap,
 }: {
   view: NavView;
   unit: SpeedUnit;
@@ -260,10 +261,12 @@ export function NavBottom({
   showSpeed: boolean;
   over: boolean;
   onEnd: () => void;
+  /** AW23: a sávra koppintva felnyílik az útvonal-panel. */
+  onTap?: () => void;
 }) {
   return (
-    <section className="card glass compact nav-bottom" data-delay={view.delayMin !== null} data-speed={showSpeed} aria-label={t('nav.aria')}>
-      {/* AW18: a friss ETA legalább 3 perccel az indulási terv után – az érkezési idő fölött, az ETA oszlopától (390 px-en a
+    <section className="card glass compact nav-bottom" data-delay={view.delayMin !== null} data-speed={showSpeed} aria-label={t('nav.aria')} onClick={onTap}>
+      {/* AW23: a hátralévő út dugó-többlete legalább 3 perc – az érkezési idő fölött, az ETA oszlopától (390 px-en a
           sebesség és a Befejezés mellett az ETA oszlopába nem fér, ezért a sáv ilyenkor kétsoros) */}
       {view.delayMin !== null && <span className="nav-delay num">{trafficDelayLabel(view.delayMin)}</span>}
       {showSpeed && (
@@ -280,7 +283,13 @@ export function NavBottom({
           {formatTripDuration(view.remainingS)} · {dist(view.remainingM, unit)}
         </span>
       </div>
-      <button className="btn danger nav-end" onClick={onEnd}>
+      <button
+        className="btn danger nav-end"
+        onClick={(e) => {
+          e.stopPropagation();
+          onEnd();
+        }}
+      >
         {t('nav.end')}
       </button>
     </section>

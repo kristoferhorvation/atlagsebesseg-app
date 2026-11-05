@@ -1,5 +1,5 @@
-import { trafficDelayS } from './directions';
 import { adjustedDurations, cumulative, routeEnforcement, type EnforcementData } from './enforcement';
+import { routeDelayS } from './traffic';
 import type { NavRoute } from './types';
 
 /** Az útvonalválasztó kártya adatai egy útvonalra. */
@@ -11,7 +11,7 @@ export interface RouteSummary {
   cameras: number;
   /** Ebből az ellenőrzött forrásból valók. */
   camerasVerified: number;
-  /** Dugó miatti késés (s) a tipikus időhöz képest. */
+  /** Dugó-többlet (s): ugyanaz a számítás, mint a navigációban (`routeDelayS`). */
   delayS: number;
 }
 
@@ -23,6 +23,6 @@ export function routeSummary(route: NavRoute, data: EnforcementData, now: number
     sections: items.filter((i) => i.kind === 'section').length,
     cameras: items.filter((i) => i.kind === 'camera').length,
     camerasVerified: items.filter((i) => i.kind === 'camera' && i.verified).length,
-    delayS: trafficDelayS(route),
+    delayS: routeDelayS(route),
   };
 }

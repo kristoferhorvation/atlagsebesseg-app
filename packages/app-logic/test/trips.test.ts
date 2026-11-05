@@ -1,4 +1,5 @@
 import type { GpsFix } from '@atlagsebesseg/core';
+import { TRIP } from '../src/trips';
 import { describe, expect, it } from 'vitest';
 import { setLanguage } from '../src/i18n';
 import {
@@ -172,7 +173,8 @@ describe('TripRecorder (minták és távolság)', () => {
     const [trip] = saved(record([...good, ...bad]).ended);
     expect(trip!.maxKmh).toBe(72);
     expect(trip!.distanceM).toBe(Math.round(59 * 20));
-    expect(trip!.samples).toBe(70);
+    // AW23: krúzingban a pontatlan minta szünet, a záró szünet nem kerül a naplóba
+    expect(trip!.samples).toBe(60);
   });
 
   it('1 Hz: a sűrűbb fixekből csak egy minta kerül a tárolóba', () => {
@@ -250,7 +252,7 @@ describe('TripRecorder (navigáció és mérés)', () => {
     expect(trip!.measurements[0]!.tooFast).toBe(true);
   });
 
-  it('a navigáció előtt indult út a később adott célt kapja', () => {
+  it('a navigáció előtti krúzing lezárul: a navigált út külön út, a célt az kapja', () => {
     const rec = new TripRecorder({ newId: ids() });
     const fixes = northDrive([[72, 100]]);
     fixes.forEach((f, i) => {
@@ -258,7 +260,57 @@ describe('TripRecorder (navigáció és mérés)', () => {
       if (i === 60) rec.setDestination('Győr');
     });
     rec.stop();
-    expect(saved(rec.drainEnded())[0]!.destination).toBe('Győr');
+    const trips = saved(rec.drainEnded());
+    expect(trips.map((t) => t.destination)).toEqual([null, 'Győr']);
+  });
+});
+
+describe('AW23: a krúzing szabályai', () => {
+  it('navigáció alatt nincs krúzing; a navigáció vége után 0-ról indul', () => {
+    const rec = new TripRecorder({ newId: ids() });
+    rec.setDestination('Győr');
+    const nav = northDrive([[72, 120]]);
+    for (const f of nav) rec.onFix(f);
+    expect(rec.view(nav.at(-1)!.timestamp)).toBeNull();
+    rec.setDestination(null);
+    expect(rec.view(nav.at(-1)!.timestamp)).toBeNull();
+    expect(saved(rec.drainEnded()).map((t) => t.destination)).toEqual(['Győr']);
+    const after = northDrive([[72, 10]], { t0: nav.at(-1)!.timestamp + 1000, lat: nav.at(-1)!.lat + 20 / M_PER_DEG });
+    for (const f of after) rec.onFix(f);
+    // még nincs 30 s tartós haladás
+    expect(rec.view(after.at(-1)!.timestamp)).toBeNull();
+    const more = northDrive([[72, 30]], { t0: after.at(-1)!.timestamp + 1000, lat: after.at(-1)!.lat + 20 / M_PER_DEG });
+    for (const f of more) rec.onFix(f);
+    const v = rec.view(more.at(-1)!.timestamp)!;
+    expect(v.distanceM).toBeLessThan(40 * 20 + 1);
+    expect(v.elapsedS).toBeLessThan(41);
+  });
+
+  it('4 km/h-s séta 10 percig: 0 km, nincs krúzing', () => {
+    const fixes = northDrive([[4, 600]]);
+    const { rec, ended } = record(fixes, false);
+    expect(rec.view(fixes.at(-1)!.timestamp)).toBeNull();
+    expect(ended).toEqual([]);
+  });
+
+  it('±72 m-es pontosság: nem számol, nem is indul', () => {
+    const fixes = northDrive([[60, 300]], { accuracy: 72 });
+    const { rec, ended } = record(fixes, false);
+    expect(rec.view(fixes.at(-1)!.timestamp)).toBeNull();
+    expect(ended).toEqual([]);
+  });
+
+  it('krúzing közben 15 km/h alatt és gyenge pontosságnál szünetel; a küszöbök 15 km/h, 30 s, 30 m', () => {
+    expect([TRIP.startKmh, TRIP.startHoldS, TRIP.maxAccuracyM]).toEqual([15, 30, 30]);
+    const drive = northDrive([[72, 60]]);
+    const slow = northDrive([[10, 120]], { t0: drive.at(-1)!.timestamp + 1000, lat: drive.at(-1)!.lat });
+    const rec = new TripRecorder({ newId: ids() });
+    for (const f of drive) rec.onFix(f);
+    const before = rec.view(drive.at(-1)!.timestamp)!;
+    for (const f of slow) rec.onFix(f);
+    const during = rec.view(slow.at(-1)!.timestamp)!;
+    expect(during.distanceM).toBe(before.distanceM);
+    expect(during.elapsedS).toBe(before.elapsedS);
   });
 });
 

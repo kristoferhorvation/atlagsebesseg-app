@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import {
   altLabels,
-  NAV_FOLLOW,
+  followFocusY,
   congestionRuns,
   cameraLabel,
   cameraVisibility,
@@ -64,13 +64,14 @@ import {
   manualPillTick,
   navNeedsSpace,
   type ManualPillState,
+  type AltChoice,
 } from '@atlagsebesseg/app-logic';
 import { BUNDLED_CAMERAS } from '@atlagsebesseg/app-logic/bundled-cameras';
 import { BUNDLED_SECTIONS } from '@atlagsebesseg/app-logic/bundled-sections';
 import { haversineM, type GpsFix, type LatLon, type Section } from '@atlagsebesseg/core';
 import { statusColor } from '@atlagsebesseg/design-tokens';
 import { cameraCache, plannedCache, supabase } from './backend';
-import { directionsClient, requestCounter, searchPlaces } from './nav/backend';
+import { directionsClient, requestCounter, resolvePlace, searchPlaces } from './nav/backend';
 import { loadRouteData } from './nav/routeData';
 import { usePlaces, useNavigation } from './nav/useNavigation';
 import { useLanguage } from './i18n';
@@ -98,6 +99,7 @@ import { Hud, ManualMini, SlowDown, toneOf } from './ui/Hud';
 import { Icon, type IconName } from './ui/Icon';
 import { LimitSign } from './ui/LimitSign';
 import { JamAskCard, NavBottom, NavStrip, NavTop, OfferCard, ReportAlertCard, type JamAskProps, type ReportAlertProps } from './ui/NavHud';
+import { NavPanel } from './ui/NavPanel';
 import { RoutePicker } from './ui/RoutePicker';
 import { SearchScreen } from './ui/SearchScreen';
 import { PlannedBand } from './ui/PlannedBand';
@@ -127,6 +129,8 @@ const NAV_SIM_OPTS = (() => {
 })();
 /** AW19: `?cruise` – krúzing mód: a navsim-vezetés cél nélkül, rögtön indul (az utak naplójához). */
 const NAV_SIM_CRUISE = NAV_SIM && new URLSearchParams(location.search).has('cruise');
+/** AW23: `?miniAlways` (csak szimulátorban): a ManualMini navigáció nélkül is – a gombsor mind a négy kombinációjának méréséhez. */
+const MINI_ALWAYS = SIM_MODE && new URLSearchParams(location.search).has('miniAlways');
 /** AW19: `?sheet=trips` – az utak naplója nyitva; `&tripOpen=first` – a legújabb út részlete (képernyőképekhez). */
 const START_SHEET_Q = new URLSearchParams(location.search).get('sheet');
 const START_SHEET = START_SHEET_Q === 'trips' || START_SHEET_Q === 'settings' || START_SHEET_Q === 'heatDetails' ? START_SHEET_Q : null;
@@ -302,9 +306,6 @@ function Drive({ map }: { map: WebMapAdapter }) {
   useEffect(() => nav.session?.setMeasureStatus(view.phase === 'meres' ? view.status : null), [nav.session, view.phase, view.status]);
   useEffect(() => nav.session?.setMeasuring(measuring), [nav.session, measuring]);
 
-  // AW12: navigáció közben a követő kamera a sebességhez kötött zoommal, gyors irány-követéssel
-  const navFollowOn = nav.view !== null && nav.view.phase === 'navigating';
-  useEffect(() => map.setNavFollow(navFollowOn), [map, navFollowOn]);
   // közeli kamera: egy rezgés kameránként (hang nélküli módban is; ahol a böngésző támogatja)
   const nearCamId = nav.view?.cameraNear?.item.id ?? null;
   // AW17: a szimulátorban a jelenlegi útvonal azonosítója a böngészős ellenőrzésnek (auto-váltás)
@@ -321,12 +322,22 @@ function Drive({ map }: { map: WebMapAdapter }) {
     navigator.vibrate?.(200);
   }, [nearCamId]);
 
+  // AW23: az alsó sávra koppintva nyíló útvonal-panel és a benne kért alternatívák; a navigáció végén bezárul
+  const [navPanel, setNavPanel] = useState(false);
+  const [panelAlts, setPanelAlts] = useState<readonly AltChoice[] | null>(null);
+  const navOn = nav.view !== null;
+  useEffect(() => {
+    if (navOn) return;
+    setNavPanel(false);
+    setPanelAlts(null);
+  }, [navOn]);
   // tervezett útvonalak és a cél a térképen; navigáció közben csak a jelenlegi útvonal
   // az alternatívákon címke (A8d): menetidő-különbség a kiválasztotthoz képest; AW17: a saját szakasz legtávolabbi pontjánál
   const routesShown = useMemo<{ routes: MapRoute[]; dest: LatLon | null }>(() => {
     const toMap = (r: NavRoute, selected: boolean, label: MapRoute['label'] = null): MapRoute => ({ id: r.id, selected, runs: congestionRuns(r), label });
     // megérkezve az útvonal maradéka (pl. az útra illesztett végpontig tartó csonk) már nem látszik, csak a cél jelölője
-    if (nav.view) return { routes: nav.view.phase === 'arrived' ? [] : [toMap(nav.view.route, true)], dest: nav.view.destination };
+    // AW23: a panelen nyitott alternatívák is a térképen (a kiválasztott alatt)
+    if (nav.view) return { routes: nav.view.phase === 'arrived' ? [] : [...(panelAlts ?? []).filter((c) => !c.current).map((c) => toMap(c.route, false)), toMap(nav.view.trafficRoute, true)], dest: nav.view.destination };
     if (nav.plan?.status === 'ready') {
       const { routes, selected } = nav.plan;
       const labels = altLabels(routes, nav.summaries.map((x) => x.durationS), selected);
@@ -337,7 +348,7 @@ function Drive({ map }: { map: WebMapAdapter }) {
       return { routes: routes.map((r, i) => toMap(r, i === selected, labelOf(i))), dest: nav.plan.dest };
     }
     return { routes: [], dest: null };
-  }, [nav.view?.route, nav.view?.destination, nav.view?.phase, nav.plan, nav.summaries, lang]);
+  }, [nav.view?.trafficRoute, nav.view?.destination, nav.view?.phase, nav.plan, nav.summaries, lang, panelAlts]);
   useEffect(() => map.showRoutes(routesShown.routes, routesShown.dest), [map, routesShown]);
   const planRoutes = nav.plan?.status === 'ready' ? nav.plan.routes : null;
   useEffect(() => {
@@ -489,7 +500,7 @@ function Drive({ map }: { map: WebMapAdapter }) {
 
   // AW15: navigáció közben a kézi mérés kártyája kis pillé zsugorodik – 5 s után, bökésre, vagy ha a navigációnak hely
   // kell (közeli manőver, ajánlat, közeli kamera); bökésre újra teljes. Pill alatt a navigáció úgy látszik, mint mérés nélkül.
-  const pillActive = nav.view !== null && view.phase === 'kezi';
+  const pillActive = (nav.view !== null || MINI_ALWAYS) && view.phase === 'kezi';
   const navSpace =
     nav.view !== null &&
     navNeedsSpace({ maneuverM: nav.view.phase === 'arrived' ? null : nav.view.next.distanceM, offer: nav.view.offer !== null, cameraNear: nav.view.cameraNear !== null });
@@ -510,7 +521,7 @@ function Drive({ map }: { map: WebMapAdapter }) {
   // alatta és nem helyette. Szakasz nélkül (vagy a zsugorított kézi mérésnél) csak a sáv látszik.
   const navBottomShown = nav.view !== null;
   const meterCompact = navMeterCompact(view.phase, nav.view?.offer != null);
-  const hudCardShown = !(nav.view !== null && (view.phase === 'nincs_szakasz' || pillCollapsed));
+  const hudCardShown = !((nav.view !== null && view.phase === 'nincs_szakasz') || pillCollapsed);
 
   // AOS13: a felső lépés-kártya egysoros sávvá zsugorodik, ha a teljes kártya az alsó csoport alá érne (mérés közben
   // mindig). A rejtett kártyát is mérjük, az alsó csoport tetejét pedig a sáv nélkül – így a kettő nem kapcsolgat
@@ -523,14 +534,15 @@ function Drive({ map }: { map: WebMapAdapter }) {
     if (hud) {
       const float = hud.querySelector<HTMLElement>('.hud-float');
       const strip = hud.querySelector<HTMLElement>('.nav-strip');
+      // AW23: a felső gombsor (és fölötte a lebegő kártyák) a gombsor fölött
+      const upper = hud.querySelector<HTMLElement>('.actions-upper');
       bottomTop =
-        window.innerHeight - hud.offsetHeight - (float && float.offsetHeight > 0 ? float.offsetHeight + 12 : 0) + (strip ? strip.offsetHeight + 12 : 0);
+        window.innerHeight - hud.offsetHeight - (upper ? upper.offsetHeight + 12 : 0) - (float && float.offsetHeight > 0 ? float.offsetHeight + 12 : 0) + (strip ? strip.offsetHeight + 12 : 0);
     }
     setStepStrip(navStepStrip({ measuring: measuringLayout, cardBottom: card ? card.offsetTop + card.offsetHeight : null, bottomTop, gap: 12 }));
   });
 
-  // az autó a HUD feletti szabad terület ~60%-ánál, navigáció közben az alsó harmadban (az út előre látszik) –
-  // a kártya magasságát mérjük, nem becsüljük
+  // a jelölő a képernyő alsó részén, a legfelső alsó kártya fölött (az út előre látszik) – a kártya magasságát mérjük, nem becsüljük
   const hudRef = useRef<HTMLDivElement>(null);
   useLayoutEffect(() => {
     const el = hudRef.current;
@@ -540,16 +552,13 @@ function Drive({ map }: { map: WebMapAdapter }) {
     const update = () => {
       const h = window.innerHeight;
       const top = h - el.offsetHeight;
-      // navigációban a legfelső alsó kártyához mérünk (AW17: a mérőkártya az alsó sáv fölött; nélküle az alsó sáv): a
+      // a legfelső alsó kártyához mérünk (AW17: a mérőkártya az alsó sáv fölött; nélküle az alsó sáv): a
       // tábla és a gombok a szélén vannak, középen a térkép látszik; elrendezés szerint (offsetTop), mert a FLIP-animáció
       // transzformja alatt a látszó hely még a régi
       const card = el.querySelector<HTMLElement>(':scope > .card');
       const cardTop = card ? top + card.offsetTop : top;
-      map.setFocusY(
-        navFollowOn
-          ? Math.max(0.18, Math.min(NAV_FOLLOW.focusY, (cardTop - NAV_FOLLOW.focusGapPx) / h))
-          : Math.min(0.5, Math.max(0.18, (top * 0.6) / h)),
-      );
+      // AW23: minden állapotban ugyanaz (üresjárat, krúzing, navigáció, navigáció vége)
+      map.setFocusY(followFocusY(cardTop, h));
       // kompakt ↔ nagy kártya: a gombsor és a kártya a régi helyéről csúszik az újra (FLIP)
       const delta = prevH === null ? 0 : el.offsetHeight - prevH;
       prevH = el.offsetHeight;
@@ -567,7 +576,7 @@ function Drive({ map }: { map: WebMapAdapter }) {
       ro.disconnect();
       window.removeEventListener('resize', update);
     };
-  }, [map, navFollowOn]);
+  }, [map]);
 
   // lapok, visszajelzés
   const [sheet, setSheet] = useState<'report' | 'settings' | 'geo' | 'trips' | 'heatDetails' | null>(START_SHEET);
@@ -742,6 +751,12 @@ function Drive({ map }: { map: WebMapAdapter }) {
   const navSign = nav.view !== null && (view.phase === 'nincs_szakasz' || view.phase === 'befejezve' || view.phase === 'megszakadt' || view.phase === 'kezi_eredmeny' || pillCollapsed);
   const accuracy = view.lastFix?.accuracy ?? null;
 
+  // AW23: vezetés közben az új kiadás nem tölti újra a lapot (`sw/register.ts`)
+  const appBusy = driving || nav.view !== null || nav.plan !== null;
+  useEffect(() => {
+    document.documentElement.dataset.busy = appBusy ? '1' : '0';
+  }, [appBusy]);
+
   // AW20: hőtérkép – csak az üres nézeten és krúzingban (navigáció, útvonalválasztó és mérés közben nincs)
   const [heatViewport, setHeatViewport] = useState<HeatViewport | null>(null);
   const heatVisible = settings.hoterkep !== 'ki' && nav.view === null && nav.plan === null && !driving && view.phase !== 'kezi_eredmeny';
@@ -854,8 +869,8 @@ function Drive({ map }: { map: WebMapAdapter }) {
       <div className="hud" ref={hudRef} data-hidden={nav.plan !== null || nav.searchFor !== null}>
         {/* AW17-javítás: egysoros mérőkártyánál (mérés + ajánlat) nincs külön sáv – a max érték a kártyában */}
         {view.phase === 'meres' && slowDownBarShown(meterCompact) && <SlowDown view={view} unit={settings.egyseg} />}
-        {/* a HUD fölött lebeg (nem változtat a magasságán → a kamera nem ugrik); mérésnél a Lassíts-sáv fölött */}
-        <div className="hud-float" data-raised={view.phase === 'meres'}>
+        {/* a HUD fölött lebeg (nem változtat a magasságán → a kamera nem ugrik); a felső gombsor fölött, mérésnél a Lassíts-sáv fölött is */}
+        <div className="hud-float" data-raised={view.phase === 'meres'} data-mini={pillCollapsed}>
           {nav.view?.offer && <OfferCard offer={nav.view.offer} onAccept={() => nav.session?.acceptOffer()} onDecline={() => nav.session?.declineOffer()} />}
           {selected && (
             <ReportCard
@@ -880,16 +895,25 @@ function Drive({ map }: { map: WebMapAdapter }) {
               }}
             />
           )}
-          {navSign && nav.view && (
-            <div className="recenter-row">
+        </div>
+        <div className="actions">
+          {/* AW23: a felső sor a gombsor fölött lebeg: a „Vissza a helyemre” pontosan a Bejelentés fölött, tőle balra a ManualMini, a bal szélen a tábla.
+              Mindegyik helye rögzített: ha valamelyik rejtett, a helye üres marad, és semmi nem rendeződik át; az alsó sorban nincs fenntartott hely. */}
+          <div className="actions-upper" data-raised={view.phase === 'meres'}>
+            {navSign && nav.view && nav.view.limitKmh !== null && (
               <div className="sign-slot">
                 <LimitSign kmh={nav.view.limitKmh} unit={settings.egyseg} small />
               </div>
+            )}
+            {pillCollapsed && <ManualMini view={view} unit={settings.egyseg} onExpand={tapPill} />}
+            <div className="recenter-slot">
+              {!follow.following && (
+                <button className="round-btn glass recenter" onClick={follow.recenter} aria-label={t('map.recenter')}>
+                  <Icon name="crosshair" size={28} />
+                </button>
+              )}
             </div>
-          )}
-        </div>
-        <div className="actions">
-          {pillCollapsed && <ManualMini view={view} unit={settings.egyseg} onExpand={tapPill} />}
+          </div>
           {!driving && view.phase !== 'kezi_eredmeny' && (
             <>
               <button className="round-btn glass" onClick={() => setSheet('settings')} aria-label={t('map.settings')}>
@@ -903,23 +927,6 @@ function Drive({ map }: { map: WebMapAdapter }) {
           <button className="round-btn glass report" onClick={() => setSheet('report')} aria-label={t('map.report')}>
             <Icon name="report" size={28} />
           </button>
-          {/* AW21: a „Vissza a helyemre” SAJÁT, mindig fenntartott helye a gombsor jobb szélén; rejtett gombnál a hely üres marad, a többi gomb nem mozdul.
-              AW22: a ManualMini helye soha nem mozdul – amíg látszik, nincs fenntartott hely (a mini az AW21 előtti helyén), a gomb a jobb oldali gombsor fölé kerül */}
-          {pillCollapsed ? (
-            !follow.following && (
-              <button className="round-btn glass recenter recenter-above" onClick={follow.recenter} aria-label={t('map.recenter')}>
-                <Icon name="crosshair" size={28} />
-              </button>
-            )
-          ) : (
-            <div className="recenter-slot">
-              {!follow.following && (
-                <button className="round-btn glass recenter" onClick={follow.recenter} aria-label={t('map.recenter')}>
-                  <Icon name="crosshair" size={28} />
-                </button>
-              )}
-            </div>
-          )}
         </div>
         {nav.view && (measuringLayout || stepStrip) && <NavStrip view={nav.view} unit={settings.egyseg} />}
         {hudCardShown && (
@@ -943,6 +950,22 @@ function Drive({ map }: { map: WebMapAdapter }) {
             showSpeed={navBottomShowsSpeed(view.phase)}
             over={navSpeedOver(view.currentKmh, nav.view.limitKmh)}
             onEnd={nav.end}
+            onTap={() => setNavPanel((o) => !o)}
+          />
+        )}
+        {nav.view && navPanel && (
+          <NavPanel
+            view={nav.view}
+            unit={settings.egyseg}
+            reports={feed.reports}
+            now={now()}
+            request={() => nav.session!.requestAlternatives()}
+            onAlts={setPanelAlts}
+            onChoose={(c) => {
+              nav.session?.useRoute(c.route);
+              setPanelAlts(null);
+              setNavPanel(false);
+            }}
           />
         )}
       </div>
@@ -954,7 +977,7 @@ function Drive({ map }: { map: WebMapAdapter }) {
       )}
 
       {nav.searchFor && (
-        <SearchScreen kind={nav.searchFor} recents={places.recents} saved={places.saved} search={navSearch} onPick={nav.choose} onClose={nav.closeSearch} />
+        <SearchScreen kind={nav.searchFor} recents={places.recents} saved={places.saved} search={navSearch} resolve={resolvePlace} unit={settings.egyseg} onPick={nav.choose} onClose={nav.closeSearch} />
       )}
       {nav.plan && (
         <RoutePicker

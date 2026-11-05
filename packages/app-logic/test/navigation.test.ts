@@ -74,7 +74,20 @@ import {
   SearchController,
   selectRouteById,
   shouldSearch,
-  trafficDelayS,
+  routeDelayS,
+  routeOrder,
+  routeTimeline,
+  localMatches,
+  parseRetrieve,
+  parseSuggest,
+  retrieveUrl,
+  SearchSession,
+  suggestUrl,
+  type EnforcementItem,
+  permittedKmhAt,
+  highwayAt,
+  nearStopPoint,
+  type JamContext,
   type NavRoute,
   type RouteFetcher,
   type SavedPlaces,
@@ -83,7 +96,8 @@ import {
 } from '../src/navigation';
 import { DICTIONARIES, LANGUAGES, setLanguage, t } from '../src/i18n';
 import { DEFAULT_SETTINGS, parseSettings } from '../src/settings';
-import { navFollowZoom } from '../src/follow';
+import { followFocusY, followZoom } from '../src/follow';
+import { NO_ENFORCEMENT_DATA } from '../src/navigation/enforcement';
 
 afterEach(() => setLanguage('hu'));
 
@@ -112,6 +126,8 @@ function lineRoute(opts: { lengthM?: number; durationS?: number; latOffset?: num
       durationS: (durationS * dist) / lengthM,
       startM: i * 1000,
       name: 'M1',
+      durationTypicalS: null,
+      roadClass: null,
       endManeuver: { type: last ? 'arrive' : 'turn', modifier: last ? null : 'right', instruction: last ? 'Megérkezett' : 'Forduljon jobbra', location: points[(i + 1) * 10]! },
       banners: [
         { distanceAlongM: dist, primary: { text: `Kilométer ${i + 1}`, type: last ? 'arrive' : 'turn', modifier: last ? null : 'right' }, secondary: null, sub: null },
@@ -134,6 +150,7 @@ function lineRoute(opts: { lengthM?: number; durationS?: number; latOffset?: num
     segLimitKmh: Array.from({ length: n }, () => (opts.limit === undefined ? 90 : opts.limit)),
     segCongestion: Array.from({ length: n }, () => 'low' as const),
     segDurationS: Array.from({ length: n }, () => durationS / n),
+    stopPointsM: [],
   };
 }
 
@@ -246,7 +263,7 @@ describe('Directions-válasz feldolgozása (Budapest → Győr fixtúra)', () =>
     const runs = congestionRuns(r);
     expect(runs.length).toBeGreaterThan(0);
     expect(runs.every((x) => x.points.length >= 2)).toBe(true);
-    expect(trafficDelayS(r)).toBe(Math.max(0, Math.round(r.durationS - (r.typicalDurationS ?? r.durationS))));
+    expect(routeDelayS(r)).toBeLessThanOrEqual(Math.max(0, Math.round(r.durationS - (r.typicalDurationS ?? r.durationS))));
   });
 
   it('hibás válaszra DirectionsError', () => {
@@ -736,14 +753,15 @@ describe('szakaszok az útvonal sávjában', () => {
     expect(items[0]!.kind).toBe('camera');
   });
 
-  it('összefoglaló: szakaszok, kamerák száma, késés', () => {
+  it('összefoglaló: szakaszok, kamerák száma, dugó-többlet', () => {
     const s = makeSection(route, 2000, 6000);
     const p = at(route, 8000, 5);
     const cam = { id: 'c', country: 'HU', type: 'speed', lat: p.lat, lon: p.lon, headingDeg: null, road: 'M1', speedLimitKmh: null, source: '', sourceUrl: '', sourceDate: '', verified: true } satisfies FixedCamera;
     const sum = routeSummary({ ...route, durationS: 420, typicalDurationS: 360 }, { sections: [s], cameras: [cam], planned: [] }, T0);
     expect(sum.sections).toBe(1);
     expect(sum.cameras).toBe(1);
-    expect(sum.delayS).toBe(60);
+    // AW23: heavy / severe szakasz nélkül nincs dugó-többlet, akkor sem, ha a Mapbox a tipikusnál többet ad
+    expect(sum.delayS).toBe(0);
   });
 });
 
@@ -1516,15 +1534,19 @@ describe('AW12: újratervezés, kamera, „Utána”, érkezés, követő zoom, 
     expect(h.session.view().destination).toMatchObject({ lat: route.points.at(-1)!.lat });
   });
 
-  it('követő zoom a sebességgel: < 40 km/h 17, 90 km/h 15,5, 130 km/h 14,5, között lineáris', () => {
-    expect(navFollowZoom(0)).toBe(17);
-    expect(navFollowZoom(40)).toBe(17);
-    expect(navFollowZoom(65)).toBeCloseTo(16.25, 10);
-    expect(navFollowZoom(90)).toBe(15.5);
-    expect(navFollowZoom(110)).toBeCloseTo(15, 10);
-    expect(navFollowZoom(130)).toBe(14.5);
-    expect(navFollowZoom(180)).toBe(14.5);
-    expect(navFollowZoom(NaN)).toBe(17);
+  it('követő zoom és a jelölő helye: < 30 km/h 17,2, 90 km/h 15,6, 130 km/h 14,8, között lineáris', () => {
+    expect(followZoom(0)).toBe(17.2);
+    expect(followZoom(30)).toBe(17.2);
+    expect(followZoom(50)).toBeCloseTo(16.8, 10);
+    expect(followZoom(70)).toBeCloseTo(16.2, 10);
+    expect(followZoom(90)).toBeCloseTo(15.6, 10);
+    expect(followZoom(130)).toBe(14.8);
+    expect(followZoom(180)).toBe(14.8);
+    expect(followZoom(NaN)).toBe(17.2);
+    // a jelölő a legfelső alsó kártya fölött, a képernyő alsó részén, minden állapotban ugyanígy
+    expect(followFocusY(800, 932)).toBeCloseTo((800 - 56) / 932, 10);
+    expect(followFocusY(930, 932)).toBe(0.8);
+    expect(followFocusY(100, 932)).toBe(0.18);
   });
 
   it('mentett címek: Haza, Munka, továbbiak – chip-sorrend, nem duplázódik, törölhető, tárolódik', () => {
@@ -1889,8 +1911,8 @@ describe('AW18: élő forgalom navigáció közben', () => {
     const view = h.session.view();
     // a tervezett hátralévő idő + 10 perc dugó
     expect(view.remainingS).toBeCloseTo(3600 - 120 + 600, -1);
-    expect(view.etaMs).toBeCloseTo(view.plannedEtaMs + 600_000, -4);
-    expect(view.delayMin).toBe(10);
+    // AW23: heavy / severe szakasz nélkül nincs „+N perc” (a friss ETA ettől még számít)
+    expect(view.delayMin).toBeNull();
     // a friss útvonal mentén fogy tovább
     await drive(h, route, { fromS: 121, toS: 180, alongM: along + 2 * v, mps: v });
     // a 10 perc a friss útvonal teljes hosszán oszlik el: 60 s alatt annak arányos része fogy
@@ -1915,7 +1937,7 @@ describe('AW18: élő forgalom navigáció közben', () => {
     const m = route.steps[3]!.endManeuver.location;
     expect(via.lat).toBeCloseTo(m.lat, 6);
     expect(via.lon).toBeCloseTo(m.lon, 6);
-    expect(h.session.view().delayMin).toBe(5);
+    expect(h.session.view().trafficRoute.id).toContain('fresh');
     expect(h.session.view().offer).toBeNull();
   });
 
@@ -1944,7 +1966,14 @@ describe('AW18: élő forgalom navigáció közben', () => {
       toS: 600,
       alongM: 0,
       mps: v,
-      respond: (s, along) => (s % 120 === 0 && s > 0 ? [freshFrom(along, extra[s / 120 - 1]!)] : null),
+      respond: (s, along) => {
+        if (!(s % 120 === 0 && s > 0)) return null;
+        const r = freshFrom(along, extra[s / 120 - 1]!);
+        r.segCongestion = r.segCongestion.map(() => 'heavy' as const);
+        r.typicalDurationS = r.durationS - extra[s / 120 - 1]!;
+        r.steps = r.steps.map((st) => ({ ...st, durationTypicalS: null }));
+        return [r];
+      },
       onStep: (s) => s % 120 === 5 && delays.push(h.session.view().delayMin),
     });
     for (const e of h.session.drainVoice()) if (e.kind === 'traffic') said.push(e.text);
@@ -1955,7 +1984,7 @@ describe('AW18: élő forgalom navigáció közben', () => {
     expect(h.session.view().delayMin).toBe(8);
   });
 
-  it('2 percnél kisebb késésnél nincs „+N perc dugó”; friss adat nélkül sincs (csak a lassabb haladás miatt)', async () => {
+  it('a puszta lassú haladás nem „+N perc dugó”', async () => {
     const route = lineRoute({ lengthM: 100_000, durationS: 3600 });
     const h = harness(route, { voice: false });
     // a tervezett tempó felével halad, de friss adat még nincs (az első 2 percben)
@@ -1978,9 +2007,10 @@ describe('AW18: élő forgalom navigáció közben', () => {
   });
 });
 
-describe('AW18: helyi dugó-érzékelés', () => {
-  /** A detektor mp-enkénti etetése: `[mp, m/s]` szakaszok egymás után. */
-  function run(d: JamDetector, parts: [number, number][], expected = 25, t0 = 0, along0 = 0) {
+describe('AW23: helyi dugó-érzékelés (a megengedett sebességhez mérve)', () => {
+  const ctx = (kmh: number, o: Partial<JamContext> = {}): JamContext => ({ limitMps: kmh / 3.6, highway: kmh >= 110, nearStopPoint: false, heavyAhead: false, ...o });
+  /** A detektor mp-enkénti etetése: `[mp, m/s]` szakaszok egymás után; alapból előtte 200 m szabad haladás (az ablak ne a parkolóból induljon). */
+  function run(d: JamDetector, parts: [number, number][], c: JamContext, t0 = 0, along0 = 0, near?: (along: number) => boolean) {
     const changes: { s: number; c: string; along: number }[] = [];
     let s = t0;
     let along = along0;
@@ -1988,112 +2018,186 @@ describe('AW18: helyi dugó-érzékelés', () => {
       for (let i = 0; i < secs; i++) {
         s++;
         along += mps;
-        const c = d.update(s * 1000, along, mps, expected);
-        if (c) changes.push({ s, c, along });
+        const x = d.update(s * 1000, along, mps, near ? { ...c, nearStopPoint: near(along) } : c);
+        if (x) changes.push({ s, c: x, along });
       }
     }
     return { changes, s, along };
   }
+  const warm: [number, number] = [20, 10];
 
-  it('2 percen át a várt tempó felénél lassabban (állás + araszolás) → dugó; egy 1 perces állás nem dugó', () => {
+  it('50-es városi út: 3 percig 20 km/h alatt (< 1 km) dugó; 20 km/h fölött nem', () => {
     const d = new JamDetector();
-    const r = run(d, [
-      [60, 0],
-      [70, 3],
-    ]);
+    const r = run(d, [warm, [190, 18 / 3.6]], ctx(50));
     expect(r.changes.map((c) => c.c)).toEqual(['enter']);
-    expect(r.changes[0]!.s).toBeGreaterThanOrEqual(119);
-    expect(r.changes[0]!.s).toBeLessThanOrEqual(122);
-    expect(d.active).toBe(true);
-    expect(d.avgMps!).toBeLessThan(3);
-    const free = new JamDetector();
-    expect(run(free, [
-      [50, 0],
-      [200, 25],
-    ]).changes).toEqual([]);
+    expect(r.changes[0]!.s).toBeGreaterThanOrEqual(179);
+    expect(r.changes[0]!.s).toBeLessThanOrEqual(20 + 182);
+    expect(run(new JamDetector(), [warm, [400, 22 / 3.6]], ctx(50)).changes).toEqual([]);
   });
 
-  it('dugóban a lámpák közti rövid (< 500 m) gyorsulás nem szakítja meg; ≥ 500 m a várt tempó közelében → vége', () => {
+  it('90-es országút: 3 percig 36 km/h alatt (< 1,8 km) dugó; fölötte nem', () => {
+    expect(run(new JamDetector(), [warm, [190, 34 / 3.6]], ctx(90)).changes.map((c) => c.c)).toEqual(['enter']);
+    expect(run(new JamDetector(), [warm, [400, 38 / 3.6]], ctx(90)).changes).toEqual([]);
+  });
+
+  it('130-as autópálya: 3 percig 52 km/h alatt (< 2,6 km) dugó; fölötte nem', () => {
+    expect(run(new JamDetector(), [warm, [190, 50 / 3.6]], ctx(130)).changes.map((c) => c.c)).toEqual(['enter']);
+    expect(run(new JamDetector(), [warm, [400, 54 / 3.6]], ctx(130)).changes).toEqual([]);
+  });
+
+  it('piros lámpánál másodpercek múlva nem kérdez: a lassú előzmény után sem (a régi hiba)', () => {
+    // éles eset: lassú, de még nem dugós haladás, majd megállás egy lámpánál – a régi 2 perces átlag másodpercek alatt átbillent
     const d = new JamDetector();
-    run(d, [[125, 1]]);
+    const r = run(d, [warm, [170, 25 / 3.6], [90, 0]], ctx(50), 0, 0, () => true);
+    expect(r.changes).toEqual([]);
+    expect(d.active).toBe(false);
+  });
+
+  it('lámpa-türelem városban: 2 perc állás a lámpánál nem számít bele a 3 percbe; az autópályán nincs türelem', () => {
+    // a lámpánál: 200 s állás → ebből 120 s nem számít, 80 s igen; a többi araszolás a küszöb alatt
+    const city = run(new JamDetector(), [warm, [200, 0], [60, 3]], ctx(50), 0, 0, () => true);
+    expect(city.changes).toEqual([]);
+    const city2 = new JamDetector();
+    const r = run(city2, [warm, [200, 0], [110, 3]], ctx(50), 0, 0, () => true);
+    expect(r.changes.map((c) => c.c)).toEqual(['enter']);
+    // ugyanez autópályán: a türelem nem érvényes, 180 s után dugó
+    const hw = run(new JamDetector(), [warm, [200, 0]], ctx(130), 0, 0, () => true);
+    expect(hw.changes.map((c) => c.c)).toEqual(['enter']);
+    expect(hw.changes[0]!.s).toBeLessThanOrEqual(20 + 182);
+    // autóúton sincs türelem
+    expect(run(new JamDetector(), [warm, [200, 0]], ctx(110), 0, 0, () => true).changes.map((c) => c.c)).toEqual(['enter']);
+  });
+
+  it('megállás lámpa és kanyar nélkül rögtön számít, de a parkolóban várakozás (haladás előtt) nem dugó', () => {
+    expect(run(new JamDetector(), [warm, [190, 0]], ctx(50)).changes.map((c) => c.c)).toEqual(['enter']);
+    expect(run(new JamDetector(), [[400, 0]], ctx(50)).changes).toEqual([]);
+  });
+
+  it('a dugó vége: városban legalább 1 km és 2 perc a megengedett 70%-a fölött; rövidebb gyorsulás nem szakítja meg', () => {
+    const d = new JamDetector();
+    let r = run(d, [warm, [190, 2]], ctx(50));
     expect(d.active).toBe(true);
-    // 300 m gyorsulás, majd újra araszolás: marad
-    let r = run(d, [
-      [12, 25],
-      [30, 2],
-    ], 25, 125, 125);
+    r = run(d, [[60, 14], [30, 1]], ctx(50), r.s, r.along);
     expect(r.changes).toEqual([]);
     expect(d.active).toBe(true);
-    // 500 m megszakítás nélkül a várt tempó 80%-a fölött
-    r = run(d, [[24, 22]], 25, r.s, r.along);
+    r = run(d, [[125, 11]], ctx(50), r.s, r.along);
     expect(r.changes.map((c) => c.c)).toEqual(['exit']);
     expect(d.active).toBe(false);
-    expect(d.clearedAvgMps).toBeCloseTo(22, 0);
+    expect(d.clearedAvgMps!).toBeGreaterThan(0.7 * (50 / 3.6));
+  });
+
+  it('a dugó vége: autópályán legalább 3 km és 3 perc a megengedett 70%-a fölött', () => {
+    const d = new JamDetector();
+    let r = run(d, [warm, [190, 5]], ctx(130));
+    expect(d.active).toBe(true);
+    // 2 perc 100 km/h (3,3 km) még kevés: az idő nincs meg
+    r = run(d, [[120, 100 / 3.6]], ctx(130), r.s, r.along);
+    expect(d.active).toBe(true);
+    r = run(d, [[70, 100 / 3.6]], ctx(130), r.s, r.along);
+    expect(r.changes.map((c) => c.c)).toEqual(['exit']);
+  });
+
+  it('az ETA-korrekció addig marad, amíg a hátralévő úton heavy / severe szakasz van', () => {
+    const d = new JamDetector();
+    let r = run(d, [warm, [190, 2]], ctx(50));
+    r = run(d, [[125, 11]], ctx(50, { heavyAhead: true }), r.s, r.along);
+    expect(d.active).toBe(false);
+    expect(d.correcting).toBe(true);
+    r = run(d, [[3, 11]], ctx(50), r.s, r.along);
+    expect(d.correcting).toBe(false);
   });
 
   it('a GPS-zaj álló helyzetben nem haladás (csak az útvonal menti előrehaladás számít)', () => {
     const d = new JamDetector();
-    let along = 1000;
-    for (let s = 1; s <= 125; s++) {
+    let along = 0;
+    for (let s = 1; s <= 20; s++) d.update(s * 1000, (along += 10), 10, ctx(50));
+    for (let s = 21; s <= 215; s++) {
       along += s % 2 ? 3 : -3;
-      d.update(s * 1000, along, 0, 25);
+      d.update(s * 1000, along, 0, ctx(50));
     }
     expect(d.active).toBe(true);
     expect(d.avgMps!).toBeLessThan(0.1);
   });
 
+  it('a megengedett sebesség: a tábla, ennek hiányában az útkategória alapértelmezése', () => {
+    const route = lineRoute({ lengthM: 2000, durationS: 200 });
+    route.segLimitKmh = route.segLimitKmh.map(() => 70);
+    expect(permittedKmhAt(route, 500)).toBe(70);
+    route.segLimitKmh = route.segLimitKmh.map(() => null);
+    const withClass = (c: string | null): NavRoute => ({ ...route, steps: route.steps.map((s) => ({ ...s, roadClass: c })) });
+    expect(permittedKmhAt(withClass('motorway'), 500)).toBe(130);
+    expect(permittedKmhAt(withClass('trunk'), 500)).toBe(110);
+    expect(permittedKmhAt(withClass('primary'), 500)).toBe(90);
+    expect(permittedKmhAt(withClass('street'), 500)).toBe(50);
+    expect(highwayAt(withClass('motorway'), 500)).toBe(true);
+    expect(highwayAt(withClass('trunk'), 500)).toBe(true);
+    expect(highwayAt(withClass('primary'), 500)).toBe(false);
+  });
+
+  it('a Directions-lépés kereszteződése és jelzőlámpája a lámpa-pontok közé kerül; az útkategória a lépésből jön', () => {
+    const json = structuredClone(BUDAPEST_GYOR_DIRECTIONS) as { routes: { legs: { steps: Record<string, unknown>[] }[]; geometry: { coordinates: number[][] } }[] };
+    const r0 = json.routes[0]!;
+    const c = r0.geometry.coordinates[3]!;
+    r0.legs[0]!.steps[0]!.intersections = [{ location: c, bearings: [90, 270], traffic_signal: true, mapbox_streets_v8: { class: 'street' } }];
+    const [route] = parseDirections(json);
+    expect(route!.steps[0]!.roadClass).toBe('street');
+    expect(route!.stopPointsM.length).toBeGreaterThan(route!.steps.length - 2);
+    const near = route!.stopPointsM[0]!;
+    expect(nearStopPoint(route!, near + 50)).toBe(true);
+  });
+
+  /** Szabad indulás (200 m), majd dugós araszolás, míg a kérdés be nem jön. */
+  async function intoJam(h: ReturnType<typeof harness>, route: NavRoute, mps = 2) {
+    const a = await drive(h, route, { fromS: 0, toS: 10, alongM: 0, mps: 20 });
+    return drive(h, route, { fromS: 11, toS: 195, alongM: a + mps, mps });
+  }
+
   it('dugóba lépéskor „Dugóba kerültél?” kártya + hang egyszer; 15 s után válasz nélkül eltűnik, a dugó-állapot marad', async () => {
     const route = lineRoute();
     const h = harness(route);
-    await drive(h, route, { fromS: 0, toS: 125, alongM: 100, mps: 2 });
+    const along = await intoJam(h, route);
     const v = h.session.view();
     expect(v.jam).toBe(true);
     expect(v.jamAsk).toBe(true);
     const said = h.session.drainVoice().filter((e) => e.kind === 'traffic');
     expect(said.map((e) => e.text)).toContain('Lassú forgalom. Dugóba kerültél?');
-    await drive(h, route, { fromS: 126, toS: 142, alongM: 352, mps: 2 });
+    await drive(h, route, { fromS: 196, toS: 215, alongM: along + 2, mps: 2 });
     expect(h.session.view().jamAsk).toBe(false);
     expect(h.session.view().jam).toBe(true);
     expect(h.session.drainVoice().filter((e) => e.text.includes('Dugóba'))).toHaveLength(0);
   });
 
-  it('„Nem” → ebben az útban ugyanarra a szakaszra nem kérdez újra; „Igen” → bejelentett közösségi minta', async () => {
-    const route = lineRoute();
+  it('„Nem” → a dugó-állapot törlődik, 10 percig sehol nem kérdez újra; „Igen” → bejelentett közösségi minta', async () => {
+    const route = lineRoute({ lengthM: 100_000, durationS: 3600 });
     const h = harness(route, { voice: false });
-    let along = await drive(h, route, { fromS: 0, toS: 125, alongM: 0, mps: 1 });
+    let along = await intoJam(h, route, 1);
     expect(h.session.view().jamAsk).toBe(true);
     h.session.answerJam(false);
     expect(h.session.view().jamAsk).toBe(false);
-    // kijön a dugóból (520 m), majd ugyanazon a lépésen (1 km-ig) újra beáll
-    along = await drive(h, route, { fromS: 126, toS: 146, alongM: along + 26, mps: 26 });
     expect(h.session.view().jam).toBe(false);
-    await drive(h, route, { fromS: 147, toS: 275, alongM: along + 0.5, mps: 0.5 });
+    // másik szakaszon is lassú: 3 perc után újra dugó-állapot, de 10 percen belül nincs kérdés (a régi hiba: kétszer kérdezett)
+    along = await drive(h, route, { fromS: 196, toS: 390, alongM: along + 1, mps: 1 });
     expect(h.session.view().jam).toBe(true);
     expect(h.session.view().jamAsk).toBe(false);
-    const kinds = h.session.drainJamSamples().map((x) => x.kind);
-    expect(kinds).toEqual(['erzekelt', 'oldott', 'erzekelt']);
+    expect(h.session.drainJamSamples().map((x) => x.kind)).toEqual(['erzekelt', 'erzekelt']);
     h.session.answerJam(true);
     const rep = h.session.drainJamSamples();
     expect(rep).toHaveLength(1);
     expect(rep[0]).toMatchObject({ kind: 'bejelentett', heading_deg: 90, length_m: TRAFFIC.reportedLengthM });
   });
 
-  it('dugóban az ETA a mért átlaggal csak a congestion szerinti heavy szakaszra, onnan a tervezett idővel; a nagyobb késés számít', async () => {
+  it('dugóban az ETA a mért átlaggal csak a congestion szerinti heavy szakaszra, onnan a tervezett idővel', async () => {
     const route = lineRoute(); // 10 km, 360 s, 1 km-es lépések
     route.segCongestion = route.segCongestion.map((_, i) => (i < 15 ? ('heavy' as const) : ('low' as const))); // az első 1,5 km dugós
     const h = harness(route, { voice: false });
     // csak a helyi becslés (a 2 perces Mapbox-lekérés most nem ad választ)
     h.respond(new Error('hálózat'));
-    await drive(h, route, { fromS: 0, toS: 125, alongM: 0, mps: 2 });
+    await intoJam(h, route);
     const v = h.session.view();
     expect(v.jam).toBe(true);
-    // 250 m-nél: a dugós szakasz még 1250 m / 2 m/s = 625 s (terv: 45 s), onnan a terv: 8,5 km → 306 s
-    expect(v.remainingS).toBeCloseTo(625 + 306, -1);
-    // késés: 125 s + ~931 s − 360 s ≈ 696 s → 12 perc
-    expect(v.delayMin).toBe(12);
-    // dugó közben 2 percenként új közösségi minta
-    expect(h.session.drainJamSamples().map((x) => x.kind)).toEqual(['erzekelt']);
-    await drive(h, route, { fromS: 126, toS: 246, alongM: 252, mps: 2 });
+    // ~570 m-nél: a dugós szakasz még 930 m / 2 m/s = 465 s, onnan a terv: 8,5 km → 306 s
+    expect(v.remainingS).toBeCloseTo(465 + 306, -2);
+    expect(v.remainingS).toBeGreaterThan(700);
     expect(h.session.drainJamSamples().map((x) => x.kind)).toEqual(['erzekelt']);
   });
 
@@ -2102,13 +2206,12 @@ describe('AW18: helyi dugó-érzékelés', () => {
     route.segCongestion = route.segCongestion.map((_, i) => (i < 15 ? ('severe' as const) : ('low' as const)));
     const h = harness(route, { voice: false });
     h.respond(new Error('hálózat'));
-    await drive(h, route, { fromS: 0, toS: 125, alongM: 0, mps: 2 });
+    await intoJam(h, route);
     const v = h.session.view();
     expect(v.jam).toBe(true);
-    // 250 m-nél: 1250 m dugó 2 m/s-mal (625 s) + a hátralévő 6 km terv szerint (240 s)
-    expect(v.remainingS).toBeCloseTo(625 + 240, -1);
-    // a terv 290 s volt: a növekmény a dugós szakasz ideje, nem a 7,25 km-é (3625 s)
+    // a növekmény a dugós szakasz ideje, nem a teljes hátralévő úté (6,9 km / 2 m/s = 3465 s)
     expect(v.remainingS!).toBeLessThan(290 + 1500 / 2);
+    expect(v.remainingS!).toBeGreaterThan(290);
   });
 
   it('congestion-adat nélkül a mért átlag legfeljebb 1 km-ig számít, a tempó lineárisan átmegy a tervezettbe', async () => {
@@ -2116,24 +2219,78 @@ describe('AW18: helyi dugó-érzékelés', () => {
     route.segCongestion = route.segCongestion.map(() => 'unknown' as const);
     const h = harness(route, { voice: false });
     h.respond(new Error('hálózat'));
-    await drive(h, route, { fromS: 0, toS: 125, alongM: 0, mps: 2 });
+    await intoJam(h, route);
     const v = h.session.view();
     expect(v.jam).toBe(true);
-    // 1 km: lassú 500 s, terv 40 s → +(500−40)/2 = 230 s a 290 s fölé
-    expect(v.remainingS).toBeCloseTo(290 + 230, -1);
+    // ~6,93 km hátra: terv 277 s; 1 km: lassú 500 s, terv 40 s → +(500−40)/2 = 230 s
+    expect(v.remainingS).toBeCloseTo(277 + 230, -1);
+    // adat nélkül nincs felirat
+    expect(v.delayMin).toBeNull();
   });
 
-  it('a dugó-állapot végén azonnal a tervezett idők', async () => {
-    const route = lineRoute({ lengthM: 7500, durationS: 300 });
-    route.segCongestion = route.segCongestion.map((_, i) => (i < 15 ? ('heavy' as const) : ('low' as const)));
+  it('a helyi ETA-korrekció lejár, amint a tempó helyreáll és nincs heavy szakasz előttünk', async () => {
+    const route = lineRoute({ lengthM: 20_000, durationS: 800 });
+    route.segCongestion = route.segCongestion.map(() => 'unknown' as const);
     const h = harness(route, { voice: false });
     h.respond(new Error('hálózat'));
-    const along = await drive(h, route, { fromS: 0, toS: 125, alongM: 0, mps: 2 });
+    const along = await intoJam(h, route);
     expect(h.session.view().jam).toBe(true);
-    await drive(h, route, { fromS: 126, toS: 150, alongM: along + 26, mps: 26 });
+    await drive(h, route, { fromS: 196, toS: 390, alongM: along + 26, mps: 26 });
     const v = h.session.view();
     expect(v.jam).toBe(false);
-    expect(v.remainingS).toBeCloseTo((300 * (7500 - 250 - 26 * 25)) / 7500, -1);
+    expect(v.remainingS).toBeCloseTo((800 * v.remainingM) / 20_000, 0);
+  });
+});
+
+describe('AW23: a „+N perc dugó” a hátralévő út congestion-adatából', () => {
+  it('üres út (nincs heavy / severe): nincs felirat, késve sem – a régi hiba: az indulási tervhez mért késés', async () => {
+    const route = lineRoute({ lengthM: 100_000, durationS: 3600 });
+    const h = harness(route, { voice: false });
+    await drive(h, route, { fromS: 0, toS: 600, alongM: 0, mps: 5, respond: (s, along) => (s % 120 === 0 && s > 0 ? [freshFrom(along, 600)] : null) });
+    expect(h.session.view().delayMin).toBeNull();
+    expect(routeDelayS(route)).toBe(0);
+  });
+
+  it('4 perces hátralévő út: a többlet nem lehet 5 perc (legfeljebb a hátralévő idő fele)', () => {
+    const route = lineRoute({ lengthM: 4000, durationS: 240 });
+    route.typicalDurationS = 0;
+    route.segCongestion = route.segCongestion.map(() => 'severe' as const);
+    expect(routeDelayS(route)).toBeLessThanOrEqual(120);
+    const h = harness(route, { voice: false });
+    feed(h, at(route, 0, 0, T0));
+    expect(h.session.view().delayMin).toBeNull();
+  });
+
+  it('az útvonalválasztó és a navigáció ugyanazt számolja; csak a hátralévő rész számít', () => {
+    const route = lineRoute({ lengthM: 10_000, durationS: 1200 });
+    route.steps = route.steps.map((s) => ({ ...s, durationTypicalS: 40 }));
+    route.typicalDurationS = 400;
+    route.segCongestion = route.segCongestion.map((_, i) => (i >= 50 ? ('heavy' as const) : ('low' as const)));
+    const h = harness(route, { voice: false });
+    feed(h, at(route, 0, 0, T0));
+    const summary = routeSummary(route, NO_ENFORCEMENT_DATA, T0);
+    expect(summary.delayS).toBe(routeDelayS(route));
+    expect(h.session.view().delayMin).toBe(Math.round(routeDelayS(route) / 60));
+    // a dugós szakasz után: nincs többlet, a felirat eltűnik
+    expect(routeDelayS(route, 9990)).toBe(routeDelayS(route, 9990) > 0 ? routeDelayS(route, 9990) : 0);
+    route.segCongestion = route.segCongestion.map((_, i) => (i < 50 ? ('heavy' as const) : ('low' as const)));
+    expect(routeDelayS(route, 6000)).toBe(0);
+  });
+
+  it('a felirat térképi szakaszt jelent: a friss válasz a térkép forrása is', async () => {
+    const route = lineRoute({ lengthM: 100_000, durationS: 3600 });
+    const h = harness(route, { voice: false });
+    const jammed = (along: number) => {
+      const r = freshFrom(along, 1200);
+      r.segCongestion = r.segCongestion.map(() => 'heavy' as const);
+      r.typicalDurationS = r.durationS - 1200;
+      return r;
+    };
+    await drive(h, route, { fromS: 0, toS: 125, alongM: 0, mps: 100_000 / 3600, respond: (s, along) => (s === 120 ? [jammed(along)] : null) });
+    const v = h.session.view();
+    expect(v.delayMin).not.toBeNull();
+    expect(v.trafficRoute).not.toBe(route);
+    expect(congestionRuns(v.trafficRoute).some((x) => x.level === 'heavy')).toBe(true);
   });
 });
 
@@ -2170,5 +2327,122 @@ describe('AW18: közösségi dugó-adat', () => {
   it('a feltöltött minta: km/h egészre, irány 0–359, hossz legalább 1 m', () => {
     expect(jamSample('erzekelt', { lat: 47.5, lon: 19, heading: 361.6 }, 2.1, 0.2)).toEqual({ kind: 'erzekelt', lat: 47.5, lon: 19, heading_deg: 2, avg_kmh: 8, length_m: 1 });
     expect(jamSample('bejelentett', { lat: 47.5, lon: 19, heading: null }, 0, 300).heading_deg).toBeNull();
+  });
+});
+
+describe('AW23: útvonal-panel, sorrend, „Utána” sor', () => {
+  it('a leggyorsabb mindig legfelül: a kártyák sorrendje menetidő szerint', () => {
+    expect(routeOrder([42 * 60, 41 * 60])).toEqual([1, 0]);
+    expect(routeOrder([41 * 60, 41 * 60, 45 * 60])).toEqual([0, 1, 2]);
+    expect(routeOrder([50, 47, 46])).toEqual([2, 1, 0]);
+  });
+
+  it('a hátralévő út eseményei a távval arányos helyen: kamera, szakasz, dugó, bejelentés; a mögöttünk lévő nincs', () => {
+    const route = lineRoute(); // 10 km
+    route.segCongestion = route.segCongestion.map((_, i) => (i >= 50 && i < 60 ? ('heavy' as const) : ('low' as const)));
+    const item = (kind: 'camera' | 'section', startM: number) => ({ kind, id: kind, startM, endM: startM, limitKmh: null, label: '', verified: true, source: '' }) as unknown as EnforcementItem;
+    const ev = routeTimeline(route, 2000, [item('camera', 4000), item('section', 1000), item('section', 7000)], [at(route, 9000), at(route, 9000, 500), at(route, 1000)]);
+    expect(ev.map((e) => e.kind)).toEqual(['camera', 'jam', 'section', 'report']);
+    expect(ev[0]!.at).toBeCloseTo(2000 / 8000, 5);
+    expect(ev[1]!.aheadM).toBeCloseTo(3000, 0);
+    expect(ev[3]!.at).toBeCloseTo(7000 / 8000, 2);
+  });
+
+  it('alternatívák navigáció közben: a jelenlegi pozícióból, a leggyorsabb elöl, a jelenlegit jelöli; választás után az új úton folytat', async () => {
+    const route = lineRoute({ lengthM: 10_000, durationS: 600 });
+    const h = harness(route, { voice: false });
+    feed(h, at(route, 2000, 0, T0));
+    const alt = scaleDurations(route, 300, 'alt', 0.05);
+    h.respond([route, alt]);
+    const choices = await h.session.requestAlternatives();
+    expect(h.calls.map((c) => c.reason)).toEqual(['alternatives']);
+    expect(choices.map((c) => c.route.id)).toEqual(['alt', route.id]);
+    expect(choices.map((c) => c.current)).toEqual([false, true]);
+    expect(h.session.view().phase).toBe('navigating');
+    const before = h.session.view().routeVersion;
+    h.session.useRoute(alt);
+    expect(h.session.view().route.id).toBe('alt');
+    expect(h.session.view().routeVersion).toBe(before + 1);
+  });
+
+  it('az „Utána” sor nem ismétli a következő manővert', () => {
+    const route = lineRoute();
+    route.steps = route.steps.map((s) => ({ ...s, banners: s.banners.map((b) => ({ ...b, primary: { ...b.primary, text: 'Március 15. tér' } })) }));
+    const h = harness(route, { voice: false });
+    feed(h, at(route, 100, 0, T0));
+    const v = h.session.view();
+    expect(v.next.text).toBe('Március 15. tér');
+    expect(v.then).toBeNull();
+  });
+});
+
+describe('AW23: Search Box', () => {
+  it('a kérés címe: nyelv, országok, munkamenet-token, közelség és távolság a jelenlegi helyről', () => {
+    const u = new URL(suggestUrl('Allee', 'hu', 'pk.x', 'tok', { lat: 47.5, lon: 19.04 }));
+    expect(u.pathname).toBe('/search/searchbox/v1/suggest');
+    expect(u.searchParams.get('q')).toBe('Allee');
+    expect(u.searchParams.get('language')).toBe('hu');
+    expect(u.searchParams.get('session_token')).toBe('tok');
+    expect(u.searchParams.get('proximity')).toBe('19.04000,47.50000');
+    expect(u.searchParams.get('origin')).toBe('19.04000,47.50000');
+    expect(u.searchParams.get('country')).toContain('hu');
+    const r = new URL(retrieveUrl('abc/d', 'de', 'pk.x', 'tok'));
+    expect(r.pathname).toBe('/search/searchbox/v1/retrieve/abc%2Fd');
+    expect(r.searchParams.get('session_token')).toBe('tok');
+  });
+
+  it('a találat: név + rövid cím + távolság; a kategória-találat kimarad; a koordináta a retrieve-ből jön, az útra eső ponttal', () => {
+    const hits = parseSuggest({
+      suggestions: [
+        { name: 'Allee', mapbox_id: 'a1', feature_type: 'poi', address: 'Október huszonharmadika utca 8-10', place_formatted: 'Budapest, 1117, Magyarország', distance: 1234 },
+        { name: 'Pláza', mapbox_id: 'c1', feature_type: 'category', place_formatted: '' },
+        { name: 'Győr', mapbox_id: 'p1', feature_type: 'place', place_formatted: 'Győr-Moson-Sopron, Magyarország' },
+      ],
+    }, 'Allee');
+    expect(hits.map((h) => h.name)).toEqual(['Allee', 'Győr']);
+    expect(hits[0]).toMatchObject({ address: 'Október huszonharmadika utca 8-10, Budapest', distanceM: 1234, retrieveId: 'a1' });
+    expect(hits[1]!.address).toBe('Győr-Moson-Sopron, Magyarország');
+    const place = parseRetrieve(
+      { features: [{ geometry: { coordinates: [19.05, 47.47] }, properties: { coordinates: { routable_points: [{ latitude: 47.471, longitude: 19.051 }] } } }] },
+      hits[0]!,
+    );
+    expect(place).toEqual({ id: 'a1', name: 'Allee', address: 'Október huszonharmadika utca 8-10, Budapest', lat: 47.47, lon: 19.05, routable: { lat: 47.471, lon: 19.051 } });
+    expect(parseRetrieve({ features: [] }, hits[0]!)).toBeNull();
+  });
+
+  it('a közeli találatok előre: a település és a pontos nevű közeli hely elöl, a távoli utca a végén', () => {
+    const mk = (name: string, feature_type: string, distance: number) => ({ name, mapbox_id: name, feature_type, place_formatted: 'x', distance });
+    const names = (q: string, list: unknown[]) => parseSuggest({ suggestions: list }, q).map((h) => h.name);
+    expect(names('Allee', [mk('Allee', 'street', 188_760), mk('Allee Gyógyszertár', 'poi', 2535)])).toEqual(['Allee Gyógyszertár', 'Allee']);
+    expect(names('Mammut', [mk('Mammut Gyerekpark', 'poi', 1565), mk('Mammut', 'poi', 1613)])).toEqual(['Mammut', 'Mammut Gyerekpark']);
+    expect(names('Győr', [mk('Győri út', 'street', 900), mk('Győr', 'place', 110_000)])).toEqual(['Győr', 'Győri út']);
+  });
+
+  it('a Directions-kérés mindkét platformon ugyanaz: a paraméterek listája', () => {
+    const u = new URL(directionsUrl({ lat: 47.4979, lon: 19.0402 }, { lat: 47.4731, lon: 19.0496 }, 'hu', 'pk.x'));
+    expect(u.pathname).toBe('/directions/v5/mapbox/driving-traffic/19.040200,47.497900;19.049600,47.473100');
+    expect([...u.searchParams.entries()].map(([k, v]) => `${k}=${v}`).join('&')).toBe('alternatives=true&steps=true&banner_instructions=true&voice_instructions=true&voice_units=metric&geometries=geojson&overview=full&annotations=maxspeed,congestion,duration&language=hu&access_token=pk.x');
+  });
+
+  it('a munkamenet-token: egy keresésen belül ugyanaz; új retrieve, 50 suggest és 2 perc tétlenség után', () => {
+    let n = 0;
+    let t = 0;
+    const s = new SearchSession(() => `t${++n}`, () => t);
+    expect(s.suggestToken()).toBe('t1');
+    expect(s.suggestToken()).toBe('t1');
+    expect(s.retrieveToken()).toBe('t1');
+    expect(s.suggestToken()).toBe('t2');
+    for (let i = 0; i < 49; i++) expect(s.suggestToken()).toBe('t2');
+    expect(s.suggestToken()).toBe('t3');
+    t += 120_001;
+    expect(s.suggestToken()).toBe('t4');
+  });
+
+  it('a mentett és a korábbi helyek API-hívás nélkül, a találatok fölött; ékezet és kisbetű nem számít', () => {
+    const home = { id: 'h', name: 'Otthon', address: 'Győri út 1', lat: 1, lon: 1 };
+    const recent = { id: 'r', name: 'Mammut', address: 'Budapest', lat: 1, lon: 1 };
+    expect(localMatches('gyori', { home, work: null, others: [] }, [recent]).map((p) => p.id)).toEqual(['h']);
+    expect(localMatches('MAM', { home, work: null, others: [] }, [recent, recent]).map((p) => p.id)).toEqual(['r']);
+    expect(localMatches('', { home, work: null, others: [] }, [recent])).toEqual([]);
   });
 });

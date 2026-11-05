@@ -42,6 +42,11 @@ export const STATES = [
   { id: 'vissza', web: { path: '/?navsim&panel=0&heat=ki&speed=7', ready: '.card.compact', recenter: true }, ios: [...NAV, ...HEAT_OFF, '-parityNoFollow', 'YES'] },
   // AOS18-javítás: a „Vissza a helyemre” táblával is ugyanott (a gombsor jobb szélén)
   { id: 'vissza-nav', web: { path: '/?navsim&stage=nav&panel=0&speed=7&at=60', ready: '.nav-top', recenter: true }, ios: [...NAV, '-navStage', 'nav', '-simAt', '60', '-parityNoFollow', 'YES'] },
+  // AW23: a felső gombsor mind a négy kombinációja, navigációban és azon kívül (az alsó sor nem mozdul)
+  { id: 'mini-nav', web: { path: '/?navsim&stage=nav&panel=0&speed=7&at=60', ready: '.nav-top', mini: true }, ios: [...NAV, '-navStage', 'nav', '-simAt', '60', '-manual', '0', '-manualMini', 'YES'] },
+  { id: 'mini-vissza-nav', web: { path: '/?navsim&stage=nav&panel=0&speed=7&at=60', ready: '.nav-top', mini: true, recenter: true }, ios: [...NAV, '-navStage', 'nav', '-simAt', '60', '-manual', '0', '-manualMini', 'YES', '-parityNoFollow', 'YES'] },
+  { id: 'mini-ures', web: { path: '/?navsim&panel=0&heat=ki&speed=7&miniAlways', ready: '.card.compact', mini: true }, ios: [...NAV, ...HEAT_OFF, '-manual', '0', '-manualMini', 'YES', '-miniAlways', 'YES'] },
+  { id: 'mini-vissza-ures', web: { path: '/?navsim&panel=0&heat=ki&speed=7&miniAlways', ready: '.card.compact', mini: true, recenter: true }, ios: [...NAV, ...HEAT_OFF, '-manual', '0', '-manualMini', 'YES', '-miniAlways', 'YES', '-parityNoFollow', 'YES'] },
   { id: 'kozeledik', web: { path: '/?sim=jo&route=0&speed=12&seek=0.15&panel=0&heat=ki', ready: '.hud > .card[aria-label="Mérőszakasz közeleg"]' }, ios: ['-sim', 'jo', '-simPanel', 'NO', '-simSeek', '0.15', ...HEAT_OFF] },
   { id: 'meres-jo', web: { path: '/?sim=jo&route=0&speed=12&seek=0.5&panel=0&heat=ki', ready: '.hud > .card .hero' }, ios: ['-sim', 'jo', '-simPanel', 'NO', '-simSeek', '0.5', ...HEAT_OFF] },
   { id: 'meres-lassit', web: { path: '/?sim=lassit&route=0&speed=12&seek=0.5&panel=0&heat=ki', ready: '.slowdown[data-show="true"]' }, ios: ['-sim', 'lassit', '-simPanel', 'NO', '-simSeek', '0.5', ...HEAT_OFF] },

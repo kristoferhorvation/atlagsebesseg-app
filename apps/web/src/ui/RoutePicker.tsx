@@ -1,4 +1,4 @@
-import { formatClock, formatDistance, formatTripDuration, routeTagText, t, type RouteSummary, type SpeedUnit } from '@atlagsebesseg/app-logic';
+import { formatClock, formatDistance, formatTripDuration, routeOrder, routeTagText, t, type RouteSummary, type SpeedUnit } from '@atlagsebesseg/app-logic';
 import type { PlanState } from '../nav/useNavigation';
 import { Icon } from './Icon';
 
@@ -55,7 +55,9 @@ export function RoutePicker({
       {plan.status === 'ready' && (
         <>
           <div className="picker-list" role="radiogroup">
-            {plan.routes.map((r, i) => {
+            {/* AW23: a leggyorsabb mindig legfelül */}
+            {routeOrder(plan.routes.map((_, i) => summaries[i]?.durationS ?? Infinity)).map((i, pos) => {
+              const r = plan.routes[i]!;
               const s = summaries[i];
               if (!s) return null;
               const d = formatDistance(s.distanceM, unit);
@@ -63,11 +65,11 @@ export function RoutePicker({
                 <button key={r.id} className="route-opt" role="radio" aria-checked={plan.selected === i} data-selected={plan.selected === i} onClick={() => onSelect(i)}>
                   <div className="route-opt-main">
                     <b className="num">{formatTripDuration(s.durationS)}</b>
+                    <span className="route-opt-tag" data-fastest={i === fastest}>
+                      {routeTagText(pos, 0)}
+                    </span>
                     <span className="num">
                       {d.value} {d.unit} · {formatClock(now + s.durationS * 1000)}
-                    </span>
-                    <span className="route-opt-tag" data-fastest={i === fastest}>
-                      {routeTagText(i, fastest)}
                     </span>
                   </div>
                   <div className="route-opt-meta">

@@ -1,4 +1,4 @@
-import { NAV_FOLLOW } from './navigation/config';
+import { camera } from '@atlagsebesseg/design-tokens';
 
 /** Mérés közben ennyi tétlenség után a kamera magától visszaáll a követésre. */
 export const FOLLOW_RESUME_MS = 5000;
@@ -35,8 +35,8 @@ export function followReducer(s: FollowState, e: FollowEvent, resumeMs = FOLLOW_
   }
 }
 
-/** Navigáció közbeni követő zoom a sebességből (km/h): a `NAV_FOLLOW.zoomStops` között lineáris, a széleken állandó. */
-export function navFollowZoom(kmh: number, stops = NAV_FOLLOW.zoomStops): number {
+/** AW23: a követő zoom a sebességből (km/h), minden állapotban: a `camera.zoomStops` között lineáris, a széleken állandó. */
+export function followZoom(kmh: number, stops = camera.zoomStops): number {
   const v = Number.isFinite(kmh) ? Math.max(0, kmh) : 0;
   const first = stops[0]!;
   if (v <= first[0]) return first[1];
@@ -46,4 +46,9 @@ export function navFollowZoom(kmh: number, stops = NAV_FOLLOW.zoomStops): number
     if (v <= s1) return z0 + ((v - s0) / (s1 - s0)) * (z1 - z0);
   }
   return stops.at(-1)![1];
+}
+
+/** AW23: a jelölő helye a képernyőn (0 = fent, 1 = lent): a legfelső alsó kártya fölött `focusGap`-pel, a sávon belül; minden állapotban ugyanez. */
+export function followFocusY(cardTop: number, screenH: number): number {
+  return Math.max(camera.focusMinY, Math.min(camera.focusMaxY, (cardTop - camera.focusGap) / screenH));
 }

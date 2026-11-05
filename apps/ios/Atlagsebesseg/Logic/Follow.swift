@@ -5,12 +5,22 @@ import Foundation
 /// Mérés közben ennyi tétlenség után a kamera magától visszaáll a követésre.
 nonisolated let FOLLOW_RESUME_MS = 5000.0
 
-/// AOS17: a webes `MapboxWebAdapter` követő kamerája navigáción kívül: dőlés, a pozíció alapértelmezett képernyő-helye és a zoom a
-/// sebességből (40 km/h-ig 17,3, felette távolodik, legfeljebb 15,5-ig).
-nonisolated let idleFollowPitch = 60.0
-nonisolated let idleFocusDefault = 0.38
-nonisolated func idleFollowZoom(_ kmh: Double) -> Double {
-    min(17.3, max(15.5, 17.3 - max(0, kmh - 40) * 0.017))
+/// AW23: a követő zoom a sebességből (km/h), minden állapotban: a `Tokens.Camera.zoomStops` között lineáris, a széleken állandó.
+nonisolated func followZoom(_ kmh: Double, stops: [(kmh: Double, zoom: Double)] = Tokens.Camera.zoomStops) -> Double {
+    let v = kmh.isFinite ? max(0, kmh) : 0
+    guard let first = stops.first, let last = stops.last else { return 0 }
+    if v <= first.kmh { return first.zoom }
+    for i in 1..<stops.count where v <= stops[i].kmh {
+        let (s0, z0) = stops[i - 1]
+        let (s1, z1) = stops[i]
+        return z0 + (v - s0) / (s1 - s0) * (z1 - z0)
+    }
+    return last.zoom
+}
+
+/// AW23: a jelölő helye a képernyőn (0 = fent, 1 = lent): a legfelső alsó kártya fölött `focusGap`-pel, a sávon belül; minden állapotban ugyanez.
+nonisolated func followFocusY(_ cardTop: Double, _ screenH: Double) -> Double {
+    max(Tokens.Camera.focusMinY, min(Tokens.Camera.focusMaxY, (cardTop - Tokens.Camera.focusGap) / screenH))
 }
 
 /// A követő kamera állapota: követ, vagy a felhasználó elmozgatta a térképet.

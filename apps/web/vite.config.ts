@@ -11,6 +11,8 @@ function serviceWorker(): Plugin {
   return {
     name: 'atlag-service-worker',
     apply: 'build',
+    // AW23: a kiadott commit a lapon, az élesedés ellenőrzéséhez (`curl … | grep build-sha`)
+    transformIndexHtml: () => [{ tag: 'meta', attrs: { name: 'build-sha', content: process.env.VERCEL_GIT_COMMIT_SHA ?? 'local' }, injectTo: 'head' }],
     generateBundle(_, bundle) {
       const publicFiles = (readdirSync(new URL('./public', import.meta.url), { recursive: true }) as string[])
         .filter((f) => f.includes('.'))

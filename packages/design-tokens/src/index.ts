@@ -161,7 +161,29 @@ export const motion = {
   easePoints: [0.2, 0.8, 0.2, 1],
 } as const;
 
-export const tokens = { color, statusColor, font, type, space, radius, radiusScale, fontSize, fontWeight, opacity, glow, size, blur, shadow, motion } as const;
+/**
+ * AW23: a követő kamera minden állapotban (üresjárat, krúzing, navigáció, navigáció vége) ugyanaz, weben és iOS-en. A jelölő a
+ * képernyő alsó részén, a legfelső alsó kártya fölött `focusGap`-pel (0 = fent, 1 = lent), előre minél nagyobb rálátással.
+ */
+export const camera = {
+  pitch: 58,
+  focusMaxY: 0.8,
+  focusMinY: 0.18,
+  focusGap: 56,
+  /** A jelölő helyének, a zoomnak és a visszaállásnak az ideje (ms). */
+  focusTau: 150,
+  zoomTau: 1500,
+  recenter: 900,
+  /** km/h → zoom: városban közelebb, autópályán távolabb; között lineáris, a széleken állandó. */
+  zoomStops: [
+    [30, 17.2],
+    [50, 16.8],
+    [90, 15.6],
+    [130, 14.8],
+  ] as readonly (readonly [number, number])[],
+} as const;
+
+export const tokens = { color, statusColor, font, type, space, radius, radiusScale, fontSize, fontWeight, opacity, glow, size, blur, shadow, motion, camera } as const;
 
 const kebab = (s: string) => s.replace(/[A-Z]/g, (c) => `-${c.toLowerCase()}`);
 
@@ -259,6 +281,9 @@ export function toSwift(): string {
   for (const [k, v] of Object.entries(fontWeight)) L.push(`        static let ${k}: CGFloat = ${num(v)}`);
   L.push('    }', '', '    enum Opacity {');
   for (const [k, v] of Object.entries(opacity)) L.push(`        static let ${k}: Double = ${num(v)}`);
+  L.push('    }', '', '    /// AW23: a követő kamera (web + iOS azonos számokkal).', '    nonisolated enum Camera {');
+  L.push(`        static let pitch: Double = ${num(camera.pitch)}`, `        static let focusMaxY: Double = ${num(camera.focusMaxY)}`, `        static let focusMinY: Double = ${num(camera.focusMinY)}`, `        static let focusGap: Double = ${num(camera.focusGap)}`, `        static let focusTau: Double = ${num(camera.focusTau)}`, `        static let zoomTau: Double = ${num(camera.zoomTau)}`, `        static let recenter: Double = ${num(camera.recenter)}`);
+  L.push(`        static let zoomStops: [(kmh: Double, zoom: Double)] = [${camera.zoomStops.map(([s, z]) => `(${num(s)}, ${num(z)})`).join(', ')}]`);
   L.push('    }', '', '    /// A SwiftUI `shadow(radius:)` a CSS-elmosás fele.', '    enum Glow {');
   for (const [k, v] of Object.entries(glow)) L.push(`        static let ${k}: CGFloat = ${num(v / 2)}`);
   L.push('    }', '', '    enum Size {');

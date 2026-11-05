@@ -17,6 +17,7 @@
     "nav-shots:views": "for v in 320x667 375x667 390x844 430x932; do echo \"== $v\"; NAV_VIEW=$v node scripts/nav-shots.mjs --check-only ; done",
     "view-shots": "node scripts/view-shots.mjs",
     "i18n:check": "node scripts/i18n-check.mjs",
+    "aw23:check": "node scripts/aw23-check.mjs",
     "lint": "eslint src"
   },
   "dependencies": {

@@ -63,6 +63,14 @@ nonisolated private func exitOf(_ components: Any?) -> String? {
     return parts.isEmpty ? nil : parts.joined(separator: " ")
 }
 
+/// Az útkategória a lépés első kereszteződéséből (`mapbox_streets_v8.class`); `nil`, ha nincs adat.
+nonisolated private func roadClassOf(_ s: JSONObj) -> String? {
+    for x in jsonArr(s["intersections"]).compactMap({ $0 as? JSONObj }) {
+        if let c = (x["mapbox_streets_v8"] as? JSONObj)?["class"] as? String { return c }
+    }
+    return nil
+}
+
 nonisolated private func limitOf(_ v: Any?) -> Double? {
     guard let o = v as? JSONObj, (o["unknown"] as? Bool) != true, (o["none"] as? Bool) != true else { return nil }
     guard let s = jsonNum(o["speed"]), s > 0 else { return nil }
@@ -161,10 +169,27 @@ nonisolated private func parseRoute(_ r: JSONObj, id: String) throws -> NavRoute
                 location: LatLon(lat: loc.count > 1 ? jsonNum(loc[1]) ?? 0 : 0, lon: loc.count > 0 ? jsonNum(loc[0]) ?? 0 : 0)
             ),
             banners: sortedDesc(banners, by: \.distanceAlongM),
-            voice: sortedDesc(voice, by: \.distanceAlongM)
+            voice: sortedDesc(voice, by: \.distanceAlongM),
+            durationTypicalS: jsonNum(s["duration_typical"]),
+            roadClass: roadClassOf(s)
         ))
         startM += dist
     }
+    // AW23: a lámpák, kereszteződések és kanyarok helye az útvonal mentén (a lépés kereszteződéseiből és a manőverekből)
+    var stopPointsM: [Double] = []
+    if let core = try? Route(points, nominalLengthM: distanceM) {
+        for (i, s) in rawSteps.enumerated() {
+            let st = steps[i]
+            for x in jsonArr(s["intersections"]).compactMap({ $0 as? JSONObj }) {
+                if (x["traffic_signal"] as? Bool) != true && jsonArr(x["bearings"]).count < 3 { continue }
+                let l = jsonArr(x["location"])
+                guard l.count >= 2, let lon = jsonNum(l[0]), let lat = jsonNum(l[1]) else { continue }
+                stopPointsM.append(core.project(LatLon(lat: lat, lon: lon), hint: ProjectionHint(fromM: st.startM - 30, toM: st.startM + st.distanceM + 30)).alongM)
+            }
+            if st.endManeuver.type != "arrive" { stopPointsM.append(st.startM + st.distanceM) }
+        }
+    }
+    stopPointsM.sort()
     absorbArrivalStub(&steps)
 
     return NavRoute(
@@ -177,7 +202,8 @@ nonisolated private func parseRoute(_ r: JSONObj, id: String) throws -> NavRoute
         segStartM: segStartM,
         segLimitKmh: pad(limits) { _ in nil },
         segCongestion: pad(congestion) { _ in .unknown },
-        segDurationS: pad(durations, avgDur)
+        segDurationS: pad(durations, avgDur),
+        stopPointsM: stopPointsM
     )
 }
 
@@ -240,10 +266,4 @@ nonisolated func congestionRuns(_ route: NavRoute) -> [(points: [LatLon], level:
         }
     }
     return runs
-}
-
-/// A dugó miatti késés másodpercben (a tipikus időhöz képest), 0 alá nem megy.
-nonisolated func trafficDelayS(_ route: NavRoute) -> Double {
-    guard let typical = route.typicalDurationS else { return 0 }
-    return max(0, jsRound(route.durationS - typical))
 }

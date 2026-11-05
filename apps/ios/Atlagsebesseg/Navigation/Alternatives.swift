@@ -2,7 +2,7 @@ import AtlagsebessegCore
 import Foundation
 
 // A packages/app-logic/src/navigation/alternatives.ts portja (AOS12): az alternatív útvonal címkéje (AW11) és a
-// „megéri”-szabály (AW12/AW13); a követő zoom a follow.ts `navFollowZoom`-ja.
+// „megéri”-szabály (AW12/AW13).
 
 /// A leágazás keresésének lépésköze az alternatíva mentén (m).
 nonisolated private let DIVERGE_STEP_M = 25.0
@@ -333,19 +333,4 @@ nonisolated func altOfferVoice(_ w: AltWorth, exitKm: String? = nil, lang: Lang?
         guard let exitKm else { return t(.navVoiceFaster, ["n": String(n)], lang: lang) }
         return t(.navVoiceFasterWorthExit, ["n": String(n), "km": exitKm], lang: lang)
     }
-}
-
-// MARK: követő kamera (follow.ts)
-
-/// Navigáció közbeni követő zoom a sebességből (km/h): a `NAV_FOLLOW.zoomStops` között lineáris, a széleken állandó.
-nonisolated func navFollowZoom(_ kmh: Double, stops: [(kmh: Double, zoom: Double)] = NAV_FOLLOW.zoomStops) -> Double {
-    let v = kmh.isFinite ? max(0, kmh) : 0
-    guard let first = stops.first, let last = stops.last else { return 0 }
-    if v <= first.kmh { return first.zoom }
-    for i in 1..<stops.count where v <= stops[i].kmh {
-        let (s0, z0) = stops[i - 1]
-        let (s1, z1) = stops[i]
-        return z0 + (v - s0) / (s1 - s0) * (z1 - z0)
-    }
-    return last.zoom
 }

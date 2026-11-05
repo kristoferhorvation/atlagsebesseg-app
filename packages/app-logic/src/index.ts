@@ -11,6 +11,7 @@ export * from './reportFeed';
 export * from './reportPrompt';
 export * from './greeting';
 export * from './follow';
+export * from './positionSmoother';
 export * from './cameras';
 export * from './plannedChecks';
 export * from './i18n';

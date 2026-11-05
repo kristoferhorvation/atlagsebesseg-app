@@ -16,6 +16,7 @@ import {
 import { limitWithToleranceKmh, meterBar, type MeterBar, type Section } from '@atlagsebesseg/core';
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { tNode } from '../i18n';
+import { FitText } from './FitText';
 import { Icon, type IconName } from './Icon';
 import { LimitSign } from './LimitSign';
 
@@ -350,7 +351,7 @@ export function Hud(p: HudProps) {
               {p.gpsReady ? (speedIn(view.currentKmh ?? 0, unit) ?? 0) : '–'}
               <small>{u}</small>
             </div>
-            <div className="body muted">{p.gpsReady ? t('hud.none.near') : t('hud.none.waiting')}</div>
+            <FitText className="body muted">{p.gpsReady ? t('hud.none.near') : t('hud.none.waiting')}</FitText>
           </div>
         </Card>
       );

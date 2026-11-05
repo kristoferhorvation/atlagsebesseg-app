@@ -13,6 +13,10 @@ export interface Place {
    * Directions a legközelebbi útra illeszti – sarki háznál a mellékutcára –, ezért a tervezés ide megy, a jelölő a címen marad.
    */
   routable?: LatLon;
+  /** AW23: Search Box-találat: a koordináta választáskor jön (`/retrieve`), addig 0. */
+  retrieveId?: string;
+  /** AW23: a távolság a jelenlegi helyzettől (m), ha a találat adja. */
+  distanceM?: number;
 }
 
 /** A tervezés célpontja: a cím útra illesztett pontja, ha van, különben maga a cím. */
@@ -49,6 +53,10 @@ export interface NavStep {
   /** A lépés eleje az útvonalon (m, az útvonal hosszára skálázva). */
   startM: number;
   name: string;
+  /** A Directions `duration_typical`-ja (s); `null`, ha nincs. */
+  durationTypicalS: number | null;
+  /** AW23: útkategória (`mapbox_streets_v8.class`: motorway, trunk, primary, street…); `null`, ha nincs adat. */
+  roadClass: string | null;
   /** A lépés VÉGÉN lévő manőver (a Directions-ben a következő lépés `maneuver`-je). */
   endManeuver: { type: string; modifier: string | null; instruction: string; location: LatLon };
   /** A lépés végén következő manőverre vonatkozó szalag-szövegek (a Directions `bannerInstructions`-e). */
@@ -70,6 +78,8 @@ export interface NavRoute {
   segLimitKmh: (number | null)[];
   segCongestion: Congestion[];
   segDurationS: number[];
+  /** AW23: jelzőlámpák, kereszteződések és kanyarok helye (m, növekvő) – a lámpa-türelemhez. */
+  stopPointsM: number[];
 }
 
 export interface NavDestination {

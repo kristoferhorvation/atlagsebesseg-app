@@ -32,7 +32,10 @@ extension AppModel {
 
     /// A navigáció állapota a felvevőnek: a cél, az újratervezések (felfutó él), a helyi dugó-állapot.
     func syncTripNav() {
+        // AW23: a navigáció kezdete és vége lezárja a futó utat (a navigált út külön út, utána a krúzing 0-ról indul)
+        let wasNav = tripRecorder.navigating
         tripRecorder.setDestination(nav?.destination.name)
+        if wasNav != (nav != nil) { pumpTrips() }
         tripRecorder.setLimit(nav?.limitKmh)
         let rerouting = nav?.rerouting ?? false
         if rerouting, !tripNavPrev.rerouting { tripRecorder.noteReroute() }

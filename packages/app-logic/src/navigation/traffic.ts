@@ -2,15 +2,17 @@ import { angleDiffDeg, Route, type GpsFix, type LatLon } from '@atlagsebesseg/co
 import { t } from '../i18n';
 import { ROUTE_MATCH_M } from './config';
 import { DirectionsError, segmentAt } from './directions';
-import type { NavRoute } from './types';
+import type { NavRoute, NavStep } from './types';
 
 /**
  * AW18: forgalom navigáció közben, helyi dugó-érzékelés, közösségi dugó-adat, újratervezés-újrapróbálás.
  * - `refreshMs`: friss driving-traffic lekérés ennyi időnként (a 2 perces alternatíva-figyeléssel közös hívás).
  * - `delayShowS`: a „+N perc dugó” ennyi késéstől (a friss ETA az indulási tervhez képest); a hang csak az első
  *   alkalommal szól, a további növekedésnél a sáv némán frissül.
- * - Dugó-állapot: a `jamWindowMs` ablak mért átlaga a várt tempó `jamSlowFraction`-ja alatt; vége, ha legalább
- *   `jamClearM`-en át a várt tempó `jamNearFraction`-ja fölött halad (a lámpák közti rövidebb gyorsulás nem szakítja meg).
+ * - Dugó-állapot (AW23): a `jamWindowMs` (3 perc) ablak mért átlaga a MEGENGEDETT sebesség `jamSlowFraction`-ja (40%) alatt
+ *   (50-esen < 1 km, 90-esen < 1,8 km, 130-ason < 2,6 km a 3 perc alatt). Nem autópálya-jellegű úton a lámpánál /
+ *   kereszteződésnél / kanyarnál (`lightNearM`) állás az első `lightPatienceMs`-ig (2 perc) nem számít bele. Vége: a megengedett
+ *   sebesség `jamClearFraction`-ja (70%) fölött legalább a `jamClearCity*` / `jamClearHighway*` távon és ideig.
  * - A „Dugóba kerültél?” kártya `jamPromptMs` után válasz nélkül eltűnik.
  * - A dugós ETA a mért átlagot (legalább `jamMinKmh`) csak az előttünk lévő, a Directions congestion-annotációjában
  *   heavy / severe összefüggő szakaszra használja, legfeljebb `jamAheadMaxM`-ig; congestion-adat nélkül legfeljebb
@@ -23,10 +25,25 @@ import type { NavRoute } from './types';
 export const TRAFFIC = {
   refreshMs: 120_000,
   delayShowS: 180,
-  jamWindowMs: 120_000,
-  jamSlowFraction: 0.5,
-  jamNearFraction: 0.8,
-  jamClearM: 500,
+  /** A dugó-többlet legfeljebb a hátralévő menetidő ekkora része (4 perces úton 2 perc). */
+  delayMaxFraction: 0.5,
+  jamWindowMs: 180_000,
+  jamSlowFraction: 0.4,
+  /** Az ablak eleje előtt legalább ennyit már haladtunk: a parkolóban várakozás nem dugó (m). */
+  jamStartMovedM: 100,
+  /** Ez alatt áll a kocsi (m/s, 5 km/h). */
+  jamStoppedMps: 1.4,
+  /** A jelzőlámpa / kereszteződés / kanyar ennyin belül: a megállás lámpa-idő (m). */
+  lightNearM: 60,
+  /** A lámpa-türelem egy ponton (ms); ennyi nem számít bele a dugó-ablakba. */
+  lightPatienceMs: 120_000,
+  jamClearFraction: 0.7,
+  jamClearCityM: 1000,
+  jamClearCityMs: 120_000,
+  jamClearHighwayM: 3000,
+  jamClearHighwayMs: 180_000,
+  /** „Nem” válasz után ennyi ideig nincs újabb kérdés (ms). */
+  jamDeclineMuteMs: 600_000,
   jamPromptMs: 15_000,
   jamAheadMaxM: 2000,
   jamNoDataMaxM: 1000,
@@ -42,6 +59,11 @@ export const TRAFFIC = {
 // ---------------------------------------------------------------------------
 // Útvonalválasztó
 // ---------------------------------------------------------------------------
+
+/** AW23: a kártyák sorrendje: a leggyorsabb legfelül, a többi menetidő szerint (egyenlőnél az eredeti sorrend). */
+export function routeOrder(durationsS: readonly number[]): number[] {
+  return durationsS.map((d, i) => ({ d, i })).sort((a, b) => a.d - b.d || a.i - b.i).map((x) => x.i);
+}
 
 /** A „Leggyorsabb”: a legkisebb menetidejű útvonal indexe (egyenlőnél az előbbi); üres listánál 0. */
 export function fastestRouteIndex(durationsS: readonly number[]): number {
@@ -79,50 +101,91 @@ export function routeErrorKind(e: unknown): string {
 
 export type JamChange = 'enter' | 'exit' | null;
 
+/** A dugó-érzékelés bemenete a jelenlegi helyről. */
+export interface JamContext {
+  /** A megengedett sebesség (m/s): {@link permittedKmhAt}. */
+  limitMps: number;
+  /** Autópálya vagy autóút: nincs lámpa-türelem, nagyobb a kilépési táv. */
+  highway: boolean;
+  /** Jelzőlámpa, kereszteződés vagy kanyar `lightNearM`-en belül. */
+  nearStopPoint: boolean;
+  /** A hátralévő úton van heavy / severe szakasz: a helyi ETA-korrekció addig nem jár le. */
+  heavyAhead: boolean;
+}
+
 /**
- * Dugó-állapot a mért haladásból. A megtett utat az útvonal menti legtávolabbi elért pont növekedése adja (álló
- * helyzetben az oda-vissza GPS-zaj nem „halad”); útvonal-csere után `rebase()`. Belépés: legalább `jamWindowMs` adat, és az ablak átlaga a várt tempó
- * `jamSlowFraction`-ja alatt. Kilépés: legalább `jamClearM` megszakítás nélkül a várt tempó `jamNearFraction`-ja fölött.
+ * Dugó-állapot a mért haladásból (AW23). A megtett utat az útvonal menti legtávolabbi elért pont növekedése adja (álló
+ * helyzetben az oda-vissza GPS-zaj nem „halad”); útvonal-csere után `rebase()`. Az ablak „érvényes” időben mér: a lámpa-türelem
+ * alatti állás nem számít bele. Belépés: `jamWindowMs` érvényes idő átlaga a megengedett sebesség `jamSlowFraction`-ja alatt, és
+ * az ablak előtt már haladtunk. Kilépés: az útkategória szerinti ablakban a megengedett sebesség `jamClearFraction`-ja fölött.
  */
 export class JamDetector {
   private odo = 0;
   /** Az útvonal mentén eddig elért legtávolabbi pont: csak ennek növekedése haladás (a zaj oda-vissza nem). */
   private maxAlong: number | null = null;
-  private hist: { t: number; odo: number }[] = [];
+  /** Érvényes idő (ms): a lámpa-türelem nélkül. */
+  private eff = 0;
+  private lastT: number | null = null;
+  private hist: { eff: number; odo: number }[] = [];
+  private hold: { odo: number; ms: number } | null = null;
   private jam = false;
-  private clear: { odo: number; t: number } | null = null;
-  private lastClearAvg: number | null = null;
+  /** A tempó helyreállt, de a hátralévő úton még van heavy / severe: az ETA-korrekció marad. */
+  private etaHold = false;
+  private lastClear: { avgMps: number; m: number } | null = null;
 
-  /** Új fix: `t` (ms), útvonal menti hely (m), pillanatnyi sebesség (m/s; `null`: a haladásból), várt tempó (m/s). */
-  update(t: number, alongM: number, speedMps: number | null, expectedMps: number): JamChange {
-    const prev = this.hist.at(-1);
+  /** Új fix: `t` (ms), útvonal menti hely (m), pillanatnyi sebesség (m/s; `null`: a haladásból). */
+  update(t: number, alongM: number, speedMps: number | null, ctx: JamContext): JamChange {
+    const before = this.odo;
     if (this.maxAlong !== null) this.odo += Math.max(0, alongM - this.maxAlong);
     this.maxAlong = Math.max(this.maxAlong ?? alongM, alongM);
-    this.hist.push({ t, odo: this.odo });
-    while (this.hist.length > 2 && this.hist[1]!.t <= t - TRAFFIC.jamWindowMs) this.hist.shift();
-    const speed = speedMps ?? (prev && t > prev.t ? ((this.odo - prev.odo) * 1000) / (t - prev.t) : 0);
+    const dt = this.lastT === null ? 0 : Math.max(0, t - this.lastT);
+    const speed = speedMps ?? (dt > 0 ? ((this.odo - before) * 1000) / dt : 0);
+    this.lastT = t;
+    // lámpa-türelem: csak nem autópálya-jellegű úton, pontonként legfeljebb `lightPatienceMs`
+    let counted = true;
+    if (!ctx.highway && ctx.nearStopPoint && speed <= TRAFFIC.jamStoppedMps) {
+      if (!this.hold || this.odo - this.hold.odo > TRAFFIC.lightNearM) this.hold = { odo: this.odo, ms: 0 };
+      this.hold.ms += dt;
+      counted = this.hold.ms > TRAFFIC.lightPatienceMs;
+    } else if (this.hold && this.odo - this.hold.odo > TRAFFIC.lightNearM) this.hold = null;
+    if (counted) this.eff += dt;
+    this.hist.push({ eff: this.eff, odo: this.odo });
+    const keep = Math.max(TRAFFIC.jamWindowMs, TRAFFIC.jamClearHighwayMs);
+    while (this.hist.length > 2 && this.hist[1]!.eff <= this.eff - keep) this.hist.shift();
     if (!this.jam) {
-      const avg = this.avgMps;
-      const span = t - this.hist[0]!.t;
-      if (avg !== null && span >= TRAFFIC.jamWindowMs - 1000 && avg < TRAFFIC.jamSlowFraction * expectedMps) {
+      if (this.etaHold && !ctx.heavyAhead) this.etaHold = false;
+      const w = this.windowOf(TRAFFIC.jamWindowMs);
+      if (w && w.startOdo >= TRAFFIC.jamStartMovedM && w.avgMps < TRAFFIC.jamSlowFraction * ctx.limitMps) {
         this.jam = true;
-        this.clear = null;
+        this.etaHold = false;
         return 'enter';
       }
       return null;
     }
-    if (speed >= TRAFFIC.jamNearFraction * expectedMps) {
-      this.clear ??= { odo: this.odo, t };
-      if (this.odo - this.clear.odo >= TRAFFIC.jamClearM) {
-        this.lastClearAvg = t > this.clear.t ? ((this.odo - this.clear.odo) * 1000) / (t - this.clear.t) : speed;
-        this.jam = false;
-        this.clear = null;
-        // a dugós ablak ne indítson azonnal újra
-        this.hist = [{ t, odo: this.odo }];
-        return 'exit';
-      }
-    } else this.clear = null;
+    const w = this.windowOf(ctx.highway ? TRAFFIC.jamClearHighwayMs : TRAFFIC.jamClearCityMs);
+    if (w && w.m >= (ctx.highway ? TRAFFIC.jamClearHighwayM : TRAFFIC.jamClearCityM) && w.avgMps >= TRAFFIC.jamClearFraction * ctx.limitMps) {
+      this.lastClear = { avgMps: w.avgMps, m: w.m };
+      this.jam = false;
+      this.etaHold = ctx.heavyAhead;
+      // a dugós ablak ne indítson azonnal újra
+      this.hist = [{ eff: this.eff, odo: this.odo }];
+      return 'exit';
+    }
     return null;
+  }
+
+  /** A legutóbbi `ms` érvényes idő átlaga és hossza; `null`, ha még nincs ennyi adat. */
+  private windowOf(ms: number): { avgMps: number; m: number; startOdo: number } | null {
+    const b = this.hist.at(-1);
+    if (!b) return null;
+    let a: { eff: number; odo: number } | null = null;
+    for (const h of this.hist) {
+      if (h.eff > b.eff - ms) break;
+      a = h;
+    }
+    if (!a || b.eff <= a.eff) return null;
+    const m = b.odo - a.odo;
+    return { avgMps: (m * 1000) / (b.eff - a.eff), m, startOdo: a.odo };
   }
 
   /** Új útvonal: a hely mostantól az új útvonalon mérődik (a megtett út megmarad). */
@@ -130,27 +193,140 @@ export class JamDetector {
     this.maxAlong = null;
   }
 
+  /** „Nem” válasz: a sofőr szerint nincs dugó, az állapot és az ablak törlődik. */
+  dismiss(): void {
+    this.jam = false;
+    this.etaHold = false;
+    const last = this.hist.at(-1);
+    this.hist = last ? [last] : [];
+  }
+
   get active(): boolean {
     return this.jam;
   }
 
-  /** Az utolsó (legfeljebb `jamWindowMs`-os) ablak átlaga (m/s); egy mintánál `null`. */
+  /** A helyi ETA-korrekció él: dugóban, vagy amíg a hátralévő úton heavy / severe szakasz van. */
+  get correcting(): boolean {
+    return this.jam || this.etaHold;
+  }
+
+  /** Az utolsó ablak átlaga (m/s); egy mintánál `null`. */
   get avgMps(): number | null {
     const a = this.hist[0];
     const b = this.hist.at(-1);
-    if (!a || !b || b.t <= a.t) return null;
-    return ((b.odo - a.odo) * 1000) / (b.t - a.t);
+    if (!a || !b || b.eff <= a.eff) return null;
+    return ((b.odo - a.odo) * 1000) / (b.eff - a.eff);
   }
 
   /** A dugó végét jelző szakasz átlaga (m/s) – a „feloldva” közösségi mintához. */
   get clearedAvgMps(): number | null {
-    return this.lastClearAvg;
+    return this.lastClear?.avgMps ?? null;
+  }
+
+  /** A dugó végét jelző szakasz hossza (m). */
+  get clearedM(): number {
+    return this.lastClear?.m ?? TRAFFIC.jamClearCityM;
   }
 
   /** A megtett út (m) – a minta hosszához. */
   get odometerM(): number {
     return this.odo;
   }
+}
+
+// ---------------------------------------------------------------------------
+// A megengedett sebesség, útkategória, lámpák
+// ---------------------------------------------------------------------------
+
+/** Az útkategória országos alapértelmezése (km/h), ha a szakaszon nincs táblaadat (magyar értékek: a célpiac). */
+export const DEFAULT_LIMIT_KMH = { motorway: 130, trunk: 110, rural: 90, city: 50 } as const;
+
+const HIGHWAY_CLASSES = ['motorway', 'motorway_link', 'trunk', 'trunk_link'];
+const RURAL_CLASSES = ['primary', 'primary_link', 'secondary', 'secondary_link'];
+
+/** A lépés a hely alatt. */
+export function stepAt(route: NavRoute, alongM: number): NavStep | undefined {
+  let found = route.steps[0];
+  for (const s of route.steps) {
+    if (s.startM > alongM) break;
+    found = s;
+  }
+  return found;
+}
+
+/** A nyers Directions-tempó (km/h) a szakaszon: útkategória nélkül ebből becsülünk. */
+const rawKmhAt = (route: NavRoute, i: number): number => {
+  const b = i + 1 < route.segStartM.length ? route.segStartM[i + 1]! : route.distanceM;
+  const d = route.segDurationS[i] ?? 0;
+  return d > 0 ? ((b - route.segStartM[i]!) / d) * 3.6 : 0;
+};
+
+/** A megengedett sebesség (km/h) a helyen: a tábla (maxspeed), ennek hiányában az útkategória alapértelmezése. */
+export function permittedKmhAt(route: NavRoute, alongM: number): number {
+  const i = segmentAt(route, alongM);
+  const sign = route.segLimitKmh[i];
+  if (sign !== null && sign !== undefined) return sign;
+  const cls = stepAt(route, alongM)?.roadClass ?? null;
+  if (cls === 'motorway' || cls === 'motorway_link') return DEFAULT_LIMIT_KMH.motorway;
+  if (cls === 'trunk' || cls === 'trunk_link') return DEFAULT_LIMIT_KMH.trunk;
+  if (cls !== null) return RURAL_CLASSES.includes(cls) ? DEFAULT_LIMIT_KMH.rural : DEFAULT_LIMIT_KMH.city;
+  const raw = rawKmhAt(route, i);
+  return raw >= 90 ? DEFAULT_LIMIT_KMH.motorway : raw >= 60 ? DEFAULT_LIMIT_KMH.rural : DEFAULT_LIMIT_KMH.city;
+}
+
+/** Autópálya-jellegű-e az út a helyen (autópálya, autóút; kategória nélkül a 100 km/h feletti tábla). */
+export function highwayAt(route: NavRoute, alongM: number): boolean {
+  const cls = stepAt(route, alongM)?.roadClass ?? null;
+  return cls !== null ? HIGHWAY_CLASSES.includes(cls) : permittedKmhAt(route, alongM) >= 100;
+}
+
+/** Jelzőlámpa, kereszteződés vagy kanyar `lightNearM`-en belül (a Directions-lépések kereszteződései és manőverei). */
+export function nearStopPoint(route: NavRoute, alongM: number): boolean {
+  return route.stopPointsM.some((m) => Math.abs(m - alongM) <= TRAFFIC.lightNearM);
+}
+
+/** A hátralévő úton van-e heavy / severe szakasz. */
+export function heavyAhead(route: NavRoute, alongM: number): boolean {
+  for (let i = segmentAt(route, alongM); i < route.segCongestion.length; i++) {
+    const c = route.segCongestion[i];
+    if (c === 'heavy' || c === 'severe') return true;
+  }
+  return false;
+}
+
+/**
+ * A dugó-többlet (s) a hátralévő úton – EGY számítás az útvonalválasztónak és a navigációnak (AW23). Heavy / severe szakasz
+ * nélkül 0 (nincs felirat térképi szakasz nélkül). Különben a hátralévő idő a tipikus fölött (a lépések `duration_typical`-ja;
+ * ha nincs, a dugós idő fele), legfeljebb a dugós szakaszok ideje és a hátralévő idő `delayMaxFraction`-ja.
+ */
+export function routeDelayS(route: NavRoute, alongM = 0): number {
+  const n = route.segDurationS.length;
+  const first = Math.min(n - 1, segmentAt(route, alongM));
+  let remS = 0;
+  let heavyS = 0;
+  for (let i = first; i < n; i++) {
+    const a = route.segStartM[i]!;
+    const b = i + 1 < route.segStartM.length ? route.segStartM[i + 1]! : route.distanceM;
+    const part = i === first && b > a ? Math.max(0, Math.min(1, (b - alongM) / (b - a))) : 1;
+    const d = (route.segDurationS[i] ?? 0) * part;
+    remS += d;
+    const c = route.segCongestion[i];
+    if (c === 'heavy' || c === 'severe') heavyS += d;
+  }
+  if (heavyS <= 0) return 0;
+  let typicalS: number | null = 0;
+  for (const s of route.steps) {
+    const end = s.startM + s.distanceM;
+    if (end <= alongM) continue;
+    if (s.durationTypicalS === null) {
+      typicalS = null;
+      break;
+    }
+    typicalS += s.durationTypicalS * (s.startM >= alongM || s.distanceM <= 0 ? 1 : (end - alongM) / s.distanceM);
+  }
+  if (typicalS === null && route.typicalDurationS !== null) typicalS = (route.typicalDurationS * Math.max(0, route.distanceM - alongM)) / (route.distanceM || 1);
+  const excess = typicalS === null ? heavyS / 2 : Math.max(0, remS - typicalS);
+  return Math.round(Math.min(excess, heavyS, TRAFFIC.delayMaxFraction * remS));
 }
 
 // ---------------------------------------------------------------------------
