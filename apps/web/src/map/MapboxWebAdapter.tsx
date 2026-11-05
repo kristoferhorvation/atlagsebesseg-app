@@ -188,8 +188,8 @@ class MapController {
       showPointOfInterestLabels: false,
       showTransitLabels: false,
       showPedestrianRoads: false,
-      // AW23: a közeli, döntött kamera elé nem kerülhet 3D-s épület (nagy, egyszínű sötét tömb a jelölő körül)
-      show3dObjects: false,
+      // INV-01: Mapbox Standard 3D épületekkel (AW24: az AW23 jóváhagyás nélküli kikapcsolása visszavonva)
+      show3dObjects: true,
     });
     this.blankStyle = base.blank;
     this.map = new mapboxgl.Map({

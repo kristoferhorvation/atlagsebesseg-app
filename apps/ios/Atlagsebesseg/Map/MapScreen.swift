@@ -288,8 +288,8 @@ struct MapScreen: View {
             theme: mapThemeIsMonochrome(model.settings.terkep) ? .monochrome : .default,
             lightPreset: StandardLightPreset(rawValue: preset.rawValue),
             showPointOfInterestLabels: false,
-            // AW23: a közeli, döntött kamera elé nem kerülhet 3D-s épület (nagy, egyszínű sötét tömb a jelölő körül)
-            show3dObjects: false
+            // INV-01: Mapbox Standard 3D épületekkel (AW24: az AW23 jóváhagyás nélküli kikapcsolása visszavonva)
+            show3dObjects: true
         ))
         // attribúció a felső sarkokban (a kártya ne takarja), mint a weben
         .ornamentOptions(OrnamentOptions(
