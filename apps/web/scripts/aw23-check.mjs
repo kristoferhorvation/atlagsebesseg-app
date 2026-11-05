@@ -143,6 +143,27 @@ try {
     }
   }
 
+  if (!only || only === 'standalone') {
+    // kezdőképernyős mód és böngésző: a térkép a teljes kijelzőt kitölti, az alsó sáv alja a biztonsági sáv fölött 12 px-re (mint iOS-en), nincs dupla sáv
+    for (const [w, h, safe] of [[375, 667, 0], [402, 874, 34], [440, 956, 34]]) {
+      for (const mode of ['standalone', 'safari']) {
+        const p = await openPage({ port: chrome.port, base: BASE, outDir: OUT, map: 'blank' });
+        // standalone: a nézetablak a rendszercsíknyival rövidebb a kijelzőnél (az iPhone 16 Pro Max-en mért hiba)
+        await p.send('Emulation.setDeviceMetricsOverride', { width: w, height: mode === 'standalone' ? h - safe : h, screenWidth: w, screenHeight: h, deviceScaleFactor: 2, mobile: true });
+        await p.send('Emulation.setSafeAreaInsetsOverride', { insets: { top: 0, left: 0, right: 0, bottom: safe } });
+        if (mode === 'standalone') await p.send('Page.addScriptToEvaluateOnNewDocument', { source: `Object.defineProperty(navigator, 'standalone', { value: true });` });
+        await p.goto('/?navsim&stage=nav&panel=0&speed=1&at=60');
+        await p.waitFor(q('.nav-bottom'), 60000, 'alsó sáv');
+        await sleep(800);
+        const m = await p.evaluate(`({ app: ${q('.app')}.getBoundingClientRect().height, map: ${q('.app > .map')}.getBoundingClientRect().height, bar: ${q('.nav-bottom')}.getBoundingClientRect().bottom })`);
+        const full = mode === 'standalone' ? h : h;
+        check(`${w}x${h} ${mode}: a térkép a teljes kijelzőt kitölti`, m.app === full && m.map === full, JSON.stringify(m));
+        check(`${w}x${h} ${mode}: az alsó sáv alja a biztonsági sáv fölött 12 px-re`, m.bar === full - safe - 12, JSON.stringify(m));
+        await p.close();
+      }
+    }
+  }
+
   if (!only || only === 'wrap') {
     // AW23: ami nincs sortörésre tervezve, az nem törik: minden nyelven, a legkisebb és a legnagyobb méreten
     const ONE_LINE = ['.compact-row .body', '.nav-bottom-eta .fit-text', '.route-opt-tag', '.route-opt-main > span.num', '.route-opt-main b', '.nav-delay', '.cruise-status', '.greeting', '.nav-then span', '.pill-text', '.nav-strip .nav-road'];

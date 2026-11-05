@@ -1,5 +1,6 @@
 import { formatClock, formatDistance, formatTripDuration, routeTimeline, routeTagText, t, type AltChoice, type NavView, type Settings, type TimelineEvent, type TimelineKind, type TKey } from '@atlagsebesseg/app-logic';
 import { useLayoutEffect, useMemo, useState } from 'react';
+import { appHeight } from '../sw/standalone';
 import { Icon, type IconName } from './Icon';
 
 const EVENT_ICON: Record<TimelineKind, IconName> = { section: 'rendorseg', camera: 'cam_speed', planned: 'rendorseg', jam: 'dugo', report: 'report' };
@@ -40,7 +41,7 @@ export function NavPanel({
   const [bottom, setBottom] = useState(112);
   useLayoutEffect(() => {
     const bar = document.querySelector('.nav-bottom');
-    if (bar) setBottom(window.innerHeight - bar.getBoundingClientRect().top + 12);
+    if (bar) setBottom(appHeight() - bar.getBoundingClientRect().top + 12);
   }, [view.delayMin !== null]);
   const events = useMemo<TimelineEvent[]>(
     () => routeTimeline(view.trafficRoute, view.trafficAlongM, view.enforcement.filter((e) => view.trafficAlongM >= 0 && e.startM > view.alongM).map((e) => ({ ...e, startM: e.startM - view.alongM + view.trafficAlongM })), reports),

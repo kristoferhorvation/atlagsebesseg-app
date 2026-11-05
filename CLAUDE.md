@@ -533,6 +533,17 @@ Gyökér: `npm test` és `npm run typecheck` minden csomagra; `npm run test:all`
   és a helyi ág (`git branch -d`) törlése. Régi worktree-t csak akkor törlünk, ha nincs benne commitolatlan vagy
   pusholatlan változás.
 
+## Kör-rend (Kristof, 2026-11-05)
+A minőségből semmit nem engedünk, az időt a sorrend adja. Egy körön belül mindig ebben a sorrendben:
+1. **Logika:** TS + Swift, páros tesztek (`vitest`, `xcodebuild test`).
+2. **Képi gyorsellenőrzés:** az érintett nézetek képe szemmel, mielőtt nehéz kapu indul.
+3. **`--state` paritás:** `npm run parity -- --state <érintett állapotok>`, a teljes kapu helyett.
+4. **Teljes kapu egyszer, a végén**, a lezárt kódon: `npm run parity`, teljes nav-shots, `nav-shots:views`, `view-shots`, `i18n:check`.
+
+- **Köztes futásnál egy méret elég** (iOS: Pro Max, web: 430). **A záró commiton mind a három méret kötelező**, a tesztekkel és a képekkel együtt.
+- Nagy prompt több csomagban készül (pl. GPS és kamera, dugó és keresés, gombok és panel), csomagonként a fenti 1–3. lépéssel.
+- A szimulátor-hibát (`simctl boot` 22, „failed to launch”) újrapróba kezeli, nem app-hiba; új futás előtt a naplót ürítjük.
+
 ## Zárójelentés (minden kör végén)
 1. **Mi készült**
 2. **Mi nem és miért**

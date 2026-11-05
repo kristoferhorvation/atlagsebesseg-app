@@ -75,6 +75,7 @@ import { directionsClient, requestCounter, resolvePlace, searchPlaces } from './
 import { loadRouteData } from './nav/routeData';
 import { usePlaces, useNavigation } from './nav/useNavigation';
 import { useLanguage } from './i18n';
+import { appHeight } from './sw/standalone';
 import { useFollow } from './hooks/useFollow';
 import { useGeolocation, type GeoStatus } from './hooks/useGeolocation';
 import { useLightPreset } from './hooks/useLightPreset';
@@ -537,7 +538,7 @@ function Drive({ map }: { map: WebMapAdapter }) {
       // AW23: a felső gombsor (és fölötte a lebegő kártyák) a gombsor fölött
       const upper = hud.querySelector<HTMLElement>('.actions-upper');
       bottomTop =
-        window.innerHeight - hud.offsetHeight - (upper ? upper.offsetHeight + 12 : 0) - (float && float.offsetHeight > 0 ? float.offsetHeight + 12 : 0) + (strip ? strip.offsetHeight + 12 : 0);
+        appHeight() - hud.offsetHeight - (upper ? upper.offsetHeight + 12 : 0) - (float && float.offsetHeight > 0 ? float.offsetHeight + 12 : 0) + (strip ? strip.offsetHeight + 12 : 0);
     }
     setStepStrip(navStepStrip({ measuring: measuringLayout, cardBottom: card ? card.offsetTop + card.offsetHeight : null, bottomTop, gap: 12 }));
   });
@@ -550,7 +551,7 @@ function Drive({ map }: { map: WebMapAdapter }) {
     let prevH: number | null = null;
     const reduced = matchMedia('(prefers-reduced-motion: reduce)');
     const update = () => {
-      const h = window.innerHeight;
+      const h = appHeight();
       const top = h - el.offsetHeight;
       // a legfelső alsó kártyához mérünk (AW17: a mérőkártya az alsó sáv fölött; nélküle az alsó sáv): a
       // tábla és a gombok a szélén vannak, középen a térkép látszik; elrendezés szerint (offsetTop), mert a FLIP-animáció
@@ -796,7 +797,7 @@ function Drive({ map }: { map: WebMapAdapter }) {
       releaseFollow();
       const dLat = z.radiusM / 111_195;
       const dLon = dLat / Math.max(0.2, Math.cos((z.lat * Math.PI) / 180));
-      map.fitRoute({ points: [{ lat: z.lat + dLat, lon: z.lon + dLon }, { lat: z.lat - dLat, lon: z.lon - dLon }], padTop: 80, padBottom: Math.round(window.innerHeight * 0.55) });
+      map.fitRoute({ points: [{ lat: z.lat + dLat, lon: z.lon + dLon }, { lat: z.lat - dLat, lon: z.lon - dLon }], padTop: 80, padBottom: Math.round(appHeight() * 0.55) });
     },
     [map, releaseFollow],
   );

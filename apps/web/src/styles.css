@@ -55,9 +55,16 @@ select:focus-visible {
 
 /* ---------- rétegek ---------- */
 
+/*
+ * AW23: a kezdőképernyős (standalone) iOS-webappban a `position: fixed; inset: 0` a rendszercsík fölött ér véget: alatta fekete csík maradt, a biztonsági
+ * sáv kétszer számított. A magasság kifejezett: standalone módban a teljes kijelző (`--app-h`, sw/standalone.ts), a böngészőben 100dvh.
+ */
 .app {
   position: fixed;
-  inset: 0;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: var(--app-h, 100dvh);
   overflow: hidden;
   --tone: var(--color-brand);
 }
@@ -187,7 +194,7 @@ select:focus-visible {
   left: 0;
   right: 0;
   bottom: 0;
-  padding: 0 max(12px, env(safe-area-inset-right)) calc(env(safe-area-inset-bottom) + 12px) max(12px, env(safe-area-inset-left));
+  padding: 0 max(12px, env(safe-area-inset-right)) calc(env(safe-area-inset-bottom) + var(--space-3)) max(12px, env(safe-area-inset-left));
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -1054,8 +1061,9 @@ button.pill::after {
 
 /* ---------- lapok ---------- */
 
+/* AW23: a `.app`-hoz mérve (standalone módban a nézetablak rövidebb lehet a kijelzőnél) */
 .sheet-backdrop {
-  position: fixed;
+  position: absolute;
   inset: 0;
   background: rgba(0, 0, 0, 0.45);
   -webkit-backdrop-filter: blur(3px);
@@ -1065,7 +1073,7 @@ button.pill::after {
 }
 
 .sheet {
-  position: fixed;
+  position: absolute;
   left: 8px;
   right: 8px;
   bottom: calc(env(safe-area-inset-bottom) + 8px);
@@ -1822,7 +1830,7 @@ a.list-row {
 
 /* kereső: teljes képernyő */
 .search-screen {
-  position: fixed;
+  position: absolute;
   inset: 0;
   z-index: 30;
   display: flex;

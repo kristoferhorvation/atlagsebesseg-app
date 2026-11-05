@@ -181,6 +181,16 @@ struct ParityTests {
         #expect(!source[hud..<hudEnd].contains("ManualMini"), "a ManualMini nincs az alsó sorban")
     }
 
+    @Test("AW23: az alsó sáv alja a biztonsági sáv fölött ugyanannyira, weben és iOS-en")
+    func alsoSav() throws {
+        let s = try ParitySpec.load("nav-bottom")
+        let b = try s.part("root").box
+        // 17 Pro: 874 pt, alsó biztonsági sáv 34 pt
+        #expect(b.y + b.h == 874 - 34 - Tokens.Space.s3)
+        let source = try String(contentsOf: Repo.iosDir.appendingPathComponent("Atlagsebesseg/UI/DriveView.swift"), encoding: .utf8)
+        #expect(source.contains(".padding(.bottom, Tokens.Space.s3)"), "iOS: a biztonsági sáv fölött 12 pt")
+    }
+
     @Test("AW23: a ManualMini közvetlenül a „Vissza a helyemre” helyétől balra; a Bejelentés nem mozdul")
     func visszaMini() throws {
         let s = try ParitySpec.load("recenter-mini")

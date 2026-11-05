@@ -69,7 +69,7 @@
       "selector": ".nav-bottom-eta b",
       "box": {
         "x": 113,
-        "y": 760,
+        "y": 763.42,
         "w": 123.17,
         "h": 33.59
       },
@@ -95,17 +95,17 @@
       }
     },
     "remaining": {
-      "selector": ".nav-bottom-eta span",
+      "selector": ".nav-bottom-eta .fit-text",
       "box": {
         "x": 113,
-        "y": 793.59,
+        "y": 797.02,
         "w": 123.17,
-        "h": 20.39
+        "h": 13.55
       },
       "style": {
-        "fontSize": "17px",
+        "fontSize": "11.3027px",
         "fontWeight": "400",
-        "lineHeight": "20.4px",
+        "lineHeight": "13.5632px",
         "letterSpacing": "normal",
         "color": "rgba(244, 246, 250, 0.64)",
         "backgroundColor": "rgba(0, 0, 0, 0)",
