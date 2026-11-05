@@ -45,7 +45,7 @@
         "h": 56
       },
       "style": {
-        "fontSize": "20px",
+        "fontSize": "18.09px",
         "fontWeight": "600",
         "lineHeight": "normal",
         "letterSpacing": "normal",
@@ -56,11 +56,11 @@
         "borderTopColor": "rgb(0, 0, 0)",
         "borderTopLeftRadius": "18px",
         "paddingTop": "0px",
-        "paddingRight": "0px",
+        "paddingRight": "10px",
         "paddingBottom": "0px",
-        "paddingLeft": "0px",
-        "rowGap": "10px",
-        "columnGap": "10px",
+        "paddingLeft": "10px",
+        "rowGap": "8px",
+        "columnGap": "8px",
         "boxShadow": "none",
         "opacity": "1"
       }

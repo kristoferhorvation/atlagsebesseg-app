@@ -66,7 +66,7 @@
   "hud.manualDone.distanceEst": "dystans (częściowo szacowany)",
   "hud.manualDone.time": "czas",
   "hud.none.aria": "Brak odcinka pomiarowego",
-  "hud.none.near": "Brak odcinka pomiarowego w pobliżu",
+  "hud.none.near": "Brak odcinka w pobliżu",
   "hud.none.waiting": "Czekam na sygnał GPS…",
   "source.verified": "Zweryfikowany",
   "source.osm": "Źródło: OpenStreetMap",

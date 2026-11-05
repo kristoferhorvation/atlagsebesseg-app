@@ -287,7 +287,9 @@ struct MapScreen: View {
         .mapStyle(.standard(
             theme: mapThemeIsMonochrome(model.settings.terkep) ? .monochrome : .default,
             lightPreset: StandardLightPreset(rawValue: preset.rawValue),
-            showPointOfInterestLabels: false
+            showPointOfInterestLabels: false,
+            // AW23: a közeli, döntött kamera elé nem kerülhet 3D-s épület (nagy, egyszínű sötét tömb a jelölő körül)
+            show3dObjects: false
         ))
         // attribúció a felső sarkokban (a kártya ne takarja), mint a weben
         .ornamentOptions(OrnamentOptions(
@@ -320,10 +322,13 @@ struct MapScreen: View {
         .onCameraChanged { e in
             // AOS14: a látható téglalap a bejelentések lekéréséhez (csempe-rácsra kerekítve – kis mozdulat nem kér újra)
             if let m = proxy.map {
-                let r = m.coordinateBounds(for: CameraOptions(cameraState: e.cameraState))
-                model.setReportView(BBox(south: r.south, west: r.west, north: r.north, east: r.east))
+                // AW23: a teljes képernyő: a követő kamera kitöltése (a kép felső része) is látszik
+                let screen = UIScreen.main.bounds.size
+                let corners = [CGPoint.zero, CGPoint(x: screen.width, y: 0), CGPoint(x: 0, y: screen.height), CGPoint(x: screen.width, y: screen.height)].map { m.coordinate(for: $0) }
+                let box = BBox(south: corners.map(\.latitude).min()!, west: corners.map(\.longitude).min()!, north: corners.map(\.latitude).max()!, east: corners.map(\.longitude).max()!)
+                model.setReportView(box)
                 // AW20: a hőtérkép a látható részre és a zoomra (res-10 / res-8) számol
-                model.setHeatViewport(HeatViewport(zoom: e.cameraState.zoom, bbox: BBox(south: r.south, west: r.west, north: r.north, east: r.east)))
+                model.setHeatViewport(HeatViewport(zoom: e.cameraState.zoom, bbox: box))
                 // mozgás közben ritkítva (a pontok számítása ne akadályozza a gesztust); a végén az `onMapIdle` pontosít
                 let now = Date().timeIntervalSince1970
                 if now - heatBuiltAt > 0.4 { rebuildHeat() }

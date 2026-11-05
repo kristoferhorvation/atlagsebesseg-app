@@ -1,7 +1,7 @@
 import { useLayoutEffect, useRef, type ReactNode } from 'react';
 
 /** AW23: egysoros felirat: soha nem törik; ha nem fér ki, a betű arányosan kisebb (legfeljebb `minScale`-ig, mint az iOS `minimumScaleFactor`). */
-export function FitText({ className, minScale = 0.6, children }: { className?: string; minScale?: number; children: ReactNode }) {
+export function FitText({ className, minScale = 0.5, children }: { className?: string; minScale?: number; children: ReactNode }) {
   const ref = useRef<HTMLDivElement>(null);
   useLayoutEffect(() => {
     const el = ref.current;

@@ -1544,7 +1544,7 @@ describe('AW12: újratervezés, kamera, „Utána”, érkezés, követő zoom, 
     expect(followZoom(180)).toBe(14.8);
     expect(followZoom(NaN)).toBe(17.2);
     // a jelölő a legfelső alsó kártya fölött, a képernyő alsó részén, minden állapotban ugyanígy
-    expect(followFocusY(800, 932)).toBeCloseTo((800 - 56) / 932, 10);
+    expect(followFocusY(800, 932)).toBeCloseTo((800 - 112) / 932, 10);
     expect(followFocusY(930, 932)).toBe(0.8);
     expect(followFocusY(100, 932)).toBe(0.18);
   });

@@ -169,7 +169,8 @@ export const camera = {
   pitch: 58,
   focusMaxY: 0.8,
   focusMinY: 0.18,
-  focusGap: 56,
+  /** A kerek gombok (12 + 64 + 12) és a jelölő kúpja fölé. */
+  focusGap: 112,
   /** A jelölő helyének, a zoomnak és a visszaállásnak az ideje (ms). */
   focusTau: 150,
   zoomTau: 1500,

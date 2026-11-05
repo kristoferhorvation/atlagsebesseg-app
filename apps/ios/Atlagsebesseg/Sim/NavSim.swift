@@ -50,6 +50,9 @@ enum NavSim {
         var out = main
         out.segDurationS = main.segDurationS.enumerated().map { idx.contains($0.offset) ? $0.element * k : $0.element }
         out.durationS = main.durationS + jam.extraS
+        // a dugó nélküli idők a tipikusak: a többlet pontosan az `extraS`
+        out.typicalDurationS = main.durationS
+        out.steps = main.steps.map { var s = $0; s.durationTypicalS = s.durationS; return s }
         out.segCongestion = main.segCongestion.enumerated().map { idx.contains($0.offset) ? .severe : $0.element }
         return out
     }

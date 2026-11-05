@@ -57,6 +57,10 @@ try {
           if (vissza) await drag(p, w, mode === 'nav' ? '.nav-top' : '.pills');
           await sleep(500);
           const rep = await p.evaluate(rectOf('.actions .report'));
+          // a lépés-sáv a manőverkártya magasságától függ (a lejátszás halad), nem a két gombtól: a mérés nélküle számol
+          const strip = await p.evaluate(`(() => { const e = ${q('.nav-strip')}; return e ? e.offsetHeight + 12 : 0; })()`);
+          rep.y += strip;
+          rep.b += strip;
           const hudH = await p.evaluate(`${q('.hud')}.offsetHeight`);
           const slot = await p.evaluate(rectOf('.recenter-slot'));
           const miniR = await p.evaluate(rectOf('.manual-mini'));
@@ -66,13 +70,51 @@ try {
           base[key] ??= rep;
           check(`${name}: az alsó sor nem mozdul`, rep.x === base[key].x && rep.y === base[key].y, JSON.stringify({ rep, base: base[key], hudH }));
           check(`${name}: a Bejelentés a jobb szélen`, w - rep.r === 12, JSON.stringify(rep));
-          check(`${name}: a „Vissza a helyemre” helye pontosan a Bejelentés fölött`, slot.x === rep.x && rep.y - slot.b === 12, JSON.stringify({ slot, rep }));
+          check(`${name}: a „Vissza a helyemre” helye pontosan a Bejelentés fölött`, slot.x === rep.x && rep.y - strip - slot.b === 12, JSON.stringify({ slot, rep }));
           if (mini) check(`${name}: a ManualMini a hely mellett balra, 12 px-re`, slot.x - miniR.r === 12, JSON.stringify({ miniR, slot }));
           check(`${name}: semmi nem fedi egymást`, !overlap(miniR, card) && !overlap(miniR, sign) && !overlap(slot, sign) && !overlap(slot, card), JSON.stringify({ miniR, slot, sign, card }));
           await p.shot(`${DATE}-aw23-web-gombsor-${name}.png`);
           await p.close();
         }
       }
+    }
+  }
+
+  if (!only || only === 'views') {
+    // a kör képei: panel, kereső, útvonalválasztó, dugó-kérdés, kamera (valódi térkép 2D-ben)
+    const VIEWS = {
+      panel: { path: '/?navsim&stage=nav&panel=0&speed=1&at=60', ready: '.nav-bottom', click: '.nav-bottom-eta', after: '.nav-panel' },
+      valaszto: { path: '/?navsim&stage=picker&fasterAlt&panel=0&speed=1', ready: '.route-opt' },
+      ures: { path: '/?navsim&panel=0&heat=ki&speed=1', ready: '.compact-row' },
+      krusing: { path: '/?cruise&panel=0&heat=ki&speed=2&at=300', ready: '.cruise-status' },
+      navigacio: { path: '/?navsim&stage=nav&panel=0&speed=1&at=60', ready: '.nav-top' },
+      'dugo-kerdes': { path: '/?navsim&stage=nav&traffic&panel=0&speed=30', ready: '.jam-ask-row' },
+    };
+    for (const [w, h] of [[320, 667], [402, 874], [440, 956]]) {
+      for (const [name, v] of Object.entries(VIEWS)) {
+        const p = await openPage({ port: chrome.port, base: BASE, outDir: OUT, map: 'real' });
+        await p.send('Emulation.setDeviceMetricsOverride', { width: w, height: h, deviceScaleFactor: 2, mobile: true });
+        await p.goto(v.path);
+        await p.waitFor(q(v.ready), 120000, name);
+        if (v.click) {
+          await sleep(500);
+          await p.evaluate(`${q(v.click)}.click(); true`);
+          await p.waitFor(q(v.after), 10000, v.after);
+        }
+        await sleep(2500);
+        await p.shot(`${DATE}-aw23-web-${w}-${name}.png`);
+        await p.close();
+      }
+      // kereső, gépelt szöveggel
+      const p = await openPage({ port: chrome.port, base: BASE, outDir: OUT, map: 'real' });
+      await p.send('Emulation.setDeviceMetricsOverride', { width: w, height: h, deviceScaleFactor: 2, mobile: true });
+      await p.goto('/?navsim&panel=0&heat=ki&speed=1');
+      await p.waitFor(q('.compact-row'), 60000, 'térkép');
+      await p.evaluate(`${q('button[aria-label="Keresés"]')}.click(); true`);
+      await p.waitFor(q('.search-field input'), 10000, 'kereső');
+      await sleep(600);
+      await p.shot(`${DATE}-aw23-web-${w}-kereses.png`);
+      await p.close();
     }
   }
 
@@ -103,7 +145,7 @@ try {
 
   if (!only || only === 'wrap') {
     // AW23: ami nincs sortörésre tervezve, az nem törik: minden nyelven, a legkisebb és a legnagyobb méreten
-    const ONE_LINE = ['.compact-row .body', '.nav-bottom-eta span', '.route-opt-tag', '.route-opt-main > span.num', '.route-opt-main b', '.nav-delay', '.cruise-status', '.greeting', '.nav-then span', '.pill-text', '.nav-strip .nav-road'];
+    const ONE_LINE = ['.compact-row .body', '.nav-bottom-eta .fit-text', '.route-opt-tag', '.route-opt-main > span.num', '.route-opt-main b', '.nav-delay', '.cruise-status', '.greeting', '.nav-then span', '.pill-text', '.nav-strip .nav-road'];
     const VIEWS = { ures: ['/?navsim&panel=0&heat=ki&speed=1', '.compact-row'], krusing: ['/?cruise&panel=0&heat=ki&speed=2&at=300', '.cruise-status'], navigacio: ['/?navsim&stage=nav&panel=0&speed=1&at=60', '.nav-top'], valaszto: ['/?navsim&stage=picker&panel=0&speed=1', '.route-opt'] };
     for (const lang of ['hu', 'en', 'de', 'sk', 'cs', 'pl']) {
       for (const [w, h] of [[320, 667], [440, 956]]) {
@@ -114,7 +156,7 @@ try {
           await p.goto(path);
           await p.waitFor(q(ready), 60000, ready);
           await sleep(1200);
-          const broken = await p.evaluate(`(() => { const out = []; for (const s of ${JSON.stringify(ONE_LINE)}) for (const e of document.querySelectorAll(s)) { if (!e.offsetParent && getComputedStyle(e).position !== 'fixed') continue; const lh = parseFloat(getComputedStyle(e).lineHeight) || parseFloat(getComputedStyle(e).fontSize) * 1.25; const r = document.createRange(); r.selectNodeContents(e); const lines = new Set([...r.getClientRects()].filter((x) => x.width > 1).map((x) => Math.round(x.top / (lh / 2)))); if (e.scrollHeight > lh * 1.6 || e.getBoundingClientRect().height > lh * 1.6 || e.scrollWidth > e.clientWidth + 1 && getComputedStyle(e).overflow === 'hidden') out.push(s + ': ' + e.textContent.slice(0, 40)); } return out; })()`);
+          const broken = await p.evaluate(`(() => { const out = []; for (const s of ${JSON.stringify(ONE_LINE)}) for (const e of document.querySelectorAll(s)) { if (!e.offsetParent && getComputedStyle(e).position !== 'fixed') continue; const r = document.createRange(); r.selectNodeContents(e); const tops = [...r.getClientRects()].filter((x) => x.width > 1 && x.height > 1).map((x) => x.bottom); const lines = tops.length ? Math.max(...tops) - Math.min(...tops) : 0; const clipped = e.scrollWidth > e.clientWidth + 2 && getComputedStyle(e).overflow !== 'visible'; if (lines > 6 || clipped) out.push(s + ': ' + e.textContent.slice(0, 40)); } return out; })()`);
           check(`${lang} ${w} ${view}: nem törik`, broken.length === 0, JSON.stringify(broken));
           await p.close();
         }

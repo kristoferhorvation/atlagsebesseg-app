@@ -846,9 +846,9 @@ try {
   await pk.waitFor(`document.querySelectorAll('.route-opt').length === 2 && ${q('.route-label')}`, 30_000, 'útvonalválasztó');
   await sleep(1000);
   const pk1 = await pk.evaluate(`(() => { const o = [...document.querySelectorAll('.route-opt')]; return { tags: o.map((x) => x.querySelector('.route-opt-tag').innerText.trim()), times: o.map((x) => x.querySelector('b').innerText.trim()), checked: o.map((x) => x.getAttribute('aria-checked')), label: ${text('.route-label')} }; })()`);
-  check('AW18: a „Leggyorsabb” címke és az előválasztás a gyorsabb (2.) útvonalon, nem a Directions 0. útvonalán', pk1.tags.join('|') === 'Alternatíva 1|Leggyorsabb' && pk1.checked.join('|') === 'false|true', JSON.stringify(pk1));
+  check('AW23: a „Leggyorsabb” legfelül és előválasztva, akkor is, ha a Directions a 2. helyen adja', pk1.tags.join('|') === 'Leggyorsabb|Alternatíva 1' && pk1.checked.join('|') === 'true|false', JSON.stringify(pk1));
   check('AOS16: az útvonalválasztóban nincs kereső-gomb és köszöntés (csak az üres nézeten)', await pk.evaluate(`!document.querySelector('.top-search') && !document.querySelector('.greeting')`));
-  await pk.evaluate(`document.querySelectorAll('.route-opt')[0].click(); true`);
+  await pk.evaluate(`document.querySelectorAll('.route-opt')[1].click(); true`);
   await pk.waitFor(`/−1 perc/.test(${text('.route-label')})`, 10_000, 'címke a gyorsabbon').catch(() => undefined);
   const pk2 = await pk.evaluate(`({ label: ${text('.route-label')}, times: [...document.querySelectorAll('.route-opt b')].map((x) => x.innerText.trim()) })`);
   check('AW18: a lassabb kiválasztva a gyorsabb alternatíván „−1 perc” (a kártyák kerekített perceiből)', pk2.label === '−1 perc', JSON.stringify(pk2));

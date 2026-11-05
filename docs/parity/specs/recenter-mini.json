@@ -11,9 +11,9 @@
       "selector": ".actions",
       "box": {
         "x": 12,
-        "y": 633,
+        "y": 670,
         "w": 378,
-        "h": 101
+        "h": 64
       },
       "style": {
         "fontSize": "20px",
@@ -40,7 +40,7 @@
       "selector": ".manual-mini",
       "box": {
         "x": 202,
-        "y": 633,
+        "y": 557,
         "w": 112,
         "h": 101
       },
@@ -66,10 +66,10 @@
       }
     },
     "button": {
-      "selector": ".actions .recenter-above",
+      "selector": ".actions .recenter",
       "box": {
         "x": 326,
-        "y": 557,
+        "y": 594,
         "w": 64,
         "h": 64
       },
@@ -98,7 +98,7 @@
       "selector": ".actions .round-btn.report",
       "box": {
         "x": 326,
-        "y": 633,
+        "y": 670,
         "w": 64,
         "h": 64
       },

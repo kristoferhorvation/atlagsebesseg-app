@@ -40,7 +40,7 @@
       "selector": ".actions .recenter-slot",
       "box": {
         "x": 326,
-        "y": 678,
+        "y": 602,
         "w": 64,
         "h": 64
       },
@@ -69,7 +69,7 @@
       "selector": ".actions .recenter",
       "box": {
         "x": 326,
-        "y": 678,
+        "y": 602,
         "w": 64,
         "h": 64
       },
@@ -97,7 +97,7 @@
     "report": {
       "selector": ".actions .round-btn.report",
       "box": {
-        "x": 250,
+        "x": 326,
         "y": 678,
         "w": 64,
         "h": 64

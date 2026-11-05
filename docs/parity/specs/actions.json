@@ -39,7 +39,7 @@
     "button": {
       "selector": ".actions .round-btn",
       "box": {
-        "x": 98,
+        "x": 174,
         "y": 678,
         "w": 64,
         "h": 64
@@ -68,7 +68,7 @@
     "report": {
       "selector": ".actions .round-btn.report",
       "box": {
-        "x": 250,
+        "x": 326,
         "y": 678,
         "w": 64,
         "h": 64

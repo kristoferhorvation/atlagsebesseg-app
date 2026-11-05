@@ -69,14 +69,14 @@
       "selector": ".compact-row .body",
       "box": {
         "x": 118.89,
-        "y": 767,
+        "y": 780.83,
         "w": 250.11,
-        "h": 48
+        "h": 20.34
       },
       "style": {
-        "fontSize": "20px",
+        "fontSize": "16.9492px",
         "fontWeight": "500",
-        "lineHeight": "24px",
+        "lineHeight": "20.339px",
         "letterSpacing": "normal",
         "color": "rgba(244, 246, 250, 0.64)",
         "backgroundColor": "rgba(0, 0, 0, 0)",

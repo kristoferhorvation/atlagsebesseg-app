@@ -212,6 +212,13 @@ private extension View {
 struct SearchPanel: View {
     @Bindable var model: AppModel
     @FocusState private var focused: Bool
+    /// A billentyűzet magassága (pt).
+    @State private var keyboardH: CGFloat = 0
+
+    /// AW23: a találatok a billentyűzet fölött érnek véget, a mező mindig látszik.
+    private var listMaxH: CGFloat {
+        min(420, UIScreen.main.bounds.height - keyboardH - 280)
+    }
 
     var body: some View {
         VStack(spacing: Tokens.Space.s2) {
@@ -268,11 +275,19 @@ struct SearchPanel: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) { content }
                     .padding(.vertical, Tokens.Space.s2)
+                    // AW23: teljes szélesség, mint a mező (a webes `.search-body`)
+                    .frame(maxWidth: .infinity, alignment: .leading)
             }
             .scrollBounceBehavior(.basedOnSize)
-            .frame(maxHeight: 420)
+            .frame(maxHeight: listMaxH)
             .fixedSize(horizontal: false, vertical: true)
             .glass(radius: Tokens.Radius.r22, fill: Tokens.Colors.surfaceStrong)
+        }
+        // AW23: a billentyűzet nem tolja el a panelt: a mező a helyén marad (éles teszt: billentyűzet látszott, mező nem)
+        .ignoresSafeArea(.keyboard)
+        .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillChangeFrameNotification)) { n in
+            let end = (n.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? CGRect)?.minY ?? UIScreen.main.bounds.height
+            keyboardH = max(0, UIScreen.main.bounds.height - end)
         }
         .onAppear { focused = true }
     }
@@ -838,8 +853,11 @@ struct NavBottomBar: View {
             }
             VStack(alignment: .leading, spacing: 0) {
                 Text(formatClock(view.etaMs)).css(Tokens.FontSize.f28, Tokens.FontWeight.w700, line: 1.2, num: true).accessibilityLabel(t(.navEta))
+                // AW23: egysoros (a webes `FitText`): nem vágódik le, ha nem fér ki, arányosan kisebb
                 Text("\(formatTripDuration(view.remainingS)) · \(dist(view.remainingM, unit))")
                     .css(Tokens.FontSize.f17, Tokens.FontWeight.w400, line: 1.2, num: true)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.6)
                     .foregroundStyle(Tokens.Colors.textMuted)
                     .lineLimit(1)
                     .truncationMode(.tail)

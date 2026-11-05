@@ -2462,12 +2462,10 @@ button.nav-reroute {
   padding: 1px 10px;
 }
 
-.nav-bottom-eta span {
+.nav-bottom-eta .fit-text {
+  flex: none;
   font-size: 17px;
-  overflow: hidden;
-  text-overflow: ellipsis;
   color: var(--color-text-muted);
-  white-space: nowrap;
 }
 
 .nav-end {

@@ -188,6 +188,8 @@ class MapController {
       showPointOfInterestLabels: false,
       showTransitLabels: false,
       showPedestrianRoads: false,
+      // AW23: a közeli, döntött kamera elé nem kerülhet 3D-s épület (nagy, egyszínű sötét tömb a jelölő körül)
+      show3dObjects: false,
     });
     this.blankStyle = base.blank;
     this.map = new mapboxgl.Map({
@@ -459,8 +461,11 @@ class MapController {
     if (this.viewTimer !== undefined) return;
     this.viewTimer = setTimeout(() => {
       this.viewTimer = undefined;
-      const b = this.map.getBounds();
-      if (b) this.handlers.onView({ south: b.getSouth(), west: b.getWest(), north: b.getNorth(), east: b.getEast() }, this.map.getZoom());
+      // AW23: a teljes képernyő: a `getBounds` a követő kamera kitöltését (a kép felső részét) kihagyná
+      const c = this.map.getContainer();
+      const b = new mapboxgl.LngLatBounds();
+      for (const p of [[0, 0], [c.clientWidth, 0], [0, c.clientHeight], [c.clientWidth, c.clientHeight]] as [number, number][]) b.extend(this.map.unproject(p));
+      this.handlers.onView({ south: b.getSouth(), west: b.getWest(), north: b.getNorth(), east: b.getEast() }, this.map.getZoom());
     }, VIEW_DEBOUNCE_MS);
   };
 
@@ -709,7 +714,7 @@ class MapController {
 
   private frame = (t: number): void => {
     this.raf = requestAnimationFrame(this.frame);
-    const smooth = this.smoother.at(performance.now());
+    const smooth = this.smoother.at(t);
     if (!smooth) return;
     const dtZoom = this.lastFrameT ? Math.min(1000, t - this.lastFrameT) : 16;
     const zoomTarget = followZoom(smooth.speedMps * 3.6);

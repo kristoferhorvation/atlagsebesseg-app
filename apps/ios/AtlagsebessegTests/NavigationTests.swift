@@ -1657,7 +1657,7 @@ struct Aw12Tests {
         #expect(followZoom(180) == 14.8)
         #expect(followZoom(.nan) == 17.2)
         // a jelölő a legfelső alsó kártya fölött, a képernyő alsó részén, minden állapotban ugyanígy
-        #expect(close(followFocusY(800, 932), (800 - 56) / 932, 10))
+        #expect(close(followFocusY(800, 932), (800 - 112) / 932, 10))
         #expect(followFocusY(930, 932) == 0.8)
         #expect(followFocusY(100, 932) == 0.18)
     }

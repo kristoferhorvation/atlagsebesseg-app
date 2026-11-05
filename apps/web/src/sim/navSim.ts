@@ -58,7 +58,7 @@ function scaleRouteDuration(r: NavRoute, totalS: number): NavRoute {
  * lekérés (2 percenként / újratervezéskor) ezt `extraS` többletidővel mutatja; a vezetés ott araszol (álló–induló, a
  * gyorsulások `SIM_JAM_BURST_M`-esek, 500 m alatt), így a helyi dugó-érzékelés is bekapcsol.
  */
-export const SIM_JAM = { fromM: 2200, toM: 2800, extraS: 420 } as const;
+export const SIM_JAM = { fromM: 2200, toM: 3400, extraS: 420 } as const;
 const SIM_JAM_BURST_M = 85;
 
 /** A fő útvonal a dugóval: a `SIM_JAM` szakasz ideje `extraS`-sel több (a friss lekérések erre épülnek). */
@@ -68,7 +68,9 @@ export function jammedRoute(main: NavRoute, jam: { fromM: number; toM: number; e
   if (base <= 0) return main;
   const k = (base + jam.extraS) / base;
   const segDurationS = main.segDurationS.map((d, i) => (idx.includes(i) ? d * k : d));
-  return { ...main, segDurationS, durationS: main.durationS + jam.extraS, segCongestion: main.segCongestion.map((c, i) => (idx.includes(i) ? 'severe' : c)) };
+  // a dugó nélküli idők a tipikusak: a többlet pontosan az `extraS`
+  const steps = main.steps.map((s) => ({ ...s, durationTypicalS: s.durationS }));
+  return { ...main, steps, typicalDurationS: main.durationS, segDurationS, durationS: main.durationS + jam.extraS, segCongestion: main.segCongestion.map((c, i) => (idx.includes(i) ? 'severe' : c)) };
 }
 
 /** A dugós mód sebessége a 1. ablakban (km/h, a megtett út szerint): a dugóban álló–induló araszolás (~12 km/h átlag). */

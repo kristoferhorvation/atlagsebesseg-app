@@ -275,6 +275,8 @@ final class AppModel {
         }
         #if DEBUG
         if args.object(forKey: "gpsTrace") != nil { start() }
+        // `-navPanel YES`: az útvonal-panel nyitva (képernyőkép)
+        navPanelOpen = args.bool(forKey: "navPanel")
         #endif
     }
 

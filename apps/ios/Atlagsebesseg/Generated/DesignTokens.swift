@@ -243,7 +243,7 @@ enum Tokens {
         static let pitch: Double = 58
         static let focusMaxY: Double = 0.8
         static let focusMinY: Double = 0.18
-        static let focusGap: Double = 56
+        static let focusGap: Double = 112
         static let focusTau: Double = 150
         static let zoomTau: Double = 1500
         static let recenter: Double = 900

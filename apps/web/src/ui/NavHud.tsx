@@ -14,6 +14,7 @@ import {
   type ReportPrompt,
   type SpeedUnit,
 } from '@atlagsebesseg/app-logic';
+import { FitText } from './FitText';
 import { Icon } from './Icon';
 import { ManeuverIcon } from './ManeuverIcon';
 
@@ -279,9 +280,9 @@ export function NavBottom({
         <b className="num" aria-label={t('nav.eta')}>
           {formatClock(view.etaMs)}
         </b>
-        <span className="num">
+        <FitText className="num" minScale={0.6}>
           {formatTripDuration(view.remainingS)} · {dist(view.remainingM, unit)}
-        </span>
+        </FitText>
       </div>
       <button
         className="btn danger nav-end"

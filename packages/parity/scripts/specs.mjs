@@ -22,7 +22,7 @@ const COMPONENTS = [
   { name: 'recenter-mini', file: 'apps/web/src/App.tsx', path: '/?navsim&stage=nav&panel=0&speed=1&at=60', mini: true, parts: { root: '.actions', mini: '.manual-mini', button: '.actions .recenter', report: '.actions .round-btn.report' } },
   // AW23: az útvonal-panel
   { name: 'nav-panel', file: 'apps/web/src/ui/NavPanel.tsx', path: AT(-295), click: '.nav-bottom-eta', parts: { root: '.nav-panel', line: '.timeline-line', button: '.nav-panel-alt' } },
-  { name: 'nav-bottom', file: 'apps/web/src/ui/NavHud.tsx', path: AT(-295), parts: { root: '.nav-bottom', speed: '.nav-bottom-speed', eta: '.nav-bottom-eta b', remaining: '.nav-bottom-eta span', end: '.nav-end' } },
+  { name: 'nav-bottom', file: 'apps/web/src/ui/NavHud.tsx', path: AT(-295), parts: { root: '.nav-bottom', speed: '.nav-bottom-speed', eta: '.nav-bottom-eta b', remaining: '.nav-bottom-eta .fit-text', end: '.nav-end' } },
   { name: 'nav-top', file: 'apps/web/src/ui/NavHud.tsx', path: AT(-295), parts: { root: '.nav-top', dist: '.nav-dist', road: '.nav-road', then: '.nav-then' } },
   { name: 'meter-full', file: 'apps/web/src/ui/Hud.tsx', path: `${AT(150)}&alt=aftergate`, parts: { root: '.hud > .card', chip: '.hud > .card .chip', hero: '.hud > .card .hero', unit: '.hud > .card .hero-unit', sign: '.hud > .card .sign', num: '.hud > .card .meter-num', progress: '.hud > .card .progress', progressLabel: '.hud > .card .progress-label' } },
   { name: 'meter-compact', file: 'apps/web/src/ui/Hud.tsx', path: AT(150), parts: { root: '.card:has(.meter-compact)', row: '.meter-compact', speed: '.meter-compact .compact-speed', max: '.meter-compact-max', sign: '.meter-compact .sign', num: '.meter-compact .meter-num' } },

@@ -25,6 +25,16 @@ const VIEWS = {
   'fiok-ajanlat': [...NAV, '-heat', 'ki', '-nudge', 'YES'],
   'veszely': [...NAV, '-heat', 'ki', '-reportOpen', 'YES', '-reportHazard', 'YES'],
   'vissza-mini': [...NAV, '-navStage', 'nav', '-simAt', '60', '-simSpeed', '0.05', '-manual', '0', '-manualMini', 'YES', '-parityNoFollow', 'YES'],
+  // AW23
+  'gombsor-nav': [...NAV, '-navStage', 'nav', '-simAt', '60', '-simSpeed', '0.05'],
+  'gombsor-nav-vissza': [...NAV, '-navStage', 'nav', '-simAt', '60', '-simSpeed', '0.05', '-parityNoFollow', 'YES'],
+  'gombsor-nav-mini': [...NAV, '-navStage', 'nav', '-simAt', '60', '-simSpeed', '0.05', '-manual', '0', '-manualMini', 'YES'],
+  'gombsor-ures-vissza': [...NAV, '-heat', 'ki', '-parityNoFollow', 'YES'],
+  'gombsor-ures-mini-vissza': [...NAV, '-heat', 'ki', '-manual', '0', '-manualMini', 'YES', '-miniAlways', 'YES', '-parityNoFollow', 'YES'],
+  'panel': [...NAV, '-navStage', 'nav', '-simAt', '60', '-simSpeed', '0.05', '-navPanel', 'YES'],
+  'kereses': [...NAV, '-heat', 'ki', '-navStage', 'search', '-navQuery', 'Mam'],
+  'krusing': ['-cruise', 'YES', '-simPanel', 'NO', '-simAt', '300', '-simSpeed', '0.05', '-heat', 'ki'],
+  'dugo-kerdes': [...NAV, '-navStage', 'nav', '-traffic', 'YES', '-simSpeed', '30'],
   'live-figyel': [...NAV, '-livePreview', 'YES', '-liveGallery', 'figyel'],
 };
 const argv = process.argv.slice(2);
