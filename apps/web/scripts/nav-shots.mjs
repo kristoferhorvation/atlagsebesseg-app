@@ -887,7 +887,8 @@ try {
   await rf.evaluate(`window.__warns = []; const w0 = console.warn; console.warn = (...a) => { window.__warns.push(a.map(String).join(' ')); w0(...a); }; true`);
   await rf.waitFor(`${q('button.nav-reroute small')}`, 240_000, 'nem sikerült kártya');
   const rf1 = await rf.evaluate(`({ title: ${text('button.nav-reroute span span')}, small: ${text('button.nav-reroute small')}, warns: window.__warns.filter((x) => x.includes('[nav] reroute failed')) })`);
-  await sleep((1200 * 2) / RF_SPEED); // 1,2 s valós idő 2×-es lejátszásnál = 2,4 szimulált mp
+  // AW23: a következő kiírt másodpercig pollozva (fix várakozásnál gyorsított módban a próba már elindulhatott, és a felirat üres volt)
+  await rf.waitFor(`(() => { const t = ${text('button.nav-reroute small')}; return t && t !== ${JSON.stringify(rf1.small)}; })()`, 15_000, 'fogy a visszaszámlálás').catch(() => undefined);
   const rf2 = await rf.evaluate(`({ small: ${text('button.nav-reroute small')}, n: window.__warns.filter((x) => x.includes('[nav] reroute failed')).length })`);
   const secs = (x) => Number(/(\d+) mp/.exec(x)?.[1] ?? NaN);
   check('AW18: „Az újratervezés nem sikerült – próbálom újra”, alatta a következő próbáig hátralévő másodperc, fogy; az ok (http_503) a konzolon', rf1.title === 'Az újratervezés nem sikerült – próbálom újra' && /^Újra \d+ mp múlva – koppints most$/.test(rf1.small) && secs(rf2.small) < secs(rf1.small) && rf1.warns.some((x) => x.includes('http_503')), JSON.stringify({ rf1, rf2 }));
