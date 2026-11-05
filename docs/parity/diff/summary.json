@@ -7,9 +7,168 @@
     "slack": 2,
     "colorDelta": 46
   },
-  "total": 6,
+  "total": 81,
   "failed": 0,
   "rows": [
+    {
+      "device": "se",
+      "state": "start",
+      "overall": 0.0352,
+      "tile": 0.1094,
+      "tileAt": {
+        "x": 120,
+        "y": 384
+      },
+      "passed": true
+    },
+    {
+      "device": "se",
+      "state": "ures",
+      "overall": 0.0043,
+      "tile": 0.1094,
+      "tileAt": {
+        "x": 240,
+        "y": 72
+      },
+      "passed": true
+    },
+    {
+      "device": "se",
+      "state": "hoterkep",
+      "overall": 0.0056,
+      "tile": 0.1094,
+      "tileAt": {
+        "x": 240,
+        "y": 72
+      },
+      "passed": true
+    },
+    {
+      "device": "se",
+      "state": "krusing",
+      "overall": 0.0044,
+      "tile": 0.1059,
+      "tileAt": {
+        "x": 192,
+        "y": 72
+      },
+      "passed": true
+    },
+    {
+      "device": "se",
+      "state": "vissza",
+      "overall": 0.0043,
+      "tile": 0.1094,
+      "tileAt": {
+        "x": 240,
+        "y": 72
+      },
+      "passed": true
+    },
+    {
+      "device": "se",
+      "state": "vissza-nav",
+      "overall": 0.0087,
+      "tile": 0.099,
+      "tileAt": {
+        "x": 48,
+        "y": 432
+      },
+      "passed": true
+    },
+    {
+      "device": "se",
+      "state": "mini-nav",
+      "overall": 0.0101,
+      "tile": 0.099,
+      "tileAt": {
+        "x": 48,
+        "y": 432
+      },
+      "passed": true
+    },
+    {
+      "device": "se",
+      "state": "mini-vissza-nav",
+      "overall": 0.0101,
+      "tile": 0.099,
+      "tileAt": {
+        "x": 48,
+        "y": 432
+      },
+      "passed": true
+    },
+    {
+      "device": "se",
+      "state": "mini-ures",
+      "overall": 0.0024,
+      "tile": 0,
+      "tileAt": null,
+      "passed": true
+    },
+    {
+      "device": "se",
+      "state": "mini-vissza-ures",
+      "overall": 0.0024,
+      "tile": 0,
+      "tileAt": null,
+      "passed": true
+    },
+    {
+      "device": "se",
+      "state": "kozeledik",
+      "overall": 0.0064,
+      "tile": 0.0851,
+      "tileAt": {
+        "x": 288,
+        "y": 528
+      },
+      "passed": true
+    },
+    {
+      "device": "se",
+      "state": "meres-jo",
+      "overall": 0.0045,
+      "tile": 0.0486,
+      "tileAt": {
+        "x": 264,
+        "y": 576
+      },
+      "passed": true
+    },
+    {
+      "device": "se",
+      "state": "meres-lassit",
+      "overall": 0.0082,
+      "tile": 0.0486,
+      "tileAt": {
+        "x": 264,
+        "y": 576
+      },
+      "passed": true
+    },
+    {
+      "device": "se",
+      "state": "eredmeny",
+      "overall": 0.0083,
+      "tile": 0.1146,
+      "tileAt": {
+        "x": 216,
+        "y": 456
+      },
+      "passed": true
+    },
+    {
+      "device": "se",
+      "state": "kezi",
+      "overall": 0.0028,
+      "tile": 0.0868,
+      "tileAt": {
+        "x": 96,
+        "y": 456
+      },
+      "passed": true
+    },
     {
       "device": "se",
       "state": "valaszto",
@@ -23,12 +182,278 @@
     },
     {
       "device": "se",
+      "state": "nav",
+      "overall": 0.0087,
+      "tile": 0.099,
+      "tileAt": {
+        "x": 48,
+        "y": 432
+      },
+      "passed": true
+    },
+    {
+      "device": "se",
+      "state": "nav-kozeledik",
+      "overall": 0.0082,
+      "tile": 0.0174,
+      "tileAt": {
+        "x": 24,
+        "y": 120
+      },
+      "passed": true
+    },
+    {
+      "device": "se",
       "state": "nav-meres",
       "overall": 0.0049,
       "tile": 0.0556,
       "tileAt": {
         "x": 216,
         "y": 480
+      },
+      "passed": true
+    },
+    {
+      "device": "se",
+      "state": "nav-ajanlat",
+      "overall": 0.0081,
+      "tile": 0.0903,
+      "tileAt": {
+        "x": 312,
+        "y": 504
+      },
+      "passed": true
+    },
+    {
+      "device": "se",
+      "state": "meres-de",
+      "overall": 0.0061,
+      "tile": 0.0556,
+      "tileAt": {
+        "x": 216,
+        "y": 480
+      },
+      "passed": true
+    },
+    {
+      "device": "se",
+      "state": "ajanlat-de",
+      "overall": 0.0099,
+      "tile": 0.099,
+      "tileAt": {
+        "x": 288,
+        "y": 504
+      },
+      "passed": true
+    },
+    {
+      "device": "se",
+      "state": "bejelentes",
+      "overall": 0.0041,
+      "tile": 0.0451,
+      "tileAt": {
+        "x": 288,
+        "y": 288
+      },
+      "passed": true
+    },
+    {
+      "device": "se",
+      "state": "beallitasok",
+      "overall": 0.0108,
+      "tile": 0.1059,
+      "tileAt": {
+        "x": 120,
+        "y": 288
+      },
+      "passed": true
+    },
+    {
+      "device": "se",
+      "state": "fiok-be",
+      "overall": 0.0068,
+      "tile": 0.0729,
+      "tileAt": {
+        "x": 144,
+        "y": 240
+      },
+      "passed": true
+    },
+    {
+      "device": "se",
+      "state": "fiok-ajanlat",
+      "overall": 0.0213,
+      "tile": 0.1094,
+      "tileAt": {
+        "x": 240,
+        "y": 72
+      },
+      "passed": true
+    },
+    {
+      "device": "se",
+      "state": "beallitasok-zona",
+      "overall": 0.0042,
+      "tile": 0.0417,
+      "tileAt": {
+        "x": 72,
+        "y": 480
+      },
+      "passed": true
+    },
+    {
+      "device": "pro",
+      "state": "start",
+      "overall": 0.0222,
+      "tile": 0.0538,
+      "tileAt": {
+        "x": 120,
+        "y": 552
+      },
+      "passed": true
+    },
+    {
+      "device": "pro",
+      "state": "ures",
+      "overall": 0.0044,
+      "tile": 0.0712,
+      "tileAt": {
+        "x": 192,
+        "y": 120
+      },
+      "passed": true
+    },
+    {
+      "device": "pro",
+      "state": "hoterkep",
+      "overall": 0.0048,
+      "tile": 0.0712,
+      "tileAt": {
+        "x": 192,
+        "y": 120
+      },
+      "passed": true
+    },
+    {
+      "device": "pro",
+      "state": "krusing",
+      "overall": 0.0045,
+      "tile": 0.066,
+      "tileAt": {
+        "x": 192,
+        "y": 120
+      },
+      "passed": true
+    },
+    {
+      "device": "pro",
+      "state": "vissza",
+      "overall": 0.0044,
+      "tile": 0.0712,
+      "tileAt": {
+        "x": 192,
+        "y": 120
+      },
+      "passed": true
+    },
+    {
+      "device": "pro",
+      "state": "vissza-nav",
+      "overall": 0.0044,
+      "tile": 0.0139,
+      "tileAt": {
+        "x": 240,
+        "y": 192
+      },
+      "passed": true
+    },
+    {
+      "device": "pro",
+      "state": "mini-nav",
+      "overall": 0.0057,
+      "tile": 0.0139,
+      "tileAt": {
+        "x": 240,
+        "y": 192
+      },
+      "passed": true
+    },
+    {
+      "device": "pro",
+      "state": "mini-vissza-nav",
+      "overall": 0.0057,
+      "tile": 0.0139,
+      "tileAt": {
+        "x": 240,
+        "y": 192
+      },
+      "passed": true
+    },
+    {
+      "device": "pro",
+      "state": "mini-ures",
+      "overall": 0.0019,
+      "tile": 0,
+      "tileAt": null,
+      "passed": true
+    },
+    {
+      "device": "pro",
+      "state": "mini-vissza-ures",
+      "overall": 0.0019,
+      "tile": 0,
+      "tileAt": null,
+      "passed": true
+    },
+    {
+      "device": "pro",
+      "state": "kozeledik",
+      "overall": 0.0039,
+      "tile": 0,
+      "tileAt": null,
+      "passed": true
+    },
+    {
+      "device": "pro",
+      "state": "meres-jo",
+      "overall": 0.0015,
+      "tile": 0.0764,
+      "tileAt": {
+        "x": 72,
+        "y": 720
+      },
+      "passed": true
+    },
+    {
+      "device": "pro",
+      "state": "meres-lassit",
+      "overall": 0.0019,
+      "tile": 0.0764,
+      "tileAt": {
+        "x": 72,
+        "y": 720
+      },
+      "passed": true
+    },
+    {
+      "device": "pro",
+      "state": "eredmeny",
+      "overall": 0.0105,
+      "tile": 0.0486,
+      "tileAt": {
+        "x": 240,
+        "y": 624
+      },
+      "passed": true
+    },
+    {
+      "device": "pro",
+      "state": "kezi",
+      "overall": 0.0018,
+      "tile": 0.1146,
+      "tileAt": {
+        "x": 96,
+        "y": 624
       },
       "passed": true
     },
@@ -45,12 +470,287 @@
     },
     {
       "device": "pro",
+      "state": "nav",
+      "overall": 0.0044,
+      "tile": 0.0139,
+      "tileAt": {
+        "x": 240,
+        "y": 192
+      },
+      "passed": true
+    },
+    {
+      "device": "pro",
+      "state": "nav-kozeledik",
+      "overall": 0.0066,
+      "tile": 0.0486,
+      "tileAt": {
+        "x": 168,
+        "y": 744
+      },
+      "passed": true
+    },
+    {
+      "device": "pro",
       "state": "nav-meres",
       "overall": 0.0023,
       "tile": 0.0729,
       "tileAt": {
         "x": 72,
         "y": 624
+      },
+      "passed": true
+    },
+    {
+      "device": "pro",
+      "state": "nav-ajanlat",
+      "overall": 0.0063,
+      "tile": 0.0729,
+      "tileAt": {
+        "x": 336,
+        "y": 672
+      },
+      "passed": true
+    },
+    {
+      "device": "pro",
+      "state": "meres-de",
+      "overall": 0.0027,
+      "tile": 0.0729,
+      "tileAt": {
+        "x": 72,
+        "y": 624
+      },
+      "passed": true
+    },
+    {
+      "device": "pro",
+      "state": "ajanlat-de",
+      "overall": 0.0053,
+      "tile": 0.0729,
+      "tileAt": {
+        "x": 336,
+        "y": 672
+      },
+      "passed": true
+    },
+    {
+      "device": "pro",
+      "state": "bejelentes",
+      "overall": 0,
+      "tile": 0.0017,
+      "tileAt": {
+        "x": 96,
+        "y": 624
+      },
+      "passed": true
+    },
+    {
+      "device": "pro",
+      "state": "beallitasok",
+      "overall": 0.0072,
+      "tile": 0.0608,
+      "tileAt": {
+        "x": 168,
+        "y": 816
+      },
+      "passed": true
+    },
+    {
+      "device": "pro",
+      "state": "fiok-be",
+      "overall": 0.0082,
+      "tile": 0.0538,
+      "tileAt": {
+        "x": 240,
+        "y": 816
+      },
+      "passed": true
+    },
+    {
+      "device": "pro",
+      "state": "fiok-ajanlat",
+      "overall": 0.0154,
+      "tile": 0.0712,
+      "tileAt": {
+        "x": 192,
+        "y": 120
+      },
+      "passed": true
+    },
+    {
+      "device": "pro",
+      "state": "beallitasok-zona",
+      "overall": 0.0014,
+      "tile": 0.0833,
+      "tileAt": {
+        "x": 48,
+        "y": 432
+      },
+      "passed": true
+    },
+    {
+      "device": "max",
+      "state": "start",
+      "overall": 0.011,
+      "tile": 0.0573,
+      "tileAt": {
+        "x": 264,
+        "y": 648
+      },
+      "passed": true
+    },
+    {
+      "device": "max",
+      "state": "ures",
+      "overall": 0.0043,
+      "tile": 0.0712,
+      "tileAt": {
+        "x": 192,
+        "y": 120
+      },
+      "passed": true
+    },
+    {
+      "device": "max",
+      "state": "hoterkep",
+      "overall": 0.0046,
+      "tile": 0.0712,
+      "tileAt": {
+        "x": 192,
+        "y": 120
+      },
+      "passed": true
+    },
+    {
+      "device": "max",
+      "state": "krusing",
+      "overall": 0.0026,
+      "tile": 0.066,
+      "tileAt": {
+        "x": 192,
+        "y": 120
+      },
+      "passed": true
+    },
+    {
+      "device": "max",
+      "state": "vissza",
+      "overall": 0.0043,
+      "tile": 0.0712,
+      "tileAt": {
+        "x": 192,
+        "y": 120
+      },
+      "passed": true
+    },
+    {
+      "device": "max",
+      "state": "vissza-nav",
+      "overall": 0.0037,
+      "tile": 0.0139,
+      "tileAt": {
+        "x": 240,
+        "y": 192
+      },
+      "passed": true
+    },
+    {
+      "device": "max",
+      "state": "mini-nav",
+      "overall": 0.0047,
+      "tile": 0.0139,
+      "tileAt": {
+        "x": 240,
+        "y": 192
+      },
+      "passed": true
+    },
+    {
+      "device": "max",
+      "state": "mini-vissza-nav",
+      "overall": 0.0047,
+      "tile": 0.0139,
+      "tileAt": {
+        "x": 240,
+        "y": 192
+      },
+      "passed": true
+    },
+    {
+      "device": "max",
+      "state": "mini-ures",
+      "overall": 0.0016,
+      "tile": 0.0052,
+      "tileAt": {
+        "x": 264,
+        "y": 792
+      },
+      "passed": true
+    },
+    {
+      "device": "max",
+      "state": "mini-vissza-ures",
+      "overall": 0.0016,
+      "tile": 0.0052,
+      "tileAt": {
+        "x": 264,
+        "y": 792
+      },
+      "passed": true
+    },
+    {
+      "device": "max",
+      "state": "kozeledik",
+      "overall": 0.0036,
+      "tile": 0.0243,
+      "tileAt": {
+        "x": 48,
+        "y": 744
+      },
+      "passed": true
+    },
+    {
+      "device": "max",
+      "state": "meres-jo",
+      "overall": 0.0014,
+      "tile": 0.0556,
+      "tileAt": {
+        "x": 72,
+        "y": 792
+      },
+      "passed": true
+    },
+    {
+      "device": "max",
+      "state": "meres-lassit",
+      "overall": 0.0031,
+      "tile": 0.0556,
+      "tileAt": {
+        "x": 72,
+        "y": 792
+      },
+      "passed": true
+    },
+    {
+      "device": "max",
+      "state": "eredmeny",
+      "overall": 0.0055,
+      "tile": 0.0781,
+      "tileAt": {
+        "x": 240,
+        "y": 720
+      },
+      "passed": true
+    },
+    {
+      "device": "max",
+      "state": "kezi",
+      "overall": 0.0015,
+      "tile": 0.1667,
+      "tileAt": {
+        "x": 96,
+        "y": 696
       },
       "passed": true
     },
@@ -67,12 +767,122 @@
     },
     {
       "device": "max",
+      "state": "nav",
+      "overall": 0.0037,
+      "tile": 0.0139,
+      "tileAt": {
+        "x": 240,
+        "y": 192
+      },
+      "passed": true
+    },
+    {
+      "device": "max",
+      "state": "nav-kozeledik",
+      "overall": 0.0062,
+      "tile": 0.0347,
+      "tileAt": {
+        "x": 216,
+        "y": 192
+      },
+      "passed": true
+    },
+    {
+      "device": "max",
       "state": "nav-meres",
       "overall": 0.0038,
       "tile": 0.0451,
       "tileAt": {
         "x": 72,
         "y": 696
+      },
+      "passed": true
+    },
+    {
+      "device": "max",
+      "state": "nav-ajanlat",
+      "overall": 0.0048,
+      "tile": 0.0313,
+      "tileAt": {
+        "x": 384,
+        "y": 768
+      },
+      "passed": true
+    },
+    {
+      "device": "max",
+      "state": "meres-de",
+      "overall": 0.0041,
+      "tile": 0.0451,
+      "tileAt": {
+        "x": 72,
+        "y": 696
+      },
+      "passed": true
+    },
+    {
+      "device": "max",
+      "state": "ajanlat-de",
+      "overall": 0.0041,
+      "tile": 0.0382,
+      "tileAt": {
+        "x": 240,
+        "y": 768
+      },
+      "passed": true
+    },
+    {
+      "device": "max",
+      "state": "bejelentes",
+      "overall": 0,
+      "tile": 0.0017,
+      "tileAt": {
+        "x": 96,
+        "y": 720
+      },
+      "passed": true
+    },
+    {
+      "device": "max",
+      "state": "beallitasok",
+      "overall": 0.0131,
+      "tile": 0.0677,
+      "tileAt": {
+        "x": 144,
+        "y": 264
+      },
+      "passed": true
+    },
+    {
+      "device": "max",
+      "state": "fiok-be",
+      "overall": 0.0097,
+      "tile": 0.0347,
+      "tileAt": {
+        "x": 312,
+        "y": 768
+      },
+      "passed": true
+    },
+    {
+      "device": "max",
+      "state": "fiok-ajanlat",
+      "overall": 0.0138,
+      "tile": 0.0712,
+      "tileAt": {
+        "x": 192,
+        "y": 120
+      },
+      "passed": true
+    },
+    {
+      "device": "max",
+      "state": "beallitasok-zona",
+      "overall": 0.0036,
+      "tile": 0.0677,
+      "tileAt": {
+        "x": 48,
+        "y": 648
       },
       "passed": true
     }

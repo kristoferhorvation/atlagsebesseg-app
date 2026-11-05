@@ -561,7 +561,7 @@ struct NavRoutePanel: View {
             }
         }
         .padding(Tokens.Space.s4)
-        .background(Tokens.Colors.surfaceStrong, in: RoundedRectangle(cornerRadius: Tokens.Radius.card, style: .continuous))
+        .glass(radius: Tokens.Radius.card, fill: Tokens.Colors.surfaceStrong)
         .accessibilityLabel(t(.navPanelAria))
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("nav-panel")
@@ -860,7 +860,7 @@ struct NavBottomBar: View {
                 Text("\(formatTripDuration(view.remainingS)) · \(dist(view.remainingM, unit))")
                     .css(Tokens.FontSize.f17, Tokens.FontWeight.w400, line: 1.2, num: true)
                     .lineLimit(1)
-                    .minimumScaleFactor(0.6)
+                    .minimumScaleFactor(0.5)
                     .foregroundStyle(Tokens.Colors.textMuted)
                     .lineLimit(1)
                     .truncationMode(.tail)

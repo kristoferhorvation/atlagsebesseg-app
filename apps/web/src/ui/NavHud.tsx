@@ -280,7 +280,7 @@ export function NavBottom({
         <b className="num" aria-label={t('nav.eta')}>
           {formatClock(view.etaMs)}
         </b>
-        <FitText className="num" minScale={0.6}>
+        <FitText className="num">
           {formatTripDuration(view.remainingS)} · {dist(view.remainingM, unit)}
         </FitText>
       </div>
