@@ -3353,3 +3353,7 @@ button.nav-reroute {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+.list + .account-name-list {
+  margin-top: 12px;
+}

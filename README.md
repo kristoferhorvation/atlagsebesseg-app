@@ -99,7 +99,7 @@ azonnal `szakaszon` jöhet).
 
 ## Web deploy (Vercel) – élesben
 
-**Élő app: https://atlagsebesseg.vercel.app** (szimulátor: https://atlagsebesseg.vercel.app/?sim)
+**Élő app: https://app.tempomate.app** (a CNAME kihelyezése után; addig https://atlagsebesseg.vercel.app; szimulátor: `/?sim`). DNS, átirányítás, Resend: `docs/ops/dns-tempomate.md`.
 
 Vercel-projekt: `atlagsebesseg` (CLI-ből deployolva, Git-integráció nélkül). A `vercel.json` a
 gyökérben van (npm 11-es install, `apps/web` build, `apps/web/dist` kimenet, SPA-átirányítás,

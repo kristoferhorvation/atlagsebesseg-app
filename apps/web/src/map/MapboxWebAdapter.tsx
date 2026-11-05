@@ -666,7 +666,7 @@ class MapController {
       if (s.heat?.view !== p?.heat?.view && s.heat) m.setPaintProperty('heat', 'line-color', heatColor(s.heat.view));
       for (const id of ['heat', 'heat-grey']) m.setLayoutProperty(id, 'visibility', s.heat ? 'visible' : 'none');
       const heatLines = s.heat?.lines ?? [];
-      this.map.getContainer().dataset.heat = s.heat ? `${s.heat.view}:${heatLines.filter((l) => !l.grey).length}:${heatLines.reduce((n, l) => n + l.coords.length, 0)}:${heatLines.filter((l) => l.grey).length}` : '';
+      this.map.getContainer().dataset.heat = s.heat ? `${s.heat.view}:${heatLines.filter((l) => !l.grey).length}:${heatLines.reduce((n, l) => n + l.coords.length, 0)}:${heatLines.reduce((n, l) => n + (l.grey ? l.coords.length : 0), 0)}` : '';
     }
     if (s.privacyZones !== p?.privacyZones) {
       (m.getSource('privacy-zones') as GeoJSONSource | undefined)?.setData(zonesGeoJson(s.privacyZones ?? []));

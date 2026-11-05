@@ -35,6 +35,19 @@ const VIEWS = {
   'kereses': [...NAV, '-heat', 'ki', '-navStage', 'search', '-navQuery', 'Mam'],
   'krusing': ['-cruise', 'YES', '-simPanel', 'NO', '-simAt', '300', '-simSpeed', '0.05', '-heat', 'ki'],
   'dugo-kerdes': [...NAV, '-navStage', 'nav', '-simAt', '60', '-simSpeed', '0.05', '-jamAskPreview', 'YES'],
+  // AW24
+  'heat-gyakorisag-kozel': [...NAV, '-heatSeed', 'YES', '-heat', 'sajat', '-heatView', 'gyakorisag', '-mapLat', '47.5015', '-mapLon', '19.0645', '-mapZoom', '14.6', '-parityNoFollow', 'YES'],
+  'heat-gyakorisag-kozep': [...NAV, '-heatSeed', 'YES', '-heat', 'sajat', '-heatView', 'gyakorisag', '-mapLat', '47.4985', '-mapLon', '19.07', '-mapZoom', '12.4', '-parityNoFollow', 'YES'],
+  'heat-gyakorisag-tavol': [...NAV, '-heatSeed', 'YES', '-heat', 'sajat', '-heatView', 'gyakorisag', '-mapLat', '47.53', '-mapLon', '18.85', '-mapZoom', '9.3', '-parityNoFollow', 'YES'],
+  'heat-atlagsebesseg-kozel': [...NAV, '-heatSeed', 'YES', '-heat', 'sajat', '-heatView', 'atlagsebesseg', '-mapLat', '47.5015', '-mapLon', '19.0645', '-mapZoom', '14.6', '-parityNoFollow', 'YES'],
+  'heat-atlagsebesseg-tavol': [...NAV, '-heatSeed', 'YES', '-heat', 'sajat', '-heatView', 'atlagsebesseg', '-mapLat', '47.53', '-mapLon', '18.85', '-mapZoom', '9.3', '-parityNoFollow', 'YES'],
+  'cruise-full': [...NAV, '-heatSeed', 'YES', '-heat', 'sajat', '-cruiseDemo', 'full'],
+  'cruise-ready': [...NAV, '-heatSeed', 'YES', '-heat', 'sajat', '-cruiseDemo', 'ready'],
+  'cruise-strip': [...NAV, '-heat', 'ki', '-cruiseDemo', 'strip'],
+  'account-in-top': [...NAV, '-heat', 'ki', '-settingsOpen', 'top', '-accountSim', 'in'],
+  'account-in-privacy': [...NAV, '-heat', 'ki', '-settingsOpen', 'privacy', '-accountSim', 'in'],
+  'account-in-bottom': [...NAV, '-heat', 'ki', '-settingsOpen', 'signout', '-accountSim', 'in'],
+  'account-out-top': [...NAV, '-heat', 'ki', '-settingsOpen', 'top'],
   'live-figyel': [...NAV, '-livePreview', 'YES', '-liveGallery', 'figyel'],
 };
 const argv = process.argv.slice(2);

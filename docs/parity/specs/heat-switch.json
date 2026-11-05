@@ -11,7 +11,7 @@
       "selector": ".heat-switch",
       "box": {
         "x": 12,
-        "y": 264,
+        "y": 274,
         "w": 231.84,
         "h": 57
       },
@@ -40,7 +40,7 @@
       "selector": ".heat-switch .segmented",
       "box": {
         "x": 12,
-        "y": 264,
+        "y": 274,
         "w": 231.84,
         "h": 36
       },
@@ -69,7 +69,7 @@
       "selector": ".heat-switch button[aria-pressed=\"true\"]",
       "box": {
         "x": 15,
-        "y": 267,
+        "y": 277,
         "w": 100.84,
         "h": 30
       },
@@ -98,7 +98,7 @@
       "selector": ".heat-switch button[aria-pressed=\"false\"]",
       "box": {
         "x": 115.84,
-        "y": 267,
+        "y": 277,
         "w": 125,
         "h": 30
       },
@@ -127,7 +127,7 @@
       "selector": ".heat-legend",
       "box": {
         "x": 12,
-        "y": 306,
+        "y": 316,
         "w": 231.84,
         "h": 15
       },
@@ -156,7 +156,7 @@
       "selector": ".heat-legend-bar",
       "box": {
         "x": 16,
-        "y": 310.5,
+        "y": 320.5,
         "w": 56,
         "h": 6
       },

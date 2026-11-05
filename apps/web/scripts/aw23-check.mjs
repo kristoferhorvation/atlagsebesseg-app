@@ -86,7 +86,7 @@ try {
       panel: { path: '/?navsim&stage=nav&panel=0&speed=1&at=60', ready: '.nav-bottom', click: '.nav-bottom-eta', after: '.nav-panel' },
       valaszto: { path: '/?navsim&stage=picker&fasterAlt&panel=0&speed=1', ready: '.route-opt' },
       ures: { path: '/?navsim&panel=0&heat=ki&speed=1', ready: '.compact-row' },
-      krusing: { path: '/?cruise&panel=0&heat=ki&speed=2&at=300', ready: '.cruise-status' },
+      krusing: { path: '/?cruise&panel=0&heat=ki&speed=2&at=300', ready: '.cruise-card' },
       navigacio: { path: '/?navsim&stage=nav&panel=0&speed=1&at=60', ready: '.nav-top' },
       'dugo-kerdes': { path: '/?navsim&stage=nav&traffic&panel=0&speed=4', ready: `[...document.querySelectorAll('.jam-ask-row')].find((e) => e.innerText.trim())`, raw: true },
     };
@@ -166,8 +166,8 @@ try {
 
   if (!only || only === 'wrap') {
     // AW23: ami nincs sortörésre tervezve, az nem törik: minden nyelven, a legkisebb és a legnagyobb méreten
-    const ONE_LINE = ['.compact-row .body', '.nav-bottom-eta .fit-text', '.route-opt-tag', '.route-opt-main > span.num', '.route-opt-main b', '.nav-delay', '.cruise-status', '.greeting', '.nav-then span', '.pill-text', '.nav-strip .nav-road'];
-    const VIEWS = { ures: ['/?navsim&panel=0&heat=ki&speed=1', '.compact-row'], krusing: ['/?cruise&panel=0&heat=ki&speed=2&at=300', '.cruise-status'], navigacio: ['/?navsim&stage=nav&panel=0&speed=1&at=60', '.nav-top'], valaszto: ['/?navsim&stage=picker&panel=0&speed=1', '.route-opt'] };
+    const ONE_LINE = ['.compact-row .body', '.nav-bottom-eta .fit-text', '.route-opt-tag', '.route-opt-main > span.num', '.route-opt-main b', '.nav-delay', '.cruise-compact', '.greeting', '.nav-then span', '.pill-text', '.nav-strip .nav-road'];
+    const VIEWS = { ures: ['/?navsim&panel=0&heat=ki&speed=1', '.compact-row'], krusing: ['/?cruise&panel=0&heat=ki&speed=2&at=300', '.cruise-card'], navigacio: ['/?navsim&stage=nav&panel=0&speed=1&at=60', '.nav-top'], valaszto: ['/?navsim&stage=picker&panel=0&speed=1', '.route-opt'] };
     for (const lang of ['hu', 'en', 'de', 'sk', 'cs', 'pl']) {
       for (const [w, h] of [[320, 667], [440, 956]]) {
         for (const [view, [path, ready]] of Object.entries(VIEWS)) {

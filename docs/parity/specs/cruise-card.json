@@ -1,0 +1,156 @@
+{
+  "component": "cruise-card",
+  "webFile": "apps/web/src/ui/CruiseCard.tsx",
+  "device": {
+    "w": 402,
+    "h": 874,
+    "dpr": 3
+  },
+  "parts": {
+    "root": {
+      "selector": ".cruise-card",
+      "box": {
+        "x": 12,
+        "y": 146,
+        "w": 378,
+        "h": 133
+      },
+      "style": {
+        "fontSize": "20px",
+        "fontWeight": "400",
+        "lineHeight": "normal",
+        "letterSpacing": "normal",
+        "color": "rgb(255, 255, 255)",
+        "backgroundColor": "rgb(27, 120, 186)",
+        "backgroundImage": "none",
+        "borderTopWidth": "1px",
+        "borderTopColor": "rgba(255, 255, 255, 0.16)",
+        "borderTopLeftRadius": "28px",
+        "paddingTop": "14px",
+        "paddingRight": "18px",
+        "paddingBottom": "14px",
+        "paddingLeft": "18px",
+        "rowGap": "2px",
+        "columnGap": "2px",
+        "boxShadow": "rgba(0, 0, 0, 0.65) 0px 24px 60px -12px, rgba(0, 0, 0, 0.35) 0px 2px 8px 0px",
+        "opacity": "1"
+      }
+    },
+    "title": {
+      "selector": ".cruise-title",
+      "box": {
+        "x": 31,
+        "y": 161,
+        "w": 340,
+        "h": 19
+      },
+      "style": {
+        "fontSize": "15px",
+        "fontWeight": "620",
+        "lineHeight": "normal",
+        "letterSpacing": "normal",
+        "color": "rgb(255, 255, 255)",
+        "backgroundColor": "rgba(0, 0, 0, 0)",
+        "backgroundImage": "none",
+        "borderTopWidth": "0px",
+        "borderTopColor": "rgb(255, 255, 255)",
+        "borderTopLeftRadius": "0px",
+        "paddingTop": "0px",
+        "paddingRight": "0px",
+        "paddingBottom": "0px",
+        "paddingLeft": "0px",
+        "rowGap": "normal",
+        "columnGap": "normal",
+        "boxShadow": "none",
+        "opacity": "1"
+      }
+    },
+    "big": {
+      "selector": ".cruise-big b",
+      "box": {
+        "x": 31,
+        "y": 182,
+        "w": 134.94,
+        "h": 38
+      },
+      "style": {
+        "fontSize": "34px",
+        "fontWeight": "700",
+        "lineHeight": "38px",
+        "letterSpacing": "normal",
+        "color": "rgb(255, 255, 255)",
+        "backgroundColor": "rgba(0, 0, 0, 0)",
+        "backgroundImage": "none",
+        "borderTopWidth": "0px",
+        "borderTopColor": "rgb(255, 255, 255)",
+        "borderTopLeftRadius": "0px",
+        "paddingTop": "0px",
+        "paddingRight": "0px",
+        "paddingBottom": "0px",
+        "paddingLeft": "0px",
+        "rowGap": "normal",
+        "columnGap": "normal",
+        "boxShadow": "none",
+        "opacity": "1"
+      }
+    },
+    "time": {
+      "selector": ".cruise-big span",
+      "box": {
+        "x": 177.94,
+        "y": 196,
+        "w": 67.34,
+        "h": 21
+      },
+      "style": {
+        "fontSize": "18px",
+        "fontWeight": "620",
+        "lineHeight": "normal",
+        "letterSpacing": "normal",
+        "color": "rgb(255, 255, 255)",
+        "backgroundColor": "rgba(0, 0, 0, 0)",
+        "backgroundImage": "none",
+        "borderTopWidth": "0px",
+        "borderTopColor": "rgb(255, 255, 255)",
+        "borderTopLeftRadius": "0px",
+        "paddingTop": "0px",
+        "paddingRight": "0px",
+        "paddingBottom": "0px",
+        "paddingLeft": "0px",
+        "rowGap": "normal",
+        "columnGap": "normal",
+        "boxShadow": "none",
+        "opacity": "1"
+      }
+    },
+    "line": {
+      "selector": ".cruise-line",
+      "box": {
+        "x": 31,
+        "y": 222,
+        "w": 340,
+        "h": 20
+      },
+      "style": {
+        "fontSize": "15px",
+        "fontWeight": "560",
+        "lineHeight": "20px",
+        "letterSpacing": "normal",
+        "color": "rgb(255, 255, 255)",
+        "backgroundColor": "rgba(0, 0, 0, 0)",
+        "backgroundImage": "none",
+        "borderTopWidth": "0px",
+        "borderTopColor": "rgb(255, 255, 255)",
+        "borderTopLeftRadius": "0px",
+        "paddingTop": "0px",
+        "paddingRight": "0px",
+        "paddingBottom": "0px",
+        "paddingLeft": "0px",
+        "rowGap": "normal",
+        "columnGap": "normal",
+        "boxShadow": "none",
+        "opacity": "1"
+      }
+    }
+  }
+}

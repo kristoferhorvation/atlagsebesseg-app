@@ -208,8 +208,13 @@ npm run upload:sections -- --country IT --dry-run
 
 - Táblák: `profiles`, `account_fields`, `cloud_trips`, `cloud_heat` (RLS: csak a saját, csak valódi fiók), `account_merge_tokens` (kliensről nem érhető el). Részletek: gyökér `CLAUDE.md` › AW22.
 - Edge function: `account-delete` (`npm run deploy:edge`; a `verify_jwt` marad bekapcsolva).
-- Auth-beállítás (Management API-val beállítva): Site URL `https://atlagsebesseg.vercel.app`, átirányítások `https://atlagsebesseg.vercel.app/**`, `http://localhost:*/**`, `atlagsebesseg://auth-callback`, manual linking BE. A beépített levelező csak a csapattagoknak küld, 2 levél / óra, a sablon nem szerkeszthető: valódi felhasználókhoz saját SMTP kell.
+- Auth-beállítás (Management API-val beállítva): Site URL `https://atlagsebesseg.vercel.app` (élő DNS után `https://app.tempomate.app`, `setup-resend.mts auth-urls`), átirányítások `https://app.tempomate.app/**`, `https://atlagsebesseg.vercel.app/**`, `http://localhost:*/**`, `atlagsebesseg://auth-callback`, manual linking BE. A beépített levelező csak a csapattagoknak küld, 2 levél / óra, a sablon nem szerkeszthető: valódi felhasználókhoz saját SMTP kell.
 - Élő próba: `npm run db:account-live`.
 
 ## E-mail Resenddel (AW23)
 A Supabase beépített levelezője csak csapattagoknak küld, óránként ~2 levelet. Beállítás: `.env.resend` a repó gyökerében (gitignore, `RESEND_API_KEY`, `RESEND_DOMAIN`), majd `npx tsx supabase/scripts/setup-resend.mts domain` (a DNS-rekordok listája), a rekordok beírása után `verify`, `smtp` (feladó `noreply@<domain>`, „Average Speed Nav”, 100 levél / óra), `templates` (6 nyelv, a nyelv a felhasználó `lang` metaadatából, alapból angol).
+
+## Hőtérkép csíkokkal (AW24, `20261105000000_heat_segments.sql`)
+`heat_segments`: közösségi összesítés útszakaszonként (csak beszúrás, a tábla nem olvasható, `heat_segments_global` ≥ 3 beküldéstől; `matcher` jelöli az illesztőt). `cloud_tracks`: a saját utak pontsora és illesztett vonalai (csak valódi fiók). `profiles.avatar`: kicsinyített profilkép. A régi `heat_cells` érintetlen, a kliens nem ír és nem olvas belőle.
+
+**Mapbox-feltételek:** a Map Matching eredményének tárolása a Product Terms §2.10.1-be ütközik; a Mapbox-eredmény így törölhető: `delete from heat_segments where matcher = 'mapbox'`, `update`/`delete` a `cloud_tracks`-on `matcher = 'mapbox'` szerint; a `parts` nyers pontsorból más illesztővel újraépül.

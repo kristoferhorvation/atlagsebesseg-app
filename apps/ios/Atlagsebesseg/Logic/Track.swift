@@ -346,14 +346,41 @@ nonisolated func pendingTrack(_ tripId: String, startedAt: Double, samples: [Tri
 // MARK: útszakaszok (a közösségi összesítés és a kirajzolás egysége)
 
 nonisolated struct TrackSegment: Equatable, Sendable {
-    /// Stabil kulcs a két végpontból (irányfüggetlen): az úthálózat csúcsai utak közt azonosak.
-    var key: String
     var a: [Double]
     var b: [Double]
     var kmh: Double
     var matched: Bool
     /// Az út első vagy utolsó `shareEndsM` méterén van (lakóhely-védelem).
     var nearEnd: Bool
+    /// Stabil kulcs a két végpontból (irányfüggetlen): az úthálózat csúcsai utak közt azonosak.
+    var key: String { segmentKey(a, b) }
+}
+
+/// A végpont egész rácson (a `keyDecimals` kerekítése): a sok szakaszos összesítés és láncolás szöveg-formázás nélkül gyors.
+nonisolated private struct GridPoint: Hashable {
+    let lat: Int32
+    let lon: Int32
+    init(_ c: [Double]) {
+        lat = Int32((c[0] * 100_000).rounded())
+        lon = Int32((c[1] * 100_000).rounded())
+    }
+}
+
+/// Irányfüggetlen szakasz-azonosító a rácson (a `segmentKey` gyors párja).
+nonisolated private struct GridSegment: Hashable {
+    let p: GridPoint
+    let q: GridPoint
+    init(_ a: [Double], _ b: [Double]) {
+        let x = GridPoint(a)
+        let y = GridPoint(b)
+        if (x.lat, x.lon) < (y.lat, y.lon) {
+            p = x
+            q = y
+        } else {
+            p = y
+            q = x
+        }
+    }
 }
 
 nonisolated private func roundKey(_ x: Double) -> String { String(format: "%.\(Int(TRACK.keyDecimals))f", x) }
@@ -385,7 +412,7 @@ nonisolated func trackSegments(_ lines: [TrackLine]) -> [TrackSegment] {
                 let pb = k == n - 1 ? b : [a[0] + (b[0] - a[0]) * (kd + 1) / dn, a[1] + (b[1] - a[1]) * (kd + 1) / dn]
                 let from = run + d * kd / dn
                 let to = run + d * (kd + 1) / dn
-                out.append(TrackSegment(key: segmentKey(pa, pb), a: pa, b: pb, kmh: l.kmh[i] + (l.kmh[i + 1] - l.kmh[i]) * (kd + 0.5) / dn, matched: l.matched, nearEnd: from < HEAT.shareEndsM || total - to < HEAT.shareEndsM))
+                out.append(TrackSegment(a: pa, b: pb, kmh: l.kmh[i] + (l.kmh[i + 1] - l.kmh[i]) * (kd + 0.5) / dn, matched: l.matched, nearEnd: from < HEAT.shareEndsM || total - to < HEAT.shareEndsM))
             }
             run += d
         }
@@ -492,8 +519,13 @@ nonisolated private struct ChainItem {
 
 /// Az azonos súlyú, végpontban találkozó szakaszok egy vonallá: sima illesztés, kevés elem.
 nonisolated private func chain(_ items: [ChainItem]) -> [HeatLine] {
-    func key(_ c: [Double], _ w: Double, _ g: Bool) -> String { "\(pointKey(c))|\(w)|\(g)" }
-    var free: [String: [Int]] = [:]
+    struct Node: Hashable {
+        let point: GridPoint
+        let weight: Int
+        let grey: Bool
+    }
+    func key(_ c: [Double], _ w: Double, _ g: Bool) -> Node { Node(point: GridPoint(c), weight: Int((w * TRACK.colorSteps).rounded()), grey: g) }
+    var free: [Node: [Int]] = [:]
     for (i, s) in items.enumerated() {
         free[key(s.a, s.weight, s.grey), default: []].append(i)
         free[key(s.b, s.weight, s.grey), default: []].append(i)
@@ -510,20 +542,21 @@ nonisolated private func chain(_ items: [ChainItem]) -> [HeatLine] {
     var lines: [(line: HeatLine, rank: Int)] = []
     for (i, s) in items.enumerated() where !used[i] {
         used[i] = true
-        var coords = [s.a, s.b]
+        var head: [[Double]] = []
+        var tail = [s.a, s.b]
         var rank = s.rank
         for dir in 0..<2 {
             var tip = dir == 0 ? s.b : s.a
             while let j = nextFrom(tip, s.weight, s.grey) {
                 used[j] = true
                 let n = items[j]
-                let nextTip = key(n.a, s.weight, s.grey) == key(tip, s.weight, s.grey) ? n.b : n.a
-                if dir == 0 { coords.append(nextTip) } else { coords.insert(nextTip, at: 0) }
+                let nextTip = GridPoint(n.a) == GridPoint(tip) ? n.b : n.a
+                if dir == 0 { tail.append(nextTip) } else { head.append(nextTip) }
                 rank = Swift.max(rank, n.rank)
                 tip = nextTip
             }
         }
-        lines.append((HeatLine(coords: coords, weight: s.weight, grey: s.grey), rank))
+        lines.append((HeatLine(coords: head.reversed() + tail, weight: s.weight, grey: s.grey), rank))
     }
     // stabil rendezés, mint a weben
     let sorted = lines.enumerated().sorted { $0.element.rank != $1.element.rank ? $0.element.rank > $1.element.rank : $0.offset < $1.offset }
@@ -541,8 +574,8 @@ nonisolated final class TrackIndex {
         var sum: Double
         var mid: LatLon
     }
-    private var segs: [String: Agg] = [:]
-    private var order: [String] = []
+    private var segs: [GridSegment: Agg] = [:]
+    private var order: [GridSegment] = []
 
     var size: Int { segs.count }
 
@@ -553,15 +586,16 @@ nonisolated final class TrackIndex {
 
     func add(_ lines: [TrackLine]) {
         for s in trackSegments(lines) {
-            if var o = segs[s.key] {
+            let k = GridSegment(s.a, s.b)
+            if var o = segs[k] {
                 if !s.nearEnd {
                     o.count += 1
                     o.sum += s.kmh
-                    segs[s.key] = o
+                    segs[k] = o
                 }
             } else {
-                order.append(s.key)
-                segs[s.key] = Agg(a: s.a, b: s.b, count: s.nearEnd ? 0 : 1, sum: s.nearEnd ? 0 : s.kmh, mid: midOf(s.a, s.b))
+                order.append(k)
+                segs[k] = Agg(a: s.a, b: s.b, count: s.nearEnd ? 0 : 1, sum: s.nearEnd ? 0 : s.kmh, mid: midOf(s.a, s.b))
             }
         }
     }

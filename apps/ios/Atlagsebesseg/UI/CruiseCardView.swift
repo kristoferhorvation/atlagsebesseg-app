@@ -18,7 +18,7 @@ struct CruiseCardView: View {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(title).css(Tokens.FontSize.f15, Tokens.FontWeight.w620)
                     HStack(alignment: .firstTextBaseline, spacing: Tokens.Space.s3) {
-                        Text(distance).font(.num(Tokens.FontSize.f34, Tokens.FontWeight.w700)).lineLimit(1)
+                        Text(distance).css(Tokens.FontSize.f34, Tokens.FontWeight.w700, line: 38.0 / 34).monospacedDigit().lineLimit(1)
                         Text(time).css(Tokens.FontSize.f18, Tokens.FontWeight.w620).lineLimit(1)
                     }
                     line(line2)
@@ -33,15 +33,16 @@ struct CruiseCardView: View {
         .background(Tokens.Colors.cruiseCard, in: shape)
         .overlay(shape.strokeBorder(Tokens.Colors.strokeStrong, lineWidth: 1))
         .background(BoxShadow(shape: shape, layers: Tokens.Shadow.card))
+        .fixedSize(horizontal: false, vertical: true)
         .accessibilityIdentifier("cruise-card")
         .allowsHitTesting(false)
     }
 
     private func line(_ s: String) -> some View {
-        Text(s).css(Tokens.FontSize.f15, Tokens.FontWeight.w560, line: 20).monospacedDigit().lineLimit(1).truncationMode(.tail)
+        Text(s).css(Tokens.FontSize.f15, Tokens.FontWeight.w560, line: 20.0 / 15).monospacedDigit().lineLimit(1).truncationMode(.tail)
     }
 
     private func compact(_ s: String) -> some View {
-        Text(s).css(Tokens.FontSize.f15, Tokens.FontWeight.w620, line: 20).monospacedDigit().lineLimit(1).truncationMode(.tail)
+        Text(s).css(Tokens.FontSize.f15, Tokens.FontWeight.w620, line: 20.0 / 15).monospacedDigit().lineLimit(1).truncationMode(.tail)
     }
 }

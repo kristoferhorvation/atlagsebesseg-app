@@ -15,6 +15,8 @@ const COMPONENTS = [
   { name: 'start', file: 'apps/web/src/ui/StartScreen.tsx', path: '/', parts: { root: '.start', title: '.start h1', mark: '.start-mark', tagline: '.start p', tip: '.start li', go: '.start .btn.primary', sim: '.start .link-btn' } },
   { name: 'greeting', file: 'apps/web/src/ui/StatusPills.tsx', path: NAVSIM, parts: { root: '.greeting' } },
   { name: 'pills', file: 'apps/web/src/ui/StatusPills.tsx', path: NAVSIM, parts: { root: '.pills', gps: '.pills .pill:nth-child(1)', wake: '.pills .pill:nth-child(2)', text: '.pills .pill-text', icon: '.pills .pill svg' } },
+  // AW24: a krúzing-kártya (rögzített mintaadattal)
+  { name: 'cruise-card', file: 'apps/web/src/ui/CruiseCard.tsx', path: '/?navsim&panel=0&heat=ki&speed=7&cruiseDemo=full', parts: { root: '.cruise-card', title: '.cruise-title', big: '.cruise-big b', time: '.cruise-big span', line: '.cruise-line' } },
   { name: 'heat-switch', file: 'apps/web/src/ui/HeatSwitch.tsx', path: '/?navsim&panel=0&heatSeed&heat=sajat&heatView=gyakorisag&speed=7', parts: { root: '.heat-switch', box: '.heat-switch .segmented', selected: '.heat-switch button[aria-pressed="true"]', other: '.heat-switch button[aria-pressed="false"]', legend: '.heat-legend', bar: '.heat-legend-bar' } },
   { name: 'actions', file: 'apps/web/src/App.tsx', path: NAVSIM, parts: { root: '.actions', button: '.actions .round-btn', report: '.actions .round-btn.report' } },
   { name: 'recenter', file: 'apps/web/src/App.tsx', path: NAVSIM, recenter: true, parts: { root: '.actions', slot: '.actions .recenter-slot', button: '.actions .recenter', report: '.actions .round-btn.report', card: '.hud > .card' } },
@@ -35,6 +37,7 @@ const COMPONENTS = [
   { name: 'settings-rows', file: 'apps/web/src/ui/SettingsSheet.tsx', path: `${NAVSIM}&sheet=settings`, parts: { root: '.sheet', group: '.group-label', list: '.list', row: '.list-row', label: '.list-row .label', hint: '.list-row .hint', switch: '.switch', segmented: '.segmented', segment: '.segmented button[aria-pressed="true"]' } },
   { name: 'zone-picker', file: 'apps/web/src/ui/ZonePicker.tsx', path: `${NAVSIM}&sheet=settings`, parts: { root: '.zone-picker', hint: '.zone-picker .hint', box: '.zone-picker .segmented', selected: '.zone-picker button[aria-pressed="true"]', other: '.zone-picker button[aria-pressed="false"]' } },
   // AW22: a Fiók kártya (`?account=in`: bejelentkezve), a névlépés és az út utáni ajánlat
+  { name: 'account-profile', file: 'apps/web/src/ui/AccountCard.tsx', path: `${NAVSIM}&sheet=settings&account=in`, parts: { root: '.account-profile', avatar: '.avatar', name: '.account-profile-name' } },
   { name: 'account-card', file: 'apps/web/src/ui/AccountCard.tsx', path: `${NAVSIM}&sheet=settings`, parts: { root: '[data-testid="account-card"]', apple: '.apple-btn', small: '.account-small-btn', hint: '[data-testid="account-card"] .hint' } },
   { name: 'account-nudge', file: 'apps/web/src/ui/AccountCard.tsx', path: `${NAVSIM}&nudge`, parts: { root: '.account-nudge', text: '.account-nudge-text', button: '.account-nudge .btn' } },
   { name: 'gps-marker', file: 'apps/web/src/map/MapboxWebAdapter.tsx', path: NAVSIM, parts: { root: '.puck', dot: '.puck-dot', cone: '.puck-cone' } },

@@ -76,19 +76,22 @@ try {
 
   await p.evaluate(`[...document.querySelectorAll('.segmented button')].find((b) => b.innerText === 'mph').click(); true`);
   check((await until(async () => (await fieldOf('settings.egyseg')) === 'mph')) === true, 'a beállítás 2,5 s-on belül a szerveren (`account_fields`)');
-  await click(p, '[data-testid="account-card"] .switch');
-  check((await until(async () => (await fieldOf('settings.felho_mentes')) === true)) === true, 'a felhős mentés kapcsolója átjut');
+  check((await p.evaluate(`${q('[data-testid="account-backup"]')}.getAttribute('aria-checked')`)) === 'true', 'a felhős mentés alapból BE (AW24)');
+  await click(p, '[data-testid="account-backup"]');
+  check((await until(async () => (await fieldOf('settings.felho_mentes')) === false)) === true, 'a kapcsoló a szerverre jut (KI)');
+  await click(p, '[data-testid="account-backup"]');
+  check((await until(async () => (await fieldOf('settings.felho_mentes')) === true)) === true, 'a kapcsoló a szerverre jut (BE)');
   const heat = await until(async () => (await admin.from('cloud_heat').select('device_id').eq('user_id', uid)).data?.length > 0);
   check(heat === true, 'bekapcsolva a saját hőtérkép sora felkerül');
-  await until(() => p.evaluate(`${q('[data-testid="account-sync"]')}?.dataset.status === 'ok'`));
-  check(/Szinkronizálva/.test(await p.evaluate(`${q('[data-testid="account-sync"]')}.innerText`)), 'a kártya a szinkron idejét mutatja');
+  await until(() => p.evaluate(`${q('[data-testid="account-card"]')}?.dataset.sync === 'ok'`));
+  check(!/Szinkronizálva/.test(await p.evaluate(`document.body.innerText`)), 'a Beállításokban nincs „Szinkronizálva” sor (AW24)');
 
   await click(p, '[data-testid="account-signout"]');
   await p.waitFor(`${q('[data-testid="account-card"]')}?.dataset.state === 'out'`, 15000, 'kijelentkezve');
-  await until(() => p.evaluate(`JSON.parse(localStorage.getItem('settings:v1')).felho_mentes === false && Object.keys(localStorage).filter((k) => k.endsWith('-auth-token')).length === 1`));
+  await until(() => p.evaluate(`JSON.parse(localStorage.getItem('settings:v1')).felho_mentes === true && Object.keys(localStorage).filter((k) => k.endsWith('-auth-token')).length === 1`));
   const local = await p.evaluate(`JSON.parse(localStorage.getItem('settings:v1'))`);
   check(local.egyseg === 'mph' && local.megszolitas === 'Próba', 'kijelentkezés után a helyi adatok maradnak', local);
-  check(local.felho_mentes === false, 'a mentés kapcsolója nem kerül át a következő fiókra');
+  check(local.felho_mentes === true, 'kijelentkezve a mentés kapcsolója az alapon (BE), névtelenül nem megy adat');
   const anonOk = await p.evaluate(`Object.keys(localStorage).filter((k) => k.endsWith('-auth-token')).map((k) => JSON.parse(localStorage.getItem(k)).user.is_anonymous)[0]`);
   check(anonOk === true, 'a készülék új névtelen felhasználóval folytat', anonOk);
 

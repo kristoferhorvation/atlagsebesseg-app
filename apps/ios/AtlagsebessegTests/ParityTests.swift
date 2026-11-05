@@ -100,6 +100,10 @@ struct ParityTests {
         same(Tokens.Colors.near, try actions.part("report").color, "Bejelentés-ikon: borostyán")
         let re = try ParitySpec.load("recenter")
         same(Tokens.Colors.brand, try re.part("button").color, "„Vissza a helyemre”: brand")
+        // AW24: a krúzing-kártya a webes spec szerint
+        let cruise = try ParitySpec.load("cruise-card")
+        same(Tokens.Colors.cruiseCard, try cruise.part("root").background, "krúzing-kártya háttere")
+        same(Tokens.Colors.cruiseCardText, try cruise.part("root").color, "krúzing-kártya szövege")
         let heat = try ParitySpec.load("heat-switch")
         same(Tokens.Colors.fill08, try heat.part("box").background, "hőtérkép-váltó tok")
         same(Tokens.Colors.text, try heat.part("selected").background, "kiválasztott szegmens")

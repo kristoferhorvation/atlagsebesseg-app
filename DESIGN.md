@@ -260,3 +260,12 @@ térkép-rétegek (pl. alternatív útvonal) az alkalmazott fényhez igazodnak. 
 - **Apple-gomb:** a hivatalos fehér stílus (`appleButton`, `appleButtonText`), 56 pt magas, a Fiók kártya elsődleges gombja; a felirat a szótárból (az app nyelvén), a betű szűk kijelzőn enged, egy sorban marad.
 - **Google / e-mail:** kisebb, 48 pt-es `.mini-btn`-ek az Apple-gomb alatt; a Google „G” négy színe (`google*` tokenek) más célra nem használható.
 - **Út utáni ajánlat:** a bejelentés-kártya üvege (`.report-card`), két `.btn`; csak az üres nézeten.
+
+## Krúzing-kártya (AW24, INV-19)
+Cél nélkül a felső manőver-kártya helyén (`.cruise-card`, `.nav-top` helye, mérete, lekerekítése). Token: `cruiseCard` **#1B78BA** (a `route` kékjéből világosított égkék, fehér szöveggel 4,73:1, tömör, ezért mindhárom térképstíluson azonos), `cruiseCardText` #FFFFFF; szegély `strokeStrong`, árnyék `shadow.card`. Felirat 15/620, nagy szám 34/700 (`tabular`), idő 18/620, sorok 15/560. Állapotok: `full` (táv + idő, átlag · irányváltások, ≤ 5 km-en belül „Szakasz X km”), `ready` („Krúzing · indulásra kész”, a köszöntés alatt), `strip` („Krúzing · 12,4 km”, kamera / veszély / szakasz-kártya idején). A kereső-gomb a kártya sarkára lóg, fölötte marad.
+
+## Hőtérkép-csík (AW24, INV-18)
+Vonal-réteg: vastagság `size.routeLine` (7 pt, a navigációs útvonal-vonalé), kerek vég és illesztés, teljes fedés; szín a súlyból a `heatFreq*` / `heatSpeed*` skálán (0 / 0,5 / 1), a zónás és csak út-végi szakasz `heatGrey`.
+
+## Fiók-kártya (AW24, INV-20)
+Kör alakú profilkép `size.avatar` (84 pt), név 20/640, e-mail 15/400 `textMuted`; alatta a Megszólítás. Felhős mentés és piros „Fiók törlése” az Adatvédelem blokkban, „Kijelentkezés” a lap utolsó eleme.

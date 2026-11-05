@@ -302,10 +302,10 @@ phone frame with `14-idle-greeting` right (stacked on phones). List card:
 - HU „Hirdetés nincs. Követés nincs.” / EN “No ads. No tracking.”
 - HU „Az utak naplója és a mentett helyek a készülékeden maradnak.” / EN “Your trip log and saved places stay on your
   device.”
-- HU „Védett zónák: minden mentett hely körül zóna, alapból 200 m. A zónák cellái sosem mennek fel.” / EN “Privacy
+- HU „Védett zónák: minden mentett hely körül zóna, alapból 200 m. A zónák útszakaszai sosem mennek fel.” / EN “Privacy
   zones: every saved place has a zone around it, 200 m by default. Cells inside a zone are never sent.”
-- HU „Névtelen vezetési adatok: cella, áthaladás-szám, átlagsebesség, óra-sáv, a hét napja – útvonal, pontos idő és
-  azonosító soha.” / EN “Anonymous driving data: cell, number of passes, average speed, hour of day, day of week –
+- HU „Névtelen vezetési adatok: útszakasz, áthaladás-szám, átlagsebesség, óra-sáv, a hét napja – útvonal, pontos idő és
+  azonosító soha.” / EN “Anonymous driving data: road segment, number of passes, average speed, hour of day, day of week –
   never the route, exact time or an identifier.”
 - HU „Fiók nem kell.” / EN “No account needed.”
 Link: HU „Adatvédelmi tájékoztató” / EN “Privacy policy” → `/privacy`.
@@ -332,7 +332,7 @@ no background). Sections (HU / EN headings, content in both languages):
      confirmation). `<mark data-legal-review>`retention of the stored rows after expiry`</mark>`
    - Traffic samples: position, heading and speed when a jam is detected or reported; used by others for 15 minutes.
      `<mark data-legal-review>`retention`</mark>`
-   - Anonymous driving data (heatmap), **on by default, can be turned off** in Settings: per hexagon cell (~66 m) the
+   - Anonymous driving data (heatmap), **on by default, can be turned off** in Settings: per road segment (~25 m) the
      number of passes, average speed, hour of day and day of week; never the route, exact time, any identifier, the
      area around saved places, or the first and last 300 m of a trip. Only aggregated views (cells with ≥ 3
      submissions) are readable. `<mark data-legal-review>`legal basis for a default-on setting`</mark>`

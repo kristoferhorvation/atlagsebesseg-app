@@ -47,7 +47,7 @@ struct SettingsSheet: View {
                                 .css(Tokens.Typography.caption.size, Tokens.FontWeight.w400)
                                 .foregroundStyle(Tokens.Colors.textMuted)
                                 .padding(EdgeInsets(top: 12, leading: 6, bottom: 2, trailing: 6))
-                            SignOutRow(model: model)
+                            SignOutRow(model: model).id(Self.signOutAnchor)
                                 .fixedSize(horizontal: false, vertical: true)
                         }
                     }
@@ -70,6 +70,8 @@ struct SettingsSheet: View {
                     case "places": scroll.scrollTo(Self.placesAnchor, anchor: .top)
                     case "zone": scroll.scrollTo("zone-home", anchor: .center)
                     case "restore": scroll.scrollTo(Self.tripsAnchor, anchor: .center)
+                    case "privacy": scroll.scrollTo(Self.privacyAnchor, anchor: .center)
+                    case "signout": scroll.scrollTo(Self.signOutAnchor, anchor: .bottom)
                     default: break
                     }
                 }
@@ -313,6 +315,7 @@ struct SettingsSheet: View {
     private static let placesAnchor = "places"
     private static let privacyAnchor = "privacy"
     private static let tripsAnchor = "trips"
+    private static let signOutAnchor = "signout"
 
     /// A választott nyelv (`nil`: automatikus); azonnal érvényes, a feliratok újrarajzolódnak.
     /// A sor értéke: a választott nyelv zászlóval és saját nevével, vagy „Automatikus (készülék nyelve)”.

@@ -38,7 +38,11 @@ export const STATES = [
   { id: 'start', web: { path: '/', ready: '.start h1', mask: ['.start ul li:nth-child(3)'] }, ios: [] },
   { id: 'ures', web: { path: '/?navsim&panel=0&heat=ki&speed=7', ready: '.card.compact' }, ios: [...NAV, ...HEAT_OFF] },
   { id: 'hoterkep', web: { path: '/?navsim&panel=0&heatSeed&heat=sajat&heatView=gyakorisag&speed=7', ready: '.heat-switch' }, ios: [...NAV, '-heatSeed', 'YES', '-heat', 'sajat', '-heatView', 'gyakorisag'] },
-  { id: 'krusing', web: { path: '/?cruise&panel=0&heat=ki&speed=7&at=300', ready: '.cruise-status' }, ios: ['-cruise', 'YES', '-simPanel', 'NO', '-simAt', '300', ...HEAT_OFF] },
+  { id: 'krusing', web: { path: '/?cruise&panel=0&heat=ki&speed=7&at=300', ready: '.cruise-card[data-kind="full"]' }, ios: ['-cruise', 'YES', '-simPanel', 'NO', '-simAt', '300', ...HEAT_OFF] },
+  // AW24: a krúzing-kártya három állapota rögzített mintaadattal
+  { id: 'krusing-kartya', web: { path: '/?navsim&panel=0&heat=ki&speed=7&cruiseDemo=full', ready: '.cruise-card[data-kind="full"]' }, ios: [...NAV, ...HEAT_OFF, '-cruiseDemo', 'full'] },
+  { id: 'krusing-kesz', web: { path: '/?navsim&panel=0&heat=ki&speed=7&cruiseDemo=ready', ready: '.cruise-card[data-kind="ready"]' }, ios: [...NAV, ...HEAT_OFF, '-cruiseDemo', 'ready'] },
+  { id: 'krusing-sav', web: { path: '/?navsim&panel=0&heat=ki&speed=7&cruiseDemo=strip', ready: '.cruise-card[data-kind="strip"]' }, ios: [...NAV, ...HEAT_OFF, '-cruiseDemo', 'strip'] },
   { id: 'vissza', web: { path: '/?navsim&panel=0&heat=ki&speed=7', ready: '.card.compact', recenter: true }, ios: [...NAV, ...HEAT_OFF, '-parityNoFollow', 'YES'] },
   // AOS18-javítás: a „Vissza a helyemre” táblával is ugyanott (a gombsor jobb szélén)
   { id: 'vissza-nav', web: { path: '/?navsim&stage=nav&panel=0&speed=7&at=60', ready: '.nav-top', recenter: true }, ios: [...NAV, '-navStage', 'nav', '-simAt', '60', '-parityNoFollow', 'YES'] },
