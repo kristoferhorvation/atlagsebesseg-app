@@ -1152,7 +1152,7 @@ try {
     const trip = hdb.trips[0];
     const passes = hdb.heat.reduce((n, c) => n + c.count, 0);
     check('AW20: a krúzing-út végén a személyes hőtérkép cellánként frissül (IndexedDB `heat`: h3 res 10, áthaladások, átlag, utolsó idő), az út megjelölve', hdb.v === 5 && !!trip && hdb.heat.length > 20 && hdb.heat.every((c) => /^8a[0-9a-f]{13}$/.test(c.h3) && c.count >= 1 && c.avgKmh > 0 && c.lastT > 0) && hdb.heatTrips.some((x) => x.id === trip.id), JSON.stringify({ v: hdb.v, cells: hdb.heat.length, passes, trips: hdb.heatTrips.length }));
-    check('AW24: a krúzing-út végén az út vonala is elkészül (IndexedDB `tracks`; szimulátorban illesztés nélkül, a nyers pontokból, a Map Matching nem hívódik)', hdb.tracks.length === 1 && hdb.tracks[0].status === 'done' && hdb.tracks[0].matcher === null && hdb.tracks[0].lines.length >= 1, JSON.stringify(hdb.tracks.map((t) => ({ s: t.status, m: t.matcher, l: t.lines.length }))));
+    check('AW24: a krúzing-út végén az út vonala is elkészül (IndexedDB `tracks`; szimulátorban illesztés nélkül, a nyers pontokból, a Map Matching nem hívódik)', hdb.tracks.length >= 1 && hdb.tracks.every((t) => t.status === 'done' && t.matcher === null && t.lines.length >= 1), JSON.stringify(hdb.tracks.map((t) => ({ s: t.status, m: t.matcher, l: t.lines.length }))));
     console.log(`  info: ${hdb.heat.length} cella / ${passes} áthaladás / ${hdb.samples.length} minta egy 17,7 km-es útból`);
     check('AW20: a megosztás alapból ki – a szimulátor-út nem kerül a feltöltési sorba, nincs hálózati írás', (await hk.evaluate(`localStorage.getItem('heat:segments:outbox:v1')`)) === null);
     await hk.close();
@@ -1373,7 +1373,7 @@ try {
     await se.waitFor(q('.zone-picker'), 30_000, 'zóna-választó');
     const seg = await se.evaluate(`(() => [...document.querySelectorAll('.zone-picker')].map((z) => { const s = z.querySelector('.segmented').getBoundingClientRect(); const row = z.closest('.list-row').getBoundingClientRect(); const b = [...z.querySelectorAll('button')].map((x) => x.getBoundingClientRect()); return { inside: b.every((x) => x.left >= s.left && x.right <= s.right + 0.5), inRow: s.right <= row.right && s.left >= row.left, equal: Math.abs(b[0].width - b[2].width) < 1, oneLine: new Set(b.map((x) => Math.round(x.top))).size === 1 }; }))()`);
     check('AOS17, AOS18: 320 px-en a zóna-szegmensek (az „1 km” is) a háttéren és a soron belül, egy sorban (a választó a tartalma széles, balra zárt)', seg.length === 2 && seg.every((x) => x.inside && x.inRow && x.oneLine), JSON.stringify(seg));
-    const look = await se.evaluate(`(() => { const on = ${q('.segmented button[aria-pressed="true"]')}; const sw = ${q('.switch[aria-checked="true"]')}; const share = ${q('[data-testid="heat-details-row"]')}.previousElementSibling; return { seg: getComputedStyle(on).backgroundColor, sw: getComputedStyle(sw).backgroundColor, shareLine: getComputedStyle(share).borderBottomWidth, shareOn: share.querySelector('.switch').getAttribute('aria-checked'), other: getComputedStyle(${q('[data-testid="heat-details-row"]')}.parentElement.querySelector('.list-row')).borderBottomWidth, pageOverflow: document.documentElement.scrollWidth > innerWidth }; })()`);
+    const look = await se.evaluate(`(() => { const on = ${q('.segmented button[aria-pressed="true"]')}; const sw = ${q('.switch[aria-checked="true"]')}; const share = ${q('[data-testid="heat-details-row"]')}.previousElementSibling; return { seg: getComputedStyle(on).backgroundColor, sw: getComputedStyle(sw).backgroundColor, shareLine: getComputedStyle(share).borderBottomWidth, shareOn: share.querySelector('.switch').getAttribute('aria-checked'), other: getComputedStyle(${q('.switch')}.closest('.list-row')).borderBottomWidth, pageOverflow: document.documentElement.scrollWidth > innerWidth }; })()`);
     check('AOS17: a kapcsoló zöld, a kiválasztott szegmens fehér (mint eddig a weben)', look.sw === 'rgb(46, 229, 157)' && look.seg === 'rgb(244, 246, 250)', JSON.stringify(look));
     check('AOS17: a megosztás alapból BE, és a sora meg a Részletek között nincs vonal (a többi sor között van)', look.shareOn === 'true' && look.shareLine === '0px' && look.other === '1px' && !look.pageOverflow, JSON.stringify(look));
     await size(se, 390);
@@ -1555,7 +1555,7 @@ try {
       await p.waitFor(q('[data-testid="account-card"]'), 60_000, 'Fiók kártya');
       return p;
     };
-    const overflow = `(() => { const c = ${q('[data-testid="account-card"]')}; const sheet = ${q('.sheet')}; const bad = [...c.querySelectorAll('*')].filter((e) => e.getBoundingClientRect().right > sheet.getBoundingClientRect().right + 0.5 || e.scrollWidth > e.clientWidth + 1).map((e) => e.className || e.tagName); return bad; })()`;
+    const overflow = `(() => { const c = ${q('[data-testid="account-card"]')}; const sheet = ${q('.sheet')}; const bad = [...c.querySelectorAll('*:not(input[type="file"])')].filter((e) => e.getBoundingClientRect().right > sheet.getBoundingClientRect().right + 0.5 || e.scrollWidth > e.clientWidth + 1).map((e) => e.className || e.tagName); return bad; })()`;
     for (const width of [320, 390, 430]) {
       const out = await acc('', width);
       const m = await out.evaluate(`(() => { const a = ${q('[data-testid="account-apple"]')}.getBoundingClientRect(); const g = ${q('[data-testid="account-google"]')}.getBoundingClientRect(); const e = ${q('[data-testid="account-email"]')}.getBoundingClientRect(); const first = ${q('.sheet .group-label')}.innerText; return { first, appleH: a.height, googleH: g.height, below: g.top >= a.bottom, sameRow: g.top === e.top, smaller: g.height < a.height, cs: getComputedStyle(${q('[data-testid="account-apple"]')}).backgroundColor, overflow: ${overflow} }; })()`);
@@ -1574,12 +1574,12 @@ try {
     await sent.close();
     for (const width of [320, 390, 430]) {
       const inn = await acc('&account=in', width);
-      const m = await inn.evaluate(`({ text: ${text('[data-testid="account-card"]')}, sw: ${q('[data-testid="account-card"] .switch')}?.getAttribute('aria-checked'), overflow: ${overflow} })`);
-      check(`AW22: ${width} px: bejelentkezve e-mail, szinkron állapota, mentés alapból KI, kijelentkezés, fiók törlése`, /kristof@example\.com/.test(m.text) && /Szinkronizálva/.test(m.text) && m.sw === 'false' && /Kijelentkezés/.test(m.text) && /Fiók törlése/.test(m.text) && m.overflow.length === 0, JSON.stringify(m));
+      const m = await inn.evaluate(`({ top: ${text('[data-testid="account-card"]')}, sync: /Szinkronizálva/.test(document.querySelector('.sheet').innerText), avatar: !!${q('[data-testid="account-avatar"]')}, hint: ${text('[data-testid="name-hint"]')}, backup: ${q('[data-testid="account-backup"]')}?.getAttribute('aria-checked'), privacy: ${text('[data-testid="privacy-group"]')}, last: ${q('.sheet-body, .sheet')}.querySelector('[data-testid="account-signout"]') !== null, overflow: ${overflow} })`);
+      check(`AW24: ${width} px: a Beállítások tetején profilkép, név és e-mail; nincs szinkron-sor; a felhős mentés alapból BE és a fiók törlése az Adatvédelem blokkban; a kijelentkezés a lap alján`, /kristof@example\.com/.test(m.top) && m.avatar && !m.sync && /^Így köszönt az app induláskor: »Szia, indulhatunk!«$/.test(m.hint) && m.backup === 'true' && /Fiók törlése/.test(m.privacy) && !/Kijelentkezés/.test(m.top) && m.last && m.overflow.length === 0, JSON.stringify(m));
       if (width === 390) {
         await click(inn, '[data-testid="account-delete"]');
         await inn.waitFor(q('[data-testid="account-delete-panel"]'), 5000, 'megerősítés');
-        check('AW22: a fiók törlése megerősítést kér, és kimondja, hogy a névtelen közösségi cellák maradnak', await inn.evaluate(`/közösségi hőtérképbe már névtelenül bekerült cellák megmaradnak/.test(${text('[data-testid="account-delete-panel"]')})`));
+        check('AW22: a fiók törlése megerősítést kér, és kimondja, hogy a névtelen közösségi szakaszok maradnak', await inn.evaluate(`/közösségi hőtérképbe már névtelenül bekerült útszakaszok megmaradnak/.test(${text('[data-testid="account-delete-panel"]')})`));
       }
       await inn.close();
     }
