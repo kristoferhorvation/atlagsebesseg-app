@@ -11,20 +11,33 @@ const IS_SIM = ['sim', 'navsim', 'cruise'].some((k) => new URLSearchParams(locat
 const TOKEN = import.meta.env.VITE_MAPBOX_TOKEN as string | undefined;
 const matcher: MapMatcher | null = IS_SIM || !TOKEN ? null : mapboxMatcher(TOKEN);
 
+/** A futó út (a pillanatképét még nem dolgozzuk fel) és a folyamatban lévő illesztések (egy út egyszer). */
+let openTrip: string | null = null;
+export const noteOpenTrip = (id: string | null) => {
+  openTrip = id;
+};
+const inFlight = new Set<string>();
+
 export interface TrackContext {
   share: () => boolean;
   zones: () => readonly HeatZone[];
 }
 
 async function complete(t: TripTrack, ctx: TrackContext): Promise<TripTrack> {
-  const lines = matcher ? await matchTrace(t.parts, matcher) : rawLines(t.parts);
-  const done: TripTrack = { ...t, status: 'done', lines, matcher: matcher?.id ?? null };
-  await saveTrack(done);
-  if (done.share && ctx.share() && matcher) {
-    enqueueSegmentRows(segmentUploadRows(done, -new Date(done.startedAt).getTimezoneOffset(), ctx.zones()));
-    void flushSegmentOutbox(supabase);
+  if (inFlight.has(t.tripId)) return t;
+  inFlight.add(t.tripId);
+  try {
+    const lines = matcher ? await matchTrace(t.parts, matcher) : rawLines(t.parts);
+    const done: TripTrack = { ...t, status: 'done', lines, matcher: matcher?.id ?? null };
+    await saveTrack(done);
+    if (done.share && ctx.share() && matcher) {
+      enqueueSegmentRows(segmentUploadRows(done, -new Date(done.startedAt).getTimezoneOffset(), ctx.zones()));
+      void flushSegmentOutbox(supabase);
+    }
+    return done;
+  } finally {
+    inFlight.delete(t.tripId);
   }
-  return done;
 }
 
 /** Az út vége: pontsor a mintákból, majd illesztés; hiba esetén függőben marad. */
@@ -41,10 +54,11 @@ export function catchUpTracks(ctx: TrackContext): Promise<boolean> {
   running ??= (async () => {
     let changed = false;
     for (const trip of await tripsWithoutTrack()) {
+      if (trip.id === openTrip) continue;
       await saveTrack(pendingTrack(trip.id, trip.startedAt, await tripSamples(trip.id), false));
     }
     for (const t of await listTracks()) {
-      if (t.status !== 'pending') continue;
+      if (t.status !== 'pending' || t.tripId === openTrip) continue;
       try {
         await complete(t, ctx);
         changed = true;

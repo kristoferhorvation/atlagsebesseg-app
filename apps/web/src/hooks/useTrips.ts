@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { measurementName, TRIP, TripRecorder, type CruiseView, type HeatZone, type NavView, type SessionView } from '@atlagsebesseg/app-logic';
 import type { GpsFix } from '@atlagsebesseg/core';
 import { addSamples, absorbTrip, deleteSamples, saveTrip, purgeTrash } from '../trips/tripStore';
-import { finishTrack } from '../heat/trackPipeline';
+import { finishTrack, noteOpenTrip } from '../heat/trackPipeline';
 
 /**
  * AW19: a krúzing mód / utak naplója bekötése – a `TripRecorder` ugyanazokat a fixeket kapja, mint a mérés és a navigáció;
@@ -37,6 +37,7 @@ export function useTrips(now: () => number, nav: NavView | null, view: SessionVi
   }, []);
 
   const pump = useCallback(() => {
+    noteOpenTrip(rec.openTripId);
     const samples = rec.drainSamples();
     const ended = rec.drainEnded();
     const write = (job: () => Promise<void>) => {

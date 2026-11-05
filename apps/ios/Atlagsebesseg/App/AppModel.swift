@@ -213,6 +213,7 @@ final class AppModel {
     @ObservationIgnored var heatSeedList: [[TrackLine]]?
     /// Egy feldolgozás egyszerre (a függő illesztések és a régi utak).
     @ObservationIgnored var tracksCatchingUp = false
+    @ObservationIgnored var tracksInFlight: Set<String> = []
     /// Egyszerre egy feltöltés fut (különben a várólista kétszer menne fel).
     @ObservationIgnored var heatFlushing = false
     /// AW20-javítás: az indexben most érvényes zónák (a mentett helyekből és a `zona_m`-ből; változáskor új felosztás).

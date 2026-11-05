@@ -378,6 +378,9 @@ nonisolated final class TripRecorder {
     }
 
     /// A futó krúzing (az állapotsorhoz); navigáció alatt és út nélkül `nil`. AW23: az idő a számolt (mozgó) idő, a szünet nem számít.
+    /// A futó út azonosítója (navigációban is): a pillanatképe a naplóban van, de még nem zárult le.
+    var openTripId: String? { run?.id }
+
     func view(_ now: Double) -> CruiseView? {
         guard let r = run, !r.nav else { return nil }
         return CruiseView(tripId: r.id, startedAt: r.startedAt, distanceM: r.distanceM, elapsedS: r.movingS, movingS: r.movingS, dirChanges: turnsTotal(r.turns.turns))

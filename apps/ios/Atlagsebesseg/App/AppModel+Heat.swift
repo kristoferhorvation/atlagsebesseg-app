@@ -54,6 +54,9 @@ extension AppModel {
 
     /// A vonal elkészítése; a kész utat a hőtérképre és (ha kérték) a feltöltési sorba teszi. Hálózati hibánál kivétel: a sor függőben marad.
     private func completeTrack(_ t: TripTrack) async throws {
+        // egy út egyszer: a folyamatban lévő illesztést a visszatérés nem indítja újra
+        guard tracksInFlight.insert(t.tripId).inserted else { return }
+        defer { tracksInFlight.remove(t.tripId) }
         let matcher = trackMatcher
         let lines: [TrackLine]
         if let matcher { lines = try await matchTrace(t.parts, matcher) } else { lines = rawLines(t.parts) }
@@ -79,11 +82,13 @@ extension AppModel {
         Task { [weak self] in
             guard let self else { return }
             defer { self.tracksCatchingUp = false }
-            for trip in self.tripStore.tripsWithoutTrack() {
+            // a futó út pillanatképe a naplóban van, de még nem zárult le
+            let open = self.tripRecorder.openTripId
+            for trip in self.tripStore.tripsWithoutTrack() where trip.id != open {
                 self.tripStore.saveTrack(pendingTrack(trip.id, startedAt: trip.startedAt, samples: self.tripStore.samples(trip.id), share: false))
                 await Task.yield()
             }
-            for t in self.tripStore.tracks() where t.status == "pending" {
+            for t in self.tripStore.tracks() where t.status == "pending" && t.tripId != open {
                 do {
                     try await self.completeTrack(t)
                 } catch {

@@ -413,6 +413,11 @@ export class TripRecorder {
     } else if (this.run && name) this.run.destination = name;
   }
 
+  /** A futó út azonosítója (navigációban is): a pillanatképe a naplóban van, de még nem zárult le. */
+  get openTripId(): string | null {
+    return this.run?.id ?? null;
+  }
+
   /** A futó krúzing (az állapotsorhoz); navigáció alatt és út nélkül `null`. AW23: az idő a számolt (mozgó) idő, a szünet nem számít. */
   view(_now: number): CruiseView | null {
     const r = this.run;
