@@ -1,3 +1,4 @@
+import PhotosUI
 import SwiftUI
 
 /// AW22: a Google hivatalos, négyszínű „G” jele (a webes `GoogleMark`, a színek a tokenekből).
@@ -28,66 +29,36 @@ struct AppleButtonStyle: ButtonStyle {
     }
 }
 
-/// AW22: a Beállítások „Fiók” kártyája a lap tetején (a webes `apps/web/src/ui/AccountCard.tsx`, spec: `account-card`). Kijelentkezve: az Apple-gomb az
-/// elsődleges, nagy gomb, alatta kisebben a Google és az e-mail (magic link, jelszó nincs). Bejelentkezve: név / e-mail, a szinkron állapota, felhős mentés,
-/// kijelentkezés, fiók törlése megerősítéssel. A be nem állított szolgáltatót felirat jelzi, nem hiba.
+/// AW22 + AW24: a Beállítások teteje (a webes `apps/web/src/ui/AccountCard.tsx`, spec: `account-card`, INV-20). Kijelentkezve: az Apple-gomb az elsődleges, nagy gomb, alatta kisebben a Google és az
+/// e-mail (magic link, jelszó nincs). Bejelentkezve: kör alakú profilkép, név, e-mail. Mindkét esetben alatta a Megszólítás. A felhős mentés és a fiók törlése az Adatvédelem blokkban, a kijelentkezés a lap legalján.
 struct AccountCard: View {
     @Bindable var model: AppModel
     @State private var emailOpen = false
     @State private var email = ""
-    @State private var confirmDelete = false
 
     var body: some View {
-        GroupLabel(text: t(.accountTitle))
         if let user = model.accountUserState, !user.isAnonymous {
             signedIn(user)
         } else {
+            GroupLabel(text: t(.accountTitle))
             signedOut
         }
+        NameRow(model: model).padding(.top, Tokens.Space.s3)
     }
 
     private func signedIn(_ user: AccountUser) -> some View {
-        ListCard {
-            VStack(alignment: .leading, spacing: 0) {
-                GreedyText(text: accountTitle(user, name: model.settings.megszolitas), font: .inter(Tokens.FontSize.f17, Tokens.FontWeight.w580), lineHeight: 20, color: Tokens.Colors.text)
-                if let e = user.email, e != accountTitle(user, name: model.settings.megszolitas) { hint(e) }
-                hint(syncStatusText(model.syncStatus, lastSyncMs: model.lastSyncMs, formatTime: Self.time))
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .listRow()
-            RowDivider()
-            ToggleRow(label: t(.accountBackup), hint: t(.accountBackupHint), isOn: $model.settings.felhoMentes)
-            RowDivider()
-            VStack(alignment: .leading, spacing: 10) {
-                Button(t(.accountSignOut)) { model.signOut() }
-                    .buttonStyle(MiniButtonStyle(wide: true))
-                    .disabled(model.accountBusy)
-                hint(t(.accountSignOutHint))
-                if confirmDelete {
-                    VStack(alignment: .leading, spacing: 14) {
-                        Text(t(.accountDelete)).font(.inter(Tokens.FontSize.f17, Tokens.FontWeight.w580)).foregroundStyle(Tokens.Colors.text)
-                        hint(t(.accountDeleteBody))
-                        HStack(spacing: Tokens.Space.s2) {
-                            Spacer(minLength: 0)
-                            Button(t(.accountCancel)) { confirmDelete = false }.buttonStyle(MiniButtonStyle())
-                            Button(t(.accountDeleteConfirm)) { model.removeAccount() }
-                                .buttonStyle(MiniButtonStyle(danger: true))
-                                .disabled(model.accountBusy)
-                        }
-                    }
-                    .padding(EdgeInsets(top: 14, leading: 16, bottom: 14, trailing: 16))
-                    .background(Tokens.Colors.surfaceRaised, in: RoundedRectangle(cornerRadius: Tokens.Radius.tile, style: .continuous))
-                } else {
-                    Button(t(.accountDelete)) { confirmDelete = true }
-                        .buttonStyle(MiniButtonStyle(danger: true, wide: true))
-                }
-            }
-            .listRow()
-            if let error = model.accountError {
-                RowDivider()
-                errorText(error).listRow()
+        let name = accountTitle(user, name: model.settings.megszolitas)
+        return VStack(spacing: Tokens.Space.s2) {
+            AvatarButton(model: model, name: name)
+            Text(name).css(Tokens.FontSize.f20, Tokens.FontWeight.w640).foregroundStyle(Tokens.Colors.text).lineLimit(1).truncationMode(.tail)
+            if let e = user.email, e != name {
+                Text(e).css(Tokens.FontSize.f15, Tokens.FontWeight.w400).foregroundStyle(Tokens.Colors.textMuted).lineLimit(1).truncationMode(.middle)
             }
         }
+        .frame(maxWidth: .infinity)
+        .padding(.top, Tokens.Space.s1)
+        .padding(.bottom, Tokens.Space.s1)
+        .accessibilityIdentifier("account-card")
     }
 
     private var signedOut: some View {
@@ -222,5 +193,141 @@ struct SignInNudge: View {
         .padding(17)
         .frame(maxWidth: .infinity, alignment: .leading)
         .glass(radius: Tokens.Radius.card)
+    }
+}
+
+/// AW24: a kör alakú profilkép (a webes `Avatar`): a választott kép, különben a szolgáltató képe, különben monogram. Érintésre a fotótár.
+private struct AvatarButton: View {
+    @Bindable var model: AppModel
+    let name: String
+    @State private var pick: PhotosPickerItem?
+
+    var body: some View {
+        PhotosPicker(selection: $pick, matching: .images) {
+            content
+                .frame(width: Tokens.Size.avatar, height: Tokens.Size.avatar)
+                .background(Tokens.Colors.surfaceRaised, in: Circle())
+                .clipShape(Circle())
+                .overlay(Circle().strokeBorder(Tokens.Colors.strokeStrong, lineWidth: 1))
+        }
+        .accessibilityLabel(t(.accountAvatarChange))
+        .onChange(of: pick) {
+            guard let item = pick else { return }
+            Task {
+                if let data = try? await item.loadTransferable(type: Data.self), let img = UIImage(data: data) { model.setAvatar(img) }
+                pick = nil
+            }
+        }
+    }
+
+    @ViewBuilder private var content: some View {
+        if let s = model.avatarDataUrl, let i = s.firstIndex(of: ","), let data = Data(base64Encoded: String(s[s.index(after: i)...])), let img = UIImage(data: data) {
+            Image(uiImage: img).resizable().scaledToFill()
+        } else if let u = model.accountUserState?.avatarUrl, let url = URL(string: u) {
+            AsyncImage(url: url) { phase in
+                if case let .success(image) = phase { image.resizable().scaledToFill() } else { initials }
+            }
+        } else {
+            initials
+        }
+    }
+
+    private var initials: some View {
+        Text(avatarInitials(name, model.accountUserState?.email)).css(Tokens.FontSize.f28, Tokens.FontWeight.w640).foregroundStyle(Tokens.Colors.text)
+    }
+}
+
+/// AW24: a Megszólítás mező; a magyarázat a megadott névvel, élőben (a webes `NameRow`).
+private struct NameRow: View {
+    @Bindable var model: AppModel
+
+    private var name: Binding<String> {
+        Binding(get: { model.settings.megszolitas }, set: { model.settings.megszolitas = String($0.prefix(MEGSZOLITAS_MAX)) })
+    }
+
+    var body: some View {
+        ListCard {
+            VStack(alignment: .leading, spacing: 10) {
+                RowText(label: t(.settingsName), hint: greetingPreview(model.settings.megszolitas))
+                TextField(t(.settingsNamePlaceholder), text: name)
+                    .font(.inter(Tokens.FontSize.f17, Tokens.FontWeight.w620))
+                    .textContentType(.givenName)
+                    .autocorrectionDisabled()
+                    .submitLabel(.done)
+                    .onSubmit { model.settings.megszolitas = normalizeName(model.settings.megszolitas) }
+                    .padding(.horizontal, 12)
+                    .frame(minHeight: 48)
+                    .background(Tokens.Colors.fill08, in: RoundedRectangle(cornerRadius: Tokens.Radius.r12, style: .continuous))
+            }
+            .listRow()
+        }
+    }
+}
+
+/// AW24: a felhős mentés kapcsolója az Adatvédelem blokkban (csak bejelentkezve; a webes `BackupRow`).
+struct BackupRow: View {
+    @Bindable var model: AppModel
+    var body: some View {
+        if model.signedInAccount {
+            RowDivider()
+            ToggleRow(label: t(.accountBackup), hint: t(.accountBackupHint), isOn: $model.settings.felhoMentes)
+        }
+    }
+}
+
+/// AW24: a „Fiók törlése” az Adatvédelem blokk alján, pirosan, megerősítéssel (a webes `DeleteAccountRow`).
+struct DeleteAccountRow: View {
+    @Bindable var model: AppModel
+    @State private var confirm = false
+
+    var body: some View {
+        if model.signedInAccount {
+            RowDivider()
+            Group {
+                if confirm {
+                    VStack(alignment: .leading, spacing: 14) {
+                        Text(t(.accountDelete)).font(.inter(Tokens.FontSize.f17, Tokens.FontWeight.w580)).foregroundStyle(Tokens.Colors.text)
+                        Text(t(.accountDeleteBody)).css(Tokens.Typography.caption.size, Tokens.FontWeight.w400).foregroundStyle(Tokens.Colors.textMuted)
+                        HStack(spacing: Tokens.Space.s2) {
+                            Spacer(minLength: 0)
+                            Button(t(.accountCancel)) { confirm = false }.buttonStyle(MiniButtonStyle())
+                            Button(t(.accountDeleteConfirm)) { model.removeAccount() }
+                                .buttonStyle(MiniButtonStyle(danger: true))
+                                .disabled(model.accountBusy)
+                        }
+                    }
+                    .padding(EdgeInsets(top: 14, leading: 16, bottom: 14, trailing: 16))
+                    .background(Tokens.Colors.surfaceRaised, in: RoundedRectangle(cornerRadius: Tokens.Radius.tile, style: .continuous))
+                } else {
+                    Button(t(.accountDelete)) { confirm = true }
+                        .buttonStyle(MiniButtonStyle(danger: true, wide: true))
+                }
+            }
+            .listRow()
+        }
+    }
+}
+
+/// AW24: a „Kijelentkezés” a Beállítások legalján, utolsó elemként (a webes `SignOutRow`).
+struct SignOutRow: View {
+    @Bindable var model: AppModel
+
+    var body: some View {
+        if model.signedInAccount {
+            ListCard {
+                VStack(alignment: .leading, spacing: 10) {
+                    Button(t(.accountSignOut)) { model.signOut() }
+                        .buttonStyle(MiniButtonStyle(wide: true))
+                        .disabled(model.accountBusy)
+                    Text(t(.accountSignOutHint)).css(Tokens.Typography.caption.size, Tokens.FontWeight.w400).foregroundStyle(Tokens.Colors.textMuted)
+                    if let error = model.accountError {
+                        Text(error).css(Tokens.Typography.caption.size, Tokens.FontWeight.w400).foregroundStyle(Tokens.Colors.over)
+                    }
+                }
+                .listRow()
+            }
+            .padding(.top, Tokens.Space.s3)
+            .accessibilityIdentifier("account-signout")
+        }
     }
 }

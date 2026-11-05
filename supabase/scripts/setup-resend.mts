@@ -1,11 +1,13 @@
 // AW23: a Resend-levelezés beállítása. A kulcs a gitignore-olt `.env.resend`-ben (RESEND_API_KEY, RESEND_DOMAIN), a Supabase-hozzáférés a
 // `supabase login` tokenje. Lépések: `domain` (felvétel + DNS-rekordok listája), `verify` (igazolás), `smtp` (Supabase Auth SMTP, korlát),
-// `templates` (levélsablonok 6 nyelven). Értéket (kulcsot) nem ír ki.
+// `templates` (levélsablonok 6 nyelven), `auth-urls` (AW24: az app.tempomate.app az átirányítások közé; a Site URL csak élő DNS-nél vált). Értéket (kulcsot) nem ír ki.
 import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
-import { authEmailConfig } from '../../packages/app-logic/src/authEmails';
+import { authEmailConfig, BRAND_NAME } from '../../packages/app-logic/src/authEmails';
 
 const PROJECT = 'vewendmvvybrlymncdji';
+const APP_ORIGIN = 'https://app.tempomate.app';
+const OLD_ORIGIN = 'https://atlagsebesseg.vercel.app';
 const env = (): { key: string; domain: string } => {
   const raw = readFileSync(new URL('../../.env.resend', import.meta.url), 'utf8');
   const get = (k: string) => raw.match(new RegExp(`^${k}=(.+)$`, 'm'))?.[1]?.trim() ?? '';
@@ -54,14 +56,26 @@ switch (process.argv[2]) {
   }
   case 'smtp': {
     const { key, domain } = env();
-    await patchAuth({ smtp_host: 'smtp.resend.com', smtp_port: '465', smtp_user: 'resend', smtp_pass: key, smtp_admin_email: `noreply@${domain}`, smtp_sender_name: 'Average Speed Nav', rate_limit_email_sent: 100 });
-    console.log('Supabase SMTP: Resend, feladó noreply@%s, korlát 100 levél / óra', domain);
+    await patchAuth({ smtp_host: 'smtp.resend.com', smtp_port: '465', smtp_user: 'resend', smtp_pass: key, smtp_admin_email: `no-reply@${domain}`, smtp_sender_name: BRAND_NAME, rate_limit_email_sent: 100 });
+    console.log('Supabase SMTP: Resend, feladó no-reply@%s, korlát 100 levél / óra', domain);
     break;
   }
   case 'templates':
     await patchAuth(authEmailConfig());
     console.log('Levélsablonok feltöltve (6 nyelv).');
     break;
+  case 'auth-urls': {
+    // additív: a régi cím marad az engedélyezettek között, amíg az átirányítás nem él (a régi levelek linkjei is ide mutatnak)
+    const r = await fetch(`https://api.supabase.com/v1/projects/${PROJECT}/config/auth`, { headers: { Authorization: `Bearer ${supabaseToken()}` } });
+    if (!r.ok) throw new Error(`Supabase: HTTP ${r.status}`);
+    const cur = (await r.json()) as { uri_allow_list?: string; site_url?: string };
+    const list = new Set((cur.uri_allow_list ?? '').split(',').map((x) => x.trim()).filter(Boolean));
+    list.add(`${APP_ORIGIN}/**`);
+    const live = await fetch(`${APP_ORIGIN}/manifest.webmanifest`).then((x) => x.ok, () => false);
+    await patchAuth({ uri_allow_list: [...list].join(','), ...(live ? { site_url: APP_ORIGIN } : {}) });
+    console.log('Átirányítások: %d cím, Site URL: %s', list.size, live ? APP_ORIGIN : `${cur.site_url ?? OLD_ORIGIN} (a DNS még nem él, nem vált)`);
+    break;
+  }
   default:
-    throw new Error('használat: setup-resend.mts domain|verify|smtp|templates');
+    throw new Error('használat: setup-resend.mts domain|verify|smtp|templates|auth-urls');
 }

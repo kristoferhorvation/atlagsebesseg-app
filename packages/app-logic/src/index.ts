@@ -19,5 +19,6 @@ export * from './navigation';
 export * from './location';
 export * from './trips';
 export * from './heat';
+export * from './track';
 export * from './heatSeed';
 export * from './account';

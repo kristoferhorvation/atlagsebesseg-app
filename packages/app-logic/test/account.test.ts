@@ -26,7 +26,6 @@ import {
   planTripSync,
   sameField,
   signinNudgeDue,
-  syncBackupOnce,
   syncFieldsOnce,
   validEmail,
   type AccountData,
@@ -39,6 +38,11 @@ import {
   type Profile,
   type Trip,
   type TripSample,
+  avatarInitials,
+  greetingPreview,
+  parseSettings,
+  syncBackupOnce,
+  type TripTrack,
 } from '../src';
 
 const place = (id: string, lat = 47.5, lon = 19): Place => ({ id, name: id, address: '', lat, lon });
@@ -51,6 +55,7 @@ function fakeServer() {
   const fields = new Map<string, FieldRow>();
   const trips = new Map<string, { record: unknown; samples: CloudSample[] | null; deleted: boolean; updated_ms: number }>();
   const heat = new Map<string, { cells: [string, number, number, number][]; updated_ms: number }>();
+  const tracks = new Map<string, TripTrack>();
   let profile: Profile | null = null;
   const remote: AccountRemote = {
     pullFields: async () => [...fields.values()],
@@ -71,8 +76,12 @@ function fakeServer() {
     listHeat: async () => [...heat.entries()].map(([device_id, h]) => ({ device_id, ...h })),
     putHeat: async (device, cells, updated_ms) => void heat.set(device, { cells, updated_ms }),
     clearHeat: async () => heat.clear(),
+    listTrackIds: async () => [...tracks.keys()],
+    getTrack: async (id) => tracks.get(id) ?? null,
+    putTrack: async (t) => void tracks.set(t.tripId, t),
+    clearTracks: async () => tracks.clear(),
   };
-  return { remote, fields, trips, heat, getProfile: () => profile };
+  return { remote, fields, trips, heat, tracks, getProfile: () => profile };
 }
 
 function fakeStore(initial: Trip[] = [], cells: HeatCell[] = []) {
@@ -80,6 +89,7 @@ function fakeStore(initial: Trip[] = [], cells: HeatCell[] = []) {
   const samples = new Map<string, TripSample[]>();
   const absorbed = new Set<string>(initial.map((t) => t.id));
   const heat = { own: cells, remote: [] as (readonly HeatCell[])[] };
+  const tracks = new Map<string, TripTrack>();
   const store: BackupStore = {
     listTrips: async () => [...trips.values()],
     samples: async (id) => samples.get(id) ?? [],
@@ -90,8 +100,10 @@ function fakeStore(initial: Trip[] = [], cells: HeatCell[] = []) {
     deleteTrip: async (id) => void trips.delete(id),
     heatCells: async () => heat.own,
     setRemoteHeat: async (lists) => void (heat.remote = [...lists]),
+    listTracks: async () => [...tracks.values()],
+    saveTrack: async (t) => void tracks.set(t.tripId, t),
   };
-  return { store, trips, samples, absorbed, heat };
+  return { store, trips, samples, absorbed, heat, tracks };
 }
 
 describe('AW22: ajánlat és név', () => {
@@ -322,5 +334,40 @@ describe('AW22: felhős mentés', () => {
     ca = (await syncBackupOnce(srv.remote, a.store, ca, 'dev-a', null, 200)).state;
     expect(srv.trips.has('fut')).toBe(true);
     expect(ca.heatHash).toBe('0:0:0');
+  });
+});
+
+describe('AW24: Fiók-kártya', () => {
+  it('a monogram a névből két betű, különben az e-mail első betűje', () => {
+    expect(avatarInitials('Horváth Kristóf', 'a@b.hu')).toBe('HK');
+    expect(avatarInitials('Kristóf', null)).toBe('K');
+    expect(avatarInitials(' ', 'anna@b.hu')).toBe('A');
+    expect(avatarInitials(null, null)).toBe('');
+  });
+
+  it('a Megszólítás magyarázata a megadott névvel, élőben', () => {
+    expect(greetingPreview('Kristóf')).toBe('Így köszönt az app induláskor: »Szia, Kristóf, indulhatunk!«');
+    expect(greetingPreview('')).toBe('Így köszönt az app induláskor: »Szia, indulhatunk!«');
+  });
+
+  it('a felhős mentés alapból BE: a jelölő nélküli régi érték egyszer átáll, utána a választás marad', () => {
+    expect(parseSettings(null).felho_mentes).toBe(true);
+    expect(parseSettings(JSON.stringify({ felho_mentes: false })).felho_mentes).toBe(true);
+    expect(parseSettings(JSON.stringify({ felho_mentes: false, felho_mentes_v2: true })).felho_mentes).toBe(false);
+  });
+
+  it('a kész vonal egyszer megy fel, a másik készülék vonala letöltődik és nem megy közösségbe', async () => {
+    const server = fakeServer();
+    const a = fakeStore();
+    const b = fakeStore();
+    const track = { tripId: 't1', startedAt: 1, status: 'done', share: true, parts: [], lines: [], matcher: 'mapbox' } as TripTrack;
+    a.tracks.set('t1', track);
+    a.tracks.set('p1', { ...track, tripId: 'p1', status: 'pending' });
+    const st = { pendingDeletes: [], pendingRestores: [], pendingHeatClear: false, heatHash: '' } as never;
+    await syncBackupOnce(server.remote, a.store, st, 'A', null, 5);
+    expect([...server.tracks.keys()]).toEqual(['t1']);
+    const r = await syncBackupOnce(server.remote, b.store, st, 'B', null, 6);
+    expect(r.heatChanged).toBe(true);
+    expect(b.tracks.get('t1')?.share).toBe(false);
   });
 });

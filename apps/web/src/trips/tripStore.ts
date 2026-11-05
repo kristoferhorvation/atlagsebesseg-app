@@ -1,4 +1,5 @@
 import { noteDeleted, noteRestored } from '../account/cloudState';
+import type { TripTrack } from '@atlagsebesseg/app-logic';
 import { mergeHeatCells, mergePasses, mergeRemoteHeat, normalizeTrip, trashExpired, trashExpiresAt, tripPasses, TRIP, type HeatCell, type HeatPass, type Trip, type TripSample } from '@atlagsebesseg/app-logic';
 
 /**
@@ -9,10 +10,11 @@ import { mergeHeatCells, mergePasses, mergeRemoteHeat, normalizeTrip, trashExpir
  * melyik út van már beolvasztva – idempotencia). Szerverre innen semmi nem megy (a közösségi feltöltés külön, opt-in).
  * AOS17 (3. verzió): `trashTrips`, `trashHeat`, `trashHeatTrips` – az „Összes törlése” 30 napig visszaállítható sorai `deletedAt`-tal
  * (a minták a helyükön maradnak: a `samples` csak út-azonosítóval érhető el, a lejáratkor törlődnek).
+ * AW24 (5. verzió): `tracks` (kulcs: `tripId`; az út pontsora és illesztett vonalai, a hőtérkép csíkjai ebből) és `trashTracks`.
  * AW22 (4. verzió): `remoteHeat` – a fiók többi készülékének hőtérképe (a felhős mentésből, a kijelzéshez hozzáadva, soha nem töltődik fel újra).
  */
 const DB_NAME = 'atlagsebesseg-trips';
-const DB_VERSION = 4;
+const DB_VERSION = 5;
 
 let dbPromise: Promise<IDBDatabase> | null = null;
 
@@ -29,6 +31,8 @@ function open(): Promise<IDBDatabase> {
       if (!db.objectStoreNames.contains('trashHeat')) db.createObjectStore('trashHeat', { keyPath: 'h3' });
       if (!db.objectStoreNames.contains('trashHeatTrips')) db.createObjectStore('trashHeatTrips', { keyPath: 'id' });
       if (!db.objectStoreNames.contains('remoteHeat')) db.createObjectStore('remoteHeat', { autoIncrement: true });
+      if (!db.objectStoreNames.contains('tracks')) db.createObjectStore('tracks', { keyPath: 'tripId' });
+      if (!db.objectStoreNames.contains('trashTracks')) db.createObjectStore('trashTracks', { keyPath: 'tripId' });
     };
     req.onsuccess = () => resolve(req.result);
     req.onerror = () => reject(req.error);
@@ -122,7 +126,7 @@ export async function deleteDownloadedTrip(id: string): Promise<void> {
   await done(tx);
 }
 
-const TRASH_STORES = ['trashTrips', 'trashHeat', 'trashHeatTrips'] as const;
+const TRASH_STORES = ['trashTrips', 'trashHeat', 'trashHeatTrips', 'trashTracks'] as const;
 type Trashed<T> = T & { deletedAt: number };
 
 /**
@@ -132,7 +136,7 @@ type Trashed<T> = T & { deletedAt: number };
 export async function deleteAllTrips({ heat, keep, now = Date.now() }: { heat: boolean; keep: boolean; now?: number }): Promise<void> {
   const db = await open();
   noteDeleted((await listTrips()).map((x) => x.id), heat);
-  const tx = db.transaction(['trips', 'samples', 'heat', 'heatTrips', 'remoteHeat', ...TRASH_STORES], 'readwrite');
+  const tx = db.transaction(['trips', 'samples', 'heat', 'heatTrips', 'remoteHeat', 'tracks', ...TRASH_STORES], 'readwrite');
   if (keep) {
     const [trips, cells, heatTrips, oldCells] = await Promise.all([
       result(tx.objectStore('trips').getAll() as IDBRequest<Trip[]>),
@@ -144,6 +148,7 @@ export async function deleteAllTrips({ heat, keep, now = Date.now() }: { heat: b
     for (const trip of trips) tx.objectStore('trashTrips').put({ ...trip, deletedAt: now });
     for (const c of cells) tx.objectStore('trashHeat').put({ ...mergeHeatCells(c, old.get(c.h3)), deletedAt: now });
     for (const x of heatTrips) tx.objectStore('trashHeatTrips').put({ id: x.id, deletedAt: now });
+    if (heat) for (const t of await result(tx.objectStore('tracks').getAll() as IDBRequest<TripTrack[]>)) tx.objectStore('trashTracks').put({ ...t, deletedAt: now });
   } else {
     tx.objectStore('samples').clear();
     for (const s of TRASH_STORES) tx.objectStore(s).clear();
@@ -153,6 +158,7 @@ export async function deleteAllTrips({ heat, keep, now = Date.now() }: { heat: b
     tx.objectStore('heat').clear();
     tx.objectStore('heatTrips').clear();
     tx.objectStore('remoteHeat').clear();
+    tx.objectStore('tracks').clear();
   }
   await done(tx);
 }
@@ -160,16 +166,18 @@ export async function deleteAllTrips({ heat, keep, now = Date.now() }: { heat: b
 /** A kuka lejárt sorainak törlése (az út mintáival együtt); indításkor és a Beállítások megnyitásakor fut. */
 export async function purgeTrash(now = Date.now()): Promise<void> {
   const db = await open();
-  const [trips, cells, heatTrips] = await Promise.all([
+  const [trips, cells, heatTrips, tracks] = await Promise.all([
     result(db.transaction('trashTrips').objectStore('trashTrips').getAll() as IDBRequest<Trashed<Trip>[]>),
     result(db.transaction('trashHeat').objectStore('trashHeat').getAll() as IDBRequest<Trashed<HeatCell>[]>),
     result(db.transaction('trashHeatTrips').objectStore('trashHeatTrips').getAll() as IDBRequest<Trashed<{ id: string }>[]>),
+    result(db.transaction('trashTracks').objectStore('trashTracks').getAll() as IDBRequest<Trashed<TripTrack>[]>),
   ]);
   for (const trip of trips) if (trashExpired(trip.deletedAt, now)) await deleteSamplesOf(db, trip.id);
   const tx = db.transaction([...TRASH_STORES], 'readwrite');
   for (const trip of trips) if (trashExpired(trip.deletedAt, now)) tx.objectStore('trashTrips').delete(trip.id);
   for (const c of cells) if (trashExpired(c.deletedAt, now)) tx.objectStore('trashHeat').delete(c.h3);
   for (const x of heatTrips) if (trashExpired(x.deletedAt, now)) tx.objectStore('trashHeatTrips').delete(x.id);
+  for (const t of tracks) if (trashExpired(t.deletedAt, now)) tx.objectStore('trashTracks').delete(t.tripId);
   await done(tx);
 }
 
@@ -184,20 +192,45 @@ export async function trashExpiry(now = Date.now()): Promise<number | null> {
 export async function restoreTrash(now = Date.now()): Promise<void> {
   await purgeTrash(now);
   const db = await open();
-  const tx = db.transaction(['trips', 'heat', 'heatTrips', ...TRASH_STORES], 'readwrite');
-  const [trips, cells, heatTrips, current] = await Promise.all([
+  const tx = db.transaction(['trips', 'heat', 'heatTrips', 'tracks', ...TRASH_STORES], 'readwrite');
+  const [trips, cells, heatTrips, current, tracks] = await Promise.all([
     result(tx.objectStore('trashTrips').getAll() as IDBRequest<Trashed<Trip>[]>),
     result(tx.objectStore('trashHeat').getAll() as IDBRequest<Trashed<HeatCell>[]>),
     result(tx.objectStore('trashHeatTrips').getAll() as IDBRequest<Trashed<{ id: string }>[]>),
     result(tx.objectStore('heat').getAll() as IDBRequest<HeatCell[]>),
+    result(tx.objectStore('trashTracks').getAll() as IDBRequest<Trashed<TripTrack>[]>),
   ]);
   const live = new Map(current.map((c) => [c.h3, c]));
   for (const { deletedAt: _d, ...trip } of trips) tx.objectStore('trips').put(trip);
   for (const { deletedAt: _d, ...c } of cells) tx.objectStore('heat').put(mergeHeatCells(c, live.get(c.h3)));
   for (const x of heatTrips) tx.objectStore('heatTrips').put({ id: x.id });
+  for (const { deletedAt: _d, ...t } of tracks) tx.objectStore('tracks').put(t);
   for (const s of TRASH_STORES) tx.objectStore(s).clear();
   await done(tx);
   noteRestored(trips.map((x) => x.id));
+}
+
+// ---------------------------------------------------------------------------
+// AW24: az utak vonalai (a hőtérkép csíkjai)
+// ---------------------------------------------------------------------------
+
+export async function saveTrack(track: TripTrack): Promise<void> {
+  const db = await open();
+  const tx = db.transaction('tracks', 'readwrite');
+  tx.objectStore('tracks').put(track);
+  await done(tx);
+}
+
+export async function listTracks(): Promise<TripTrack[]> {
+  const db = await open();
+  return result(db.transaction('tracks').objectStore('tracks').getAll() as IDBRequest<TripTrack[]>);
+}
+
+/** A naplóban lévő utak, amelyeknek még nincs vonala (visszamenőleges újraépítés a nyers mintákból). */
+export async function tripsWithoutTrack(): Promise<Trip[]> {
+  const [trips, tracks] = await Promise.all([listTrips(), listTracks()]);
+  const have = new Set(tracks.map((t) => t.tripId));
+  return trips.filter((t) => !have.has(t.id));
 }
 
 // ---------------------------------------------------------------------------

@@ -79,6 +79,14 @@ final class TripStore: BackupStore {
             exec("CREATE TABLE IF NOT EXISTS remote_heat (n INTEGER PRIMARY KEY, cells TEXT NOT NULL)")
             exec("PRAGMA user_version = 4")
         }
+        if version < 5 {
+            // AW24: az utak pontsora és illesztett vonalai (a hőtérkép csíkjai) és a kukájuk
+            exec("""
+            CREATE TABLE IF NOT EXISTS tracks (trip_id TEXT PRIMARY KEY, record TEXT NOT NULL);
+            CREATE TABLE IF NOT EXISTS trash_tracks (trip_id TEXT PRIMARY KEY, record TEXT NOT NULL, deleted_at REAL NOT NULL);
+            """)
+            exec("PRAGMA user_version = 5")
+        }
     }
 
     private func hasColumn(_ table: String, _ column: String) -> Bool {
@@ -172,12 +180,13 @@ final class TripStore: BackupStore {
                 ON CONFLICT(h3) DO UPDATE SET count = count + excluded.count, avg_kmh = \(Self.mergedAvg("trash_heat")), last_t = max(last_t, excluded.last_t), deleted_at = excluded.deleted_at
                 """)
                 exec("INSERT OR REPLACE INTO trash_heat_trips SELECT trip_id, \(at) FROM heat_trips")
+                exec("INSERT OR REPLACE INTO trash_tracks SELECT trip_id, record, \(at) FROM tracks")
             }
         } else {
-            exec("DELETE FROM samples; DELETE FROM trash_trips; DELETE FROM trash_heat; DELETE FROM trash_heat_trips;")
+            exec("DELETE FROM samples; DELETE FROM trash_trips; DELETE FROM trash_heat; DELETE FROM trash_heat_trips; DELETE FROM trash_tracks;")
         }
         exec("DELETE FROM trips")
-        if heat { exec("DELETE FROM heat; DELETE FROM heat_trips; DELETE FROM remote_heat;") }
+        if heat { exec("DELETE FROM heat; DELETE FROM heat_trips; DELETE FROM remote_heat; DELETE FROM tracks;") }
         exec("COMMIT")
         if !keep { exec("VACUUM") }
     }
@@ -195,6 +204,7 @@ final class TripStore: BackupStore {
         DELETE FROM trash_trips WHERE deleted_at < \(limit);
         DELETE FROM trash_heat WHERE deleted_at < \(limit);
         DELETE FROM trash_heat_trips WHERE deleted_at < \(limit);
+        DELETE FROM trash_tracks WHERE deleted_at < \(limit);
         """)
     }
 
@@ -202,7 +212,7 @@ final class TripStore: BackupStore {
     func trashExpiry(now: Double = Date().timeIntervalSince1970 * 1000) -> Double? {
         guard let db else { return nil }
         var st: OpaquePointer?
-        sqlite3_prepare_v2(db, "SELECT deleted_at FROM trash_trips UNION ALL SELECT deleted_at FROM trash_heat UNION ALL SELECT deleted_at FROM trash_heat_trips", -1, &st, nil)
+        sqlite3_prepare_v2(db, "SELECT deleted_at FROM trash_trips UNION ALL SELECT deleted_at FROM trash_tracks UNION ALL SELECT deleted_at FROM trash_heat UNION ALL SELECT deleted_at FROM trash_heat_trips", -1, &st, nil)
         defer { sqlite3_finalize(st) }
         var all: [Double] = []
         while sqlite3_step(st) == SQLITE_ROW { all.append(sqlite3_column_double(st, 0)) }
@@ -219,8 +229,40 @@ final class TripStore: BackupStore {
         ON CONFLICT(h3) DO UPDATE SET count = count + excluded.count, avg_kmh = \(Self.mergedAvg("heat")), last_t = max(last_t, excluded.last_t)
         """)
         exec("INSERT OR REPLACE INTO heat_trips SELECT trip_id FROM trash_heat_trips")
-        exec("DELETE FROM trash_trips; DELETE FROM trash_heat; DELETE FROM trash_heat_trips;")
+        exec("INSERT OR REPLACE INTO tracks SELECT trip_id, record FROM trash_tracks")
+        exec("DELETE FROM trash_trips; DELETE FROM trash_heat; DELETE FROM trash_heat_trips; DELETE FROM trash_tracks;")
         exec("COMMIT")
+    }
+
+    // MARK: AW24: az utak vonalai (a hőtérkép csíkjai)
+
+    func saveTrack(_ track: TripTrack) {
+        guard let db, let data = try? JSONEncoder().encode(track), let json = String(data: data, encoding: .utf8) else { return }
+        var st: OpaquePointer?
+        sqlite3_prepare_v2(db, "INSERT OR REPLACE INTO tracks (trip_id, record) VALUES (?, ?)", -1, &st, nil)
+        sqlite3_bind_text(st, 1, track.tripId, -1, SQLITE_TRANSIENT)
+        sqlite3_bind_text(st, 2, json, -1, SQLITE_TRANSIENT)
+        sqlite3_step(st)
+        sqlite3_finalize(st)
+    }
+
+    func tracks() -> [TripTrack] {
+        guard let db else { return [] }
+        var st: OpaquePointer?
+        sqlite3_prepare_v2(db, "SELECT record FROM tracks", -1, &st, nil)
+        defer { sqlite3_finalize(st) }
+        var out: [TripTrack] = []
+        while sqlite3_step(st) == SQLITE_ROW {
+            guard let c = sqlite3_column_text(st, 0) else { continue }
+            if let t = try? JSONDecoder().decode(TripTrack.self, from: Data(String(cString: c).utf8)) { out.append(t) }
+        }
+        return out
+    }
+
+    /// A naplóban lévő utak, amelyeknek még nincs vonala (visszamenőleges újraépítés a nyers mintákból).
+    func tripsWithoutTrack() -> [Trip] {
+        let have = Set(tracks().map(\.tripId))
+        return trips().filter { !have.contains($0.id) }
     }
 
     // MARK: AW22: felhős mentés (`BackupStore`)
@@ -371,4 +413,5 @@ extension TripStore {
     func backupSamples(_ tripId: String) -> [TripSample] { samples(tripId) }
     func deleteDownloaded(_ id: String) { deleteTrip(id) }
     func ownHeatCells() -> [HeatCell] { heatCells() }
+    func backupTracks() -> [TripTrack] { tracks() }
 }

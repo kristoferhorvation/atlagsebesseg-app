@@ -6,7 +6,8 @@
     "apps/*"
   ],
   "scripts": {
-    "test": "npm run test --workspaces --if-present",
+    "test": "npm run invariants && npm run test --workspaces --if-present",
+    "invariants": "tsx scripts/invariants.mts",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "import:sections": "npm run import --workspace @atlagsebesseg/data --",
     "db:live": "supabase/tests/run-live.sh",

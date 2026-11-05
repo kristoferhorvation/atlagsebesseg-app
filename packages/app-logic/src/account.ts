@@ -1,3 +1,4 @@
+import type { TripTrack } from './track';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { getLanguage, t, type TKey } from './i18n';
 import { addRecent, parseRecents, parseSaved, type SavedPlaces } from './navigation/places';
@@ -21,6 +22,8 @@ export interface AccountUser {
   provider: AccountProvider | null;
   givenName: string | null;
   fullName: string | null;
+  /** AW24: a szolgáltató képe (Google: `picture`, Apple nem ad), a profilkép előtöltése. */
+  avatarUrl: string | null;
 }
 
 export type SyncStatus = 'idle' | 'syncing' | 'ok' | 'error';
@@ -70,6 +73,7 @@ export function accountUser(u: { id: string; email?: string | null; is_anonymous
     provider,
     givenName: social ? firstNameFromMeta(u.user_metadata) : null,
     fullName: social ? (str(u.user_metadata?.full_name) ?? str(u.user_metadata?.name)) : null,
+    avatarUrl: social ? (str(u.user_metadata?.avatar_url) ?? str(u.user_metadata?.picture)) : null,
   };
 }
 
@@ -79,6 +83,22 @@ export interface Profile {
   given_name: string | null;
   full_name: string | null;
   name_prompted: boolean;
+  /** AW24: a fotótárból választott profilkép (kicsinyített JPEG data URL). */
+  avatar?: string | null;
+}
+
+/** A profilkép monogramja: a névből két betű, különben az e-mail első betűje; ha egyik sincs, üres. */
+export function avatarInitials(name: string | null | undefined, email: string | null | undefined): string {
+  const words = (name ?? '').trim().split(/\s+/).filter(Boolean);
+  if (words.length > 0) return words.slice(0, 2).map((w) => [...w][0]!.toLocaleUpperCase()).join('');
+  const c = [...(email ?? '').trim()][0];
+  return c ? c.toLocaleUpperCase() : '';
+}
+
+/** A Megszólítás alatti magyarázat, a megadott névvel élőben: „Így köszönt az app induláskor: »Szia, Kristóf, indulhatunk!«”. */
+export function greetingPreview(name: string): string {
+  const n = normalizeName(name);
+  return t('settings.nameHintLive', { greeting: n ? t('settings.greetPreview', { name: n }) : t('nav.voice.greet') });
 }
 
 /** Az „Így szólítsunk?” lépés: csak ha még nincs Megszólítás (se helyben, se a profilban), és nem hagyták ki korábban. */
@@ -240,6 +260,7 @@ export function applyFields(state: FieldState, base: AccountData): AccountData {
   for (const [k, m] of Object.entries(v)) if (k.startsWith('zone.') && typeof m === 'number' && (ZONE_RADII as readonly number[]).includes(m)) zones[k.slice(5)] = m;
   merged.zona_m = zones;
   merged.adatmegosztas_v2 = true;
+  merged.felho_mentes_v2 = true;
   const settings = parseSettings(JSON.stringify(merged));
   const others = Object.keys(v)
     .filter((k) => k.startsWith('place.other.') && v[k] !== null)
@@ -362,6 +383,11 @@ export interface AccountRemote {
   listHeat(): Promise<CloudHeatRow[]>;
   putHeat(deviceId: string, cells: CloudCell[], updatedMs: number): Promise<void>;
   clearHeat(): Promise<void>;
+  /** AW24: a saját utak vonalai (`cloud_tracks`). */
+  listTrackIds(): Promise<string[]>;
+  getTrack(tripId: string): Promise<TripTrack | null>;
+  putTrack(track: TripTrack, updatedMs: number): Promise<void>;
+  clearTracks(): Promise<void>;
 }
 
 /** A felhő-szinkron helyi oldala (web: IndexedDB, iOS: SQLite). */
@@ -373,6 +399,9 @@ export interface BackupStore {
   deleteTrip(id: string): Promise<void>;
   heatCells(): Promise<HeatCell[]>;
   setRemoteHeat(lists: readonly (readonly HeatCell[])[]): Promise<void>;
+  /** AW24: az utak vonalai; a letöltött vonal nem illesztődik és nem megy közösségbe újra. */
+  listTracks(): Promise<TripTrack[]>;
+  saveTrack(track: TripTrack): Promise<void>;
 }
 
 /** Egy mező-szinkron kör: letöltés, összefésülés, feltöltés. Az új állapotot adja, és mely mezők változtak a másik készülék miatt. */
@@ -418,6 +447,7 @@ export async function syncBackupOnce(remote: AccountRemote, store: BackupStore, 
   if (state.pendingHeatClear) {
     await remote.clearHeat();
     await store.setRemoteHeat([]);
+    await remote.clearTracks();
     state = { ...state, pendingHeatClear: false, heatHash: '' };
     heatChanged = true;
   }
@@ -430,6 +460,19 @@ export async function syncBackupOnce(remote: AccountRemote, store: BackupStore, 
   const others = (await remote.listHeat()).filter((r) => r.device_id !== deviceId);
   await store.setRemoteHeat(others.map((r) => parseHeatBlob(r.cells)));
   if (others.length) heatChanged = true;
+
+  // AW24: a kész vonalak egyszer mennek fel; a másik készülék vonala letöltődik, a hőtérképhez hozzáadódik
+  const local = await store.listTracks();
+  const remoteIds = new Set(await remote.listTrackIds());
+  const localIds = new Set(local.map((t) => t.tripId));
+  for (const t of local.filter((x) => x.status === 'done' && !remoteIds.has(x.tripId)).slice(0, CLOUD_TRIP_BATCH)) await remote.putTrack(t, now);
+  for (const id of [...remoteIds].filter((x) => !localIds.has(x)).slice(0, CLOUD_TRIP_BATCH)) {
+    const t = await remote.getTrack(id);
+    if (t) {
+      await store.saveTrack({ ...t, share: false });
+      heatChanged = true;
+    }
+  }
   return { state, trips: { up: upload.length, down: download.length, deleted: plan.deleteLocal.length }, heatChanged };
 }
 
@@ -464,7 +507,7 @@ export function supabaseRemote(client: SupabaseClient): AccountRemote {
     pushFields: async (rows) => {
       must(await client.from('account_fields').upsert([...rows], { onConflict: 'user_id,key' }));
     },
-    pullProfile: async () => must(await client.from('profiles').select('megszolitas,megszolitas_ms,given_name,full_name,name_prompted').maybeSingle()) as Profile | null,
+    pullProfile: async () => must(await client.from('profiles').select('megszolitas,megszolitas_ms,given_name,full_name,name_prompted,avatar').maybeSingle()) as Profile | null,
     pushProfile: async (p) => {
       must(await client.from('profiles').upsert({ user_id: await uid(), ...p }, { onConflict: 'user_id' }));
     },
@@ -482,6 +525,14 @@ export function supabaseRemote(client: SupabaseClient): AccountRemote {
     },
     clearHeat: async () => {
       must(await client.from('cloud_heat').delete().not('device_id', 'is', null));
+    },
+    listTrackIds: async () => (must(await client.from('cloud_tracks').select('trip_id')) as { trip_id: string }[]).map((r) => r.trip_id),
+    getTrack: async (tripId) => (must(await client.from('cloud_tracks').select('track').eq('trip_id', tripId).maybeSingle()) as { track: TripTrack } | null)?.track ?? null,
+    putTrack: async (track, updated_ms) => {
+      must(await client.from('cloud_tracks').upsert({ trip_id: track.tripId, track, matcher: track.matcher, updated_ms }, { onConflict: 'user_id,trip_id' }));
+    },
+    clearTracks: async () => {
+      must(await client.from('cloud_tracks').delete().not('trip_id', 'is', null));
     },
   };
 }

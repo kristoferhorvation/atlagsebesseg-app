@@ -42,6 +42,47 @@
         }
       }
     },
+    "account.avatar.change" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Změnit profilovou fotku"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Profilbild ändern"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Change profile picture"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Profilkép módosítása"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zmień zdjęcie profilowe"
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zmeniť profilovú fotku"
+          }
+        }
+      }
+    },
     "account.backup" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -89,37 +130,37 @@
         "cs" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Když je zapnuto, tvoje jízdy a vlastní teplotní mapa se nahrají a synchronizují s ostatními zařízeními. Když je vypnuto, už se nic nenahrává; stávající kopie zůstane do smazání účtu."
+            "value" : "Tvoje jízdy a vlastní teplotní mapa jsou synchronizované na všech zařízeních."
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Wenn aktiviert, werden deine Fahrten und deine eigene Heatmap hochgeladen und mit deinen anderen Geräten synchronisiert. Wenn deaktiviert, wird nichts mehr hochgeladen; die vorhandene Kopie bleibt, bis du dein Konto löschst."
+            "value" : "Deine Fahrten und deine Heatmap bleiben auf all deinen Geräten synchron."
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "When on, your trips and your own heatmap are uploaded and kept in sync with your other devices. When off, nothing more is uploaded; the existing copy stays until you delete your account."
+            "value" : "Your trips and own heatmap stay in sync across your devices."
           }
         },
         "hu" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Bekapcsolva az utaid és a saját hőtérképed feltöltődik, és szinkronban marad a többi készülékeddel. Kikapcsolva nem megy fel több adat; a már feltöltött másolat a fiók törléséig megmarad."
+            "value" : "Az utaid és a saját hőtérképed szinkronban minden készülékeden."
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Po włączeniu twoje przejazdy i własna mapa cieplna są przesyłane i synchronizowane z innymi urządzeniami. Po wyłączeniu nic więcej nie jest przesyłane; istniejąca kopia zostaje do usunięcia konta."
+            "value" : "Twoje trasy i własna mapa cieplna są zsynchronizowane na wszystkich urządzeniach."
           }
         },
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Keď je zapnuté, tvoje jazdy a vlastná teplotná mapa sa nahrajú a synchronizujú s ostatnými zariadeniami. Keď je vypnuté, už sa nič nenahráva; existujúca kópia zostane do zmazania účtu."
+            "value" : "Tvoje jazdy a vlastná teplotná mapa sú synchronizované na všetkých zariadeniach."
           }
         }
       }
@@ -1495,7 +1536,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Average Speed"
+            "value" : "Tempomate"
           }
         },
         "hu" : {
@@ -2170,6 +2211,211 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "OK"
+          }
+        }
+      }
+    },
+    "cruise.average" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "průměr {avg}"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Schnitt {avg}"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "average {avg}"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "átlag {avg}"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "średnia {avg}"
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "priemer {avg}"
+          }
+        }
+      }
+    },
+    "cruise.dirChanges" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "změny směru: {n}"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Richtungswechsel: {n}"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "direction changes: {n}"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "{n} irányváltás"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "zmiany kierunku: {n}"
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "zmeny smeru: {n}"
+          }
+        }
+      }
+    },
+    "cruise.ready" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Volná jízda · připraveno"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Freie Fahrt · startklar"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cruising · ready to go"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Krúzing · indulásra kész"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Swobodna jazda · gotowe"
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Voľná jazda · pripravené"
+          }
+        }
+      }
+    },
+    "cruise.section" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Úsek {d}"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Abschnitt {d}"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Section {d}"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Szakasz {d}"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Odcinek {d}"
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Úsek {d}"
+          }
+        }
+      }
+    },
+    "cruise.strip" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Volná jízda · {dist}"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Freie Fahrt · {dist}"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cruising · {dist}"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Krúzing · {dist}"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Swobodna jazda · {dist}"
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Voľná jazda · {dist}"
           }
         }
       }
@@ -2877,37 +3123,37 @@
         "cs" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Potvrď svůj e-mail: Average Speed Nav"
+            "value" : "Potvrď svůj e-mail: {app}"
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Bestätige deine E-Mail: Average Speed Nav"
+            "value" : "Bestätige deine E-Mail: {app}"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Confirm your email: Average Speed Nav"
+            "value" : "Confirm your email: {app}"
           }
         },
         "hu" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Erősítsd meg az e-mail-címed: Average Speed Nav"
+            "value" : "Erősítsd meg az e-mail-címed: {app}"
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Potwierdź e-mail: Average Speed Nav"
+            "value" : "Potwierdź e-mail: {app}"
           }
         },
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Potvrď svoj e-mail: Average Speed Nav"
+            "value" : "Potvrď svoj e-mail: {app}"
           }
         }
       }
@@ -3082,37 +3328,37 @@
         "cs" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Přihlášení do Average Speed Nav"
+            "value" : "Přihlášení do {app}"
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Anmelden bei Average Speed Nav"
+            "value" : "Anmelden bei {app}"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Sign in to Average Speed Nav"
+            "value" : "Sign in to {app}"
           }
         },
         "hu" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Bejelentkezés: Average Speed Nav"
+            "value" : "Bejelentkezés: {app}"
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Logowanie do Average Speed Nav"
+            "value" : "Logowanie do {app}"
           }
         },
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Prihlásenie do Average Speed Nav"
+            "value" : "Prihlásenie do {app}"
           }
         }
       }
@@ -6579,7 +6825,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Avg Speed Nav"
+            "value" : "Tempomate"
           }
         },
         "hu" : {
@@ -14761,6 +15007,47 @@
         }
       }
     },
+    "settings.greetPreview" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ahoj {name}, můžeme vyrazit!"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hallo {name}, los geht’s!"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hi {name}, ready to go!"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Szia, {name}, indulhatunk!"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cześć {name}, ruszamy!"
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ahoj {name}, môžeme vyraziť!"
+          }
+        }
+      }
+    },
     "settings.group.dev" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -14880,6 +15167,47 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Uložené miesta"
+          }
+        }
+      }
+    },
+    "settings.group.privacy" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Soukromí"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Datenschutz"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Privacy"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Adatvédelem"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Prywatność"
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ochrana súkromia"
           }
         }
       }
@@ -15417,43 +15745,43 @@
         }
       }
     },
-    "settings.nameHint" : {
+    "settings.nameHintLive" : {
       "extractionState" : "manual",
       "localizations" : {
         "cs" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Tímto jménem tě aplikace pozdraví na mapě a při spuštění navigace. Prázdné: „Ahoj!“"
+            "value" : "Takhle tě aplikace pozdraví při spuštění: „{greeting}“"
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Mit diesem Namen begrüßt dich die App auf der Karte und beim Start der Navigation. Leer: „Hallo!“"
+            "value" : "So begrüßt dich die App beim Start: „{greeting}“"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "The app greets you by this name on the map and when navigation starts. If empty: “Hi!”"
+            "value" : "How the app greets you at launch: “{greeting}”"
           }
         },
         "hu" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Ezzel a névvel köszön az app a térképen és a navigáció indításakor. Üresen: „Szia!”"
+            "value" : "Így köszönt az app induláskor: »{greeting}«"
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Tym imieniem aplikacja wita cię na mapie i przy starcie nawigacji. Gdy puste: „Cześć!”"
+            "value" : "Tak aplikacja wita cię przy starcie: „{greeting}”"
           }
         },
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Týmto menom ťa appka pozdraví na mape a pri spustení navigácie. Ak je prázdne: „Ahoj!“"
+            "value" : "Takto ťa appka pozdraví pri spustení: „{greeting}“"
           }
         }
       }

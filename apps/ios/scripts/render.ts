@@ -1,4 +1,4 @@
-import { HEAT, SPEED_TONE, ALT_OFFER, CAMERA_ALERT, CAMERA_CARD, TRAFFIC, TRIP, DICTIONARIES, MEGSZOLITAS_MAX, REPORT_PROMPT, type ActiveReport, LANGUAGE_FLAGS, LANGUAGE_NAMES, LANGUAGES, MANUAL_PILL, NAV_CONFIG, NAV_COUNTRIES, PLANNED_MATCH_M, PLANNED_OFF_FIXES, ROUTE_MATCH_M, type FixedCamera, type PlannedCheck, type TKey } from '@atlagsebesseg/app-logic';
+import { HEAT, TRACK, SPEED_TONE, ALT_OFFER, CAMERA_ALERT, CAMERA_CARD, TRAFFIC, TRIP, DICTIONARIES, MEGSZOLITAS_MAX, REPORT_PROMPT, type ActiveReport, LANGUAGE_FLAGS, LANGUAGE_NAMES, LANGUAGES, MANUAL_PILL, NAV_CONFIG, NAV_COUNTRIES, PLANNED_MATCH_M, PLANNED_OFF_FIXES, ROUTE_MATCH_M, type FixedCamera, type PlannedCheck, type TKey } from '@atlagsebesseg/app-logic';
 import { Route, type LatLon } from '@atlagsebesseg/core';
 import { testCourse } from '@atlagsebesseg/core/test/helpers/trace';
 import { toSwift } from '@atlagsebesseg/design-tokens';
@@ -104,6 +104,11 @@ function appLogicConstants(): string {
     '}',
     '/// AW20: hőtérkép – cella-felbontások, zoom-küszöb, pontplafon, lakóhely-védelem (az út első / utolsó `shareEndsM` méterének',
     '/// cellái sosem mennek fel), súly-skálák, a közösségi lekérés gyorsítótára és a feltöltés-várólista.',
+    '/// AW24: a hőtérkép csíkjai: pontsor, illesztés, útszakaszok (`track.ts`).',
+    'nonisolated enum TRACK {',
+    ...Object.entries(TRACK).map(([k, v]) => `    static let ${k} = ${num(v)}`),
+    '}',
+    '',
     'nonisolated enum HEAT {',
     ...Object.entries(HEAT).map(([k, v]) => `    static let ${k} = ${num(v)}`),
     '}',

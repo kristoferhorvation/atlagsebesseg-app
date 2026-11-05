@@ -14,7 +14,7 @@ export interface PlannedEdgeEnv {
   pdfText: (bytes: Uint8Array) => Promise<string>;
 }
 
-const UA = 'atlagsebesseg-app/0.1 (tervezett mérések; +https://atlagsebesseg.vercel.app)';
+const UA = 'atlagsebesseg-app/0.1 (tervezett mérések; +https://app.tempomate.app)';
 
 export function plannedEdgeDeps(env: PlannedEdgeEnv): PlannedDeps {
   const get = async (url: string) => {

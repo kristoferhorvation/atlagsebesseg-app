@@ -75,7 +75,7 @@ extension AppModel {
         refreshTrash()
         // AOS16: a kirajzolt hőtérkép is ürül (az `upsert` nem vesz ki cellát, az újraindításig látszana)
         if heat {
-            heatIndex.setAll(heatSeedList ?? [])
+            rebuildTrackIndex()
             heatVersion += 1
         }
     }
@@ -93,7 +93,7 @@ extension AppModel {
         reloadTrips()
         noteCloudRestored(trips.map(\.id).filter { !before.contains($0) })
         refreshTrash()
-        heatIndex.setAll(heatSeedList ?? tripStore.displayHeatCells())
+        rebuildTrackIndex()
         heatVersion += 1
         showToast(AppToast(text: t(.settingsRestored), color: Tokens.StatusColors.jo, icon: .check))
     }

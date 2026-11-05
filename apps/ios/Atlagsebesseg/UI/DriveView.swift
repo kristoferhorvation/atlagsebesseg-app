@@ -98,6 +98,7 @@ struct DriveView: View {
             .animation(.easeOut(duration: Tokens.Motion.base), value: model.manualPillCollapsed)
             .animation(.easeOut(duration: Tokens.Motion.base), value: model.shownReport?.id)
             .animation(.easeOut(duration: Tokens.Motion.base), value: model.shownCamera?.id)
+            .animation(.easeOut(duration: Tokens.Motion.base), value: cruiseShown)
         }
         // külön, felülre igazított réteg: a magas kártya sem tolja fel (a Mapbox-logó és az attribúció látszik)
         .overlay(alignment: .top) { top }
@@ -165,11 +166,13 @@ struct DriveView: View {
                     .padding(.top, Tokens.Space.s10 + Tokens.Space.s1)
                     .transition(.opacity.combined(with: .offset(y: -12)))
             } else {
+                // AW24: krúzing-kártya a felső kártya helyén; a kereső-gomb fölötte marad (a kártya felső sarkára lóg, mint a weben)
+                cruiseCardLayer
                 statusPills(.above)
                 // AW20: hőtérkép-mód (Gyakoriság | Átlagsebesség) és jelmagyarázat – a krúzing-sor alatt, csak kész rétegnél (mint a weben)
                 if model.heatReady {
                     HeatSwitch(model: model)
-                        .padding(.top, 202)
+                        .padding(.top, heatSwitchTop)
                         .transition(.opacity.combined(with: .offset(y: -12)))
                 }
                 if let nav = model.nav, !measuringLayout {
@@ -194,7 +197,7 @@ struct DriveView: View {
                         .transition(.opacity.combined(with: .offset(y: -12)))
                 } else if let alert, !(model.nav != nil && !measuringLayout && !stepStrip) {
                     ReportAlertCard(alert: alert, unit: unit)
-                        .padding(.top, 112)
+                        .padding(.top, cruiseIsStrip ? 130 : 112)
                         .transition(.opacity.combined(with: .offset(y: -12)))
                 }
                 VStack(spacing: Tokens.Space.s2) {
@@ -240,8 +243,7 @@ struct DriveView: View {
             offline: model.isOffline,
             onGps: model.gpsPillTapped,
             onSearch: emptyView ? { model.openSearch() } : nil,
-            greeting: emptyView && alert == nil ? greetingText(model.settings.megszolitas) : nil,
-            cruise: emptyView && alert == nil ? model.cruiseText : nil,
+            greeting: emptyView && alert == nil && !cruiseMoving ? greetingText(model.settings.megszolitas) : nil,
             part: part
         )
     }
@@ -293,6 +295,51 @@ struct DriveView: View {
     }
 
     /// AOS14: az üres nézet (nincs navigáció, tervezés, mérés) – a kereső-gomb és a köszöntés ilyenkor látszik.
+    /// AW24: a krúzing-kártya állapota (a webes `cruiseShown`): cél nélkül, futó GPS-szel; kamera / veszély / szakasz-kártya idején vékony sáv.
+    private var cruiseShown: CruiseCardModel {
+        if let demo = UserDefaults.standard.string(forKey: "cruiseDemo"), Self.cruiseDemoAllowed { return cruiseDemoCard(demo, unit: unit) }
+        let active = (model.sim != nil || model.geo == .active) && model.nav == nil && model.plan == nil && !model.searchOpen && view.phase != .kezi && view.phase != .keziEredmeny
+        let collapsed = alert != nil || model.shownReport != nil || model.shownCamera != nil || view.phase == .meres || view.phase == .kozeledik || view.phase == .befejezve
+        return cruiseCard(cruise: model.cruise, active: active, collapsed: collapsed, sectionAheadM: nextSectionAheadM(view.lastFix, model.sections), unit: unit)
+    }
+
+    private static var cruiseDemoAllowed: Bool {
+        #if DEBUG
+        return true
+        #else
+        return false
+        #endif
+    }
+
+    private var cruiseIsStrip: Bool { if case .strip = cruiseShown { return true } else { return false } }
+    private var cruiseMoving: Bool {
+        switch cruiseShown {
+        case .full, .strip: return true
+        default: return false
+        }
+    }
+
+    /// A hőtérkép-váltó a krúzing-kártya alatt marad (a webes `.cruise-card ~ .heat-switch`).
+    private var heatSwitchTop: CGFloat {
+        switch cruiseShown {
+        case .ready: return 212
+        case let .full(_, _, _, _, section): return section == nil ? 202 : 226
+        default: return 202
+        }
+    }
+
+    /// A kártya helye: állva a köszöntés alatt, különben a `.nav-top` helyén; navigáció indításakor elhalványul, a manőver-kártya felúszik.
+    @ViewBuilder private var cruiseCardLayer: some View {
+        let card = cruiseShown
+        if case .hidden = card {
+            EmptyView()
+        } else {
+            CruiseCardView(card: card)
+                .padding(.top, { if case .ready = card { return CGFloat(164) } else { return CGFloat(84) } }())
+                .transition(.opacity)
+        }
+    }
+
     private var emptyView: Bool { model.nav == nil && model.plan == nil && !driving && view.phase != .keziEredmeny }
 
     /// A `.hud-float` tartalma: a teljes ajánlat, a koppintott jelölő kártyája, a tábla és a „Vissza a helyemre”. A kompakt ajánlat is itt (mint a weben).

@@ -118,6 +118,41 @@ final class Backend {
             .value
     }
 
+    // MARK: AW24: közösségi hőtérkép útszakaszonként
+
+    private struct SegmentInsert: Encodable, Sendable {
+        var row: SegmentUploadRow
+        var matcher: String
+        enum Keys: String, CodingKey { case matcher }
+        func encode(to encoder: Encoder) throws {
+            try row.encode(to: encoder)
+            var c = encoder.container(keyedBy: Keys.self)
+            try c.encode(matcher, forKey: .matcher)
+        }
+    }
+
+    /// A szakaszok feltöltése a `heat_segments` táblába – anon kulccsal, azonosító nélkül; a `matcher` jelöli az illesztőt.
+    func uploadSegments(_ rows: [SegmentUploadRow], matcher: String) async throws {
+        guard let client else { throw BackendError.nincsBeallitas }
+        if rows.isEmpty { return }
+        try await client.from("heat_segments").insert(rows.map { SegmentInsert(row: $0, matcher: matcher) }).execute()
+    }
+
+    /// A `heat_segments_global` nézet a téglalapra, a legtöbb áthaladású szakaszok előre.
+    func heatSegments(in b: BBox) async throws -> [SegmentGlobalRow] {
+        guard let client else { throw BackendError.nincsBeallitas }
+        return try await client.from("heat_segments_global")
+            .select("seg_key,lat1,lon1,lat2,lon2,count,avg_speed")
+            .gte("lat1", value: b.south)
+            .lte("lat1", value: b.north)
+            .gte("lon1", value: b.west)
+            .lte("lon1", value: b.east)
+            .order("count", ascending: false)
+            .limit(Int(TRACK.queryLimit))
+            .execute()
+            .value
+    }
+
     // MARK: közösségi dugó-adat (AW18, a webes `listActiveJams` / `createJamSamples`)
 
     /// A téglalap 15 percnél frissebb dugó-mintái (`active_jams` nézet), legfeljebb 500.

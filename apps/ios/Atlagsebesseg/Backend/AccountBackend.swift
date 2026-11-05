@@ -19,7 +19,7 @@ nonisolated struct SupabaseAccountRemote: AccountRemote {
     }
 
     func pullProfile() async throws -> Profile? {
-        let rows: [Profile] = try await client.from("profiles").select("megszolitas,megszolitas_ms,given_name,full_name,name_prompted").limit(1).execute().value
+        let rows: [Profile] = try await client.from("profiles").select("megszolitas,megszolitas_ms,given_name,full_name,name_prompted,avatar").limit(1).execute().value
         return rows.first
     }
 
@@ -108,6 +108,42 @@ nonisolated struct SupabaseAccountRemote: AccountRemote {
 
     func clearHeat() async throws {
         try await client.from("cloud_heat").delete().not("device_id", operator: .is, value: "null").execute()
+    }
+
+    private struct TrackIdRow: Decodable, Sendable { var trip_id: String }
+    private struct TrackRow: Decodable, Sendable { var track: TripTrack }
+    private struct TrackPut: Encodable, Sendable {
+        var trip_id: String
+        var track: TripTrack
+        var matcher: String?
+        var updated_ms: Double
+    }
+    private struct AvatarPut: Encodable, Sendable {
+        var user_id: String
+        var avatar: String
+    }
+
+    func listTrackIds() async throws -> [String] {
+        let rows: [TrackIdRow] = try await client.from("cloud_tracks").select("trip_id").execute().value
+        return rows.map(\.trip_id)
+    }
+
+    func getTrack(_ tripId: String) async throws -> TripTrack? {
+        let rows: [TrackRow] = try await client.from("cloud_tracks").select("track").eq("trip_id", value: tripId).limit(1).execute().value
+        return rows.first?.track
+    }
+
+    func putTrack(_ track: TripTrack, updatedMs: Double) async throws {
+        try await client.from("cloud_tracks").upsert(TrackPut(trip_id: track.tripId, track: track, matcher: track.matcher, updated_ms: updatedMs), onConflict: "user_id,trip_id").execute()
+    }
+
+    func clearTracks() async throws {
+        try await client.from("cloud_tracks").delete().not("trip_id", operator: .is, value: "null").execute()
+    }
+
+    /// AW24: a választott profilkép feltöltése.
+    func pushAvatar(_ dataUrl: String) async throws {
+        try await client.from("profiles").upsert(AvatarPut(user_id: try await uid(), avatar: dataUrl), onConflict: "user_id").execute()
     }
 }
 

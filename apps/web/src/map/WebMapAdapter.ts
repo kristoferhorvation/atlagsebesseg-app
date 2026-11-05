@@ -1,5 +1,5 @@
 import type { ComponentType } from 'react';
-import type { BBox, HeatPoint, HeatView, MapController, MapLook, MapState } from '@atlagsebesseg/app-logic';
+import type { BBox, HeatLine, HeatView, MapController, MapLook, MapState } from '@atlagsebesseg/app-logic';
 import type { GpsFix, LatLon } from '@atlagsebesseg/core';
 import type { IconName } from '../ui/Icon';
 
@@ -31,14 +31,10 @@ export interface WebMapState extends MapState {
   heat: MapHeat | null;
 }
 
-/** A hőtérkép-réteg tartalma: súlyozott pontok és a mód (a színskála). */
+/** A hőtérkép-réteg tartalma: utcákra illesztett vonalak (AW24) és a mód (a színskála). */
 export interface MapHeat {
-  points: readonly HeatPoint[];
-  /** Adatvédelmi zónában lévő cellák: szürkén, nem színezve (saját mód). */
-  grey: readonly HeatPoint[];
+  lines: readonly HeatLine[];
   view: HeatView;
-  /** A cellák felbontása (10 közelről, 8 kicsinyítve) – a böngészős ellenőrzéshez. */
-  res: number;
 }
 
 /** Egy tervezett útvonal a térképen: dugó szerint színezett szakaszokra bontva. */

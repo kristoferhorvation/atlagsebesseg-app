@@ -26,6 +26,10 @@ enum Tokens {
         static let textFaint = Color(.sRGB, red: 0.956863, green: 0.964706, blue: 0.980392, opacity: 0.4)
         /// `#2EE59D`
         static let accent = Color(.sRGB, red: 0.180392, green: 0.898039, blue: 0.615686, opacity: 1)
+        /// `#1B78BA`
+        static let cruiseCard = Color(.sRGB, red: 0.105882, green: 0.470588, blue: 0.729412, opacity: 1)
+        /// `#FFFFFF`
+        static let cruiseCardText = Color(.sRGB, red: 1, green: 1, blue: 1, opacity: 1)
         /// `#7A86FF`
         static let brand = Color(.sRGB, red: 0.478431, green: 0.52549, blue: 1, opacity: 1)
         /// `#2EE59D`
@@ -263,6 +267,9 @@ enum Tokens {
         static let roundButton: CGFloat = 64
         static let progress: CGFloat = 10
         static let tile: CGFloat = 76
+        static let routeLine: CGFloat = 7
+        static let routeLineCasing: CGFloat = 2
+        static let avatar: CGFloat = 84
     }
 
     enum Blur {

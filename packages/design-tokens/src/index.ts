@@ -15,6 +15,9 @@ export const color = {
   textFaint: 'rgba(244,246,250,0.40)',
   /** AOS17: a jelölőszín – kapcsoló, jelölőnégyzet, kiválasztott útvonal, fókusz. */
   accent: '#2EE59D',
+  /** AW24: a krúzing-kártya égkék háttere (a `route` kékjéből világosítva, fehér szöveggel 4,7:1), mindhárom térképstíluson tömör. */
+  cruiseCard: '#1B78BA',
+  cruiseCardText: '#FFFFFF',
   /** AOS17: a kézi mód, a márka és a térképi elemek eddigi színe (Kristof döntése: ezek nem zöldek). */
   brand: '#7A86FF',
   ok: '#2EE59D',
@@ -134,7 +137,7 @@ export const opacity = { o09: 0.09, o10: 0.1, o12: 0.12, o14: 0.14, o16: 0.16, o
 /** AOS18: a tónus-színű fények CSS-elmosása (px): `text-shadow` a nagy számon, a progress kitöltése, a pill pontja, a bejelentés-jelölő. */
 export const glow = { hero: 40, progress: 18, dot: 10, reportPin: 14 } as const;
 
-export const size = { touch: 56, roundButton: 64, progress: 10, tile: 76 } as const;
+export const size = { touch: 56, roundButton: 64, progress: 10, tile: 76, routeLine: 7, routeLineCasing: 2, avatar: 84 } as const;
 
 export const blur = { glass: 28, backdrop: 3 } as const;
 

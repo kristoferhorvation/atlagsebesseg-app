@@ -1,0 +1,70 @@
+{
+  "colors": {
+    "bg": "#06070A",
+    "surface": "rgba(14,16,22,0.72)",
+    "surfaceStrong": "rgba(22,25,32,0.88)",
+    "surfaceRaised": "rgba(255,255,255,0.06)",
+    "stroke": "rgba(255,255,255,0.08)",
+    "strokeStrong": "rgba(255,255,255,0.16)",
+    "text": "#F4F6FA",
+    "textMuted": "rgba(244,246,250,0.64)",
+    "textFaint": "rgba(244,246,250,0.40)",
+    "accent": "#2EE59D",
+    "cruiseCard": "#1B78BA",
+    "cruiseCardText": "#FFFFFF",
+    "brand": "#7A86FF",
+    "ok": "#2EE59D",
+    "near": "#FFB224",
+    "over": "#FF4D61",
+    "idle": "#8C93A3",
+    "planned": "#F2DC82",
+    "route": "#1F5BFF",
+    "routeCasing": "#FFFFFF",
+    "routeAltDay": "#799CF8",
+    "routeAltNight": "#1E49C1",
+    "routeAltCasingDay": "#1A2130",
+    "routeAltCasingNight": "rgba(232,235,239,0.6)",
+    "mapBgDay": "#E8EBEF",
+    "mapBgNight": "#1B2030",
+    "heatFreqLow": "#5B6CFF",
+    "heatFreqMid": "#C65CFF",
+    "heatFreqHigh": "#FFD166",
+    "heatSpeedLow": "#2EE59D",
+    "heatSpeedMid": "#FFB224",
+    "heatSpeedHigh": "#FF4D61",
+    "heatGrey": "rgba(140,147,163,0.55)",
+    "tripSlow": "#2EE59D",
+    "tripMid": "#FFB224",
+    "tripFast": "#FF4D61",
+    "appleButton": "#FFFFFF",
+    "appleButtonText": "#000000",
+    "googleBlue": "#4285F4",
+    "googleGreen": "#34A853",
+    "googleYellow": "#FBBC05",
+    "googleRed": "#EA4335",
+    "signRing": "#E5303F",
+    "signFace": "#FFFFFF",
+    "signText": "#0B0C10",
+    "fill08": "rgba(255,255,255,0.08)",
+    "fill09": "rgba(255,255,255,0.09)",
+    "fill10": "rgba(255,255,255,0.10)",
+    "pillSurface": "rgba(16,18,24,0.6)",
+    "sheetBackdrop": "rgba(0,0,0,0.45)",
+    "parityBackdrop": "#4A5568"
+  },
+  "fingerprints": {
+    "INV-05": {
+      ".actions": "01c6d96773618156",
+      ".actions-upper": "04d9a6f668d57016",
+      ".recenter-slot": "e959341e78a03862"
+    },
+    "INV-06": {
+      "HeatSwitch.tsx": "1ee4dfb48f9dfff4",
+      ".heat-switch": "d49a83909b714ab0"
+    },
+    "INV-19": {
+      ".cruise-card": "e980d4b8a856e6cf",
+      "CruiseCard.tsx": "5efaeb8db84b6413"
+    }
+  }
+}

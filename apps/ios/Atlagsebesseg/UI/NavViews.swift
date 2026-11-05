@@ -39,7 +39,6 @@ struct StatusPills: View {
     /// AOS14: a köszöntő felirat az üres nézeten, a kereső-gomb sora alatt (nem a térkép közepén).
     var greeting: String?
     /// AW19: a futó út halvány állapotsora a köszöntés alatt („Krúzing · 12,4 km · 23 perc”).
-    var cruise: String?
     /// A webes rétegsorrend: a pillek a gombsor ALATT (`.pills`), a kereső, a köszöntés és a krúzing-sor fölötte (`z-index`).
     enum Part { case pills, above }
     var part: Part = .above
@@ -59,7 +58,7 @@ struct StatusPills: View {
     }
 
     var body: some View {
-        // a webes abszolút helyek: pillek és kereső `safe + 40`, köszöntés `+ 64 + 8`, krúzing-sor `+ 52`
+        // a webes abszolút helyek: pillek és kereső `safe + 40`, köszöntés `+ 64 + 8`
         ZStack(alignment: .topLeading) {
             if part == .pills {
                 row.padding(.top, 40).padding(.trailing, onSearch == nil ? 0 : Tokens.Size.roundButton + Tokens.Space.s2)
@@ -76,20 +75,6 @@ struct StatusPills: View {
                     GreetingPill(text: greeting)
                         .transition(.opacity)
                         .padding(.top, 112)
-                }
-                if let cruise {
-                    Text(cruise)
-                        .css(Tokens.FontSize.f15, Tokens.FontWeight.w560, num: true)
-                        .foregroundStyle(Tokens.Colors.textMuted)
-                        .lineLimit(1)
-                        .padding(.horizontal, Tokens.Space.s3)
-                        .padding(.vertical, 5)
-                        .glass(radius: Tokens.Radius.r999)
-                        .opacity(Tokens.Opacity.o85)
-                        .allowsHitTesting(false)
-                        .accessibilityIdentifier("cruise-status")
-                        .transition(.opacity)
-                        .padding(.top, 164)
                 }
             }
         }

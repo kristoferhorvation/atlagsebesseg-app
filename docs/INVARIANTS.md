@@ -1,0 +1,31 @@
+# Invariánsok
+
+Kristof jóváhagyott döntései, amelyek csak az ő szó szerinti engedélyével változhatnak. Ok: az AW23 jóváhagyás nélkül kikapcsolta a 3D épületeket (2026-11-05).
+
+**Szabály:** invariánst módosítani CSAK akkor szabad, ha a prompt szó szerint tartalmazza: `INVARIÁNS-MÓDOSÍTÁS ENGEDÉLYEZVE: INV-xx`. Ha egy feladat invariánsba ütközne, azt a részt nem csináljuk meg, és a jelentés elején „Invariáns-ütközés” blokk írja le, mit és miért. Minden záró jelentésben sor: „Invariánsok: N/N zöld”. Új jóváhagyott döntés → új invariáns ugyanabban a körben.
+
+**Őrök:** `npm run invariants` (`scripts/invariants.mts`, az `npm test` része) és iOS-en `AtlagsebessegTests/InvariantsTests.swift`. A CSS-blokkok és fájlok ujjlenyomata a `docs/invariants.lock.json`-ban van; frissítése engedéllyel: `npm run invariants -- --update-lock INV-xx`.
+
+| Azonosító | Invariáns | Őr |
+|---|---|---|
+| INV-01 | A térkép Mapbox Standard, 3D épületekkel (`show3dObjects: true`), weben és iOS-en. A sötét tömböt a közelebbi kamera kezeli, kis rálógás elfogadott. | forrás-őr mindkét platformon |
+| INV-02 | Térképstílusok: Világos, Színes, Visszafogott ebben a sorrendben, alap a Színes. Napközben Világos = `day`, Színes = `dusk`, Visszafogott a napszak szerint; hajnalban, alkonyatkor és éjjel mindhárom a napszaké. A készülék sötét módja nem számít. | viselkedés-őr (TS + Swift) |
+| INV-03 | A mérőkártya 3 állapota, az átlag dönt: átlag ≤ határ → jó; fölötte, de a várható végső ≤ határ → lassíts; különben túl gyors. | viselkedés-őr (TS + Swift) |
+| INV-04 | A kézi mérés soha nem színezett: mindig a semleges `kezi` tónus, a ManualMini-n is. | forrás-őr mindkét platformon |
+| INV-05 | Végleges gombelrendezés: alsó sor jobbra zárva (Beállítás, Stopper, Bejelentés a jobb szélen); a „Vissza a helyemre” pontosan a Bejelentés fölött, tőle balra a ManualMini; fix helyek, a gombok nem mozdulnak. | CSS-ujjlenyomat, sorrend-őr mindkét platformon |
+| INV-06 | A hőtérkép-váltó stílusa (üveg-szegmens, a `heat-switch` spec szerint). | ujjlenyomat, iOS spec-őr |
+| INV-07 | A webes színvilág az etalon: a jóváhagyott színtokenek nem változnak; új token felvehető. | token-lock, iOS generált tokenek |
+| INV-08 | Kijelzőnevek: HU „Átlagsebesség”, EN „Tempomate”, DE „Tempo Nav”, SK „Rýchlosť Nav”, CS „Prům. rychlost”, PL „Prędkość Nav”; az EN cím „Tempomate”, a HU cím „Átlagsebesség”. | szótár-őr (TS + Swift) |
+| INV-09 | A Bejelentés lap alsó szövege szó szerint: „A jelenlegi helyed és haladási irányod kerül a bejelentésbe. Ideiglenes szakasz: a mérés végén a „Vége” gomb jelenti be a záró kaput.” | szótár-őr |
+| INV-10 | Adatvédelmi zóna alapból 200 m (választható 200 / 500 / 1000), az út eleje és vége 300 m. | érték-őr (TS + Swift) |
+| INV-11 | Alternatíva: ≥ 2 perc nyereségtől; `net = Δperc − k·Δkm`, k 40 km/h-ig 1,0, 110-től 0,3; net ≥ 2 megéri, 0 < net lehet, különben nem éri meg. | érték- és viselkedés-őr (TS + Swift) |
+| INV-12 | Dugó: a megengedett sebesség 40%-a alatt 3 percig; lámpa-türelem (60 m, 2 perc) csak nem autópályán; az ETA-korrekció a 70% fölött jár le (város 1 km + 2 perc, autópálya 3 km + 3 perc). | érték-őr (TS + Swift) |
+| INV-13 | Krúzing: 15 km/h, 30 s, ±30 m; a navigált út külön út. | érték-őr, teszt-őr (TS + Swift) |
+| INV-14 | GPS-jelölő folyamatossága: a valódi 1 Hz-es nyomaton egy képkocka alatt nincs a várható elmozdulás kétszeresét elérő ugrás. | visszajátszás-őr (TS + Swift) |
+| INV-15 | Web↔iOS paritás: a web a referencia, az `npm run parity` kör-záró kapu, a páros tesztek azonos néven. | teszt-név-őr |
+| INV-16 | Mapbox-attribúció és logó mindenhol látszik; a Live Activity térképképén a nézetben áll az attribúció. | forrás-őr mindkét platformon |
+| INV-17 | Release-ben nincs teszt-gyorsítás: `-simSpeed` csak DEBUG-ban, a webes `?speed` csak fejlesztői szerveren. | forrás-őr mindkét platformon |
+| INV-18 | A hőtérkép vonal-réteg, utcákra illesztett csíkokkal (nem pont / heatmap): a vastagság a navigációs útvonal-vonalé (`size.routeLine`), kerek végek és illesztések; már egy áthaladás is látszik. | forrás-őr mindkét platformon, viselkedés-őr |
+| INV-19 | Krúzing-kártya: a `.nav-top` helye, mérete és lekerekítése, `cruiseCard` #1B78BA fehér szöveggel; tartalma táv + idő, átlag · irányváltások, ≤ 5 km-en belül „Szakasz X km”; állva „indulásra kész”, kamera / veszély / szakasz-kártya idején vékony sáv. | CSS-ujjlenyomat, token-lock, viselkedés-őr (TS + Swift) |
+| INV-20 | Fiók-kártya: a Beállítások tetején csak a kör alakú profilkép, a név, az e-mail és a Megszólítás; a felhős mentés és legalul a piros „Fiók törlése” az Adatvédelem blokkban; a „Kijelentkezés” a lap utolsó eleme. | sorrend-őr mindkét platformon |
+| INV-21 | A „Napló és hőtérkép mentése a felhőbe” alapból BE. | érték-őr (TS + Swift) |

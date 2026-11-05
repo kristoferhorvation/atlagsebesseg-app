@@ -1,5 +1,6 @@
 import { haversineM } from '@atlagsebesseg/core';
 import { mergePasses, type HeatCell, type HeatGlobalRow, type HeatGeo, type HeatPass } from './heat';
+import type { TrackLine } from './track';
 
 /**
  * AW20: mesterséges, több „utas” hőtérkép-adat a szimulátorhoz (`?heatSeed` / `-heatSeed YES`) – a nav-shots ezzel ellenőrzi
@@ -29,6 +30,19 @@ const SIDE: [number, number][] = [
   [47.5578, 19.0425],
   [47.6126, 19.0628],
 ];
+
+/** AW24: a felvett utak (`fixtures/heat-seed-routes.json`) vonalai utanként: a `passes` adja az áthaladásokat, a sebesség utanként kicsit eltér. */
+export function heatSeedTrackLines(routes: readonly { passes: number; kmh: number; coords: readonly (readonly number[])[] }[]): TrackLine[][] {
+  const out: TrackLine[][] = [];
+  routes.forEach((r, ri) => {
+    const coords = r.coords.map((c) => [c[0]!, c[1]!] as [number, number]);
+    for (let i = 0; i < r.passes; i++) {
+      const kmh = r.kmh + ((i * 7 + ri * 3) % 13) - 6;
+      out.push([{ matched: true, coords, kmh: coords.map(() => kmh) }]);
+    }
+  });
+  return out;
+}
 
 /** mulberry32 – egész aritmetika, hogy a Swift-pár bitre azonos számokat kapjon. */
 function rng(seed: number): () => number {

@@ -38,7 +38,7 @@ import {
 } from '@atlagsebesseg/app-logic';
 import { supabase } from '../backend';
 import { deviceId, readCloudState, writeCloudState } from '../account/cloudState';
-import { deleteDownloadedTrip, listHeatOwn, listTrips, saveDownloadedTrip, setRemoteHeat, tripSamples } from '../trips/tripStore';
+import { deleteDownloadedTrip, listHeatOwn, listTrips, saveDownloadedTrip, setRemoteHeat, tripSamples, listTracks, saveTrack } from '../trips/tripStore';
 
 const MERGE_KEY = 'account:merge:v1';
 const OAUTH_KEY = 'account:oauth:v1';
@@ -47,7 +47,20 @@ const q = new URLSearchParams(location.search);
 /** Szimulátorban nincs hálózat: az állapotok a képernyőképekhez `?account=in|out|sent|off` (kijelentkezve az alap). */
 const SIM = ['sim', 'navsim', 'cruise'].some((k) => q.has(k));
 const SIM_ACCOUNT = q.get('account');
-const SIM_USER: AccountUser = { id: 'sim', email: 'kristof@example.com', isAnonymous: false, provider: 'email', givenName: null, fullName: null };
+const AVATAR_KEY = 'account:avatar:v1';
+
+/** A választott kép kör alakú profilképhez: középre vágva, 256 pixelre kicsinyítve, JPEG data URL (a `profiles.avatar` határa alatt). */
+async function fileToAvatar(f: File): Promise<string> {
+  const bmp = await createImageBitmap(f);
+  const side = Math.min(bmp.width, bmp.height);
+  const c = document.createElement('canvas');
+  c.width = 256;
+  c.height = 256;
+  c.getContext('2d')!.drawImage(bmp, (bmp.width - side) / 2, (bmp.height - side) / 2, side, side, 0, 0, 256, 256);
+  return c.toDataURL('image/jpeg', 0.82);
+}
+
+const SIM_USER: AccountUser = { id: 'sim', email: 'kristof@example.com', isAnonymous: false, provider: 'email', givenName: null, avatarUrl: null, fullName: null };
 
 const lsGet = (k: string): string | null => {
   try {
@@ -72,6 +85,8 @@ const backupStore: BackupStore = {
   deleteTrip: deleteDownloadedTrip,
   heatCells: listHeatOwn,
   setRemoteHeat,
+  listTracks,
+  saveTrack,
 };
 
 export interface AccountApi {
@@ -95,6 +110,9 @@ export interface AccountApi {
   closeNudge: () => void;
   tripSaved: () => void;
   backupNow: () => void;
+  /** AW24: a választott profilkép (data URL); `null`: a szolgáltató képe vagy monogram. */
+  avatar: string | null;
+  setAvatarFile: (f: File) => void;
 }
 
 /**
@@ -120,6 +138,16 @@ export function useAccount(opts: {
   const [lastSync, setLastSync] = useState<number | null>(SIM && SIM_ACCOUNT === 'in' ? Date.parse('2026-11-03T11:58:00+01:00') : null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [avatar, setAvatar] = useState<string | null>(() => lsGet(AVATAR_KEY));
+  const setAvatarFile = useCallback((f: File) => {
+    void fileToAvatar(f)
+      .then((url) => {
+        lsSet(AVATAR_KEY, url);
+        setAvatar(url);
+        if (supabase) void supabaseRemote(supabase).pushProfile({ avatar: url }).catch((e: unknown) => console.warn('[account] avatar upload failed', e));
+      })
+      .catch((e: unknown) => console.warn('[account] avatar failed', e));
+  }, []);
   const [emailSentTo, setEmailSentTo] = useState<string | null>(SIM && SIM_ACCOUNT === 'sent' ? 'kristof@example.com' : null);
   const [nameStep, setNameStep] = useState<string | null>(SIM && q.has('nameStep') ? (q.get('nameStep') ?? '') : null);
   const [nudge, setNudge] = useState(SIM && q.has('nudge'));
@@ -167,6 +195,14 @@ export function useAccount(opts: {
         const r = await syncBackupOnce(remote, backupStore, readCloudState(), deviceId(), openRef.current, Date.now());
         writeCloudState(r.state);
         if (r.trips.down || r.trips.deleted || r.heatChanged) onDataRef.current();
+      }
+      // AW24: a másik készüléken választott profilkép
+      if (!lsGet(AVATAR_KEY)) {
+        const p = await remote.pullProfile();
+        if (p?.avatar) {
+          lsSet(AVATAR_KEY, p.avatar);
+          setAvatar(p.avatar);
+        }
       }
       setLastSync(Date.now());
       setStatus('ok');
@@ -309,7 +345,7 @@ export function useAccount(opts: {
     [fail],
   );
 
-  /** Kijelentkezés és fiók törlése után: új névtelen felhasználó, a helyi adatok maradnak; a mentés kapcsolója nem kerül át a következő fiókra. */
+  /** Kijelentkezés és fiók törlése után: új névtelen felhasználó, a helyi adatok maradnak; a mentés kapcsolója visszaáll az alapra (AW24: BE), névtelenül úgysem megy adat. */
   const leave = useCallback(
     async (message: string) => {
       if (!supabase) return;
@@ -317,8 +353,10 @@ export function useAccount(opts: {
       await continueAnonymously(supabase);
       lsSet(SEEN_KEY, null);
       // nem felhasználói döntés (0 idő): visszalépve a fiók értéke érvényes, a többi készülék mentése nem kapcsol ki
-      fields.current = { values: { ...fields.current.values, 'settings.felho_mentes': false }, times: { ...fields.current.times, 'settings.felho_mentes': 0 } };
-      update({ felho_mentes: false });
+      fields.current = { values: { ...fields.current.values, 'settings.felho_mentes': true }, times: { ...fields.current.times, 'settings.felho_mentes': 0 } };
+      update({ felho_mentes: true });
+      lsSet(AVATAR_KEY, null);
+      setAvatar(null);
       setStatus('idle');
       setLastSync(null);
       toastRef.current(message);
@@ -376,5 +414,5 @@ export function useAccount(opts: {
   }, []);
   const backupNow = useCallback(() => void syncNow(), [syncNow]);
 
-  return { user, signedIn, providers, status, lastSync, busy, error, emailSentTo, signIn, sendEmail, clearEmail, signOut, remove, nameStep, saveName, skipName, nudge, closeNudge, tripSaved, backupNow };
+  return { avatar, setAvatarFile, user, signedIn, providers, status, lastSync, busy, error, emailSentTo, signIn, sendEmail, clearEmail, signOut, remove, nameStep, saveName, skipName, nudge, closeNudge, tripSaved, backupNow };
 }

@@ -7,6 +7,7 @@ import type { CommunityJam, JamSampleInsert } from './navigation/traffic';
 import type { ReportInsert } from './reports';
 import type { BBox } from './sectionCache';
 import { HEAT, type HeatGlobalRow, type HeatUploadRow } from './heat';
+import { TRACK, type SegmentGlobalRow, type SegmentUploadRow } from './track';
 
 export type { SupabaseClient };
 
@@ -178,6 +179,28 @@ export async function uploadHeatRows(client: SupabaseClient | null, rows: readon
   if (rows.length === 0) return;
   const { error } = await need(client).from('heat_cells').insert(rows);
   if (error) throw error;
+}
+
+/** AW24: a közösségi hőtérkép szakaszai (`heat_segments`); a `matcher` jelöli az illesztőt. */
+export async function uploadSegmentRows(client: SupabaseClient | null, rows: readonly SegmentUploadRow[], matcher: string): Promise<void> {
+  if (rows.length === 0) return;
+  const { error } = await need(client).from('heat_segments').insert(rows.map((r) => ({ ...r, matcher })));
+  if (error) throw error;
+}
+
+/** AW24: a `heat_segments_global` nézet a téglalapra, a legtöbb áthaladású szakaszok előre. */
+export async function fetchHeatSegments(client: SupabaseClient | null, b: BBox): Promise<SegmentGlobalRow[]> {
+  const { data, error } = await need(client)
+    .from('heat_segments_global')
+    .select('seg_key,lat1,lon1,lat2,lon2,count,avg_speed')
+    .gte('lat1', b.south)
+    .lte('lat1', b.north)
+    .gte('lon1', b.west)
+    .lte('lon1', b.east)
+    .order('count', { ascending: false })
+    .limit(TRACK.queryLimit);
+  if (error) throw error;
+  return data as SegmentGlobalRow[];
 }
 
 /** AW20: a `heat_global` (res 10) vagy `heat_global_r8` (res 8) nézet a téglalapra – a legtöbb áthaladású cellák, legfeljebb `HEAT.queryLimit`. */

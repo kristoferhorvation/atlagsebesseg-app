@@ -967,6 +967,8 @@ select:focus-visible {
   top: calc(env(safe-area-inset-top) + 40px);
   right: max(12px, env(safe-area-inset-right));
   z-index: 3;
+  /* AW24: a krúzing-kártya sarkára lóg, fölötte marad */
+  z-index: 16;
 }
 
 .pills[data-search] {
@@ -992,25 +994,6 @@ select:focus-visible {
 }
 
 /* AW19: a krúzing-út halvány állapotsora a köszöntés alatt („Krúzing · 12,4 km · 23 perc”) */
-.cruise-status {
-  position: absolute;
-  top: calc(env(safe-area-inset-top) + 40px + var(--size-round-button) + 8px + 52px);
-  left: max(12px, env(safe-area-inset-left));
-  max-width: calc(100% - 24px);
-  padding: 5px 12px;
-  border-radius: var(--radius-pill);
-  font-size: 15px;
-  font-weight: 560;
-  font-variant-numeric: tabular-nums;
-  color: var(--color-text-muted);
-  opacity: 0.85;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  pointer-events: none;
-  z-index: 2;
-}
-
 .pill {
   pointer-events: auto;
   height: 36px;
@@ -2158,6 +2141,93 @@ a.list-row {
   animation: rise var(--motion-base) var(--motion-ease);
 }
 
+/* AW24: krúzing-kártya: a `.nav-top` helye, mérete és lekerekítése; tömör égkék, a meglévő szegéllyel és árnyékkal (INV-19) */
+.cruise-card {
+  position: absolute;
+  top: calc(env(safe-area-inset-top) + 84px);
+  left: max(12px, env(safe-area-inset-left));
+  right: max(12px, env(safe-area-inset-right));
+  z-index: 15;
+  border-radius: 28px;
+  padding: 14px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  color: var(--color-cruise-card-text);
+  background: var(--color-cruise-card);
+  border: 1px solid var(--color-stroke-strong);
+  box-shadow: var(--shadow-card);
+  pointer-events: none;
+  animation: rise var(--motion-base) var(--motion-ease);
+  transition: opacity var(--motion-base) var(--motion-ease);
+}
+
+.cruise-card[data-leaving='true'] {
+  opacity: 0;
+}
+
+/* állva a köszöntés alatt, a kamera / szakasz idején vékony sávként a helyén */
+.cruise-card[data-kind='ready'] {
+  top: calc(env(safe-area-inset-top) + 40px + var(--size-round-button) + 8px + 52px);
+  padding: 8px 18px;
+}
+
+.cruise-card[data-kind='strip'] {
+  padding: 8px 18px;
+}
+
+.cruise-card[data-kind='strip'] ~ .nav-top.report-alert {
+  top: calc(env(safe-area-inset-top) + 84px + 46px);
+}
+
+.cruise-card[data-section='true'] ~ .heat-switch {
+  transform: translateY(24px);
+}
+
+.cruise-card[data-kind='ready'] ~ .heat-switch {
+  transform: translateY(10px);
+}
+
+.cruise-title {
+  font-size: 15px;
+  font-weight: 620;
+}
+
+.cruise-big {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.cruise-big b {
+  font-size: 34px;
+  line-height: 38px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.cruise-big span {
+  font-size: 18px;
+  font-weight: 620;
+  white-space: nowrap;
+}
+
+.cruise-line,
+.cruise-compact {
+  font-size: 15px;
+  line-height: 20px;
+  font-weight: 560;
+  font-variant-numeric: tabular-nums;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.cruise-compact {
+  font-weight: 620;
+}
+
 .nav-main {
   display: flex;
   align-items: center;
@@ -3222,4 +3292,64 @@ button.nav-reroute {
   .nav-bottom-speed {
     min-width: 48px;
   }
+}
+
+/* AW24: a Beállítások teteje: kör alakú profilkép, név, e-mail, Megszólítás */
+.account-profile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0 16px;
+  text-align: center;
+}
+
+.avatar {
+  position: relative;
+  width: var(--size-avatar);
+  height: var(--size-avatar);
+  border-radius: 50%;
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--color-stroke-strong);
+  background: var(--color-surface-raised);
+  color: var(--color-text);
+  font-size: 28px;
+  font-weight: 640;
+  padding: 0;
+  cursor: pointer;
+}
+
+.avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.avatar input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.account-profile-name {
+  font-size: 20px;
+  font-weight: 640;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.account-profile-email {
+  margin-top: -6px;
+  font-size: 15px;
+  color: var(--color-text-muted);
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }

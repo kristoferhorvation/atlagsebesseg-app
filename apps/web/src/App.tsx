@@ -26,7 +26,9 @@ import {
   gateStartedAfter,
   type ReportPrompt,
   greetingText,
-  cruiseStatusText,
+  cruiseCard,
+  cruiseDemoCard,
+  nextSectionAheadM,
   HEAT_MODES,
   heatZones,
   type HeatZone,
@@ -86,6 +88,7 @@ import { useSettings } from './hooks/useSettings';
 import { useTileItems } from './hooks/useTileItems';
 import { useTrips } from './hooks/useTrips';
 import { HEAT_SEED, useHeat, type HeatViewport } from './hooks/useHeat';
+import { CruiseCard } from './ui/CruiseCard';
 import { HeatSwitch } from './ui/HeatSwitch';
 import { HeatDetailsSheet } from './ui/HeatDetailsSheet';
 import { useWakeLock } from './hooks/useWakeLock';
@@ -131,6 +134,8 @@ const NAV_SIM_OPTS = (() => {
 /** AW19: `?cruise` – krúzing mód: a navsim-vezetés cél nélkül, rögtön indul (az utak naplójához). */
 const NAV_SIM_CRUISE = NAV_SIM && new URLSearchParams(location.search).has('cruise');
 /** AW23: `?miniAlways` (csak szimulátorban): a ManualMini navigáció nélkül is – a gombsor mind a négy kombinációjának méréséhez. */
+/** AW24: `?cruiseDemo=full|ready|strip` (csak szimulátorban): a krúzing-kártya rögzített mintaadattal a képekhez és a paritás-kapuhoz. */
+const CRUISE_DEMO = SIM_MODE ? new URLSearchParams(location.search).get('cruiseDemo') : null;
 const MINI_ALWAYS = SIM_MODE && new URLSearchParams(location.search).has('miniAlways');
 /** AW19: `?sheet=trips` – az utak naplója nyitva; `&tripOpen=first` – a legújabb út részlete (képernyőképekhez). */
 const START_SHEET_Q = new URLSearchParams(location.search).get('sheet');
@@ -779,7 +784,7 @@ function Drive({ map }: { map: WebMapAdapter }) {
     if (heatVisible && lastViewport.current) setHeatViewport(lastViewport.current);
   }, [heatVisible]);
   const heat = useHeat({ mode: settings.hoterkep, view: settings.hoterkep_nezet, share: settings.adatmegosztas, version: trips.version, viewport: heatViewport, visible: heatVisible, zones });
-  useEffect(() => map.showHeat(heat ? { points: heat.points, grey: heat.grey, view: heat.view, res: heat.res } : null), [map, heat]);
+  useEffect(() => map.showHeat(heat), [map, heat]);
   // a zónák halvány körei, amíg a Beállítások (vagy a Részletek lap) nyitva van
   const zonesShown = sheet === 'settings' || sheet === 'heatDetails';
   useEffect(() => map.showPrivacyZones(zonesShown ? zones.map((z) => ({ id: z.id, center: { lat: z.lat, lon: z.lon }, radiusM: z.radiusM })) : null), [map, zones, zonesShown]);
@@ -813,12 +818,18 @@ function Drive({ map }: { map: WebMapAdapter }) {
     });
   }, [update]);
 
+  // AW24: krúzing-kártya: cél nélkül, futó GPS-szel; kamera / veszély / szakasz-kártya idején vékony sáv
+  const cruiseActive = (SIM_MODE || geo === 'aktiv') && !nav.view && !nav.plan && nav.searchFor === null && view.phase !== 'kezi' && view.phase !== 'kezi_eredmeny';
+  const cruiseCollapsed = reportAlert !== null || selected !== null || selectedCam !== null || view.phase === 'meres' || view.phase === 'kozeledik' || view.phase === 'befejezve';
+  const cruiseShown = CRUISE_DEMO
+    ? cruiseDemoCard(CRUISE_DEMO, settings.egyseg)
+    : cruiseCard({ cruise: trips.cruise, active: cruiseActive, collapsed: cruiseCollapsed, sectionAheadM: nextSectionAheadM(view.lastFix, sections), unit: settings.egyseg });
+
   return (
     <>
       <StatusPills
         onSearch={nav.view || nav.plan || driving || view.phase === 'kezi_eredmeny' ? undefined : () => nav.openSearch()}
-        greeting={reportAlert ? undefined : greetingText(settings.megszolitas)}
-        cruise={trips.cruise ? cruiseStatusText(trips.cruise, settings.egyseg) : undefined}
+        greeting={reportAlert || cruiseShown.kind === 'full' || cruiseShown.kind === 'strip' ? undefined : greetingText(settings.megszolitas)}
         geo={SIM_MODE ? 'aktiv' : geo}
         accuracy={accuracy}
         wake={wake.status}
@@ -833,6 +844,7 @@ function Drive({ map }: { map: WebMapAdapter }) {
           else wake.request();
         }}
       />
+      <CruiseCard card={cruiseShown} />
       {heat && <HeatSwitch view={settings.hoterkep_nezet} onChange={(v) => update({ hoterkep_nezet: v })} />}
       {NAV_SIM && navSim && (
         <NavSimDriver

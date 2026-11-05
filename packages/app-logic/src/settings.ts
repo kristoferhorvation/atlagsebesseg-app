@@ -32,6 +32,8 @@ export interface Settings {
   zona_m: Record<string, number>;
   /** AW22: a napló és a saját hőtérkép felhős mentése (bejelentkezve; alapból ki). */
   felho_mentes: boolean;
+  /** AW24: a `felho_mentes` alapból BE; a jelölő nélküli (régi, alapból KI) tárolt érték egyszer átáll. */
+  felho_mentes_v2: boolean;
 }
 
 /** A megszólítás legfeljebb ennyi karakter (a köszöntő sor egy sorban maradjon). */
@@ -40,7 +42,7 @@ export const MEGSZOLITAS_MAX = 24;
 /** A tárolt / beírt név: szélein vágva, a belső szóközök egyre, legfeljebb `MEGSZOLITAS_MAX` karakter. */
 export const normalizeName = (raw: string): string => [...raw.replace(/\s+/g, ' ').trim()].slice(0, MEGSZOLITAS_MAX).join('').trim();
 
-export const DEFAULT_SETTINGS: Settings = { hatosagi_tures_megjelenitese: false, egyseg: 'kmh', terkep: 'szines', tervezett_meresek: true, hangos_utasitasok: true, megszolitas: '', hoterkep: 'sajat', hoterkep_nezet: 'gyakorisag', adatmegosztas: true, adatmegosztas_v2: true, zona_m: {}, felho_mentes: false };
+export const DEFAULT_SETTINGS: Settings = { hatosagi_tures_megjelenitese: false, egyseg: 'kmh', terkep: 'szines', tervezett_meresek: true, hangos_utasitasok: true, megszolitas: '', hoterkep: 'sajat', hoterkep_nezet: 'gyakorisag', adatmegosztas: true, adatmegosztas_v2: true, zona_m: {}, felho_mentes: true, felho_mentes_v2: true };
 export const SETTINGS_KEY = 'settings:v1';
 
 /** Tárolt beállítások beolvasása; ismeretlen / sérült érték helyett az alapértelmezés. */
@@ -62,7 +64,8 @@ export function parseSettings(raw: string | null | undefined): Settings {
       adatmegosztas: p.adatmegosztas_v2 === true && typeof p.adatmegosztas === 'boolean' ? p.adatmegosztas : DEFAULT_SETTINGS.adatmegosztas,
       adatmegosztas_v2: true,
       zona_m: parseZoneRadii(p.zona_m),
-      felho_mentes: p.felho_mentes === true,
+      felho_mentes: p.felho_mentes_v2 === true && typeof p.felho_mentes === 'boolean' ? p.felho_mentes : DEFAULT_SETTINGS.felho_mentes,
+      felho_mentes_v2: true,
     };
   } catch {
     return DEFAULT_SETTINGS;

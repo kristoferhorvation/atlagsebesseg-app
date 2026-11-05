@@ -587,6 +587,38 @@ nonisolated func cruiseDirChangesText(_ v: CruiseView, lang: Lang? = nil) -> Str
     "\(t(.tripsStatDirChanges, lang: lang)): \(v.dirChanges)"
 }
 
+// MARK: AW24: krúzing-kártya (a felső manőver-kártya helyén, cél nélkül)
+
+/// A krúzing-kártya állapota.
+nonisolated enum CruiseCardModel: Equatable, Sendable {
+    case hidden
+    case ready(String)
+    case strip(String)
+    case full(title: String, distance: String, time: String, line2: String, section: String?)
+}
+
+/// Cél nélkül, futó GPS-szel: mozgásban a teljes kártya (táv, idő, átlag, irányváltások, ≤ 5 km-en belüli szakasz), állva „indulásra kész”. Kamera / veszély / szakasz-kártya
+/// idején vékony sáv. Navigáció, útvonaltervezés, kézi mérés alatt és GPS nélkül nincs.
+nonisolated func cruiseCard(cruise v: CruiseView?, active: Bool, collapsed: Bool, sectionAheadM: Double?, unit: SpeedUnit, lang: Lang? = nil) -> CruiseCardModel {
+    guard active else { return .hidden }
+    guard let v else { return .ready(t(.cruiseReady, lang: lang)) }
+    if collapsed { return .strip(t(.cruiseStrip, ["dist": distText(v.distanceM, unit, lang: lang)], lang: lang)) }
+    let speed = tripSpeedText(tripAvgKmh(distanceM: v.distanceM, movingS: v.elapsedS), unit)
+    return .full(
+        title: t(.tripsCruise, lang: lang),
+        distance: distText(v.distanceM, unit, lang: lang),
+        time: formatTripDuration(v.elapsedS, lang: lang),
+        line2: "\(t(.cruiseAverage, ["avg": speed], lang: lang)) · \(t(.cruiseDirChanges, ["n": String(v.dirChanges)], lang: lang))",
+        section: sectionAheadM.map { t(.cruiseSection, ["d": distText($0, unit, lang: lang)], lang: lang) }
+    )
+}
+
+/// Mintaadat a képekhez és a paritás-kapuhoz (`-cruiseDemo` / `?cruiseDemo`): 12,4 km, 23 perc, 3 irányváltás, szakasz 3,2 km-re.
+nonisolated func cruiseDemoCard(_ kind: String, unit: SpeedUnit) -> CruiseCardModel {
+    let v = CruiseView(tripId: "demo", startedAt: 0, distanceM: 12_400, elapsedS: 1380, movingS: 1380, dirChanges: 3)
+    return cruiseCard(cruise: kind == "ready" ? nil : v, active: true, collapsed: kind == "strip", sectionAheadM: kind == "full" ? 3200 : nil, unit: unit)
+}
+
 // AOS17: „Összes törlése” 30 napos visszaállítással (a webes trips.ts párja, azonos nevű tesztek).
 
 /// Ennyi ideig állítható vissza a törölt adat (ms).

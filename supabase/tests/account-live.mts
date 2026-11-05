@@ -86,6 +86,8 @@ function memStore(trips: Trip[], cells: HeatCell[]) {
     deleteTrip: async (id) => void map.delete(id),
     heatCells: async () => cells,
     setRemoteHeat: async (l) => void (st.remote = [...l]),
+    listTracks: async () => [],
+    saveTrack: async () => undefined,
   };
   return { store, map, st };
 }

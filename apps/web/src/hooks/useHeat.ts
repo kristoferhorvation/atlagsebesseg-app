@@ -1,37 +1,32 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
-  fetchHeatGlobal,
-  globalPoints,
-  HEAT,
+  fetchHeatSegments,
+  globalLines,
   heatQueryBox,
   heatQueryKey,
-  heatResForZoom,
+  heatSeedTrackLines,
   HeatGlobalCache,
-  HeatIndex,
-  heatSeedCells,
-  heatSeedGlobal,
+  seedGlobalRows,
+  TrackIndex,
   type BBox,
-  type HeatCell,
-  type HeatGlobalRow,
+  type HeatLine,
   type HeatMode,
-  type HeatZone,
-  type HeatPoint,
   type HeatView,
+  type HeatZone,
+  type SegmentGlobalRow,
+  type TrackLine,
 } from '@atlagsebesseg/app-logic';
 import { supabase } from '../backend';
-import { clearHeatOutbox, flushHeatOutbox } from '../heat/heatShare';
-import { heatGeo, type WebHeatGeo } from '../heat/heatGeo';
-import { backfillHeat, listHeat } from '../trips/tripStore';
+import { clearSegmentOutbox, flushSegmentOutbox } from '../heat/heatShare';
+import { catchUpTracks } from '../heat/trackPipeline';
+import { listTracks } from '../trips/tripStore';
 
 /** `?heatSeed` – mesterséges, több utas adat a szimulátorban (a nav-shots ellenőrzi vele a réteget). */
 export const HEAT_SEED = new URLSearchParams(location.search).has('heatSeed');
 
 export interface HeatLayer {
-  points: readonly HeatPoint[];
-  /** A zónákban lévő cellák (csak saját módban): szürkén, nem színezve. */
-  grey: readonly HeatPoint[];
+  lines: readonly HeatLine[];
   view: HeatView;
-  res: number;
 }
 
 export interface HeatViewport {
@@ -40,93 +35,91 @@ export interface HeatViewport {
 }
 
 /**
- * AW20: a hőtérkép adata a térképnek. Saját mód: a helyi összesítés (IndexedDB, utak végén frissül) a `HeatIndex`-ben,
- * zoom-függő felbontással; közösségi mód: a `heat_global` / `heat_global_r8` a látható területre (10 perces gyorsítótár).
- * A megosztás kikapcsolásakor a feltöltési sor törlődik.
+ * AW24: a hőtérkép adata a térképnek, utcákra illesztett csíkokkal. Saját mód: az utak vonalai (IndexedDB `tracks`) a `TrackIndex`-ben, szakaszonként összesítve; közösségi mód:
+ * a `heat_segments_global` a látható területre (10 perces gyorsítótár). A megosztás kikapcsolásakor a feltöltési sor törlődik.
  */
 export function useHeat(opts: { mode: HeatMode; view: HeatView; share: boolean; version: number; viewport: HeatViewport | null; visible: boolean; zones: readonly HeatZone[] }): HeatLayer | null {
   const { mode, view, share, version, viewport, visible, zones } = opts;
-  const [geo, setGeo] = useState<WebHeatGeo | null>(null);
-  const [own, setOwn] = useState<readonly HeatCell[]>([]);
-  const [globalRows, setGlobalRows] = useState<{ res: number; rows: readonly HeatGlobalRow[] } | null>(null);
+  const [own, setOwn] = useState<readonly (readonly TrackLine[])[]>([]);
+  const [seed, setSeed] = useState<TrackLine[][] | null>(null);
+  const [globalRows, setGlobalRows] = useState<readonly SegmentGlobalRow[] | null>(null);
   const need = mode !== 'ki';
+
   useEffect(() => {
-    if (need) void heatGeo().then(setGeo);
+    if (!need || !HEAT_SEED) return;
+    void import('../../../../packages/app-logic/src/fixtures/heat-seed-routes.json').then((m) => setSeed(heatSeedTrackLines(m.default.routes)));
   }, [need]);
 
-  // a helyi összesítés: induláskor a még be nem olvasztott utak beolvasztása, utána minden út végén újratöltés
-  const backfilled = useRef(false);
+  // a saját vonalak: induláskor a függő és a régi utak feldolgozása, utána minden út végén újratöltés
+  const zonesRef = useRef(zones);
+  zonesRef.current = zones;
+  const shareRef = useRef(share);
+  shareRef.current = share;
+  const [caughtUp, setCaughtUp] = useState(0);
+  useEffect(() => {
+    if (!need || HEAT_SEED) return;
+    void catchUpTracks({ share: () => shareRef.current, zones: () => zonesRef.current })
+      .then((changed) => changed && setCaughtUp((v) => v + 1))
+      .catch((e: unknown) => console.warn('[heat] catch-up failed', e));
+  }, [need, version]);
   useEffect(() => {
     if (!need || HEAT_SEED) return;
     let cancelled = false;
-    void (async () => {
-      if (!backfilled.current) {
-        backfilled.current = true;
-        await backfillHeat().catch((e: unknown) => console.warn('[heat] backfill failed', e));
-      }
-      const cells = await listHeat().catch(() => []);
-      if (!cancelled) setOwn(cells);
-    })();
+    void listTracks()
+      .then((t) => !cancelled && setOwn(t.filter((x) => x.status === 'done').map((x) => x.lines)))
+      .catch(() => undefined);
     return () => {
       cancelled = true;
     };
-  }, [need, version]);
+  }, [need, version, caughtUp]);
 
-  const seed = useMemo(() => (HEAT_SEED && geo ? heatSeedCells(geo.cellOf) : null), [geo]);
-  // az index a tartalommal együtt épül (nem utólag, effektben): a pontok ugyanabban a renderben a friss cellákból készülnek
   const index = useMemo(() => {
-    if (!geo) return null;
-    const i = new HeatIndex(geo);
-    i.setZones(zones);
-    i.setAll(seed ?? own);
+    const i = new TrackIndex();
+    for (const l of seed ?? own) i.add(l);
     return i;
-  }, [geo, own, seed, zones]);
+  }, [own, seed]);
 
   // közösségi mód: lekérés a látható területre, 10 perc gyorsítótár
-  const cache = useMemo(() => new HeatGlobalCache(() => Date.now()), []);
+  const cache = useMemo(() => new HeatGlobalCache<SegmentGlobalRow>(() => Date.now()), []);
   useEffect(() => {
     if (mode !== 'kozossegi' || !viewport || !visible) return;
-    const res = heatResForZoom(viewport.zoom);
     if (HEAT_SEED) {
-      if (geo && seed) setGlobalRows({ res, rows: heatSeedGlobal(seed, geo, res) });
+      if (seed) setGlobalRows(seedGlobalRows(seed));
       return;
     }
     if (!supabase) return;
     const box = heatQueryBox(viewport.bbox);
-    const key = heatQueryKey(box, res);
+    const key = heatQueryKey(box, 0);
     const hit = cache.get(key);
     if (hit) {
-      setGlobalRows({ res, rows: hit });
+      setGlobalRows(hit);
       return;
     }
     let cancelled = false;
-    fetchHeatGlobal(supabase, box, res)
+    fetchHeatSegments(supabase, box)
       .then((rows) => {
         cache.set(key, rows);
-        if (!cancelled) setGlobalRows({ res, rows });
+        if (!cancelled) setGlobalRows(rows);
       })
       .catch((e: unknown) => console.warn('[heat] fetch failed', e));
     return () => {
       cancelled = true;
     };
-  }, [mode, viewport, visible, cache, geo, seed]);
+  }, [mode, viewport, visible, cache, seed]);
 
   // megosztás: kikapcsolva a várakozó sorok törlődnek; bekapcsolva induláskor próbáljuk a maradékot feltölteni
   useEffect(() => {
-    if (!share) clearHeatOutbox();
-    else void flushHeatOutbox(supabase);
+    if (!share) clearSegmentOutbox();
+    else void flushSegmentOutbox(supabase);
   }, [share, version]);
 
   return useMemo(() => {
     if (!visible || mode === 'ki' || !viewport) return null;
     if (mode === 'sajat') {
-      if (!index) return null;
-      const r = index.points(viewport, view);
-      return { points: r.points, grey: r.grey, view, res: r.res };
+      if (HEAT_SEED && !seed) return null;
+      return { lines: index.lines(viewport, view, zones), view };
     }
     if (!globalRows) return null;
-    return { points: globalPoints(globalRows.rows, view), grey: [], view, res: globalRows.res };
-  }, [visible, mode, view, viewport, index, globalRows]);
+    return { lines: globalLines(globalRows, view), view };
+  }, [visible, mode, view, viewport, index, globalRows, seed, zones]);
 }
-
-export { HEAT };

@@ -25,7 +25,6 @@ struct MapScreen: View {
     @State private var heatFC = FeatureCollection(features: [])
     @State private var heatBuiltAt = 0.0
     /// AW20-javítás: a zónában lévő cellák (saját módban szürkén, nem színezve) és a zóna-körök (amíg a Beállítások nyitva).
-    @State private var heatGreyFC = FeatureCollection(features: [])
     @State private var privacyZonesFC = FeatureCollection(features: [])
     @State private var altLabels: [AltLabel] = []
     /// AW17: a címkék képernyő-pontban számolt helye (a buborék közepe), útvonal-azonosító szerint.
@@ -83,24 +82,25 @@ struct MapScreen: View {
 
     private func map(_ proxy: MapProxy) -> some View {
         Map(viewport: $viewport) {
-            // AW20: hőtérkép (saját / közösségi) – legalul, az útvonalak és szakaszok alatt; csak az üres nézeten és krúzingban
+            // AW24: hőtérkép – utcákra illesztett csíkok (saját / közösségi), legalul; a vastagság a navigációs útvonal-vonalé (INV-18), kerek végek és illesztések, a szín a súlyból; a zónás / út-végi szakasz szürke
             GeoJSONSource(id: "heat").data(.featureCollection(heatFC))
-            HeatmapLayer(id: "heat-layer", source: "heat")
+            LineLayer(id: "heat-grey-layer", source: "heat")
                 .slot(.middle)
-                .heatmapWeight(Exp(.get) { "weight" })
-                .heatmapIntensity(Exp(.interpolate) { Exp(.linear); Exp(.zoom); 6; 0.7; 12; 1.1; 16; 1.5 })
-                .heatmapRadius(Exp(.interpolate) { Exp(.exponential) { 1.6 }; Exp(.zoom); 6; 7; 10; 13; 12; 20; 14; 32; 16; 58; 18; 110 })
-                .heatmapOpacity(0.88)
-                .heatmapColor(Self.heatColorRamp(model.settings.hoterkepNezet))
-            // AW20-javítás: a zónában lévő cellák szürkén (nem színezve) – a hőtérkép fölött, a zóna-körök alatt
-            GeoJSONSource(id: "heat-grey").data(.featureCollection(heatGreyFC))
-            CircleLayer(id: "heat-grey-layer", source: "heat-grey")
+                .filter(Exp(.get) { "grey" })
+                .lineCap(.round)
+                .lineJoin(.round)
+                .lineWidth(Self.routeW)
+                .lineColor(UIColor(Tokens.Colors.heatGrey))
+                .lineEmissiveStrength(1)
+            LineLayer(id: "heat-layer", source: "heat")
                 .slot(.middle)
-                .circleRadius(Exp(.interpolate) { Exp(.exponential) { 1.6 }; Exp(.zoom); 6; 2; 10; 4; 12; 8; 14; 14; 16; 26; 18; 48 })
-                .circleColor(UIColor(Tokens.Colors.heatGrey))
-                .circleBlur(0.6)
-                .circleOpacity(1)
-                .circleEmissiveStrength(1)
+                .filter(Exp(.not) { Exp(.get) { "grey" } })
+                .lineCap(.round)
+                .lineJoin(.round)
+                .lineSortKey(Exp(.get) { "weight" })
+                .lineWidth(Self.routeW)
+                .lineColor(Self.heatColorRamp(model.settings.hoterkepNezet))
+                .lineEmissiveStrength(1)
             // a mentett helyek adatvédelmi zónái: halvány kör, amíg a Beállítások nyitva van
             GeoJSONSource(id: "privacy-zones").data(.featureCollection(privacyZonesFC))
             FillLayer(id: "privacy-zones-fill", source: "privacy-zones")
@@ -383,8 +383,8 @@ struct MapScreen: View {
     }
 
     /// Útvonal-vonalak (AW11, pt): a kiválasztott 7 + 2 × 2 kontúr, az alternatíva 5 + 2 × 1,5 kontúr (mint a weben).
-    private static let routeW = 7.0
-    private static let routeCasingW = 2.0
+    private static let routeW = Double(Tokens.Size.routeLine)
+    private static let routeCasingW = Double(Tokens.Size.routeLineCasing)
     private static let routeAltW = 5.0
     private static let routeAltCasingW = 1.5
     /// A legfelső alsó kártya teteje: a mért kártya, ennek hiányában a HUD teteje.
@@ -411,13 +411,11 @@ struct MapScreen: View {
 
     private func rebuildHeat() {
         heatBuiltAt = Date().timeIntervalSince1970
-        let layers = model.heatLayers()
-        heatFC = FeatureCollection(features: layers.points.map { p in
-            var f = Feature(geometry: Point(CLLocationCoordinate2D(latitude: p.lat, longitude: p.lon)))
-            f.properties = ["weight": .number(p.weight)]
+        heatFC = FeatureCollection(features: model.heatLines().map { l in
+            var f = Feature(geometry: LineString(l.coords.map { CLLocationCoordinate2D(latitude: $0[0], longitude: $0[1]) }))
+            f.properties = ["weight": .number(l.weight), "grey": .boolean(l.grey)]
             return f
         })
-        heatGreyFC = FeatureCollection(features: layers.grey.map { p in Feature(geometry: Point(CLLocationCoordinate2D(latitude: p.lat, longitude: p.lon))) })
         rebuildZones()
     }
 
@@ -456,24 +454,22 @@ struct MapScreen: View {
         viewport = .camera(center: CLLocationCoordinate2D(latitude: lat, longitude: lon), zoom: d.double(forKey: "mapZoom"), bearing: 0, pitch: 0)
     }
 
-    /// A hőtérkép színskálája a sűrűségből (tokenekből): átlátszó → alacsony → közép → magas; gyakoriságnál indigó → lila →
-    /// borostyánsárga, átlagsebességnél zöld → borostyán → piros.
+    /// A hőtérkép színskálája a módban (tokenekből): a súly (0…1) szerint alacsony → közép → magas, teljes fedéssel (a webes `heatColor`).
     private static func heatColorRamp(_ view: HeatView) -> Exp {
         let (lo, mid, hi) = view == .gyakorisag
             ? (Tokens.Colors.heatFreqLow, Tokens.Colors.heatFreqMid, Tokens.Colors.heatFreqHigh)
             : (Tokens.Colors.heatSpeedLow, Tokens.Colors.heatSpeedMid, Tokens.Colors.heatSpeedHigh)
-        func rgba(_ c: Color, _ a: Double) -> String {
+        func rgb(_ c: Color) -> String {
             var (r, g, b, o) = (CGFloat(0), CGFloat(0), CGFloat(0), CGFloat(0))
             UIColor(c).getRed(&r, green: &g, blue: &b, alpha: &o)
-            return "rgba(\(Int((r * 255).rounded())), \(Int((g * 255).rounded())), \(Int((b * 255).rounded())), \(a))"
+            return "rgb(\(Int((r * 255).rounded())), \(Int((g * 255).rounded())), \(Int((b * 255).rounded())))"
         }
         return Exp(.interpolate) {
             Exp(.linear)
-            Exp(.heatmapDensity)
-            0; rgba(lo, 0)
-            0.12; rgba(lo, 0.5)
-            0.45; rgba(mid, 0.8)
-            1; rgba(hi, 0.95)
+            Exp(.get) { "weight" }
+            0; rgb(lo)
+            0.5; rgb(mid)
+            1; rgb(hi)
         }
     }
 

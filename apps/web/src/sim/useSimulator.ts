@@ -25,7 +25,8 @@ export interface SimStart {
 export function simStartFromUrl(search: string): SimStart {
   const q = new URLSearchParams(search);
   const scenario = SCENARIOS.find((s) => s.id === q.get('sim'))?.id ?? 'lassit';
-  const speed = SIM_SPEEDS.find((v) => v === Number(q.get('speed'))) ?? 4;
+  // INV-17: a teszt-gyorsítás csak fejlesztői szerveren él, éles buildben az URL nem gyorsít
+  const speed = (import.meta.env.DEV ? SIM_SPEEDS.find((v) => v === Number(q.get('speed'))) : undefined) ?? 4;
   const seek = Math.min(1, Math.max(0, Number(q.get('seek')) || 0));
   return { routeIdx: Math.max(0, Number(q.get('route')) || 0), scenario, speed, seek };
 }

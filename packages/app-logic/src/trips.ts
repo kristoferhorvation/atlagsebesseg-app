@@ -1,4 +1,4 @@
-import { haversineM, LocalProjection, type GpsFix, type LatLon } from '@atlagsebesseg/core';
+import { angleDiffDeg, bearingDeg, haversineM, LocalProjection, type GpsFix, type LatLon, type Section } from '@atlagsebesseg/core';
 import { formatDistance, speedIn, unitLabel } from './display';
 import type { SpeedUnit } from './settings';
 import type { HeatCell } from './heat';
@@ -125,6 +125,8 @@ export interface CruiseView {
   startedAt: number;
   distanceM: number;
   elapsedS: number;
+  /** AW24: a GPS-irányváltások száma a krúzing-kártyához. */
+  dirChanges: number;
 }
 
 export type TripEnd = { kind: 'saved'; trip: Trip } | { kind: 'discarded'; id: string };
@@ -414,7 +416,7 @@ export class TripRecorder {
   /** A futó krúzing (az állapotsorhoz); navigáció alatt és út nélkül `null`. AW23: az idő a számolt (mozgó) idő, a szünet nem számít. */
   view(_now: number): CruiseView | null {
     const r = this.run;
-    return r && !r.nav ? { tripId: r.id, startedAt: r.startedAt, distanceM: r.distanceM, elapsedS: r.movingS } : null;
+    return r && !r.nav ? { tripId: r.id, startedAt: r.startedAt, distanceM: r.distanceM, elapsedS: r.movingS, dirChanges: r.turns.turns.left + r.turns.turns.right + r.turns.turns.uTurn } : null;
   }
 
   /** Az új minták (a tárolónak). */
@@ -647,6 +649,67 @@ const distText = (m: number, unit: SpeedUnit) => {
 /** Az üres nézet állapotsora: „Krúzing · 12,4 km · 23 perc”. */
 export function cruiseStatusText(v: Pick<CruiseView, 'distanceM' | 'elapsedS'>, unit: SpeedUnit): string {
   return t('trips.cruiseStatus', { dist: distText(v.distanceM, unit), time: formatTripDuration(v.elapsedS) });
+}
+
+// ---------------------------------------------------------------------------
+// AW24: krúzing-kártya (a felső manőver-kártya helyén, cél nélkül)
+// ---------------------------------------------------------------------------
+
+/** A kártyán ennyi méteren belül látszik a következő szakaszellenőrzés; a Live Activity „figyel” sorával azonos küszöb. */
+export const CRUISE_SECTION_M = 5000;
+/** A szakasz kezdő kapuja előttünk ennyi fokon belül (a jelzésekével azonos). */
+export const CRUISE_SECTION_CONE_DEG = 45;
+/** A szakasz iránya a haladásunkétól legfeljebb ennyire tér el. */
+export const CRUISE_SECTION_DIR_DEG = 60;
+
+/** A következő ismert szakasz légvonalbeli távolsága: a kezdő kapu előttünk (±`CRUISE_SECTION_CONE_DEG`), a szakasz iránya a haladásunkéval egyezik (±`CRUISE_SECTION_DIR_DEG`), `maxM`-en belül. A Live Activity „figyel” forrása is ez. */
+export function nextSectionAheadM(fix: GpsFix | null, sections: readonly Section[], maxM: number = CRUISE_SECTION_M): number | null {
+  if (!fix || fix.heading === null) return null;
+  const dLat = maxM / 111_195;
+  const dLon = maxM / (111_195 * Math.cos((fix.lat * Math.PI) / 180));
+  let best: number | null = null;
+  for (const s of sections) {
+    if (Math.abs(s.start.lat - fix.lat) > dLat || Math.abs(s.start.lon - fix.lon) > dLon) continue;
+    const d = haversineM(fix, s.start);
+    if (d > maxM || angleDiffDeg(bearingDeg(fix, s.start), fix.heading) > CRUISE_SECTION_CONE_DEG) continue;
+    const dir = (s.geometry?.length ?? 0) >= 2 ? bearingDeg(s.geometry![0]!, s.geometry![1]!) : bearingDeg(s.start, s.end);
+    if (angleDiffDeg(dir, fix.heading) > CRUISE_SECTION_DIR_DEG) continue;
+    if (best === null || d < best) best = d;
+  }
+  return best;
+}
+
+/** A krúzing-kártya állapota. */
+export type CruiseCard =
+  | { kind: 'hidden' }
+  | { kind: 'ready'; text: string }
+  | { kind: 'strip'; text: string }
+  | { kind: 'full'; title: string; distance: string; time: string; line2: string; section: string | null };
+
+/**
+ * Cél nélkül, futó GPS-szel: mozgásban a teljes kártya (táv, idő, átlag, irányváltások, ≤ 5 km-en belüli szakasz), állva „indulásra kész”. Kamera / veszély / szakasz-kártya
+ * idején vékony sáv. Navigáció, útvonaltervezés, kézi mérés alatt és GPS nélkül nincs.
+ */
+export function cruiseCard(i: { cruise: Pick<CruiseView, 'distanceM' | 'elapsedS' | 'dirChanges'> | null; active: boolean; collapsed: boolean; sectionAheadM: number | null; unit: SpeedUnit }): CruiseCard {
+  if (!i.active) return { kind: 'hidden' };
+  const v = i.cruise;
+  if (!v) return { kind: 'ready', text: t('cruise.ready') };
+  if (i.collapsed) return { kind: 'strip', text: t('cruise.strip', { dist: distText(v.distanceM, i.unit) }) };
+  const speed = tripSpeedText(tripAvgKmh({ distanceM: v.distanceM, movingS: v.elapsedS }), i.unit);
+  return {
+    kind: 'full',
+    title: t('trips.cruise'),
+    distance: distText(v.distanceM, i.unit),
+    time: formatTripDuration(v.elapsedS),
+    line2: `${t('cruise.average', { avg: speed })} · ${t('cruise.dirChanges', { n: v.dirChanges })}`,
+    section: i.sectionAheadM === null ? null : t('cruise.section', { d: distText(i.sectionAheadM, i.unit) }),
+  };
+}
+
+/** Mintaadat a képekhez és a paritás-kapuhoz (`?cruiseDemo` / `-cruiseDemo`): 12,4 km, 23 perc, 3 irányváltás, szakasz 3,2 km-re. */
+export function cruiseDemoCard(kind: string, unit: SpeedUnit): CruiseCard {
+  const v = { distanceM: 12_400, elapsedS: 1380, dirChanges: 3 };
+  return cruiseCard({ cruise: kind === 'ready' ? null : v, active: true, collapsed: kind === 'strip', sectionAheadM: kind === 'full' ? 3200 : null, unit });
 }
 
 /** Az út címe: a cél neve, vagy „Krúzing”. */

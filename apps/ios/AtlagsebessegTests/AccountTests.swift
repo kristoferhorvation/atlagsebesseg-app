@@ -19,6 +19,7 @@ private final class FakeServer: AccountRemote, @unchecked Sendable {
     var fields: [String: FieldRow] = [:]
     var trips: [String: (record: Trip?, samples: [[Double?]], deleted: Bool, updated: Double)] = [:]
     var heat: [String: CloudHeatRow] = [:]
+    var tracks: [String: TripTrack] = [:]
     var profile: Profile?
 
     func pullFields() async throws -> [FieldRow] { Array(fields.values) }
@@ -44,6 +45,10 @@ private final class FakeServer: AccountRemote, @unchecked Sendable {
     func listHeat() async throws -> [CloudHeatRow] { Array(heat.values) }
     func putHeat(_ deviceId: String, cells: [FieldValue], updatedMs: Double) async throws { heat[deviceId] = CloudHeatRow(device_id: deviceId, cells: cells, updated_ms: updatedMs) }
     func clearHeat() async throws { heat = [:] }
+    func listTrackIds() async throws -> [String] { Array(tracks.keys) }
+    func getTrack(_ tripId: String) async throws -> TripTrack? { tracks[tripId] }
+    func putTrack(_ track: TripTrack, updatedMs: Double) async throws { tracks[track.tripId] = track }
+    func clearTracks() async throws { tracks = [:] }
 }
 
 private final class FakeStore: BackupStore {
@@ -65,6 +70,9 @@ private final class FakeStore: BackupStore {
     func deleteDownloaded(_ id: String) { trips[id] = nil }
     func ownHeatCells() -> [HeatCell] { own }
     func setRemoteHeat(_ lists: [[HeatCell]]) { remote = lists }
+    var tracks: [String: TripTrack] = [:]
+    func backupTracks() -> [TripTrack] { Array(tracks.values) }
+    func saveTrack(_ track: TripTrack) { tracks[track.tripId] = track }
 }
 
 private func googleUser(given: String? = nil, full: String? = nil) -> AccountUser {
@@ -431,5 +439,47 @@ struct MapLanguageTests {
         #expect(mapLanguageURL("https://api.mapbox.com/v4/mapbox.mapbox-streets-v8-lite/5/17/11.vector.pbf?access_token=x", lang: "de") == "https://api.mapbox.com/v4/mapbox.mapbox-streets-v8-lite/5/17/11.vector.pbf?access_token=x&language=de")
         #expect(mapLanguageURL("https://api.mapbox.com/styles/v1/mapbox/standard?access_token=x", lang: "de") == nil)
         #expect(mapLanguageURL("https://api.mapbox.com/v4/a.json?language=hu", lang: "de") == nil)
+    }
+}
+
+@Suite("AW24: Fiók-kártya")
+struct AccountCardAW24Tests {
+    @Test("a monogram a névből két betű, különben az e-mail első betűje")
+    func monogram() {
+        #expect(avatarInitials("Horváth Kristóf", "a@b.hu") == "HK")
+        #expect(avatarInitials("Kristóf", nil) == "K")
+        #expect(avatarInitials(" ", "anna@b.hu") == "A")
+        #expect(avatarInitials(nil, nil) == "")
+    }
+
+    @Test("a Megszólítás magyarázata a megadott névvel, élőben")
+    func magyarazat() {
+        #expect(greetingPreview("Kristóf", lang: .hu) == "Így köszönt az app induláskor: »Szia, Kristóf, indulhatunk!«")
+        #expect(greetingPreview("", lang: .hu) == "Így köszönt az app induláskor: »Szia, indulhatunk!«")
+    }
+
+    @Test("a felhős mentés alapból BE: a jelölő nélküli régi érték egyszer átáll, utána a választás marad")
+    func alapBe() {
+        #expect(Settings().felhoMentes)
+        #expect(Settings.parse(#"{"felho_mentes":false}"#).felhoMentes)
+        #expect(!Settings.parse(#"{"felho_mentes":false,"felho_mentes_v2":true}"#).felhoMentes)
+    }
+
+    @Test("a kész vonal egyszer megy fel, a másik készülék vonala letöltődik és nem megy közösségbe")
+    func vonalak() async throws {
+        let server = FakeServer()
+        let a = FakeStore()
+        let b = FakeStore()
+        let track = TripTrack(tripId: "t1", startedAt: 1, status: "done", share: true, parts: [], lines: [], matcher: "mapbox")
+        a.saveTrack(track)
+        var pending = track
+        pending.tripId = "p1"
+        pending.status = "pending"
+        a.saveTrack(pending)
+        _ = try await syncBackupOnce(server, a, CloudState(), deviceId: "A", openTripId: nil, now: 5)
+        #expect(Array(server.tracks.keys) == ["t1"])
+        let r = try await syncBackupOnce(server, b, CloudState(), deviceId: "B", openTripId: nil, now: 6)
+        #expect(r.heatChanged)
+        #expect(b.tracks["t1"]?.share == false)
     }
 }

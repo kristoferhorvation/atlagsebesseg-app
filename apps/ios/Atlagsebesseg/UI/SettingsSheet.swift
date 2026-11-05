@@ -36,6 +36,9 @@ struct SettingsSheet: View {
                             tripsCard.padding(.top, 18).id(Self.tripsAnchor)
                             GroupLabel(text: t(.settingsGroupPlaces))
                             placesCard
+                            // AW24: Adatvédelem: a megosztás, a zónák részletei, a felhős mentés és legalul a fiók törlése
+                            GroupLabel(text: t(.settingsGroupPrivacy))
+                            privacyCard
                             GroupLabel(text: t(.settingsGroupStatus))
                             statusCard
                             GroupLabel(text: t(.settingsGroupDev))
@@ -44,6 +47,7 @@ struct SettingsSheet: View {
                                 .css(Tokens.Typography.caption.size, Tokens.FontWeight.w400)
                                 .foregroundStyle(Tokens.Colors.textMuted)
                                 .padding(EdgeInsets(top: 12, leading: 6, bottom: 2, trailing: 6))
+                            SignOutRow(model: model)
                                 .fixedSize(horizontal: false, vertical: true)
                         }
                     }
@@ -121,10 +125,6 @@ struct SettingsSheet: View {
             .listRow()
             .id(Self.heatAnchor)
             RowDivider()
-            ToggleRow(label: t(.settingsShare), hint: t(.settingsShareHint), isOn: $model.settings.adatmegosztas)
-            // AOS17: a Részletek a megosztás sorához tartozik – köztük nincs vonal
-            chevronRow(t(.settingsShareDetails)) { heatDetailsOpen = true }
-            RowDivider()
             // AW16: egy sor („Nyelv”), koppintásra nyíló választó; zászló + a saját nyelvén írt név, az „Automatikus” legfelül
             HStack(spacing: 14) {
                 RowText(label: t(.settingsLanguage))
@@ -149,21 +149,6 @@ struct SettingsSheet: View {
             }
             .listRow()
             .id(Self.languageAnchor)
-            RowDivider()
-            // AOS14: megszólítás – a köszöntő felirat és a navigáció-indító köszönés neve (üresen név nélkül)
-            VStack(alignment: .leading, spacing: 10) {
-                RowText(label: t(.settingsName), hint: t(.settingsNameHint))
-                TextField(t(.settingsNamePlaceholder), text: name)
-                    .font(.inter(Tokens.FontSize.f17, Tokens.FontWeight.w620))
-                    .textContentType(.givenName)
-                    .autocorrectionDisabled()
-                    .submitLabel(.done)
-                    .onSubmit { model.settings.megszolitas = normalizeName(model.settings.megszolitas) }
-                    .padding(.horizontal, 12)
-                    .frame(minHeight: 48)
-                    .background(Tokens.Colors.fill08, in: RoundedRectangle(cornerRadius: Tokens.Radius.r12, style: .continuous))
-            }
-            .listRow()
             RowDivider()
             // AW17: a hang elérhetősége zárójelben a leírás végén (mint a weben; külön „Hang” sor nincs)
             ToggleRow(label: t(.settingsVoiceInstructions), hint: voiceInstructionsHint(voiceAvailability), isOn: $model.settings.hangosUtasitasok)
@@ -230,6 +215,17 @@ struct SettingsSheet: View {
                 .listRow()
         }
         .id(Self.placesAnchor)
+    }
+
+    private var privacyCard: some View {
+        ListCard {
+            ToggleRow(label: t(.settingsShare), hint: t(.settingsShareHint), isOn: $model.settings.adatmegosztas)
+            // AOS17: a Részletek a megosztás sorához tartozik – köztük nincs vonal
+            chevronRow(t(.settingsShareDetails)) { heatDetailsOpen = true }
+            BackupRow(model: model)
+            DeleteAccountRow(model: model)
+        }
+        .id(Self.privacyAnchor)
     }
 
     private var statusCard: some View {
@@ -315,6 +311,7 @@ struct SettingsSheet: View {
     private static let languageAnchor = "language"
     private static let voiceAnchor = "voice"
     private static let placesAnchor = "places"
+    private static let privacyAnchor = "privacy"
     private static let tripsAnchor = "trips"
 
     /// A választott nyelv (`nil`: automatikus); azonnal érvényes, a feliratok újrarajzolódnak.
@@ -331,9 +328,6 @@ struct SettingsSheet: View {
 
     /// A megszólítás mezője: legfeljebb `MEGSZOLITAS_MAX` karakter; a széleken lévő szóköz mentéskor (`onSubmit`) és a
     /// beolvasáskor vágódik, gépelés közben nem.
-    private var name: Binding<String> {
-        Binding(get: { model.settings.megszolitas }, set: { model.settings.megszolitas = String($0.prefix(MEGSZOLITAS_MAX)) })
-    }
 
     private var language: Binding<Lang?> {
         Binding(get: { LangChoice.shared.preference }, set: {

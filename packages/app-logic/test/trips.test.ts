@@ -1,8 +1,10 @@
 import type { GpsFix } from '@atlagsebesseg/core';
 import { TRIP } from '../src/trips';
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 import { setLanguage } from '../src/i18n';
 import {
+  cruiseCard,
+  nextSectionAheadM,
   cruiseStatusText,
   headingDelta,
   maneuverTurnKind,
@@ -456,5 +458,35 @@ describe('feliratok (napló)', () => {
     const trip = saved(record(northDrive([[72, 100]])).ended)[0]!;
     expect(tripRowParts(trip, 'kmh')).toEqual({ title: 'Krúzing', distance: '2,0 km', duration: '2 perc', avg: '72 km/h', turns: '0 kanyar · 0 irányváltás' });
     expect(tripRowParts({ ...trip, destination: 'Győr' }, 'kmh').title).toBe('Győr');
+  });
+});
+
+describe('AW24: krúzing-kártya', () => {
+  beforeEach(() => setLanguage('hu'));
+  const v = { distanceM: 12_400, elapsedS: 1380, dirChanges: 3 };
+
+  it('mozgásban a teljes kártya: táv, idő, átlag, irányváltások; szakasz csak 5 km-en belül', () => {
+    const c = cruiseCard({ cruise: v, active: true, collapsed: false, sectionAheadM: 3200, unit: 'kmh' });
+    expect(c).toEqual({ kind: 'full', title: 'Krúzing', distance: '12,4 km', time: '23 perc', line2: 'átlag 32 km/h · 3 irányváltás', section: 'Szakasz 3,2 km' });
+    const n = cruiseCard({ cruise: v, active: true, collapsed: false, sectionAheadM: null, unit: 'kmh' });
+    expect(n.kind === 'full' && n.section).toBe(null);
+  });
+
+  it('állva indulásra kész, kártya mellett vékony sáv, navigáció alatt semmi', () => {
+    expect(cruiseCard({ cruise: null, active: true, collapsed: false, sectionAheadM: null, unit: 'kmh' })).toEqual({ kind: 'ready', text: 'Krúzing · indulásra kész' });
+    expect(cruiseCard({ cruise: v, active: true, collapsed: true, sectionAheadM: 3200, unit: 'kmh' })).toEqual({ kind: 'strip', text: 'Krúzing · 12,4 km' });
+    expect(cruiseCard({ cruise: v, active: false, collapsed: false, sectionAheadM: null, unit: 'kmh' })).toEqual({ kind: 'hidden' });
+  });
+
+  it('a következő szakasz: előttünk, a mi irányunkban, 5 km-en belül', () => {
+    const fix = { lat: 47.5, lon: 19, timestamp: 0, speed: 20, accuracy: 5, heading: 0 };
+    const sec = (lat: number, endLat: number) => ({ id: 'x', name: 'x', start: { lat, lon: 19 }, end: { lat: endLat, lon: 19 }, geometry: null, speedLimitKmh: 130, lengthM: 1000 }) as never;
+    const d = nextSectionAheadM(fix, [sec(47.52, 47.53)]);
+    expect(d).toBeGreaterThan(2000);
+    expect(d).toBeLessThan(2400);
+    expect(nextSectionAheadM(fix, [sec(47.52, 47.51)])).toBe(null);
+    expect(nextSectionAheadM(fix, [sec(47.48, 47.47)])).toBe(null);
+    expect(nextSectionAheadM(fix, [sec(47.6, 47.61)])).toBe(null);
+    expect(nextSectionAheadM({ ...fix, heading: null }, [sec(47.52, 47.53)])).toBe(null);
   });
 });

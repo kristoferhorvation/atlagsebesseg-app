@@ -1,23 +1,25 @@
 import AtlagsebessegCore
 import Foundation
 
-// AW20: hőtérkép bekötése (a webes `useHeat` párja). Saját mód: a `TripStore` heat tábláiból épülő `HeatIndex` (út végén
-// inkrementálisan, indításkor a még be nem olvasztott utak visszamenőleg). Közösségi mód: a `heat_global` / `heat_global_r8`
-// nézet a látható téglalapra (10 perces gyorsítótár). Feltöltés (csak bekapcsolt megosztásnál): az út végén a cellánkénti
-// aggregátum a várólistába, onnan a `heat_cells` táblába; az út első és utolsó 300 m-ének cellái sosem mennek fel
-// (`uploadRows`). Szimulátorban nincs feltöltés (az éles adatbázisba nem megy tesztadat).
+// AW20 + AW24: hőtérkép bekötése (a webes `useHeat` és `trackPipeline` párja). Saját mód: az utak vonalai (`TripStore.tracks`) a `TrackIndex`-ben, szakaszonként összesítve. Közösségi mód: a
+// `heat_segments_global` nézet a látható téglalapra (10 perces gyorsítótár). Út végén a pontsor az illesztőhöz megy (`MapMatcher`, ma Mapbox); hálózati hibánál a sor függőben marad és később
+// újrapróbálódik. Feltöltés (csak bekapcsolt megosztásnál): a szakaszok a várólistába, onnan a `heat_segments` táblába; az út első és utolsó 300 m-e és a zónák sosem mennek fel
+// (`segmentUploadRows`). A régi utak a nyers mintákból visszamenőleg épülnek újra, de közösségbe nem mennek. Szimulátorban nincs illesztés és feltöltés.
 extension AppModel {
-    static let heatOutboxKey = "heat:outbox:v1"
+    static let segmentOutboxKey = "heat:segments:outbox:v1"
+    private static let oldOutboxKey = "heat:outbox:v1"
 
-    /// A várakozó feltöltési sorok törlése (a webes `clearHeatOutbox`).
-    static func clearHeatOutbox(_ defaults: UserDefaults = .standard) {
-        defaults.removeObject(forKey: heatOutboxKey)
+    /// A várakozó feltöltési sorok törlése (a webes `clearSegmentOutbox`).
+    static func clearSegmentOutbox(_ defaults: UserDefaults = .standard) {
+        defaults.removeObject(forKey: segmentOutboxKey)
     }
 
     func setUpHeat() {
         let args = UserDefaults.standard
+        // a régi cella-sor nem megy fel többé
+        args.removeObject(forKey: Self.oldOutboxKey)
         // mint a weben: kikapcsolt megosztásnál induláskor sem marad várakozó sor
-        if !settings.adatmegosztas { Self.clearHeatOutbox() }
+        if !settings.adatmegosztas { Self.clearSegmentOutbox() }
         // képernyőképekhez: `-heat ki|sajat|kozossegi`, `-heatView gyakorisag|atlagsebesseg`
         if let m = args.string(forKey: "heat").flatMap(HeatMode.init(rawValue:)) { settings.hoterkep = m }
         if let v = args.string(forKey: "heatView").flatMap(HeatView.init(rawValue:)) { settings.hoterkepNezet = v }
@@ -25,21 +27,83 @@ extension AppModel {
         if Parity.on { heatHasViewport = true }
         // `-heatSeed YES`: mesterséges, több utas adat (a közösségi mód is ebből, hálózat nélkül) – a saját utak helyett
         if args.bool(forKey: "heatSeed") {
-            let cells = heatSeedCells(cellOf: tripCell)
-            heatSeedList = cells
-            heatIndex.setAll(cells)
+            heatSeedList = heatSeedTrackLines(loadHeatSeedRoutes())
+            rebuildTrackIndex()
             heatVersion += 1
             return
         }
-        // a már mentett, de még be nem olvasztott utak (AW19 első indulása, leállt app) – egyszer, a háttérben-ütemezve a fő szálon
-        Task { @MainActor [weak self] in
+        rebuildTrackIndex()
+        heatVersion += 1
+        catchUpTracks()
+    }
+
+    /// A szakasz-összesítés újraépítése a vonalakból (indításkor, törlés és szinkron után).
+    func rebuildTrackIndex() {
+        trackIndex.clear()
+        if let seed = heatSeedList {
+            for l in seed { trackIndex.add(l) }
+        } else {
+            for t in tripStore.tracks() where t.status == "done" { trackIndex.add(t.lines) }
+        }
+    }
+
+    private var trackMatcher: MapMatcher? {
+        guard sim == nil, let token = Bundle.main.object(forInfoDictionaryKey: "MBXAccessToken") as? String, token.hasPrefix("pk.") else { return nil }
+        return MapboxMatcher(token: token)
+    }
+
+    /// A vonal elkészítése; a kész utat a hőtérképre és (ha kérték) a feltöltési sorba teszi. Hálózati hibánál kivétel: a sor függőben marad.
+    private func completeTrack(_ t: TripTrack) async throws {
+        let matcher = trackMatcher
+        let lines: [TrackLine]
+        if let matcher { lines = try await matchTrace(t.parts, matcher) } else { lines = rawLines(t.parts) }
+        var done = t
+        done.status = "done"
+        done.lines = lines
+        done.matcher = matcher?.id
+        tripStore.saveTrack(done)
+        trackIndex.add(lines)
+        heatVersion += 1
+        guard done.share, settings.adatmegosztas, matcher != nil, sim == nil else { return }
+        let rows = segmentUploadRows(lines: lines, startedAt: done.startedAt, tzOffsetMin: Double(TimeZone.current.secondsFromGMT()) / 60, zones: heatZoneList)
+        guard !rows.isEmpty else { return }
+        let queue = appendSegmentOutbox(parseSegmentOutbox(UserDefaults.standard.string(forKey: Self.segmentOutboxKey)), rows)
+        UserDefaults.standard.set(serializeSegmentOutbox(queue), forKey: Self.segmentOutboxKey)
+        flushSegmentOutbox()
+    }
+
+    /// Indításkor és előtérbe kerüléskor: a függő illesztések és a még vonal nélküli régi utak; hálózat nélkül a következő alkalom folytatja.
+    func catchUpTracks() {
+        guard !tracksCatchingUp, heatSeedList == nil else { return }
+        tracksCatchingUp = true
+        Task { [weak self] in
             guard let self else { return }
-            for id in self.tripStore.unabsorbedTripIds() {
-                if let r = self.tripStore.absorbTrip(id) { self.heatIndex.upsert(r.changed) }
+            defer { self.tracksCatchingUp = false }
+            for trip in self.tripStore.tripsWithoutTrack() {
+                self.tripStore.saveTrack(pendingTrack(trip.id, startedAt: trip.startedAt, samples: self.tripStore.samples(trip.id), share: false))
                 await Task.yield()
             }
-            self.heatIndex.setAll(self.tripStore.displayHeatCells())
-            self.heatVersion += 1
+            for t in self.tripStore.tracks() where t.status == "pending" {
+                do {
+                    try await self.completeTrack(t)
+                } catch {
+                    NSLog("HEAT match failed: %@", String(describing: error))
+                    break
+                }
+            }
+        }
+    }
+
+    /// Az út vége: pontsor a mintákból, majd illesztés; hiba esetén függőben marad.
+    func finishTrack(_ trip: Trip) {
+        let t = pendingTrack(trip.id, startedAt: trip.startedAt, samples: tripStore.samples(trip.id), share: settings.adatmegosztas && sim == nil)
+        tripStore.saveTrack(t)
+        Task { [weak self] in
+            do {
+                try await self?.completeTrack(t)
+            } catch {
+                NSLog("HEAT match failed: %@", String(describing: error))
+            }
         }
     }
 
@@ -64,27 +128,13 @@ extension AppModel {
     /// Az adatvédelmi zónák: minden mentett hely körül, helyenként a `zona_m` szerinti sugárral (alapból 200 m).
     var heatZoneList: [HeatZone] { heatZones(saved, settings.zonaM) }
 
-    /// A zónák az indexbe (csak változáskor számolódik újra a felosztás).
-    private func syncHeatZones() {
-        let z = heatZoneList
-        if z != heatZonesApplied {
-            heatZonesApplied = z
-            heatIndex.setZones(z)
-        }
-    }
-
-    /// A mostani rajzolandó pontok a módnak megfelelően; a `grey` a zónában lévő cellák (csak saját módban, szürkén, nem színezve).
-    func heatLayers() -> (points: [HeatPoint], grey: [HeatPoint]) {
-        guard heatVisible, let vp = heatViewport else { return ([], []) }
+    /// A mostani rajzolandó vonalak a módnak megfelelően (a szürke a zónás és a csak út-végi szakasz, csak saját módban).
+    func heatLines() -> [HeatLine] {
+        guard heatVisible, let vp = heatViewport else { return [] }
         switch settings.hoterkep {
-        case .ki: return ([], [])
-        case .sajat:
-            syncHeatZones()
-            let r = heatIndex.points(vp, settings.hoterkepNezet)
-            return (r.points, r.grey)
-        case .kozossegi:
-            // a lekért téglalap már tartalmazza a ráhagyást (+25%), mint a weben: a nézet szélén a folt nem vágódik el
-            return (globalPoints(heatGlobalRows, settings.hoterkepNezet), [])
+        case .ki: return []
+        case .sajat: return trackIndex.lines(vp, settings.hoterkepNezet, zones: heatZoneList)
+        case .kozossegi: return globalLines(heatGlobalRows, settings.hoterkepNezet)
         }
     }
 
@@ -110,11 +160,10 @@ extension AppModel {
     /// gyorsítótár felel: ugyanaz a téglalap 10 perc után újra lekérődik.
     func fetchHeatGlobal() {
         guard settings.hoterkep == .kozossegi, heatVisible, let vp = heatViewport else { return }
-        let res = heatResForZoom(vp.zoom)
         let box = heatQueryBox(vp.bbox)
-        let key = heatQueryKey(box, res)
+        let key = heatQueryKey(box, 0)
         if let seed = heatSeedList {
-            if key != heatGlobalKey { showHeatGlobal(heatSeedGlobal(seed, geo: H3Geo(), res: res), key) }
+            if key != heatGlobalKey { showHeatGlobal(seedGlobalRows(seed), key) }
             return
         }
         if let rows = heatGlobalCache.get(key) {
@@ -127,7 +176,7 @@ extension AppModel {
             guard let self else { return }
             defer { if self.heatGlobalPending == key { self.heatGlobalPending = nil } }
             do {
-                let rows = try await self.backend.heatGlobal(in: box, res: res)
+                let rows = try await self.backend.heatSegments(in: box)
                 self.heatGlobalCache.set(key, rows)
                 // közben újabb téglalapot kértünk: az érvényes marad, ez csak a gyorsítótárba kerül
                 if self.heatGlobalPending == key { self.showHeatGlobal(rows, key) }
@@ -138,41 +187,33 @@ extension AppModel {
         }
     }
 
-    private func showHeatGlobal(_ rows: [HeatGlobalRow], _ key: String) {
+    private func showHeatGlobal(_ rows: [SegmentGlobalRow], _ key: String) {
         heatGlobalKey = key
         heatGlobalRows = rows
         if !heatGlobalLoaded { heatGlobalLoaded = true }
         heatVersion += 1
     }
 
-    /// Egy lezárt út beolvasztása a hőtérképbe, és (bekapcsolt megosztásnál) a feltöltés-várólistába.
+    /// Egy lezárt út: a régi cella-összesítésbe és (AW24) a vonalak közé.
     func absorbIntoHeat(_ trip: Trip) {
-        guard let r = tripStore.absorbTrip(trip.id) else { return }
-        // AW22: a többi készülék celláival együtt rajzolódik: ilyenkor a teljes lista adja a helyes összeget
-        if tripStore.remoteHeat().isEmpty { heatIndex.upsert(r.changed) } else { heatIndex.setAll(tripStore.displayHeatCells()) }
-        heatVersion += 1
-        guard settings.adatmegosztas, sim == nil else { return }
-        let rows = uploadRows(r.passes, geo: H3Geo(), tzOffsetMin: Double(TimeZone.current.secondsFromGMT()) / 60, zones: heatZoneList)
-        guard !rows.isEmpty else { return }
-        let queue = appendHeatOutbox(parseHeatOutbox(UserDefaults.standard.string(forKey: Self.heatOutboxKey)), rows)
-        UserDefaults.standard.set(serializeHeatOutbox(queue), forKey: Self.heatOutboxKey)
-        flushHeatOutbox()
+        _ = tripStore.absorbTrip(trip.id)
+        finishTrack(trip)
     }
 
     /// A várólista feltöltése; sikernél kiürül, hibánál marad (a következő út vége / előtérbe kerülés újra próbál).
-    func flushHeatOutbox() {
+    func flushSegmentOutbox() {
         guard backend.configured, sim == nil, settings.adatmegosztas else { return }
-        let queue = parseHeatOutbox(UserDefaults.standard.string(forKey: Self.heatOutboxKey))
+        let queue = parseSegmentOutbox(UserDefaults.standard.string(forKey: Self.segmentOutboxKey))
         guard !queue.isEmpty, !heatFlushing else { return }
         heatFlushing = true
         Task { [weak self] in
             guard let self else { return }
             defer { self.heatFlushing = false }
             do {
-                try await self.backend.uploadHeat(queue)
+                try await self.backend.uploadSegments(queue, matcher: MATCHER_MAPBOX)
                 // közben érkezett új sorok megmaradnak
-                let now = parseHeatOutbox(UserDefaults.standard.string(forKey: Self.heatOutboxKey))
-                UserDefaults.standard.set(serializeHeatOutbox(Array(now.dropFirst(queue.count))), forKey: Self.heatOutboxKey)
+                let now = parseSegmentOutbox(UserDefaults.standard.string(forKey: Self.segmentOutboxKey))
+                UserDefaults.standard.set(serializeSegmentOutbox(Array(now.dropFirst(queue.count))), forKey: Self.segmentOutboxKey)
             } catch {
                 NSLog("HEAT upload failed: %@", String(describing: error))
             }

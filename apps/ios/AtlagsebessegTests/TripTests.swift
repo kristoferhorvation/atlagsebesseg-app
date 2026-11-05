@@ -714,3 +714,33 @@ struct AOS17Tests {
     }
 }
 
+@Suite("AW24: krúzing-kártya")
+struct CruiseCardTests {
+    private let v = CruiseView(tripId: "x", startedAt: 0, distanceM: 12_400, elapsedS: 1380, movingS: 1380, dirChanges: 3)
+
+    @Test("mozgásban a teljes kártya: táv, idő, átlag, irányváltások; szakasz csak 5 km-en belül")
+    func full() {
+        #expect(cruiseCard(cruise: v, active: true, collapsed: false, sectionAheadM: 3200, unit: .kmh, lang: .hu) == .full(title: "Krúzing", distance: "12,4 km", time: "23 perc", line2: "átlag 32 km/h · 3 irányváltás", section: "Szakasz 3,2 km"))
+        if case let .full(_, _, _, _, section) = cruiseCard(cruise: v, active: true, collapsed: false, sectionAheadM: nil, unit: .kmh) { #expect(section == nil) } else { Issue.record("nem teljes") }
+    }
+
+    @Test("állva indulásra kész, kártya mellett vékony sáv, navigáció alatt semmi")
+    func states() {
+        #expect(cruiseCard(cruise: nil, active: true, collapsed: false, sectionAheadM: nil, unit: .kmh, lang: .hu) == .ready("Krúzing · indulásra kész"))
+        #expect(cruiseCard(cruise: v, active: true, collapsed: true, sectionAheadM: 3200, unit: .kmh, lang: .hu) == .strip("Krúzing · 12,4 km"))
+        #expect(cruiseCard(cruise: v, active: false, collapsed: false, sectionAheadM: nil, unit: .kmh) == .hidden)
+    }
+
+    @Test("a következő szakasz: előttünk, a mi irányunkban, 5 km-en belül")
+    func nextSection() {
+        let fix = GpsFix(lat: 47.5, lon: 19, timestamp: 0, speed: 20, accuracy: 5, heading: 0)
+        func sec(_ lat: Double, _ endLat: Double) -> Section { Section(id: "x", country: "HU", road: "x", direction: "x", start: LatLon(lat: lat, lon: 19), end: LatLon(lat: endLat, lon: 19), lengthM: 1000, speedLimitKmh: 130, source: .osm, verified: false, geometry: nil) }
+        let d = nextSectionAheadM(fix, [sec(47.52, 47.53)])
+        #expect(d! > 2000)
+        #expect(d! < 2400)
+        #expect(nextSectionAheadM(fix, [sec(47.52, 47.51)]) == nil)
+        #expect(nextSectionAheadM(fix, [sec(47.48, 47.47)]) == nil)
+        #expect(nextSectionAheadM(fix, [sec(47.6, 47.61)]) == nil)
+        #expect(nextSectionAheadM(GpsFix(lat: 47.5, lon: 19, timestamp: 0, speed: 20, accuracy: 5, heading: nil), [sec(47.52, 47.53)]) == nil)
+    }
+}

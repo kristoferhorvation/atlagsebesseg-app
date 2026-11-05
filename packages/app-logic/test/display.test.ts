@@ -54,7 +54,8 @@ describe('beállítások', () => {
       adatmegosztas: true,
       adatmegosztas_v2: true,
       zona_m: {},
-      felho_mentes: false,
+      felho_mentes: true,
+      felho_mentes_v2: true,
     });
   });
   it('a térkép alapból színes; a visszafogott megmarad, ismeretlen érték színes; a sorrend Világos, Színes, Visszafogott', () => {

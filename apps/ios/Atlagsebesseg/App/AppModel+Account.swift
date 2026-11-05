@@ -5,6 +5,9 @@ import SwiftUI
 
 // AW22: a fiók kötése (a webes `useAccount.ts` párja). Névtelenül is figyeli a helyi változásokat (időbélyeg mezőnként), de szerverre csak valódi fiókkal megy
 // adat. A logika a Logic/Account.swift-ben, a Supabase-hívások a Backend/AccountBackend.swift-ben.
+/// AW24: a választott profilkép helyi tárolója.
+nonisolated let AVATAR_KEY = "account:avatar:v1"
+
 extension AppModel {
     var signedInAccount: Bool { accountUserState.map { !$0.isAnonymous } ?? false }
     private var defaults: UserDefaults { .standard }
@@ -69,7 +72,7 @@ extension AppModel {
         let claims = meta["custom_claims"]?.objectValue
         let u = accountUser(
             id: user.id.uuidString, email: user.email, isAnonymous: user.isAnonymous, identities: (user.identities ?? []).map(\.provider),
-            givenName: meta["given_name"]?.stringValue, claimsGivenName: claims?["given_name"]?.stringValue, fullName: meta["full_name"]?.stringValue, name: meta["name"]?.stringValue
+            givenName: meta["given_name"]?.stringValue, claimsGivenName: claims?["given_name"]?.stringValue, fullName: meta["full_name"]?.stringValue, name: meta["name"]?.stringValue, avatarUrl: meta["avatar_url"]?.stringValue ?? meta["picture"]?.stringValue
         )
         accountUserState = u
         if !u.isAnonymous && accountHandled != u.id {
@@ -95,6 +98,23 @@ extension AppModel {
         showToast(AppToast(text: t(.accountSignedIn), color: Tokens.StatusColors.jo, icon: .check))
         let profile = try? await remote.pullProfile()
         if nameStepNeeded(settings.megszolitas, profile) { nameStep = nameStepPrefill(u, profile) }
+    }
+
+    // MARK: AW24: profilkép
+
+    /// A fotótárból választott kép: középre vágva 256 pixelre, JPEG data URL (a `profiles.avatar` határa alatt), a szerverre is.
+    func setAvatar(_ image: UIImage) {
+        let side = min(image.size.width, image.size.height)
+        let rect = CGRect(x: (side - image.size.width) / 2, y: (side - image.size.height) / 2, width: image.size.width, height: image.size.height)
+        let f = UIGraphicsImageRendererFormat()
+        f.scale = 256 / side
+        let square = UIGraphicsImageRenderer(size: CGSize(width: side, height: side), format: f).image { _ in image.draw(in: rect) }
+        guard let jpeg = square.jpegData(compressionQuality: 0.82) else { return }
+        let url = "data:image/jpeg;base64,\(jpeg.base64EncodedString())"
+        UserDefaults.standard.set(url, forKey: AVATAR_KEY)
+        avatarDataUrl = url
+        guard let remote = backend.accountRemote, signedInAccount, !accountSimMode else { return }
+        Task { try? await remote.pushAvatar(url) }
     }
 
     // MARK: szinkron
@@ -146,9 +166,14 @@ extension AppModel {
                 defaults.set(b.state.serialized, forKey: CLOUD_STATE_KEY)
                 if b.down > 0 || b.deleted > 0 { reloadTrips() }
                 if b.heatChanged {
-                    heatIndex.setAll(heatSeedList ?? tripStore.displayHeatCells())
+                    rebuildTrackIndex()
                     heatVersion += 1
                 }
+            }
+            // AW24: a másik készüléken választott profilkép
+            if avatarDataUrl == nil, let a = try? await remote.pullProfile()?.avatar {
+                defaults.set(a, forKey: AVATAR_KEY)
+                avatarDataUrl = a
             }
             lastSyncMs = Date().timeIntervalSince1970 * 1000
             syncStatus = .ok
@@ -361,9 +386,11 @@ extension AppModel {
         try await backend.continueAnonymously()
         defaults.removeObject(forKey: SEEN_KEY)
         // nem felhasználói döntés (0 idő): visszalépve a fiók értéke érvényes, a többi készülék mentése nem kapcsol ki
-        accountFields.values["settings.felho_mentes"] = .bool(false)
+        accountFields.values["settings.felho_mentes"] = .bool(true)
         accountFields.times["settings.felho_mentes"] = 0
-        settings.felhoMentes = false
+        settings.felhoMentes = true
+        defaults.removeObject(forKey: AVATAR_KEY)
+        avatarDataUrl = nil
         syncStatus = .idle
         lastSyncMs = nil
         emailSentTo = nil

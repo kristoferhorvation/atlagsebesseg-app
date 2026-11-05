@@ -1,10 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { measurementName, TRIP, TripRecorder, HEAT, uploadRows, type CruiseView, type HeatZone, type NavView, type SessionView } from '@atlagsebesseg/app-logic';
+import { measurementName, TRIP, TripRecorder, type CruiseView, type HeatZone, type NavView, type SessionView } from '@atlagsebesseg/app-logic';
 import type { GpsFix } from '@atlagsebesseg/core';
 import { addSamples, absorbTrip, deleteSamples, saveTrip, purgeTrash } from '../trips/tripStore';
-import { heatGeo } from '../heat/heatGeo';
-import { enqueueHeatRows, flushHeatOutbox } from '../heat/heatShare';
-import { supabase } from '../backend';
+import { finishTrack } from '../heat/trackPipeline';
 
 /**
  * AW19: a krúzing mód / utak naplója bekötése – a `TripRecorder` ugyanazokat a fixeket kapja, mint a mérés és a navigáció;
@@ -31,15 +29,11 @@ export function useTrips(now: () => number, nav: NavView | null, view: SessionVi
     void purgeTrash().catch((e: unknown) => console.warn('[trips] purge failed', e));
   }, []);
 
-  /** Az út a naplóba, a személyes hőtérképbe (AW20, inkrementálisan) és – ha a megosztás be van kapcsolva – a feltöltési sorba. */
+  /** Az út a naplóba, a régi cella-összesítésbe és (AW24) a vonalak közé: illesztés, majd – ha a megosztás be van kapcsolva – a közösségi sorba. */
   const finishTrip = useCallback(async (trip: Parameters<typeof saveTrip>[0]) => {
     await saveTrip(trip);
-    const absorbed = await absorbTrip(trip.id);
-    if (!absorbed || !shareRef.current || IS_SIM) return;
-    const geo = await heatGeo();
-    if (!geo) return;
-    enqueueHeatRows(uploadRows(absorbed.passes, geo, -new Date(trip.startedAt).getTimezoneOffset(), HEAT.shareEndsM, zonesRef.current));
-    void flushHeatOutbox(supabase);
+    await absorbTrip(trip.id);
+    await finishTrack(trip.id, trip.startedAt, { share: () => shareRef.current && !IS_SIM, zones: () => zonesRef.current }).catch((e: unknown) => console.warn('[heat] match failed', e));
   }, []);
 
   const pump = useCallback(() => {

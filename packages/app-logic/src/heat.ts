@@ -427,12 +427,12 @@ export function heatQueryBox(bbox: BBox): BBox {
 export const heatQueryKey = (box: BBox, res: number): string => `${res}:${box.south},${box.west},${box.north},${box.east}`;
 
 /** A közösségi lekérések gyorsítótára: azonos (felbontás, téglalap) `cacheMs`-ig nem kér újra. */
-export class HeatGlobalCache {
-  private readonly entries = new Map<string, { at: number; rows: HeatGlobalRow[] }>();
+export class HeatGlobalCache<Row = HeatGlobalRow> {
+  private readonly entries = new Map<string, { at: number; rows: Row[] }>();
   constructor(private readonly now: () => number) {}
 
   /** A friss bejegyzés, vagy `null`. */
-  get(key: string): HeatGlobalRow[] | null {
+  get(key: string): Row[] | null {
     const e = this.entries.get(key);
     if (!e) return null;
     if (this.now() - e.at > HEAT.cacheMs) {
@@ -442,7 +442,7 @@ export class HeatGlobalCache {
     return e.rows;
   }
 
-  set(key: string, rows: HeatGlobalRow[]): void {
+  set(key: string, rows: Row[]): void {
     this.entries.set(key, { at: this.now(), rows });
   }
 }

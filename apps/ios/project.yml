@@ -60,6 +60,10 @@ targets:
       - path: ../../packages/app-logic/src/navigation/fixtures/budapest-gyor.directions.json
         group: SharedData
         buildPhase: resources
+      # AW24: a hőtérkép szimulátor-adata (valódi utak geometriája)
+      - path: ../../packages/app-logic/src/fixtures/heat-seed-routes.json
+        group: SharedData
+        buildPhase: resources
       # AW23: valódi 1 Hz-es GPS-nyomat a jelölő egyenletes mozgásának méréséhez
       - path: ../../packages/app-logic/src/fixtures/gps-trace-1hz.json
         group: SharedData
@@ -92,13 +96,15 @@ targets:
         com.apple.security.application-groups: [group.hu.atlagsebesseg.app]
         # AW22: Sign in with Apple (natív, ASAuthorization)
         com.apple.developer.applesignin: [Default]
+        # AW24: universal links (a párja: apps/web/public/.well-known/apple-app-site-association)
+        com.apple.developer.associated-domains: [applinks:app.tempomate.app]
     info:
       path: Atlagsebesseg/Info.plist
       properties:
         # AOS16: a verzió a beállításokból (az XcodeGen alapja különben fix 1.0 / 1)
         CFBundleShortVersionString: $(MARKETING_VERSION)
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
-        CFBundleDisplayName: Atlagsebesseg
+        CFBundleDisplayName: Tempomate
         CFBundleDevelopmentRegion: en
         CFBundleLocalizations: [en, hu, de, sk, cs, pl]
         LSRequiresIPhoneOS: true
@@ -162,7 +168,7 @@ targets:
         CFBundleShortVersionString: $(MARKETING_VERSION)
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         # AW22: a kijelzőnév nyelvenként az InfoPlist.xcstrings-ből (generált, az app kijelzőnevével azonos)
-        CFBundleDisplayName: Atlagsebesseg
+        CFBundleDisplayName: Tempomate
         CFBundleDevelopmentRegion: en
         CFBundleLocalizations: [en, hu, de, sk, cs, pl]
         NSExtension:

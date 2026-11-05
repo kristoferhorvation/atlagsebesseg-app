@@ -4,7 +4,7 @@ import { DEFAULT_TOLERANCE } from '@atlagsebesseg/core';
 import { useLanguage, useVoiceStatus } from '../i18n';
 import { purgeTrash, restoreTrash, trashExpiry } from '../trips/tripStore';
 import type { AccountApi } from '../hooks/useAccount';
-import { AccountCard } from './AccountCard';
+import { AccountCard, BackupRow, DeleteAccountRow, SignOutRow } from './AccountCard';
 import { Icon } from './Icon';
 import { Sheet } from './Sheet';
 import { ZonePicker } from './ZonePicker';
@@ -143,17 +143,6 @@ export function SettingsSheet({
           </div>
         </div>
         <div className="list-row">
-          <div>
-            <div className="label">{t('settings.share')}</div>
-            <div className="hint">{t('settings.shareHint')}</div>
-          </div>
-          <Switch label={t('settings.share')} checked={settings.adatmegosztas} onChange={(v) => update({ adatmegosztas: v })} />
-        </div>
-        <button className="list-row nav-row" data-testid="heat-details-row" onClick={onOpenHeatDetails}>
-          <div className="label">{t('settings.shareDetails')}</div>
-          <Icon name="chevronRight" size={20} />
-        </button>
-        <div className="list-row">
           <div className="label">{t('settings.language')}</div>
           <select
             className="select"
@@ -169,24 +158,6 @@ export function SettingsSheet({
               </option>
             ))}
           </select>
-        </div>
-        {/* AOS14: megszólítás – a köszöntő felirat és a navigáció-indító köszönés neve (üresen név nélkül) */}
-        <div className="list-row stacked">
-          <div>
-            <div className="label">{t('settings.name')}</div>
-            <div className="hint">{t('settings.nameHint')}</div>
-          </div>
-          <input
-            className="select text-input"
-            type="text"
-            autoComplete="given-name"
-            maxLength={MEGSZOLITAS_MAX}
-            aria-label={t('settings.name')}
-            placeholder={t('settings.namePlaceholder')}
-            value={settings.megszolitas}
-            onChange={(e) => update({ megszolitas: e.target.value })}
-            onBlur={(e) => update({ megszolitas: normalizeName(e.target.value) })}
-          />
         </div>
         <div className="list-row">
           <div>
@@ -267,6 +238,24 @@ export function SettingsSheet({
         </div>
       </div>
 
+      {/* AW24: Adatvédelem: a megosztás, a zónák részletei, a felhős mentés és legalul a fiók törlése */}
+      <div className="group-label">{t('settings.group.privacy')}</div>
+      <div className="list" data-testid="privacy-group">
+        <div className="list-row">
+          <div>
+            <div className="label">{t('settings.share')}</div>
+            <div className="hint">{t('settings.shareHint')}</div>
+          </div>
+          <Switch label={t('settings.share')} checked={settings.adatmegosztas} onChange={(v) => update({ adatmegosztas: v })} />
+        </div>
+        <button className="list-row nav-row" data-testid="heat-details-row" onClick={onOpenHeatDetails}>
+          <div className="label">{t('settings.shareDetails')}</div>
+          <Icon name="chevronRight" size={20} />
+        </button>
+        <BackupRow account={account} settings={settings} update={update} />
+        <DeleteAccountRow account={account} />
+      </div>
+
       <div className="group-label">{t('settings.group.status')}</div>
       <div className="list">
         {(
@@ -296,6 +285,7 @@ export function SettingsSheet({
       </div>
 
       <div className="sheet-note">{t('settings.attribution')}</div>
+      <SignOutRow account={account} />
     </Sheet>
   );
 }

@@ -4,7 +4,7 @@ import 'mapbox-gl/dist/mapbox-gl.css';
 import { useEffect, useRef } from 'react';
 import { followZoom, mapTheme, MapStore, PositionSmoother, placeAltLabel, type LightPreset, type MapLook } from '@atlagsebesseg/app-logic';
 import { LocalProjection, type GpsFix, type LatLon, type Section } from '@atlagsebesseg/core';
-import { camera as cameraToken, color } from '@atlagsebesseg/design-tokens';
+import { camera as cameraToken, color, size } from '@atlagsebesseg/design-tokens';
 import { iconSvg } from '../ui/Icon';
 import { getLanguage, subscribeLanguage, t } from '@atlagsebesseg/app-logic';
 import { mapStyleFor, mapTestMode } from './testMapMode';
@@ -23,8 +23,8 @@ const CAM_EPS_PAD = 0.5;
 const GESTURE_THROTTLE_MS = 250;
 const VIEW_DEBOUNCE_MS = 500;
 /** Útvonal-vonalak (A8d, px): a kiválasztott 7 + 2 × 2 fehér kontúr, az alternatíva 5 + 2 × 1,5 kontúr (nappal sötét, éjjel világos). */
-const ROUTE_W = 7;
-const ROUTE_CASING_W = 2;
+const ROUTE_W = size.routeLine;
+const ROUTE_CASING_W = size.routeLineCasing;
 const ROUTE_ALT_W = 5;
 const ROUTE_ALT_CASING_W = 1.5;
 /** Az alternatíva érintési sávja (px). */
@@ -364,34 +364,25 @@ class MapController {
         'line-emissive-strength': 1,
       },
     });
-    // AW20: hőtérkép – súlyozott pontok (a cellák középpontja), a színskála a módtól függ (setPaintProperty az `apply`-ban)
-    m.addSource('heat', { type: 'geojson', data: heatGeoJson(null) });
-    m.addLayer({
-      id: 'heat',
-      type: 'heatmap',
-      source: 'heat',
-      slot: 'middle',
-      paint: {
-        'heatmap-weight': ['get', 'weight'],
-        'heatmap-radius': ['interpolate', ['exponential', 1.6], ['zoom'], 6, 7, 10, 13, 12, 20, 14, 32, 16, 58, 18, 110],
-        'heatmap-intensity': ['interpolate', ['linear'], ['zoom'], 6, 0.7, 12, 1.1, 16, 1.5],
-        'heatmap-color': heatColor('gyakorisag'),
-        'heatmap-opacity': 0.88,
-      },
-    });
-    // AW20-javítás: az adatvédelmi zónában lévő cellák szürkén (nem színezve) + a zónák halvány körei a Beállítások alatt
-    m.addSource('heat-grey', { type: 'geojson', data: heatGeoJson(null) });
+    // AW24: hőtérkép – utcákra illesztett csíkok: a vastagság a navigációs útvonal-vonalé (INV-18), kerek végek és illesztések, a szín a súlyból; a zónás / út-végi szakasz szürke
+    m.addSource('heat', { type: 'geojson', data: heatGeoJson(null), tolerance: 0.2 });
     m.addLayer({
       id: 'heat-grey',
-      type: 'circle',
-      source: 'heat-grey',
+      type: 'line',
+      source: 'heat',
       slot: 'middle',
-      paint: {
-        'circle-color': color.heatGrey,
-        'circle-radius': ['interpolate', ['exponential', 1.6], ['zoom'], 6, 2, 10, 4, 12, 8, 14, 14, 16, 26, 18, 48],
-        'circle-blur': 0.6,
-        'circle-emissive-strength': 1,
-      },
+      layout: { 'line-cap': 'round', 'line-join': 'round' },
+      filter: ['get', 'grey'],
+      paint: { 'line-color': color.heatGrey, 'line-width': ROUTE_W, 'line-emissive-strength': 1 },
+    });
+    m.addLayer({
+      id: 'heat',
+      type: 'line',
+      source: 'heat',
+      slot: 'middle',
+      layout: { 'line-cap': 'round', 'line-join': 'round', 'line-sort-key': ['get', 'weight'] },
+      filter: ['!', ['get', 'grey']],
+      paint: { 'line-color': heatColor('gyakorisag'), 'line-width': ROUTE_W, 'line-emissive-strength': 1 },
     });
     m.addSource('privacy-zones', { type: 'geojson', data: zonesGeoJson([]) });
     m.addLayer({ id: 'privacy-zones-fill', type: 'fill', source: 'privacy-zones', slot: 'middle', paint: { 'fill-color': color.brand, 'fill-opacity': 0.1, 'fill-emissive-strength': 1 } });
@@ -672,11 +663,10 @@ class MapController {
     if (s.routes !== p?.routes) (m.getSource('routes') as GeoJSONSource | undefined)?.setData(routesGeoJson(s.routes));
     if (s.heat !== p?.heat) {
       (m.getSource('heat') as GeoJSONSource | undefined)?.setData(heatGeoJson(s.heat));
-      if (s.heat?.view !== p?.heat?.view && s.heat) m.setPaintProperty('heat', 'heatmap-color', heatColor(s.heat.view));
-      m.setLayoutProperty('heat', 'visibility', s.heat ? 'visible' : 'none');
-      // a böngészős ellenőrzés ebből olvassa a réteget (mint a `data-theme`-et): mód és pontszám
-      (m.getSource('heat-grey') as GeoJSONSource | undefined)?.setData(heatGeoJson(s.heat ? { ...s.heat, points: s.heat.grey } : null));
-      this.map.getContainer().dataset.heat = s.heat ? `${s.heat.view}:${s.heat.points.length}:${s.heat.res}:${s.heat.grey.length}` : '';
+      if (s.heat?.view !== p?.heat?.view && s.heat) m.setPaintProperty('heat', 'line-color', heatColor(s.heat.view));
+      for (const id of ['heat', 'heat-grey']) m.setLayoutProperty(id, 'visibility', s.heat ? 'visible' : 'none');
+      const heatLines = s.heat?.lines ?? [];
+      this.map.getContainer().dataset.heat = s.heat ? `${s.heat.view}:${heatLines.filter((l) => !l.grey).length}:${heatLines.reduce((n, l) => n + l.coords.length, 0)}:${heatLines.filter((l) => l.grey).length}` : '';
     }
     if (s.privacyZones !== p?.privacyZones) {
       (m.getSource('privacy-zones') as GeoJSONSource | undefined)?.setData(zonesGeoJson(s.privacyZones ?? []));
@@ -819,16 +809,16 @@ function routesGeoJson(routes: readonly MapRoute[]): FeatureCollection<LineStrin
   };
 }
 
-/** AW20: a hőtérkép színskálája a módban (design-tokenek): sűrűség 0 átlátszó, majd alacsony → közepes → magas. */
+/** A hőtérkép színskálája a módban (design-tokenek): a súly (0…1) szerint alacsony → közepes → magas, teljes fedéssel (az átfedő szakaszok nem foltosodnak). */
 function heatColor(view: 'gyakorisag' | 'atlagsebesseg'): mapboxgl.ExpressionSpecification {
   const [lo, mid, hi] = view === 'gyakorisag' ? [color.heatFreqLow, color.heatFreqMid, color.heatFreqHigh] : [color.heatSpeedLow, color.heatSpeedMid, color.heatSpeedHigh];
-  return ['interpolate', ['linear'], ['heatmap-density'], 0, withAlpha(lo, 0), 0.12, withAlpha(lo, 0.5), 0.45, withAlpha(mid, 0.8), 1, withAlpha(hi, 0.95)];
+  return ['interpolate', ['linear'], ['get', 'weight'], 0, lo, 0.5, mid, 1, hi];
 }
 
-function heatGeoJson(heat: MapHeat | null): FeatureCollection<Point> {
+function heatGeoJson(heat: MapHeat | null): FeatureCollection<LineString> {
   return {
     type: 'FeatureCollection',
-    features: (heat?.points ?? []).map((p) => ({ type: 'Feature', properties: { weight: p.weight }, geometry: { type: 'Point', coordinates: [p.lon, p.lat] } })),
+    features: (heat?.lines ?? []).map((l) => ({ type: 'Feature', properties: { weight: l.weight, grey: l.grey }, geometry: { type: 'LineString', coordinates: l.coords.map(([lat, lon]) => [lon, lat]) } })),
   };
 }
 

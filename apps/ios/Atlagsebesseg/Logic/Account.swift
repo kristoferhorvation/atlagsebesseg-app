@@ -15,6 +15,8 @@ nonisolated struct AccountUser: Equatable, Sendable {
     var provider: AccountProvider?
     var givenName: String?
     var fullName: String?
+    /// AW24: a szolgáltató képe (Google: `picture`, Apple nem ad), a profilkép előtöltése.
+    var avatarUrl: String? = nil
 }
 
 nonisolated enum SyncStatus: String, Sendable {
@@ -54,13 +56,14 @@ nonisolated func firstNameFromMeta(givenName: String?, claimsGivenName: String?,
 }
 
 /// A Supabase-felhasználó az app alakjában. A név csak a szolgáltató adatából jön, e-mailes belépésnél nincs.
-nonisolated func accountUser(id: String, email: String?, isAnonymous: Bool, identities: [String], givenName: String?, claimsGivenName: String?, fullName: String?, name: String?) -> AccountUser {
+nonisolated func accountUser(id: String, email: String?, isAnonymous: Bool, identities: [String], givenName: String?, claimsGivenName: String?, fullName: String?, name: String?, avatarUrl: String? = nil) -> AccountUser {
     let provider = [AccountProvider.apple, .google, .email].first { identities.contains($0.rawValue) } ?? (trimmed(email) != nil ? .email : nil)
     let social = provider == .apple || provider == .google
     return AccountUser(
         id: id, email: trimmed(email), isAnonymous: isAnonymous, provider: provider,
         givenName: social ? firstNameFromMeta(givenName: givenName, claimsGivenName: claimsGivenName, fullName: fullName, name: name) : nil,
-        fullName: social ? (trimmed(fullName) ?? trimmed(name)) : nil
+        fullName: social ? (trimmed(fullName) ?? trimmed(name)) : nil,
+        avatarUrl: social ? trimmed(avatarUrl) : nil
     )
 }
 
@@ -70,6 +73,21 @@ nonisolated struct Profile: Codable, Equatable, Sendable {
     var given_name: String?
     var full_name: String?
     var name_prompted = false
+    /// AW24: a fotótárból választott profilkép (kicsinyített JPEG data URL).
+    var avatar: String?
+}
+
+/// A profilkép monogramja: a névből két betű, különben az e-mail első betűje; ha egyik sincs, üres.
+nonisolated func avatarInitials(_ name: String?, _ email: String?) -> String {
+    let words = (name ?? "").split(whereSeparator: \.isWhitespace)
+    if !words.isEmpty { return words.prefix(2).map { $0.prefix(1).uppercased() }.joined() }
+    return (email ?? "").trimmingCharacters(in: .whitespaces).prefix(1).uppercased()
+}
+
+/// A Megszólítás alatti magyarázat, a megadott névvel élőben: „Így köszönt az app induláskor: »Szia, Kristóf, indulhatunk!«”.
+nonisolated func greetingPreview(_ name: String, lang: Lang? = nil) -> String {
+    let n = normalizeName(name)
+    return t(.settingsNameHintLive, ["greeting": n.isEmpty ? t(.navVoiceGreet, lang: lang) : t(.settingsGreetPreview, ["name": n], lang: lang)], lang: lang)
 }
 
 /// Az „Így szólítsunk?” lépés: csak ha még nincs Megszólítás (se helyben, se a profilban), és nem hagyták ki korábban.
@@ -331,6 +349,7 @@ nonisolated func applyFields(_ state: FieldState, base: AccountData) -> AccountD
     }
     merged["zona_m"] = zones
     merged["adatmegosztas_v2"] = true
+    merged["felho_mentes_v2"] = true
     let raw = (try? JSONSerialization.data(withJSONObject: merged)).map { String(decoding: $0, as: UTF8.self) }
     let others = v.keys
         .filter { $0.hasPrefix("place.other.") && v[$0] != .null }
@@ -462,6 +481,11 @@ nonisolated protocol AccountRemote: Sendable {
     func listHeat() async throws -> [CloudHeatRow]
     func putHeat(_ deviceId: String, cells: [FieldValue], updatedMs: Double) async throws
     func clearHeat() async throws
+    /// AW24: a saját utak vonalai (`cloud_tracks`).
+    func listTrackIds() async throws -> [String]
+    func getTrack(_ tripId: String) async throws -> TripTrack?
+    func putTrack(_ track: TripTrack, updatedMs: Double) async throws
+    func clearTracks() async throws
 }
 
 /// A felhő-szinkron helyi oldala (`TripStore`).
@@ -473,6 +497,9 @@ protocol BackupStore: AnyObject {
     func deleteDownloaded(_ id: String)
     func ownHeatCells() -> [HeatCell]
     func setRemoteHeat(_ lists: [[HeatCell]])
+    /// AW24: az utak vonalai; a letöltött vonal nem illesztődik és nem megy közösségbe újra.
+    func backupTracks() -> [TripTrack]
+    func saveTrack(_ track: TripTrack)
 }
 
 /// Egy mező-szinkron kör: letöltés, összefésülés, feltöltés. Az új állapotot adja, és mely mezők változtak a másik készülék miatt.
@@ -520,6 +547,7 @@ func syncBackupOnce(_ remote: AccountRemote, _ store: BackupStore, _ cloud: Clou
     if state.pendingHeatClear {
         try await remote.clearHeat()
         store.setRemoteHeat([])
+        try await remote.clearTracks()
         state.pendingHeatClear = false
         state.heatHash = ""
         heatChanged = true
@@ -533,5 +561,18 @@ func syncBackupOnce(_ remote: AccountRemote, _ store: BackupStore, _ cloud: Clou
     let others = try await remote.listHeat().filter { $0.device_id != deviceId }
     store.setRemoteHeat(others.map { parseHeatBlob($0.cells) })
     if !others.isEmpty { heatChanged = true }
+
+    // AW24: a kész vonalak egyszer mennek fel; a másik készülék vonala letöltődik, a hőtérképhez hozzáadódik
+    let local = store.backupTracks()
+    let remoteIds = Set(try await remote.listTrackIds())
+    let localIds = Set(local.map(\.tripId))
+    for t in local.filter({ $0.status == "done" && !remoteIds.contains($0.tripId) }).prefix(CLOUD_TRIP_BATCH) { try await remote.putTrack(t, updatedMs: now) }
+    for id in remoteIds.subtracting(localIds).sorted().prefix(CLOUD_TRIP_BATCH) {
+        if var t = try await remote.getTrack(id) {
+            t.share = false
+            store.saveTrack(t)
+            heatChanged = true
+        }
+    }
     return (state, upload.count, download.count, plan.deleteLocal.count, heatChanged)
 }

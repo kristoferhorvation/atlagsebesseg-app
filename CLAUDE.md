@@ -22,6 +22,9 @@ hibajavítás szintjén marad.
 Gyökér: `npm test` és `npm run typecheck` minden csomagra; `npm run test:all` a teljes lánc
 (csomagok + edge + helyi DB).
 
+## Invariánsok (Kristof, 2026-11-05)
+- `docs/INVARIANTS.md` + `npm run invariants` (az `npm test` része), iOS-en `AtlagsebessegTests/InvariantsTests.swift`. **Invariánst módosítani CSAK akkor szabad, ha a prompt szó szerint tartalmazza: „INVARIÁNS-MÓDOSÍTÁS ENGEDÉLYEZVE: INV-xx”.** Ha egy feladat invariánsba ütközne, azt a részt NEM csináljuk meg, és a jelentés elején „Invariáns-ütközés” blokkban leírjuk, mit és miért. Minden záró jelentésben sor: „Invariánsok: N/N zöld”. Új jóváhagyott döntés → új invariáns ugyanabban a körben.
+
 ## Kötelező szabályok
 - A `packages/core` **függőségmentes** marad (nincs runtime-függőség).
 - Kulcs (service_role, CRON_SECRET, tokenek) **soha** nem kerül repóba, chatbe vagy commitba.

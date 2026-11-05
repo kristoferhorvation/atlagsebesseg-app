@@ -1,0 +1,21 @@
+{
+  "applinks": {
+    "details": [
+      {
+        "appIDs": [
+          "JDYHPMQ769.hu.atlagsebesseg.app"
+        ],
+        "components": [
+          {
+            "/": "/auth-callback*",
+            "comment": "Bejelentkez\u0151 link (PKCE)"
+          },
+          {
+            "/": "/open/*",
+            "comment": "Megosztott link az appba"
+          }
+        ]
+      }
+    ]
+  }
+}

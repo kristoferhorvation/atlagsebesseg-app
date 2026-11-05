@@ -18,7 +18,7 @@ final class AppModel {
             navSession?.setVoice(settings.hangosUtasitasok)
             if !settings.hangosUtasitasok { player.stopSpeaking() }
             // AOS16: a megosztás kikapcsolásakor a várakozó sorok törlődnek (a már nem kért adat nem megy fel utólag)
-            if !settings.adatmegosztas { Self.clearHeatOutbox() }
+            if !settings.adatmegosztas { Self.clearSegmentOutbox() }
             accountDataChanged()
         }
     }
@@ -151,6 +151,8 @@ final class AppModel {
     var accountProviders = (apple: false, google: false)
     var syncStatus = SyncStatus.idle
     var lastSyncMs: Double?
+    /// AW24: a választott profilkép (data URL); `nil`: a szolgáltató képe vagy monogram.
+    var avatarDataUrl = UserDefaults.standard.string(forKey: AVATAR_KEY)
     var accountBusy = false
     var accountError: String?
     var emailSentTo: String?
@@ -192,13 +194,13 @@ final class AppModel {
     // MARK: hőtérkép (AW20)
 
     /// A saját hőtérkép indexe (a `TripStore` heat tábláiból; út végén csak a módosult cellák frissülnek).
-    @ObservationIgnored let heatIndex = HeatIndex(geo: H3Geo())
+    @ObservationIgnored let trackIndex = TrackIndex()
     /// A közösségi lekérések gyorsítótára (10 perc).
-    @ObservationIgnored let heatGlobalCache = HeatGlobalCache(now: { Date().timeIntervalSince1970 * 1000 })
+    @ObservationIgnored let heatGlobalCache = SegmentGlobalCache(now: { Date().timeIntervalSince1970 * 1000 })
     /// A térkép látható része (a `MapScreen` küldi kamera-mozdulatkor).
     @ObservationIgnored var heatViewport: HeatViewport?
     /// A legutóbb megkapott közösségi sorok (a mostani téglalapra).
-    @ObservationIgnored var heatGlobalRows: [HeatGlobalRow] = []
+    @ObservationIgnored var heatGlobalRows: [SegmentGlobalRow] = []
     @ObservationIgnored var heatGlobalKey: String?
     /// AOS16: a futó közösségi lekérés kulcsa (ugyanarra nem indul másik; a kész válasz után ugyanaz a kulcs újra kérhet).
     @ObservationIgnored var heatGlobalPending: String?
@@ -208,11 +210,12 @@ final class AppModel {
     /// Nő, ha a hőtérkép tartalma változott (új út, érkezett közösségi adat) – a térkép ebből tudja, hogy újra kell töltenie.
     var heatVersion = 0
     /// `-heatSeed YES`: mesterséges, több utas adat a szimulátorban (a közösségi mód is ebből, hálózat nélkül).
-    @ObservationIgnored var heatSeedList: [HeatCell]?
+    @ObservationIgnored var heatSeedList: [[TrackLine]]?
+    /// Egy feldolgozás egyszerre (a függő illesztések és a régi utak).
+    @ObservationIgnored var tracksCatchingUp = false
     /// Egyszerre egy feltöltés fut (különben a várólista kétszer menne fel).
     @ObservationIgnored var heatFlushing = false
     /// AW20-javítás: az indexben most érvényes zónák (a mentett helyekből és a `zona_m`-ből; változáskor új felosztás).
-    @ObservationIgnored var heatZonesApplied: [HeatZone] = []
     /// A zóna-körök látszanak a térképen, amíg a Beállítások (vagy a Részletek lap) nyitva van (a `DriveView` állítja).
     var zonesVisible = false
     /// A zónára fókuszálás (sugárváltáskor a kamera a zónára áll a lap alatt hagyott hellyel) – a `MapScreen` figyeli.
@@ -259,7 +262,7 @@ final class AppModel {
         // AW19: `-cruise YES` önmagában is a navsim-vezetés (a webes `?cruise`)
         if let raw = args.string(forKey: "sim") ?? (args.bool(forKey: "cruise") ? SimScenario.navsim.rawValue : nil), let scenario = SimScenario(rawValue: raw) {
             simPanel = args.object(forKey: "simPanel") == nil || args.bool(forKey: "simPanel")
-            startSim(scenario, speed: args.object(forKey: "simSpeed") == nil ? 4 : args.double(forKey: "simSpeed"), seek: args.double(forKey: "simSeek"))
+            startSim(scenario, speed: Self.launchSimSpeed(args), seek: args.double(forKey: "simSeek"))
             // `-geoHelp YES`: a tiltott helyhozzáférés lapja (a képernyőképhez; szimulátorban a GPS-pill nem kér)
             geoHelpOpen = args.bool(forKey: "geoHelp")
             // `-reportOpen YES` (AOS14): a Bejelentés menü nyitva (a képernyőképhez)
@@ -486,7 +489,8 @@ final class AppModel {
         consumeLiveNav()
         refreshLiveMap()
         liveActivity.resume(liveState)
-        flushHeatOutbox()
+        flushSegmentOutbox()
+        catchUpTracks()
         accountBecameActive()
     }
 
@@ -543,9 +547,18 @@ final class AppModel {
         requestPlan(place)
     }
 
+    /// INV-17: a `-simSpeed` teszt-gyorsítás csak DEBUG-ban él, Release-ben az indítási argumentum nem gyorsít.
+    static func launchSimSpeed(_ args: UserDefaults) -> Double {
+        #if DEBUG
+        return args.object(forKey: "simSpeed") == nil ? 4 : args.double(forKey: "simSpeed")
+        #else
+        return 4
+        #endif
+    }
+
     func openLink(_ url: URL) {
-        // AW22: a bejelentkező link / OAuth visszatérése
-        if url.scheme == "atlagsebesseg", url.host == "auth-callback" {
+        // AW22: a bejelentkező link / OAuth visszatérése; AW24: ugyanez a universal linken át (app.tempomate.app/auth-callback)
+        if (url.scheme == "atlagsebesseg" && url.host == "auth-callback") || (url.scheme == "https" && url.host == "app.tempomate.app" && url.path.hasPrefix("/auth-callback")) {
             handleAuthCallback(url)
             return
         }

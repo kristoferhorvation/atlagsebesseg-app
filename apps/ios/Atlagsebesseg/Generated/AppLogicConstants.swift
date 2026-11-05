@@ -126,6 +126,30 @@ nonisolated enum TRIP {
 }
 /// AW20: hőtérkép – cella-felbontások, zoom-küszöb, pontplafon, lakóhely-védelem (az út első / utolsó `shareEndsM` méterének
 /// cellái sosem mennek fel), súly-skálák, a közösségi lekérés gyorsítótára és a feltöltés-várólista.
+/// AW24: a hőtérkép csíkjai: pontsor, illesztés, útszakaszok (`track.ts`).
+nonisolated enum TRACK {
+    static let pointEveryM = 20.0
+    static let turnDeg = 30.0
+    static let turnMinM = 8.0
+    static let gapM = 200.0
+    static let simplifyM = 6.0
+    static let maxSpacingM = 400.0
+    static let matchMaxCoords = 100.0
+    static let radiusMinM = 10.0
+    static let radiusMaxM = 50.0
+    static let minConfidence = 0.1
+    static let detourFactor = 2.0
+    static let detourExtraM = 150.0
+    static let reversalDeg = 135.0
+    static let segmentM = 25.0
+    static let keyDecimals = 5.0
+    static let colorSteps = 16.0
+    static let maxLines = 6000.0
+    static let queryLimit = 5000.0
+    static let outboxMax = 4000.0
+    static let zoneMarginM = 25.0
+}
+
 nonisolated enum HEAT {
     static let res = 10.0
     static let coarseRes = 8.0

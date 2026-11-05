@@ -4,7 +4,7 @@
   "buildCommand": "npm run build --workspace apps/web",
   "outputDirectory": "apps/web/dist",
   "framework": null,
-  "rewrites": [{ "source": "/((?!assets/|icons/|sw\\.js|manifest\\.webmanifest|apple-touch-icon\\.png).*)", "destination": "/index.html" }],
+  "rewrites": [{ "source": "/((?!\\.well-known/|assets/|icons/|sw\\.js|manifest\\.webmanifest|apple-touch-icon\\.png).*)", "destination": "/index.html" }],
   "headers": [
     {
       "source": "/sw.js",
@@ -16,6 +16,10 @@
     {
       "source": "/assets/(.*)",
       "headers": [{ "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }]
+    },
+    {
+      "source": "/.well-known/apple-app-site-association",
+      "headers": [{ "key": "Content-Type", "value": "application/json" }]
     },
     {
       "source": "/manifest.webmanifest",
