@@ -273,6 +273,10 @@ struct DriveView: View {
 
     /// AW18: a dugó-kérdés önálló kártyán, ha a felső kártya nem látszik (sáv-mód / mérés); a közeli kamera elsőbbséget kap.
     private var standaloneJamAsk: Bool {
+        #if DEBUG
+        // `-jamAskPreview YES` (AW23): a dugó-kérdés a képernyőképhez
+        if UserDefaults.standard.bool(forKey: "jamAskPreview") { return true }
+        #endif
         // AOS15 (AW18-paritás): a weben a közeli kamera nem rejti el az önálló kártyát
         guard let nav = model.nav, nav.jamAsk, nav.phase != .arrived else { return false }
         return measuringLayout || stepStrip

@@ -34,7 +34,7 @@ const VIEWS = {
   'panel': [...NAV, '-navStage', 'nav', '-simAt', '60', '-simSpeed', '0.05', '-navPanel', 'YES'],
   'kereses': [...NAV, '-heat', 'ki', '-navStage', 'search', '-navQuery', 'Mam'],
   'krusing': ['-cruise', 'YES', '-simPanel', 'NO', '-simAt', '300', '-simSpeed', '0.05', '-heat', 'ki'],
-  'dugo-kerdes': [...NAV, '-navStage', 'nav', '-traffic', 'YES', '-simSpeed', '30'],
+  'dugo-kerdes': [...NAV, '-navStage', 'nav', '-simAt', '60', '-simSpeed', '0.05', '-jamAskPreview', 'YES'],
   'live-figyel': [...NAV, '-livePreview', 'YES', '-liveGallery', 'figyel'],
 };
 const argv = process.argv.slice(2);

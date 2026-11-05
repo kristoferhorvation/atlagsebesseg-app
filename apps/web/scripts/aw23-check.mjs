@@ -88,20 +88,20 @@ try {
       ures: { path: '/?navsim&panel=0&heat=ki&speed=1', ready: '.compact-row' },
       krusing: { path: '/?cruise&panel=0&heat=ki&speed=2&at=300', ready: '.cruise-status' },
       navigacio: { path: '/?navsim&stage=nav&panel=0&speed=1&at=60', ready: '.nav-top' },
-      'dugo-kerdes': { path: '/?navsim&stage=nav&traffic&panel=0&speed=30', ready: '.jam-ask-row' },
+      'dugo-kerdes': { path: '/?navsim&stage=nav&traffic&panel=0&speed=4', ready: `[...document.querySelectorAll('.jam-ask-row')].find((e) => e.innerText.trim())`, raw: true },
     };
     for (const [w, h] of [[320, 667], [402, 874], [440, 956]]) {
       for (const [name, v] of Object.entries(VIEWS)) {
         const p = await openPage({ port: chrome.port, base: BASE, outDir: OUT, map: 'real' });
         await p.send('Emulation.setDeviceMetricsOverride', { width: w, height: h, deviceScaleFactor: 2, mobile: true });
         await p.goto(v.path);
-        await p.waitFor(q(v.ready), 120000, name);
+        await p.waitFor(v.raw ? v.ready : q(v.ready), 180000, name);
         if (v.click) {
           await sleep(500);
           await p.evaluate(`${q(v.click)}.click(); true`);
           await p.waitFor(q(v.after), 10000, v.after);
         }
-        await sleep(2500);
+        await sleep(v.raw ? 300 : 2500);
         await p.shot(`${DATE}-aw23-web-${w}-${name}.png`);
         await p.close();
       }
@@ -110,7 +110,7 @@ try {
       await p.send('Emulation.setDeviceMetricsOverride', { width: w, height: h, deviceScaleFactor: 2, mobile: true });
       await p.goto('/?navsim&panel=0&heat=ki&speed=1');
       await p.waitFor(q('.compact-row'), 60000, 'térkép');
-      await p.evaluate(`${q('button[aria-label="Keresés"]')}.click(); true`);
+      await p.evaluate(`${q('.top-search')}.click(); true`);
       await p.waitFor(q('.search-field input'), 10000, 'kereső');
       await sleep(600);
       await p.shot(`${DATE}-aw23-web-${w}-kereses.png`);
