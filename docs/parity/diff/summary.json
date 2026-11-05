@@ -7,39 +7,72 @@
     "slack": 2,
     "colorDelta": 46
   },
-  "total": 3,
+  "total": 6,
   "failed": 0,
   "rows": [
     {
       "device": "se",
-      "state": "vissza-nav",
+      "state": "valaszto",
       "overall": 0.0071,
-      "tile": 0.099,
+      "tile": 0.1094,
       "tileAt": {
-        "x": 48,
-        "y": 432
+        "x": 240,
+        "y": 72
+      },
+      "passed": true
+    },
+    {
+      "device": "se",
+      "state": "nav-meres",
+      "overall": 0.0049,
+      "tile": 0.0556,
+      "tileAt": {
+        "x": 216,
+        "y": 480
       },
       "passed": true
     },
     {
       "device": "pro",
-      "state": "vissza-nav",
-      "overall": 0.0033,
-      "tile": 0.0191,
+      "state": "valaszto",
+      "overall": 0.0254,
+      "tile": 0.1042,
       "tileAt": {
-        "x": 168,
-        "y": 744
+        "x": 144,
+        "y": 768
+      },
+      "passed": true
+    },
+    {
+      "device": "pro",
+      "state": "nav-meres",
+      "overall": 0.0023,
+      "tile": 0.0729,
+      "tileAt": {
+        "x": 72,
+        "y": 624
       },
       "passed": true
     },
     {
       "device": "max",
-      "state": "vissza-nav",
-      "overall": 0.0024,
-      "tile": 0.0139,
+      "state": "valaszto",
+      "overall": 0.0217,
+      "tile": 0.0764,
       "tileAt": {
-        "x": 240,
-        "y": 192
+        "x": 192,
+        "y": 480
+      },
+      "passed": true
+    },
+    {
+      "device": "max",
+      "state": "nav-meres",
+      "overall": 0.0038,
+      "tile": 0.0451,
+      "tileAt": {
+        "x": 72,
+        "y": 696
       },
       "passed": true
     }

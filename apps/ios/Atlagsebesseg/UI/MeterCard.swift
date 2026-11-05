@@ -359,7 +359,8 @@ struct ManualMini: View {
             }
             .lineLimit(1)
             .fixedSize()
-            .frame(minWidth: 112)
+            // a webes `min-width: 112px` a margóval együtt
+            .frame(minWidth: 112 - 2 * 14)
             .padding(.horizontal, 14)
             .padding(.top, 8)
             .padding(.bottom, 9)

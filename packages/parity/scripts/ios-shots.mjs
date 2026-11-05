@@ -39,14 +39,32 @@ export async function prepareDevice(device) {
   for (const other of Object.keys(DEVICES)) if (other !== device) shutdownDevice(other);
   const state = simctl('list', 'devices').split('\n').find((l) => l.includes(udid)) ?? '';
   if (!state.includes('(Booted)')) {
-    simctl('boot', udid);
+    // az előző szimulátor leállása után a boot pillanatnyilag elszállhat (NSPOSIXErrorDomain 22): újrapróba
+    for (let i = 0; ; i++) {
+      try {
+        simctl('boot', udid);
+        break;
+      } catch (e) {
+        if (i >= 5) throw e;
+        await sleep(15_000);
+      }
+    }
     simctl('bootstatus', udid, '-b');
     await sleep(20_000);
   }
   simctl('status_bar', udid, 'override', '--batteryState', 'charged', '--batteryLevel', '100', '--cellularBars', '4', '--wifiBars', '3');
   simctl('install', udid, APP);
   // a telepítés utáni első indítás (előmelegítés) még nem kapja meg biztosan az argumentumokat: egy üres indítás, utána jöhetnek a képek
-  execFileSync('xcrun', ['simctl', 'launch', '--terminate-running-process', udid, BUNDLE, '-parity', 'YES'], { stdio: 'ignore', timeout: SIMCTL_TIMEOUT_MS, killSignal: 'SIGKILL' });
+  // hideg szimulátoron az első indítás elszállhat („No such process”): újrapróba
+  for (let i = 0; ; i++) {
+    try {
+      execFileSync('xcrun', ['simctl', 'launch', '--terminate-running-process', udid, BUNDLE, '-parity', 'YES'], { stdio: 'ignore', timeout: SIMCTL_TIMEOUT_MS, killSignal: 'SIGKILL' });
+      break;
+    } catch (e) {
+      if (i >= 5) throw e;
+      await sleep(20_000);
+    }
+  }
   await sleep(4000);
   simctl('terminate', udid, BUNDLE);
 }

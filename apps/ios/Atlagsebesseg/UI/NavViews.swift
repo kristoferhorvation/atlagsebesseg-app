@@ -465,24 +465,27 @@ struct RoutePickerCard: View {
         let shape = RoundedRectangle(cornerRadius: Tokens.Radius.tile, style: .continuous)
         return Button { model.selectRoute(i) } label: {
             VStack(alignment: .leading, spacing: 6) {
-                // AW23: a címke minden kártyán ugyanott, soha nem törik; a km · érkezés külön sorban
-                HStack(alignment: .firstTextBaseline, spacing: Tokens.Space.s3) {
-                    Text(formatTripDuration(s.durationS))
-                        .css(Tokens.FontSize.f28, Tokens.FontWeight.w680, tracking: -0.02, num: true)
-                        .foregroundStyle(Tokens.Colors.text)
+                // a webes `.route-opt-main { gap: 4px }`
+                VStack(alignment: .leading, spacing: Tokens.Space.s1) {
+                    // AW23: a címke minden kártyán ugyanott, soha nem törik; a km · érkezés külön sorban
+                    HStack(alignment: .firstTextBaseline, spacing: Tokens.Space.s3) {
+                        Text(formatTripDuration(s.durationS))
+                            .css(Tokens.FontSize.f28, Tokens.FontWeight.w680, tracking: -0.02, num: true)
+                            .foregroundStyle(Tokens.Colors.text)
+                            .lineLimit(1)
+                        Spacer(minLength: 0)
+                        // AW18: a „Leggyorsabb” a legkisebb menetidejű (nem a Mapbox 0. indexe)
+                        Text(routeTagText(pos, 0))
+                            .css(Tokens.FontSize.f16, Tokens.FontWeight.w620)
+                            .foregroundStyle(Tokens.Colors.brand)
+                            .lineLimit(1)
+                            .fixedSize()
+                    }
+                    Text("\(dist(s.distanceM, unit)) · \(formatClock(model.nowMs() + s.durationS * 1000))")
+                        .css(Tokens.FontSize.f18, Tokens.FontWeight.w400, num: true)
+                        .foregroundStyle(Tokens.Colors.textMuted)
                         .lineLimit(1)
-                    Spacer(minLength: 0)
-                    // AW18: a „Leggyorsabb” a legkisebb menetidejű (nem a Mapbox 0. indexe)
-                    Text(routeTagText(pos, 0))
-                        .css(Tokens.FontSize.f16, Tokens.FontWeight.w620)
-                        .foregroundStyle(Tokens.Colors.brand)
-                        .lineLimit(1)
-                        .fixedSize()
                 }
-                Text("\(dist(s.distanceM, unit)) · \(formatClock(model.nowMs() + s.durationS * 1000))")
-                    .css(Tokens.FontSize.f18, Tokens.FontWeight.w400, num: true)
-                    .foregroundStyle(Tokens.Colors.textMuted)
-                    .lineLimit(1)
                 Flow(hGap: 14, vGap: Tokens.Space.s1) {
                     metaItem(.rendorseg, t(.navPickerSections, ["n": String(s.sections)]), zero: s.sections == 0)
                     metaItem(.cam_speed, t(.navPickerCameras, ["n": String(s.cameras), "v": String(s.camerasVerified)]), zero: s.cameras == 0)

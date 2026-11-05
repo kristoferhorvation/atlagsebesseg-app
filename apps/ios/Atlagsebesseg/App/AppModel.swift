@@ -269,7 +269,14 @@ final class AppModel {
             // `-cameraOpen <id>` (AOS15): a kamera kártyája nyitva (a képernyőképhez)
             selectedCameraId = args.string(forKey: "cameraOpen")
             // `-manual 0` navigáció nélkül (AOS15): kézi mérés indul (a Live Activity kézi állapotának képéhez)
-            if navStage == nil, args.object(forKey: "manual") != nil { startManual() }
+            if navStage == nil, args.object(forKey: "manual") != nil {
+                startManual()
+                // AW23: `-manualMini YES -miniAlways YES`: a mini navigáció nélkül is (a gombsor méréséhez)
+                if args.bool(forKey: "manualMini") {
+                    updateManualPill()
+                    tapManualPill()
+                }
+            }
             // `-parityNoFollow YES` (AOS18): a követés kikapcsolva – a „Vissza a helyemre” gomb látszik (a térkép elhúzásának párja)
             if args.bool(forKey: "parityNoFollow") { follow = false }
         }
