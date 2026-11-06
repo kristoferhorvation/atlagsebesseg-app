@@ -23,6 +23,7 @@ Forrás: iPhone 17 Pro szimulátor (iOS 27.0), 1206 × 2622 px, „Színes” t�
 | 12 | `12-live-activity-measure` | Funkciók 9. (keret nélkül) | Lezárt képernyő, mérés: 138, „Maradj 122 alatt” – kivágott widget |
 | 13 | `13-live-activity-nav` | Funkciók 9. (keret nélkül) | Lezárt képernyő, navigáció: 140 m, Krisztina körút – kivágott widget |
 | 14 | `14-idle-greeting` | Adatvédelem | Üres nézet: „Szia!”, „Nincs mérőszakasz a közelben” |
+| 15 | `15-heatmap` | Funkciók 8. | Hőtérkép (AW24): az utcákra illesztett csíkok „Gyakoriság” módban, Budapest, krúzing „indulásra kész” |
 
 Ikonok (favicon, Open Graph, header):
 
@@ -35,15 +36,11 @@ Ikonok (favicon, Open Graph, header):
 
 ## Cserélendő képek
 
-- **Hiányzó angol változat (pótolandó):** `01-hero-measure-green-en.png`, `09-camera-near-en.png`,
-  `13-live-activity-nav-en.png`. Az első futásban ezek rosszul sikerültek (kizoomolt földgömb / betöltetlen térkép /
-  „figyel” állapot navigáció helyett), az újrafelvétel közben egy párhuzamos session bebootolta a Pro Max szimulátort,
-  ezért a 17 Pro nem indult újra (egyszerre egy szimulátor). Addig az angol oldal a `-hu` képet használja (a prompt így
-  rendelkezik). Pótlás: 17 Pro szimulátor, `-lang:v1 en`, a fenti nézetek 75 s-os várakozással.
-
-- **Hőtérkép – AW24 után cserélendő.** A régi (AW20-as, pontfelhős) hőtérkép-kép szándékosan NINCS a csomagban; a csíkos
-  AW24-es változat elkészülte után `15-heatmap-hu/en.png` néven kerül be, és a prompt Funkciók 8. pontja kap képet.
-- **`04-start-screen`:** a kezdőképernyő címe az app mai neve („Átlagsebesség” / EN “Average Speed”). Ha az angol (és a
-  többi nem magyar) kijelzőnév Tempomate-re vált, ezt a képet újra kell venni.
+- **AW24-ben pótolva / cserélve** (`tsx packages/parity/scripts/landing-assets.mjs [--only 01,04,09,13,15]`, 17 Pro, a mai build):
+  `01-hero-measure-green-en`, `09-camera-near-en` (ugyanaz a jelenet, mint a `-hu`: 34,7 km, „Camera 230 m”, `--cameraSeek` 0.775),
+  `13-live-activity-nav-en` (az élő navigációs állapot, a szkript a lezárt képernyős kártyára vágja, 1206 px széles; a
+  jelenet a navigáció elejéről, ezért a manőver más, mint a `-hu` képen), `15-heatmap-hu/en` (új), `04-start-screen-hu/en`
+  (az EN cím már „Tempomate”). Az app mostani felületén a mérés alatt felül a krúzing-sáv is látszik (01-EN), a régebbi
+  `-hu` képeken még nincs.
 - **App Store-jelvény:** a hero helyőrzője (`data-placeholder="appstore-badge"`) az App Store-megjelenés után az Apple
   hivatalos jelvényére cserélendő.

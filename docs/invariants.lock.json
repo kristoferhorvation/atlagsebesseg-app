@@ -63,8 +63,18 @@
       ".heat-switch": "d49a83909b714ab0"
     },
     "INV-19": {
-      ".cruise-card": "e980d4b8a856e6cf",
+      ".cruise-card": "dccce9b78c3cbec2",
       "CruiseCard.tsx": "5efaeb8db84b6413"
+    },
+    "INV-22": {
+      ".scrim-top": "866cac47600efb27",
+      ".mapboxgl-ctrl-top-left": "7161613461ea1285",
+      ".mapboxgl-ctrl-top-right": "1373655aea740b01",
+      "logo-margó": "151b5c488c263465",
+      "i-margó": "c95490f7e451ece8"
+    },
+    "INV-23": {
+      ".app": "b41b51e3d1ce0de7"
     }
   }
 }

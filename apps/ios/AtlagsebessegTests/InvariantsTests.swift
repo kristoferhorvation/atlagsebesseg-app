@@ -9,6 +9,9 @@ struct InvariantsTests {
     private static func source(_ rel: String) throws -> String {
         try String(contentsOf: Repo.iosDir.appendingPathComponent("Atlagsebesseg/\(rel)"), encoding: .utf8)
     }
+    private static func repoFile(_ rel: String) throws -> String {
+        try String(contentsOf: Repo.iosDir.deletingLastPathComponent().deletingLastPathComponent().appendingPathComponent(rel), encoding: .utf8)
+    }
     private static func inOrder(_ text: String, _ needles: [String]) -> Bool {
         var from = text.startIndex
         for n in needles {
@@ -156,7 +159,8 @@ struct InvariantsTests {
         #expect(tokens.contains("static let cruiseCard"))
         let d = try Self.source("UI/DriveView.swift")
         #expect(d.contains("CruiseCardView(card: card)"))
-        #expect(d.contains("return CGFloat(84)"))
+        #expect(d.contains("return CGFloat(112)"))
+        #expect(d.contains("cruiseIsStrip ? 158 : 112"))
         #expect(try Self.source("UI/CruiseCardView.swift").contains("Tokens.Radius.r28"))
         let v = CruiseView(tripId: "x", startedAt: 0, distanceM: 1000, elapsedS: 60, movingS: 60, dirChanges: 1)
         #expect(cruiseCard(cruise: nil, active: true, collapsed: false, sectionAheadM: nil, unit: .kmh) != .hidden)
@@ -175,5 +179,24 @@ struct InvariantsTests {
     @Test("INV-21: a felhős mentés alapból BE")
     func inv21() {
         #expect(Settings().felhoMentes)
+    }
+
+    @Test("INV-22: felső sáv – a logó és az „i” a webes helyen, a sötétítés kihagyja őket")
+    func inv22() throws {
+        #expect(TopOrnaments.logo == CGRect(x: 8, y: 4, width: 85, height: 21))
+        #expect(TopOrnaments.infoCenterFromTrailing == 20 && TopOrnaments.infoCenterY == 16 && TopOrnaments.infoRadius == 12)
+        let theme = try Self.source("UI/Theme.swift")
+        #expect(theme.contains(".frame(height: top + 140)") && theme.contains(".blendMode(.destinationOut)"))
+        #expect(theme.contains("WebInfoBadge()"))
+        #expect(try Self.source("Map/MapScreen.swift").contains(".ornamentOptions(.web)"))
+        #expect(try Self.source("UI/StartView.swift").contains(".ornamentOptions(.web)"))
+    }
+
+    @Test("INV-23: a webes alsó sáv a látható nézetablakhoz mérve (a webes őr: scripts/invariants.mts + webkit:layout)")
+    func inv23() throws {
+        let standalone = try Self.repoFile("apps/web/src/sw/standalone.ts")
+        #expect(standalone.contains("setProperty('--app-h', `${window.innerHeight}px`)"))
+        #expect(!standalone.contains("screen.height"))
+        #expect(try Self.repoFile("package.json").contains("\"webkit:layout\""))
     }
 }

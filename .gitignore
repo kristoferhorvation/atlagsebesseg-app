@@ -35,3 +35,5 @@ apps/ios/build/
 apps/ios/DerivedData/
 xcuserdata/
 packages/parity/.work/
+# AW24: a Safari-próba Info.plist-jeit az xcodegen generálja (packages/parity/safari-probe/project.yml)
+packages/parity/safari-probe/*-Info.plist

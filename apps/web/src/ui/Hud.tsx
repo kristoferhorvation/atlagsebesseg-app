@@ -120,19 +120,19 @@ export function Hud(p: HudProps) {
                   {barText && <b className="meter-compact-max tone">{barText}</b>}
                 </span>
               </div>
+              <span className="meter-gap" aria-hidden="true" />
               <div className="meter-fig">
                 <span className="body muted">{t('hud.now')}</span>
                 <b className="meter-num num" data-over={nowOver}>
                   {speedIn(view.currentKmh, unit) ?? '–'}
                 </b>
               </div>
-              <span className="meter-sep" aria-hidden="true">
-                ·
-              </span>
+              <span className="meter-gap" aria-hidden="true" />
               <div className="meter-fig">
                 <span className="body muted">{t('hud.expected')}</span>
                 <b className="meter-num num">{speedIn(live.projectedKmh, unit) ?? '–'}</b>
               </div>
+              <span className="meter-gap" aria-hidden="true" />
               <LimitSign kmh={s.speedLimitKmh} unit={unit} small />
             </div>
           </Card>

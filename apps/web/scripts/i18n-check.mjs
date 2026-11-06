@@ -121,7 +121,7 @@ try {
   await p.evaluate(`document.querySelector('.start .btn.primary').click(); true`);
   await p.waitFor(`document.querySelector('[aria-label="Beállítások"]')`);
   await p.evaluate(`document.querySelector('[aria-label="Beállítások"]').click(); true`);
-  await p.waitFor(`document.querySelector('.sheet .select')`);
+  await p.waitFor(`document.querySelector('.sheet select.select')`);
   check('Beállítások magyarul', (await p.evaluate(`document.querySelector('.sheet .title').textContent`)) === 'Beállítások');
   const options = await p.evaluate(`[...document.querySelectorAll('.sheet .select option')].map((o) => o.textContent)`);
   // AW15: zászló + saját név, ábécérendben; az „Automatikus” legfelül
@@ -138,7 +138,7 @@ try {
     /^Fordulók, .*\(.+\)$/.test(voice ?? '') && !(await p.evaluate(`document.querySelector('.sheet').innerText`)).includes('Hang (hangos utasítások)'),
     `${voiceKind}: ${voice}`,
   );
-  await p.evaluate(`(() => { const s = document.querySelector('.sheet .select'); Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value').set.call(s, 'en'); s.dispatchEvent(new Event('change', { bubbles: true })); })(); true`);
+  await p.evaluate(`(() => { const s = document.querySelector('.sheet select.select'); Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value').set.call(s, 'en'); s.dispatchEvent(new Event('change', { bubbles: true })); })(); true`);
   await p.waitFor(`document.querySelector('.sheet .title')?.textContent === 'Settings'`, 5000, 'angol cím');
   check('váltás után a Beállítások angolul', true, await p.evaluate(`document.querySelector('.sheet .title').textContent`));
   check('<html lang> és a tárolt érték en', (await p.evaluate(LANG)) === 'en' && (await p.evaluate(`localStorage.getItem('lang:v1')`)) === 'en');

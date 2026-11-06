@@ -60,6 +60,16 @@ const FINGERPRINTS: Record<string, Record<string, () => string>> = {
     '.cruise-card': () => cssBlocks(read(CSS), '.cruise-card'),
     'CruiseCard.tsx': () => read('apps/web/src/ui/CruiseCard.tsx'),
   },
+  'INV-22': {
+    '.scrim-top': () => cssBlocks(read(CSS), '.scrim-top'),
+    '.mapboxgl-ctrl-top-left': () => cssBlocks(read(CSS), '.mapboxgl-ctrl-top-left'),
+    '.mapboxgl-ctrl-top-right': () => cssBlocks(read(CSS), '.mapboxgl-ctrl-top-right'),
+    'logo-margó': () => cssBlocks(read(CSS), '.app .mapboxgl-ctrl-top-left .mapboxgl-ctrl'),
+    'i-margó': () => cssBlocks(read(CSS), '.app .mapboxgl-ctrl-top-right .mapboxgl-ctrl'),
+  },
+  'INV-23': {
+    '.app': () => cssBlocks(read(CSS), '.app'),
+  },
   'INV-06': {
     'HeatSwitch.tsx': () => read('apps/web/src/ui/HeatSwitch.tsx'),
     '.heat-switch': () => cssBlocks(read(CSS), '.heat-switch'),
@@ -211,7 +221,10 @@ const CHECKS: Record<string, () => void> = {
     eq(cruiseCard({ cruise: v, active: false, collapsed: false, sectionAheadM: null, unit: 'kmh' }).kind, 'hidden', 'navigáció alatt nincs');
     const css = cssBlocks(read(CSS), '.cruise-card');
     const nav = cssBlocks(read(CSS), '.nav-top');
-    for (const decl of ['top: calc(env(safe-area-inset-top) + 84px);', 'left: max(12px, env(safe-area-inset-left));', 'right: max(12px, env(safe-area-inset-right));', 'border-radius: 28px;', 'padding: 14px 18px;']) {
+    // AW24 (INV-19 módosítva, Kristof engedélyével): a kártya a kerek kereső-gomb ALATT kezdődik, a manőver-kártya marad a + 84-en
+    has(css, 'top: calc(env(safe-area-inset-top) + 40px + var(--size-round-button) + 8px);', 'krúzing-kártya: a kereső-gomb alatt');
+    has(nav, 'top: calc(env(safe-area-inset-top) + 84px);', 'manőver-kártya');
+    for (const decl of ['left: max(12px, env(safe-area-inset-left));', 'right: max(12px, env(safe-area-inset-right));', 'border-radius: 28px;', 'padding: 14px 18px;']) {
       has(css, decl, 'krúzing-kártya');
       has(nav, decl, 'manőver-kártya');
     }
@@ -223,6 +236,25 @@ const CHECKS: Record<string, () => void> = {
     lacks(read('apps/web/src/ui/AccountCard.tsx').slice(0, read('apps/web/src/ui/AccountCard.tsx').indexOf('const notConfigured')), 'syncStatusText', 'web: nincs szinkron-sor');
     order(read('apps/ios/Atlagsebesseg/UI/AccountViews.swift'), ['AvatarButton(model: model', 'Text(name)', 'Text(e)'], 'iOS: fiók-kártya');
     has(read('apps/web/src/ui/AccountCard.tsx'), 'className="mini-btn wide danger"', 'web: a fiók törlése piros');
+  },
+  'INV-22': () => {
+    const theme = read('apps/ios/Atlagsebesseg/UI/Theme.swift');
+    has(theme, 'static let logo = CGRect(x: 8, y: 4, width: 85, height: 21)', 'iOS: a logó helye');
+    has(theme, 'static let infoCenterFromTrailing: CGFloat = 20', 'iOS: az „i” vízszintes helye');
+    has(theme, 'static let infoCenterY: CGFloat = 16', 'iOS: az „i” függőleges helye');
+    has(theme, '.frame(height: top + 140)', 'iOS: a sötétítés magassága');
+    has(theme, '.blendMode(.destinationOut)', 'iOS: a sötétítés kihagyja a logót és az „i”-t');
+    has(theme, 'WebInfoBadge()', 'iOS: az „i” a webes rajzzal');
+    has(mapScreen(), '.ornamentOptions(.web)', 'iOS: a térkép ornamentjei');
+    has(read('apps/ios/Atlagsebesseg/UI/StartView.swift'), '.ornamentOptions(.web)', 'iOS: a kezdőképernyő ornamentjei');
+    has(read('packages/parity/scripts/webkit-layout.mjs'), "a Mapbox-logó helye", 'WebKit-mérés');
+  },
+  'INV-23': () => {
+    has(read('apps/web/src/sw/standalone.ts'), "setProperty('--app-h', `${window.innerHeight}px`)", 'web: az app magassága a látható nézetablak');
+    lacks(read('apps/web/src/sw/standalone.ts'), 'screen.height', 'web: nem a kijelző magassága');
+    has(read('apps/web/src/main.tsx'), 'trackAppHeight()', 'web: a magasság követése');
+    has(read('packages/parity/scripts/webkit-layout.mjs'), "'kezdokepernyo-rovid'", 'WebKit-mérés: a rövidebb kezdőképernyős indítás');
+    has(read('package.json'), '"webkit:layout"', 'WebKit-mérés parancsa');
   },
   'INV-21': () => {
     eq(DEFAULT_SETTINGS.felho_mentes, true, 'a felhős mentés alapja');

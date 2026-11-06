@@ -18,12 +18,7 @@ struct StartView: View {
                     lightPreset: StandardLightPreset(rawValue: mapLightPreset(model.settings.terkep, lightPresetAt(model.lightNowMs(), nil)).rawValue),
                     showPointOfInterestLabels: false
                 ))
-                .ornamentOptions(OrnamentOptions(
-                    scaleBar: ScaleBarViewOptions(visibility: .hidden),
-                    compass: CompassViewOptions(visibility: .hidden),
-                    logo: LogoViewOptions(position: .topLeading, margins: CGPoint(x: Tokens.Space.s2, y: Tokens.Space.s1)),
-                    attributionButton: AttributionButtonOptions(position: .topTrailing, margins: CGPoint(x: Tokens.Space.s2, y: Tokens.Space.s1), tintColor: UIColor(Tokens.Colors.textMuted))
-                ))
+                .ornamentOptions(.web)
                 .allowsHitTesting(false)
                 .ignoresSafeArea()
             }

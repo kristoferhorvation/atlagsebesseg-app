@@ -1,0 +1,15 @@
+# AW24 F: valódi Mobile Safari-mérés az iOS-szimulátoron (a futtató: packages/parity/scripts/safari-real.mjs). Az xcodeproj generált, a .work-be kerül.
+name: SafariProbe
+options: { bundleIdPrefix: hu.atlagsebesseg.probe, deploymentTarget: { iOS: "17.0" } }
+targets:
+  Host:
+    type: application
+    platform: iOS
+    sources: [Host]
+    info: { path: Host-Info.plist, properties: { UILaunchScreen: {} } }
+  UITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources: [UITests]
+    dependencies: [{ target: Host }]
+    info: { path: UITests-Info.plist }

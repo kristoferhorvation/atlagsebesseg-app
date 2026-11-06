@@ -292,12 +292,7 @@ struct MapScreen: View {
             show3dObjects: true
         ))
         // attribúció a felső sarkokban (a kártya ne takarja), mint a weben
-        .ornamentOptions(OrnamentOptions(
-            scaleBar: ScaleBarViewOptions(visibility: .hidden),
-            compass: CompassViewOptions(visibility: .hidden),
-            logo: LogoViewOptions(position: .topLeading, margins: CGPoint(x: Tokens.Space.s2, y: Tokens.Space.s1)),
-            attributionButton: AttributionButtonOptions(position: .topTrailing, margins: CGPoint(x: Tokens.Space.s2, y: Tokens.Space.s1), tintColor: UIColor(Tokens.Colors.textMuted))
-        ))
+        .ornamentOptions(.web)
         .gestureHandlers(MapGestureHandlers(
             onBegin: { _ in
                 follow = false
@@ -695,5 +690,19 @@ private nonisolated struct PuckCone: Shape {
         p.addLine(to: CGPoint(x: r.maxX, y: r.minY))
         p.closeSubpath()
         return p
+    }
+}
+
+extension OrnamentOptions {
+    /// INV-22: a webes helyek – a logó bal felül (8, biztonsági zóna + 4), az „i” jele jobb felül, a közepe (W − 20, + 16), mint a weben a 24 pt-es gomb.
+    /// A Mapbox-gomb 44 pt-es, a jel a közepén: a margó ezért negatív. A felső sötétítés a helyüket kihagyja (`ScrimTop`), így nem halványulnak; az „i” látható
+    /// rajza a webes (`WebInfoBadge`), a Mapbox saját jele átlátszó – a gomb, a koppintás és az akadálymentes neve a Mapboxé marad.
+    static var web: OrnamentOptions {
+        OrnamentOptions(
+            scaleBar: ScaleBarViewOptions(visibility: .hidden),
+            compass: CompassViewOptions(visibility: .hidden),
+            logo: LogoViewOptions(position: .topLeading, margins: CGPoint(x: TopOrnaments.logo.minX, y: TopOrnaments.logo.minY)),
+            attributionButton: AttributionButtonOptions(position: .topTrailing, margins: CGPoint(x: TopOrnaments.infoCenterFromTrailing - 22, y: TopOrnaments.infoCenterY - 22), tintColor: .clear)
+        )
     }
 }

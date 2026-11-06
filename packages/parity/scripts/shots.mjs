@@ -89,6 +89,9 @@ for (const device of devices) {
   }
   simctl('bootstatus', udid, '-b');
   await sleep(30_000);
+  // AW24: az első indítás után a térkép még üres (csempe-gyorsítótár, első indításkor kihagyott argumentumok) – egy bemelegítő indítás, kép nélkül
+  execFileSync('xcrun', ['simctl', 'launch', '--terminate-running-process', udid, BUNDLE, '-lang:v1', 'hu', ...VIEWS[views[0]]], { stdio: 'ignore' });
+  await sleep(45_000);
   for (const view of views) {
     execFileSync('xcrun', ['simctl', 'launch', '--terminate-running-process', udid, BUNDLE, '-lang:v1', 'hu', ...VIEWS[view]], { stdio: 'ignore' });
     // friss szimulátoron az app + a Mapbox-csempék 30–60 s

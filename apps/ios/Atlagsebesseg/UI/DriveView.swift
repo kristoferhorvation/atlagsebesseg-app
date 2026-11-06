@@ -166,7 +166,7 @@ struct DriveView: View {
                     .padding(.top, Tokens.Space.s10 + Tokens.Space.s1)
                     .transition(.opacity.combined(with: .offset(y: -12)))
             } else {
-                // AW24: krúzing-kártya a felső kártya helyén; a kereső-gomb fölötte marad (a kártya felső sarkára lóg, mint a weben)
+                // AW24: krúzing-kártya a kerek kereső-gomb alatt (+ 112, mint a weben; INV-19), nem fedik egymást
                 cruiseCardLayer
                 statusPills(.above)
                 // AW20: hőtérkép-mód (Gyakoriság | Átlagsebesség) és jelmagyarázat – a krúzing-sor alatt, csak kész rétegnél (mint a weben)
@@ -197,7 +197,7 @@ struct DriveView: View {
                         .transition(.opacity.combined(with: .offset(y: -12)))
                 } else if let alert, !(model.nav != nil && !measuringLayout && !stepStrip) {
                     ReportAlertCard(alert: alert, unit: unit)
-                        .padding(.top, cruiseIsStrip ? 130 : 112)
+                        .padding(.top, cruiseIsStrip ? 158 : 112)
                         .transition(.opacity.combined(with: .offset(y: -12)))
                 }
                 VStack(spacing: Tokens.Space.s2) {
@@ -323,19 +323,20 @@ struct DriveView: View {
     private var heatSwitchTop: CGFloat {
         switch cruiseShown {
         case .ready: return 212
-        case let .full(_, _, _, _, section): return section == nil ? 202 : 226
+        case let .full(_, _, _, _, section): return section == nil ? 230 : 254
         default: return 202
         }
     }
 
-    /// A kártya helye: állva a köszöntés alatt, különben a `.nav-top` helyén; navigáció indításakor elhalványul, a manőver-kártya felúszik.
+    /// A kártya helye: állva a köszöntés alatt, különben a kerek kereső-gomb alatt (a webes `.cruise-card`, INV-19); navigáció indításakor
+    /// elhalványul, a manőver-kártya felúszik.
     @ViewBuilder private var cruiseCardLayer: some View {
         let card = cruiseShown
         if case .hidden = card {
             EmptyView()
         } else {
             CruiseCardView(card: card)
-                .padding(.top, { if case .ready = card { return CGFloat(164) } else { return CGFloat(84) } }())
+                .padding(.top, { if case .ready = card { return CGFloat(164) } else { return CGFloat(112) } }())
                 .transition(.opacity)
         }
     }

@@ -90,6 +90,7 @@
           "dependencies": [
             "npm:@atlagsebesseg/core@*",
             "npm:@atlagsebesseg/data@*",
+            "npm:@atlagsebesseg/design-tokens@*",
             "npm:@supabase/supabase-js@^2.118.0",
             "npm:@types/node@^22.20.5",
             "npm:typescript@~6.0.3",

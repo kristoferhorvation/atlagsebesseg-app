@@ -1,4 +1,5 @@
 import { t, type GpsPillAction } from '@atlagsebesseg/app-logic';
+import { useLayoutEffect, useRef } from 'react';
 import type { WakeStatus } from '../hooks/useWakeLock';
 import type { GeoStatus } from '../hooks/useGeolocation';
 import { Icon, type IconName } from './Icon';
@@ -67,9 +68,25 @@ export function StatusPills({
   else pills.push({ key: 'wake', tone: 'semleges', icon: 'screen', text: t('pill.wake.off'), onClick: onWake });
   if (offline) pills.push({ key: 'net', tone: 'semleges', text: t('pill.offline') });
 
+  // AW24-javítás: a sor nem törik (valódi Safariban a „Kijelző elalhat – koppints” a második sorba tört, a köszöntésre); ha nem fér ki, az első utáni
+  // pillek csak ikonnal látszanak (`tight`, mint vezetés közben) – a felirat az akadálymentes névben és a koppintás megmarad
+  const row = useRef<HTMLDivElement>(null);
+  useLayoutEffect(() => {
+    const el = row.current;
+    if (!el) return;
+    const fit = () => {
+      el.classList.remove('tight');
+      el.classList.toggle('tight', el.scrollWidth > el.clientWidth + 1);
+    };
+    fit();
+    const ro = new ResizeObserver(fit);
+    ro.observe(el);
+    return () => ro.disconnect();
+  });
+
   return (
     <>
-    <div className={`pills${compact ? ' compact' : ''}`} data-search={onSearch ? '' : undefined}>
+    <div ref={row} className={`pills${compact ? ' compact' : ''}`} data-search={onSearch ? '' : undefined}>
       {pills.map((p) => {
         const inner = (
           <>

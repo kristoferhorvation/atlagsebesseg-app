@@ -4,7 +4,7 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { App } from './App';
 import { registerServiceWorker } from './sw/register';
-import { applyStandaloneHeight } from './sw/standalone';
+import { trackAppHeight } from './sw/standalone';
 import './styles.css';
 
 // a dizájn-tokenek egyetlen forrásból (a natív app ugyanezt importálja)
@@ -12,7 +12,7 @@ const tokens = document.createElement('style');
 tokens.textContent = `:root{${toCssVariables()}}`;
 document.head.prepend(tokens);
 
-applyStandaloneHeight();
+trackAppHeight();
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <App />

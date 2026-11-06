@@ -59,8 +59,8 @@
         "paddingRight": "0px",
         "paddingBottom": "0px",
         "paddingLeft": "0px",
-        "rowGap": "8px",
-        "columnGap": "8px",
+        "rowGap": "0px",
+        "columnGap": "0px",
         "boxShadow": "none",
         "opacity": "1"
       }

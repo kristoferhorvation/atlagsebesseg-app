@@ -56,8 +56,9 @@ select:focus-visible {
 /* ---------- rétegek ---------- */
 
 /*
- * AW23: a kezdőképernyős (standalone) iOS-webappban a `position: fixed; inset: 0` a rendszercsík fölött ér véget: alatta fekete csík maradt, a biztonsági
- * sáv kétszer számított. A magasság kifejezett: standalone módban a teljes kijelző (`--app-h`, sw/standalone.ts), a böngészőben 100dvh.
+ * AW24-javítás: a magasság a ténylegesen kirajzolt nézetablak (`window.innerHeight` → `--app-h`, sw/standalone.ts). Valódi WebKitben (iOS 27 szimulátor) a `100dvh`
+ * és a fix tartóblokk eszköztár nélküli Safariban 40 pt-tel, a kezdőképernyős módban az AW23-as `max(screen.height, innerHeight)` 62 pt-tel nagyobb volt a
+ * látható résznél: az alsó sáv levágódott. Mindhárom módban egyedül az `innerHeight` egyezett a kirajzolt területtel.
  */
 .app {
   position: fixed;
@@ -457,16 +458,18 @@ select:focus-visible {
 
 /* AW17: mérés + ajánlat – a mérőkártya egy sorban (átlag · most · várható · tábla) */
 .meter-compact {
-  gap: 8px;
+  gap: 0;
+}
+
+/* AW24-javítás: a térközök rugalmasak – ha a sor kifér, 8 px; ha nem (háromjegyű számok és a német „erwartet”), előbb ezek szűkülnek, a tábla nem lóg ki */
+.meter-compact .meter-gap {
+  flex: 0 1 8px;
+  min-width: 2px;
 }
 
 /* AW17-javítás: a számoszlopok nem zsugorodnak a felirat alá; a „·” elválasztó helyett a térköz választ el */
 .meter-compact .meter-fig {
   flex: none;
-}
-
-.meter-compact .meter-sep {
-  display: none;
 }
 
 .meter-compact .meter-num {
@@ -514,8 +517,8 @@ select:focus-visible {
     padding: 12px;
   }
 
-  .meter-compact {
-    gap: 4px;
+  .meter-compact .meter-gap {
+    flex-basis: 4px;
   }
 
   .meter-compact .compact-speed,
@@ -956,9 +959,24 @@ select:focus-visible {
   left: max(12px, env(safe-area-inset-left));
   right: max(12px, env(safe-area-inset-right));
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   gap: 8px;
   pointer-events: none;
+}
+
+/* a pillek nem zsugorodnak (különben a felirat levágódik, és a `tight` sosem kapcsol be) */
+.pills > .pill {
+  flex: none;
+  white-space: nowrap;
+}
+
+/* AW24-javítás: ha a sor nem fér ki (StatusPills `tight`), az első utáni pillek csak ikonnal */
+.pills.tight .pill:not(:first-child) {
+  padding: 0 10px;
+}
+
+.pills.tight .pill:not(:first-child) .pill-text {
+  display: none;
 }
 
 /* AW16: a kereső kerek gombja a GPS-pill sorában, a jobb szélre zárva (ugyanaz a stílus, mint az alsó kerek gomboké) */
@@ -967,8 +985,6 @@ select:focus-visible {
   top: calc(env(safe-area-inset-top) + 40px);
   right: max(12px, env(safe-area-inset-right));
   z-index: 3;
-  /* AW24: a krúzing-kártya sarkára lóg, fölötte marad */
-  z-index: 16;
 }
 
 .pills[data-search] {
@@ -2141,10 +2157,11 @@ a.list-row {
   animation: rise var(--motion-base) var(--motion-ease);
 }
 
-/* AW24: krúzing-kártya: a `.nav-top` helye, mérete és lekerekítése; tömör égkék, a meglévő szegéllyel és árnyékkal (INV-19) */
+/* AW24: krúzing-kártya: a `.nav-top` mérete és lekerekítése, a kerek kereső-gomb ALATT (nem fedik egymást); tömör égkék, a meglévő szegéllyel
+   és árnyékkal (INV-19) */
 .cruise-card {
   position: absolute;
-  top: calc(env(safe-area-inset-top) + 84px);
+  top: calc(env(safe-area-inset-top) + 40px + var(--size-round-button) + 8px);
   left: max(12px, env(safe-area-inset-left));
   right: max(12px, env(safe-area-inset-right));
   z-index: 15;
@@ -2177,11 +2194,16 @@ a.list-row {
 }
 
 .cruise-card[data-kind='strip'] ~ .nav-top.report-alert {
-  top: calc(env(safe-area-inset-top) + 84px + 46px);
+  top: calc(env(safe-area-inset-top) + 40px + var(--size-round-button) + 8px + 46px);
+}
+
+/* a hőtérkép-váltó a teljes kártya alatt (a kártya 28 px-szel lejjebb kezdődik, mint a `.nav-top`) */
+.cruise-card[data-kind='full'] ~ .heat-switch {
+  transform: translateY(28px);
 }
 
 .cruise-card[data-section='true'] ~ .heat-switch {
-  transform: translateY(24px);
+  transform: translateY(52px);
 }
 
 .cruise-card[data-kind='ready'] ~ .heat-switch {

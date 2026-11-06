@@ -11,7 +11,7 @@
       "selector": ".zone-picker",
       "box": {
         "x": 42,
-        "y": 1551.81,
+        "y": 1563.81,
         "w": 318,
         "h": 63.89
       },
@@ -40,7 +40,7 @@
       "selector": ".zone-picker .hint",
       "box": {
         "x": 42,
-        "y": 1554.81,
+        "y": 1566.81,
         "w": 318,
         "h": 18.89
       },
@@ -69,7 +69,7 @@
       "selector": ".zone-picker .segmented",
       "box": {
         "x": 42,
-        "y": 1579.7,
+        "y": 1591.7,
         "w": 194.78,
         "h": 36
       },
@@ -98,7 +98,7 @@
       "selector": ".zone-picker button[aria-pressed=\"true\"]",
       "box": {
         "x": 45,
-        "y": 1582.7,
+        "y": 1594.7,
         "w": 67.42,
         "h": 30
       },
@@ -127,7 +127,7 @@
       "selector": ".zone-picker button[aria-pressed=\"false\"]",
       "box": {
         "x": 112.42,
-        "y": 1582.7,
+        "y": 1594.7,
         "w": 67.28,
         "h": 30
       },

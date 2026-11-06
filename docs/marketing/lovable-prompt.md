@@ -277,7 +277,7 @@ desktop, 1 column phone; each item = line icon, 17px / 580 title, 15px muted tex
    EN “Start it anywhere; it’s private and sends nothing.”
 8. HU „Utak naplója és hőtérkép” / EN “Trip log and heatmap” – HU „Táv, menetidő, átlag, szakaszmérések; saját vagy
    közösségi hőtérkép „Gyakoriság” és „Átlagsebesség” módban.” / EN “Distance, driving time, average, section checks;
-   your own or the community heatmap in “Frequency” and “Average speed” mode.” (no image yet – see assets index)
+   your own or the community heatmap in “Frequency” and “Average speed” mode.” Image: `15-heatmap` (the street-matched heatmap lines in “Frequency” mode, Budapest).
 9. HU „Lezárt képernyőn is (iPhone)” / EN “On the lock screen too (iPhone)” – HU „Live Activity és Dynamic Island:
    átlag, határ, következő manőver.” / EN “Live Activity and Dynamic Island: average, limit, next manoeuvre.”
    (images `12-live-activity-measure`, `13-live-activity-nav`)

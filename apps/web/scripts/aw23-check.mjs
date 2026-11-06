@@ -144,7 +144,7 @@ try {
   }
 
   if (!only || only === 'standalone') {
-    // kezdőképernyős mód és böngésző: a térkép a teljes kijelzőt kitölti, az alsó sáv alja a biztonsági sáv fölött 12 px-re (mint iOS-en), nincs dupla sáv
+    // kezdőképernyős mód és böngésző: a térkép a látható nézetablakot kitölti, az alsó sáv alja a biztonsági sáv fölött 12 px-re (mint iOS-en), nincs dupla sáv
     for (const [w, h, safe] of [[375, 667, 0], [402, 874, 34], [440, 956, 34]]) {
       for (const mode of ['standalone', 'safari']) {
         const p = await openPage({ port: chrome.port, base: BASE, outDir: OUT, map: 'blank' });
@@ -156,8 +156,10 @@ try {
         await p.waitFor(q('.nav-bottom'), 60000, 'alsó sáv');
         await sleep(800);
         const m = await p.evaluate(`({ app: ${q('.app')}.getBoundingClientRect().height, map: ${q('.app > .map')}.getBoundingClientRect().height, bar: ${q('.nav-bottom')}.getBoundingClientRect().bottom })`);
-        const full = mode === 'standalone' ? h : h;
-        check(`${w}x${h} ${mode}: a térkép a teljes kijelzőt kitölti`, m.app === full && m.map === full, JSON.stringify(m));
+        // AW24 (INV-23): az app a LÁTHATÓ nézetablakot tölti ki – az AW23-as „teljes kijelző” elvárás valódi WebKitben levágta az alsó sávot
+        // (a fix elem a nézetablakon túl nem rajzolódik ki); a valódi WebKit-mérés: `npm run webkit:layout`
+        const full = mode === 'standalone' ? h - safe : h;
+        check(`${w}x${h} ${mode}: a térkép a látható nézetablakot kitölti`, m.app === full && m.map === full, JSON.stringify(m));
         check(`${w}x${h} ${mode}: az alsó sáv alja a biztonsági sáv fölött 12 px-re`, m.bar === full - safe - 12, JSON.stringify(m));
         await p.close();
       }

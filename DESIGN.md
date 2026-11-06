@@ -170,6 +170,10 @@ biztonsági zóna fölött lebeg.
 - **Mapbox-attribúció (A5):** logó a bal, kompakt „i” a jobb felső sarokban, alapméretben, a
   biztonsági zóna alatt 4 px-re; kinyitva az attribúció több sorba tördel, nem takarja a logót.
   Az állapot-pillek közvetlenül a logó sora alatt (az A4-es helyükön).
+  **AW24 (INV-22):** iOS-en ugyanígy: a logó (8, + 4), az „i” 24 pt-es kör, közepe (W − 20, + 16), a webes rajzzal (fehér 50% a sötét tartón,
+  fekete kör kivágott „i”-vel); mindkettő a felső sötétítés fölött, nem halványul (iOS-en a sötétítés kihagyja a helyüket). A felső sötétítés
+  a biztonsági sáv + 140 pt, 72% → 0, elmosás nélkül, mindkét platformon. A pillsor nem törik: ha nem fér ki (pl. „Kijelző elalhat – koppints”
+  a kereső mellett), az első utáni pillek ikonra szűkülnek.
 
 - **Live Activity (iOS, AOS15) – a lezárt képernyő arca.** A GPS indításától a GPS végéig állandó (a felhasználó a lezárt
   képernyőn elhúzhatja – a következő GPS-indításig nem jön vissza; a rendszer 8 órás lezárása után vagy ha hiányzik, az
@@ -262,7 +266,7 @@ térkép-rétegek (pl. alternatív útvonal) az alkalmazott fényhez igazodnak. 
 - **Út utáni ajánlat:** a bejelentés-kártya üvege (`.report-card`), két `.btn`; csak az üres nézeten.
 
 ## Krúzing-kártya (AW24, INV-19)
-Cél nélkül a felső manőver-kártya helyén (`.cruise-card`, `.nav-top` helye, mérete, lekerekítése). Token: `cruiseCard` **#1B78BA** (a `route` kékjéből világosított égkék, fehér szöveggel 4,73:1, tömör, ezért mindhárom térképstíluson azonos), `cruiseCardText` #FFFFFF; szegély `strokeStrong`, árnyék `shadow.card`. Felirat 15/620, nagy szám 34/700 (`tabular`), idő 18/620, sorok 15/560. Állapotok: `full` (táv + idő, átlag · irányváltások, ≤ 5 km-en belül „Szakasz X km”), `ready` („Krúzing · indulásra kész”, a köszöntés alatt), `strip` („Krúzing · 12,4 km”, kamera / veszély / szakasz-kártya idején). A kereső-gomb a kártya sarkára lóg, fölötte marad.
+Cél nélkül a kerek kereső-gomb alatt, a biztonsági sáv + 112 pt-en (`.cruise-card`; a `.nav-top` szélessége, mérete, lekerekítése). Token: `cruiseCard` **#1B78BA** (a `route` kékjéből világosított égkék, fehér szöveggel 4,73:1, tömör, ezért mindhárom térképstíluson azonos), `cruiseCardText` #FFFFFF; szegély `strokeStrong`, árnyék `shadow.card`. Felirat 15/620, nagy szám 34/700 (`tabular`), idő 18/620, sorok 15/560. Állapotok: `full` (táv + idő, átlag · irányváltások, ≤ 5 km-en belül „Szakasz X km”), `ready` („Krúzing · indulásra kész”, a köszöntés alatt), `strip` („Krúzing · 12,4 km”, kamera / veszély / szakasz-kártya idején). A kártya és a kereső-gomb nem fedi egymást (INV-19, AW24: korábban a gomb a kártya sarkára lógott).
 
 ## Hőtérkép-csík (AW24, INV-18)
 Vonal-réteg: vastagság `size.routeLine` (7 pt, a navigációs útvonal-vonalé), kerek vég és illesztés, teljes fedés; szín a súlyból a `heatFreq*` / `heatSpeed*` skálán (0 / 0,5 / 1), a zónás és csak út-végi szakasz `heatGrey`.

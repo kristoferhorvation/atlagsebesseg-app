@@ -1,0 +1,98 @@
+{
+  "component": "account-profile",
+  "webFile": "apps/web/src/ui/AccountCard.tsx",
+  "device": {
+    "w": 402,
+    "h": 874,
+    "dpr": 3
+  },
+  "parts": {
+    "root": {
+      "selector": ".account-profile",
+      "box": {
+        "x": 25,
+        "y": 127,
+        "w": 352,
+        "h": 136
+      },
+      "style": {
+        "fontSize": "20px",
+        "fontWeight": "400",
+        "lineHeight": "normal",
+        "letterSpacing": "normal",
+        "color": "rgb(244, 246, 250)",
+        "backgroundColor": "rgba(0, 0, 0, 0)",
+        "backgroundImage": "none",
+        "borderTopWidth": "0px",
+        "borderTopColor": "rgb(244, 246, 250)",
+        "borderTopLeftRadius": "0px",
+        "paddingTop": "4px",
+        "paddingRight": "0px",
+        "paddingBottom": "16px",
+        "paddingLeft": "0px",
+        "rowGap": "8px",
+        "columnGap": "8px",
+        "boxShadow": "none",
+        "opacity": "1"
+      }
+    },
+    "avatar": {
+      "selector": ".avatar",
+      "box": {
+        "x": 159,
+        "y": 131,
+        "w": 84,
+        "h": 84
+      },
+      "style": {
+        "fontSize": "28px",
+        "fontWeight": "640",
+        "lineHeight": "normal",
+        "letterSpacing": "normal",
+        "color": "rgb(244, 246, 250)",
+        "backgroundColor": "rgba(255, 255, 255, 0.06)",
+        "backgroundImage": "none",
+        "borderTopWidth": "1px",
+        "borderTopColor": "rgba(255, 255, 255, 0.16)",
+        "borderTopLeftRadius": "50%",
+        "paddingTop": "0px",
+        "paddingRight": "0px",
+        "paddingBottom": "0px",
+        "paddingLeft": "0px",
+        "rowGap": "normal",
+        "columnGap": "normal",
+        "boxShadow": "none",
+        "opacity": "1"
+      }
+    },
+    "name": {
+      "selector": ".account-profile-name",
+      "box": {
+        "x": 94.06,
+        "y": 223,
+        "w": 213.88,
+        "h": 24
+      },
+      "style": {
+        "fontSize": "20px",
+        "fontWeight": "640",
+        "lineHeight": "normal",
+        "letterSpacing": "normal",
+        "color": "rgb(244, 246, 250)",
+        "backgroundColor": "rgba(0, 0, 0, 0)",
+        "backgroundImage": "none",
+        "borderTopWidth": "0px",
+        "borderTopColor": "rgb(244, 246, 250)",
+        "borderTopLeftRadius": "0px",
+        "paddingTop": "0px",
+        "paddingRight": "0px",
+        "paddingBottom": "0px",
+        "paddingLeft": "0px",
+        "rowGap": "normal",
+        "columnGap": "normal",
+        "boxShadow": "none",
+        "opacity": "1"
+      }
+    }
+  }
+}

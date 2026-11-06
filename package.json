@@ -23,7 +23,9 @@
     "planned:fetch": "npm run planned:fetch --workspace @atlagsebesseg/data --",
     "ios:testflight": "sh apps/ios/scripts/testflight.sh",
     "parity": "tsx packages/parity/scripts/parity.mjs",
-    "parity:specs": "tsx packages/parity/scripts/specs.mjs"
+    "parity:specs": "tsx packages/parity/scripts/specs.mjs",
+    "webkit:layout": "node packages/parity/scripts/webkit-layout.mjs",
+    "safari:real": "node packages/parity/scripts/safari-real.mjs"
   },
   "engines": {
     "node": ">=20",

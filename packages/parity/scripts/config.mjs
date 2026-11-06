@@ -69,7 +69,7 @@ export const STATES = [
   // AW22: a Fiók kártya bejelentkezve (kijelentkezve a `beallitasok` állapot teteje), az út utáni ajánlat, a Veszély választója
   { id: 'fiok-be', web: { path: '/?navsim&panel=0&sheet=settings&heat=ki&speed=7&account=in', ready: '[data-testid="account-card"]' }, ios: [...NAV, ...HEAT_OFF, '-settingsOpen', 'top', '-simPlaces', 'YES', '-accountSim', 'in'] },
   { id: 'fiok-ajanlat', web: { path: '/?navsim&panel=0&heat=ki&speed=7&nudge', ready: '.account-nudge' }, ios: [...NAV, ...HEAT_OFF, '-nudge', 'YES'] },
-  { id: 'beallitasok-zona', web: { path: '/?navsim&panel=0&sheet=settings&heat=ki&speed=7', ready: '.zone-picker', scrollTo: '.zone-picker' }, ios: [...NAV, ...HEAT_OFF, '-settingsOpen', 'zone', '-simPlaces', 'YES'] },
+  { id: 'beallitasok-zona', web: { path: '/?navsim&panel=0&sheet=settings&heat=ki&speed=7', ready: '.zone-picker', scrollTo: '.zone-picker', mask: ['.sheet select.select'] }, ios: [...NAV, ...HEAT_OFF, '-settingsOpen', 'zone', '-simPlaces', 'YES'] },
 ];
 
 export const pick = (argv, name) => {

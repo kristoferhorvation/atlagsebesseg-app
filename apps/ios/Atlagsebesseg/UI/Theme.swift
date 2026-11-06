@@ -342,16 +342,107 @@ struct Chip: View {
     }
 }
 
-/// A webes `.scrim-top`: a biztonsági zóna + 140 pt, 72% → 0.
+/// INV-22: a Mapbox-logó és az „i” helye a biztonsági zóna alatt (pt), a webes `.mapboxgl-ctrl-top-*` szerint: logó (8, + 4) 85 × 21, az „i” 24 pt-es kör.
+enum TopOrnaments {
+    static let logo = CGRect(x: 8, y: 4, width: 85, height: 21)
+    static let infoCenterFromTrailing: CGFloat = 20
+    static let infoCenterY: CGFloat = 16
+    static let infoRadius: CGFloat = 12
+}
+
+/// A webes `.scrim-top`: a biztonsági zóna + 140 pt, 72% → 0. Weben a logó és az „i” a sötétítés fölött van; iOS-en az ornamentek a térkép-nézet részei
+/// (alatta), ezért a sötétítés lágy széllel kihagyja a helyüket (INV-22) – a fényességük így a webesé. A paritás-háttéren nincs térkép, ott nincs kivágás.
 struct ScrimTop: View {
+    private let logoShape = MapboxLogoShape.shared
+
     var body: some View {
         GeometryReader { geo in
+            let top = geo.safeAreaInsets.top
             LinearGradient(colors: [Tokens.Colors.bg.opacity(Tokens.Opacity.o72), Tokens.Colors.bg.opacity(0)], startPoint: .top, endPoint: .bottom)
-                .frame(height: geo.safeAreaInsets.top + 140)
-                .offset(y: -geo.safeAreaInsets.top)
+                .frame(height: top + 140)
+                .mask {
+                    ZStack(alignment: .topLeading) {
+                        Rectangle()
+                        if !Parity.on {
+                            let l = TopOrnaments.logo
+                            if let img = logoShape.image {
+                                // a logó saját alakja: a sötétítés csak a betűk helyén marad ki, mint weben (a téglalap világos udvart hagyott)
+                                Image(uiImage: img)
+                                    .resizable()
+                                    .frame(width: img.size.width, height: img.size.height)
+                                    .offset(x: l.minX, y: top + l.minY)
+                                    .blendMode(.destinationOut)
+                            } else {
+                                RoundedRectangle(cornerRadius: l.height / 2)
+                                    .frame(width: l.width, height: l.height)
+                                    .offset(x: l.minX, y: top + l.minY)
+                                    .blur(radius: 3)
+                                    .blendMode(.destinationOut)
+                            }
+                            Circle()
+                                .frame(width: TopOrnaments.infoRadius * 2, height: TopOrnaments.infoRadius * 2)
+                                .offset(x: geo.size.width - TopOrnaments.infoCenterFromTrailing - TopOrnaments.infoRadius, y: top + TopOrnaments.infoCenterY - TopOrnaments.infoRadius)
+                                .blur(radius: 3)
+                                .blendMode(.destinationOut)
+                        }
+                    }
+                    .compositingGroup()
+                }
+                .offset(y: -top)
+            if !Parity.on {
+                WebInfoBadge()
+                    .position(x: geo.size.width - TopOrnaments.infoCenterFromTrailing, y: TopOrnaments.infoCenterY)
+            }
         }
         .allowsHitTesting(false)
         .accessibilityHidden(true)
+        .task {
+            // a térkép a sötétítéssel együtt jelenik meg: a logó nézete pár tized másodperc múlva kerül az ablakba
+            for _ in 0..<20 where logoShape.image == nil {
+                logoShape.capture()
+                try? await Task.sleep(for: .milliseconds(250))
+            }
+        }
+    }
+}
+
+/// INV-22 (AW24): a Mapbox-logó alakja a felső sötétítés kivágásához. A logót a Mapbox belső `LogoView`-ja rajzolja (UIKit, a SwiftUI-sötétítés alatt);
+/// ezt egyszer képpé rajzoljuk, és az alfája adja a kivágást – a logó rajzát nem másoljuk, és nem is takarjuk.
+@MainActor @Observable final class MapboxLogoShape {
+    static let shared = MapboxLogoShape()
+    private(set) var image: UIImage?
+
+    func capture() {
+        guard image == nil else { return }
+        let windows = UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }.flatMap(\.windows)
+        guard let view = windows.lazy.compactMap({ Self.logoView(in: $0) }).first, view.bounds.width > 0 else { return }
+        image = UIGraphicsImageRenderer(bounds: view.bounds).image { view.layer.render(in: $0.cgContext) }
+    }
+
+    private static func logoView(in view: UIView) -> UIView? {
+        if String(describing: type(of: view)) == "LogoView" { return view }
+        return view.subviews.lazy.compactMap { logoView(in: $0) }.first
+    }
+}
+
+/// INV-22: a webes kompakt „i” rajza (mapbox-gl `.mapboxgl-ctrl-attrib-button` az `.mapboxgl-compact` tartón): 24 pt-es kör, `pillSurface` (= `rgba(16,18,24,.6)`)
+/// fölött 50%-os világos, közepén sötét (`bg`) 12 pt-es kör kivágott „i”-vel (a Mapbox 20 × 20-as SVG-je, evenodd). Csak rajz: a koppintás a Mapbox gombjára jut
+/// (alatta, átlátszó jellel), az attribúciót az nyitja meg.
+struct WebInfoBadge: View {
+    var body: some View {
+        ZStack {
+            Circle().fill(Tokens.Colors.pillSurface)
+            Circle().fill(Tokens.Colors.text.opacity(Tokens.Opacity.o50))
+            Canvas { ctx, size in
+                let k = size.width / 20
+                var p = Path()
+                p.addEllipse(in: CGRect(x: 4 * k, y: 4 * k, width: 12 * k, height: 12 * k))
+                p.addEllipse(in: CGRect(x: 9 * k, y: 6 * k, width: 2 * k, height: 2 * k))
+                p.addRoundedRect(in: CGRect(x: 9 * k, y: 9 * k, width: 2 * k, height: 5 * k), cornerSize: CGSize(width: k, height: k))
+                ctx.fill(p, with: .color(Tokens.Colors.bg), style: FillStyle(eoFill: true))
+            }
+        }
+        .frame(width: TopOrnaments.infoRadius * 2, height: TopOrnaments.infoRadius * 2)
     }
 }
 

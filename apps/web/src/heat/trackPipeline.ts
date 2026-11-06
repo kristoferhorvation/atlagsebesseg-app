@@ -5,9 +5,10 @@ import { enqueueSegmentRows, flushSegmentOutbox } from './heatShare';
 
 /**
  * AW24: az út végi illesztés. Az út a mintáiból pontsort kap (`pending`), az illesztő (`MapMatcher`, ma Mapbox) vonalat ad belőle; hálózati hibánál a sor függőben marad és később
- * újrapróbálódik. A régi utak a nyers mintákból visszamenőleg épülnek újra, de közösségbe nem mennek (mint eddig a régi cellák). Szimulátorban nincs illesztés és nincs feltöltés.
+ * újrapróbálódik. A régi utak a nyers mintákból visszamenőleg épülnek újra, de közösségbe nem mennek (mint eddig a régi cellák). Szimulátorban nincs illesztés és nincs feltöltés;
+ * automatizált böngészőben (nav-shots, `navigator.webdriver`) sem, hogy a tesztek ne hívják a fizetős API-t.
  */
-const IS_SIM = ['sim', 'navsim', 'cruise'].some((k) => new URLSearchParams(location.search).has(k));
+const IS_SIM = navigator.webdriver || ['sim', 'navsim', 'cruise'].some((k) => new URLSearchParams(location.search).has(k));
 const TOKEN = import.meta.env.VITE_MAPBOX_TOKEN as string | undefined;
 const matcher: MapMatcher | null = IS_SIM || !TOKEN ? null : mapboxMatcher(TOKEN);
 

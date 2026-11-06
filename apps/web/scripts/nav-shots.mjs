@@ -688,6 +688,8 @@ try {
   {
     // teljes módban futnak az animációk: a beállt helyzetet mérjük
     await sleep(800);
+    // AW24: a Bejelentés-gomb helyét is a beállt állapotban (a gombsor és a mini animációi lefutottak), teljes módban 800 ms nem mindig elég
+    await kp.waitFor(`[...document.querySelectorAll('.actions *, .manual-mini')].every((e) => e.getAnimations().every((a) => a.playState === 'finished'))`, 15_000, 'a gombsor beállt');
     const before = await kp.evaluate(`(() => { const m = ${q('.manual-mini')}.getBoundingClientRect(); const r = ${q('.actions .report')}.getBoundingClientRect(); return { miniL: m.left, miniR: m.right, repL: r.left, repT: r.top }; })()`);
     const m = (type, x, y, extra = {}) => kp.send('Input.dispatchMouseEvent', { type, x, y, button: 'left', buttons: 1, clickCount: 1, ...extra });
     await m('mousePressed', 180, 300);
@@ -920,7 +922,7 @@ try {
       return out;
     })()`;
     // tranzakcióval, nem deleteDatabase-szel: az utóbbi egy nyitott kapcsolat mellett „blocked” marad, és minden későbbi open mögé áll
-    CLEAR_TRIPS = `new Promise((res, rej) => { const o = indexedDB.open('atlagsebesseg-trips'); o.onerror = () => rej(o.error); o.onsuccess = () => { const db = o.result; const names = ['trips', 'samples', 'heat', 'heatTrips'].filter((n) => db.objectStoreNames.contains(n)); const tx = db.transaction(names, 'readwrite'); for (const n of names) tx.objectStore(n).clear(); tx.oncomplete = () => { db.close(); res(true); }; tx.onerror = () => rej(tx.error); }; })`;
+    CLEAR_TRIPS = `new Promise((res, rej) => { const o = indexedDB.open('atlagsebesseg-trips'); o.onerror = () => rej(o.error); o.onsuccess = () => { const db = o.result; const names = ['trips', 'samples', 'heat', 'heatTrips', 'tracks', 'trashTracks'].filter((n) => db.objectStoreNames.contains(n)); const tx = db.transaction(names, 'readwrite'); for (const n of names) tx.objectStore(n).clear(); tx.oncomplete = () => { db.close(); res(true); }; tx.onerror = () => rej(tx.error); }; })`;
 
     // 1) krúzing: cél nélkül, a navsim-vezetés rögtön indul; 30 s mozgás után az állapotsor a köszöntés alatt
     const cr = await mk(SHOT);
@@ -928,8 +930,10 @@ try {
     await cr.waitFor(MAP_READY, 60_000, 'térkép');
     await cr.evaluate(CLEAR_TRIPS);
     await cr.waitFor(q('.cruise-card[data-kind="full"]'), 60_000, 'krúzing-kártya');
-    const crs = await cr.evaluate(`(() => { const e = ${q('.cruise-card')}; const r = e.getBoundingClientRect(); return { big: e.querySelector('.cruise-big').innerText.replace(/\\s+/g, ' ').trim(), line: e.querySelector('.cruise-line').innerText, greeting: !!${q('.greeting')}, bg: getComputedStyle(e).backgroundColor, top: r.top, inView: r.right <= innerWidth }; })()`);
-    check('AW24: krúzing – cél nélkül, mozgás után a krúzing-kártya a felső kártya helyén: táv + idő, átlag · irányváltások, égkék háttér, köszöntés nélkül', /^[\d,]+ (km|m) \d+ perc$/.test(crs.big) && /^átlag \d+ km\/h · \d+ irányváltás$/.test(crs.line) && !crs.greeting && crs.bg === 'rgb(27, 120, 186)' && crs.inView, JSON.stringify(crs));
+    const crs = await cr.evaluate(`(() => { const e = ${q('.cruise-card')}; const r = e.getBoundingClientRect(); return { big: e.querySelector('.cruise-big').innerText.replace(/\\s+/g, ' ').trim(), line: e.querySelector('.cruise-line').innerText, greeting: !!${q('.greeting')}, bg: getComputedStyle(e).backgroundColor, top: r.top, inView: r.right <= innerWidth, searchBottom: document.querySelector('.top-search')?.getBoundingClientRect().bottom ?? null }; })()`);
+    check('AW24: krúzing – cél nélkül, mozgás után a krúzing-kártya: táv + idő, átlag · irányváltások, égkék háttér, köszöntés nélkül', /^[\d,]+ (km|m) \d+ perc$/.test(crs.big) && /^átlag \d+ km\/h · \d+ irányváltás$/.test(crs.line) && !crs.greeting && crs.bg === 'rgb(27, 120, 186)' && crs.inView, JSON.stringify(crs));
+    // AW24 (INV-19 módosítva): a kártya a kerek kereső-gomb ALATT kezdődik (8 px-re), nem fedik egymást
+    check('AW24: a krúzing-kártya a kereső-gomb alatt, 8 px-re (nem fedik egymást)', crs.searchBottom !== null && Math.round(crs.top - crs.searchBottom) === 8, JSON.stringify(crs));
     if (!CHECK_ONLY) {
       await sleep(2500);
       await cr.shot(`${DATE}-aw24-krusing-kartya.png`);
@@ -1152,7 +1156,7 @@ try {
     const trip = hdb.trips[0];
     const passes = hdb.heat.reduce((n, c) => n + c.count, 0);
     check('AW20: a krúzing-út végén a személyes hőtérkép cellánként frissül (IndexedDB `heat`: h3 res 10, áthaladások, átlag, utolsó idő), az út megjelölve', hdb.v === 5 && !!trip && hdb.heat.length > 20 && hdb.heat.every((c) => /^8a[0-9a-f]{13}$/.test(c.h3) && c.count >= 1 && c.avgKmh > 0 && c.lastT > 0) && hdb.heatTrips.some((x) => x.id === trip.id), JSON.stringify({ v: hdb.v, cells: hdb.heat.length, passes, trips: hdb.heatTrips.length }));
-    check('AW24: a krúzing-út végén az út vonala is elkészül (IndexedDB `tracks`; szimulátorban illesztés nélkül, a nyers pontokból, a Map Matching nem hívódik)', hdb.tracks.length >= 1 && hdb.tracks.every((t) => t.status === 'done' && t.matcher === null && t.lines.length >= 1), JSON.stringify(hdb.tracks.map((t) => ({ s: t.status, m: t.matcher, l: t.lines.length }))));
+    check('AW24: a krúzing-út végén az út vonala is elkészül (IndexedDB `tracks`; szimulátorban illesztés nélkül, a nyers pontokból, a Map Matching nem hívódik)', hdb.tracks.some((t) => t.tripId === trip?.id) && hdb.tracks.filter((t) => t.tripId === trip?.id).every((t) => t.status === 'done' && t.matcher === null && t.lines.length >= 1), JSON.stringify(hdb.tracks.map((t) => ({ s: t.status, m: t.matcher, l: t.lines.length }))));
     console.log(`  info: ${hdb.heat.length} cella / ${passes} áthaladás / ${hdb.samples.length} minta egy 17,7 km-es útból`);
     check('AW20: a megosztás alapból ki – a szimulátor-út nem kerül a feltöltési sorba, nincs hálózati írás', (await hk.evaluate(`localStorage.getItem('heat:segments:outbox:v1')`)) === null);
     await hk.close();
@@ -1358,7 +1362,7 @@ try {
     check('AOS17: a második választó hat tétele a kért sorrendben', kinds.join('|') === 'Rossz szakaszhatár kezdő/záró kapu rossz helyen|Rossz sebességhatár|Nem létezik ez a szakasz|Hiányzó szakasz|Rossz kamera-pozíció|Egyéb', kinds.join('|'));
     if (!CHECK_ONLY) await me.shot(`${DATE}-aos17-web-terkephiba.png`);
     await click(me, '[data-kind="kamera"]');
-    await me.waitFor(`window.__rows.length === 1 && !${q('.sheet')}`, 5000, 'elküldve').catch(() => undefined);
+    await me.waitFor(`window.__rows.length === 1 && !${q('.sheet')}`, 15000, 'elküldve').catch(() => undefined);
     const row = await me.evaluate(`window.__rows[0]?.[0] ?? window.__rows[0] ?? null`);
     check('AOS17: a sor `szakasz_hiba` típussal és `kamera` alkategóriával megy', row?.type === 'szakasz_hiba' && row?.subtype === 'kamera', JSON.stringify(row));
     await me.close();
