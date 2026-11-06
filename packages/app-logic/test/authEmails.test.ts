@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { authEmailConfig, BRAND_NAME } from '../src/authEmails';
+import { accountEmail, authEmailConfig, BRAND_NAME } from '../src/authEmails';
 import { DICTIONARIES, LANGUAGES } from '../src/i18n';
 
 describe('AW23: levélsablonok', () => {
@@ -29,5 +29,26 @@ describe('AW23: levélsablonok', () => {
     expect(html.startsWith('{{ if eq .Data.lang')).toBe(true);
     expect(html.endsWith('{{ end }}')).toBe(true);
     expect(html).toContain(`{{ else }}${(DICTIONARIES.en['email.login.subject'] as string).replace('{app}', BRAND_NAME)}{{ end }}`);
+  });
+});
+
+describe('AW25: fiók-levelek', () => {
+  it('üdvözlés és törlés-visszaigazolás mind a 6 nyelven, a márkanévvel és a kapcsolattal', () => {
+    for (const l of LANGUAGES) {
+      const w = accountEmail('welcome', l);
+      const d = accountEmail('account_deleted', l);
+      expect(w.lang).toBe(l);
+      expect(w.subject).toBe((DICTIONARIES[l]['email.welcome.subject'] as string).replace('{app}', BRAND_NAME));
+      expect(w.html).toContain(DICTIONARIES[l]['email.welcome.body']);
+      expect(d.html).toContain(DICTIONARIES[l]['email.deleted.body']);
+      expect(d.html).toContain('hello@tempomate.app');
+      expect(w.html + d.html + w.subject + d.subject).not.toContain('{app}');
+      expect(w.html).not.toContain('ConfirmationURL');
+    }
+  });
+
+  it('ismeretlen vagy hiányzó nyelvnél angol', () => {
+    expect(accountEmail('welcome', 'fr').lang).toBe('en');
+    expect(accountEmail('account_deleted', null).subject).toBe(`Account deletion: ${BRAND_NAME}`);
   });
 });

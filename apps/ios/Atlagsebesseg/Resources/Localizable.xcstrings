@@ -253,37 +253,37 @@
         "cs" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Smaže se tvůj účet a všechna k němu patřící data uložená na serveru: profil, synchronizovaná nastavení a místa, deník a teplotní mapa v cloudu, hlášení, hlasy. Úseky silnic už anonymně přidané do komunitní teplotní mapy zůstanou, protože je s tebou nelze spojit. Data v tvém zařízení také zůstanou."
+            "value" : "Smaže se tvůj účet a všechna k němu patřící data uložená na serveru: profil, synchronizovaná nastavení a místa, deník a teplotní mapa v cloudu, hlášení, hlasy. Úseky silnic už anonymně přidané do komunitní teplotní mapy zůstanou, protože je s tebou nelze spojit. Data v tvém zařízení také zůstanou. Po dobu 30 dní ho obnovíš opětovným přihlášením."
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Dein Konto und alle zugehörigen auf dem Server gespeicherten Daten werden gelöscht: Profil, synchronisierte Einstellungen und Orte, Fahrtenbuch und Heatmap in der Cloud, Meldungen, Bewertungen. Bereits anonym in die Community-Heatmap eingeflossene Straßenabschnitte bleiben, da sie dir nicht zugeordnet werden können. Auch die Daten auf deinem Gerät bleiben erhalten."
+            "value" : "Dein Konto und alle zugehörigen auf dem Server gespeicherten Daten werden gelöscht: Profil, synchronisierte Einstellungen und Orte, Fahrtenbuch und Heatmap in der Cloud, Meldungen, Bewertungen. Bereits anonym in die Community-Heatmap eingeflossene Straßenabschnitte bleiben, da sie dir nicht zugeordnet werden können. Auch die Daten auf deinem Gerät bleiben erhalten. 30 Tage lang kannst du es wiederherstellen, indem du dich erneut anmeldest."
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Your account and all data stored for it on the server will be deleted: profile, synced settings and places, cloud log and heatmap, reports, votes. Road segments already added anonymously to the community heatmap remain, as they cannot be linked to you. The data on your device also remains."
+            "value" : "Your account and all data stored for it on the server will be deleted: profile, synced settings and places, cloud log and heatmap, reports, votes. Road segments already added anonymously to the community heatmap remain, as they cannot be linked to you. The data on your device also remains. You can restore it for 30 days by signing in again."
           }
         },
         "hu" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Törlődik a fiókod és minden hozzá tartozó, szerveren tárolt adat: profil, szinkronizált beállítások és helyek, felhős napló és hőtérkép, bejelentések, szavazatok. A közösségi hőtérképbe már névtelenül bekerült útszakaszok megmaradnak, mert nem köthetők hozzád. A készülékeden lévő adatok is megmaradnak."
+            "value" : "Törlődik a fiókod és minden hozzá tartozó, szerveren tárolt adat: profil, szinkronizált beállítások és helyek, felhős napló és hőtérkép, bejelentések, szavazatok. A közösségi hőtérképbe már névtelenül bekerült útszakaszok megmaradnak, mert nem köthetők hozzád. A készülékeden lévő adatok is megmaradnak. 30 napig visszaállíthatod: jelentkezz be újra."
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Usunięte zostaną twoje konto i wszystkie powiązane dane na serwerze: profil, zsynchronizowane ustawienia i miejsca, dziennik i mapa cieplna w chmurze, zgłoszenia, głosy. Odcinki dróg dodane już anonimowo do wspólnej mapy cieplnej zostają, bo nie da się ich z tobą powiązać. Dane na twoim urządzeniu również zostają."
+            "value" : "Usunięte zostaną twoje konto i wszystkie powiązane dane na serwerze: profil, zsynchronizowane ustawienia i miejsca, dziennik i mapa cieplna w chmurze, zgłoszenia, głosy. Odcinki dróg dodane już anonimowo do wspólnej mapy cieplnej zostają, bo nie da się ich z tobą powiązać. Dane na twoim urządzeniu również zostają. Przez 30 dni możesz je przywrócić, logując się ponownie."
           }
         },
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Zmaže sa tvoj účet a všetky k nemu patriace údaje uložené na serveri: profil, synchronizované nastavenia a miesta, denník a teplotná mapa v cloude, hlásenia, hlasy. Úseky ciest už anonymne pridané do komunitnej teplotnej mapy zostanú, pretože sa s tebou nedajú spojiť. Údaje v tvojom zariadení tiež zostanú."
+            "value" : "Zmaže sa tvoj účet a všetky k nemu patriace údaje uložené na serveri: profil, synchronizované nastavenia a miesta, denník a teplotná mapa v cloude, hlásenia, hlasy. Úseky ciest už anonymne pridané do komunitnej teplotnej mapy zostanú, pretože sa s tebou nedajú spojiť. Údaje v tvojom zariadení tiež zostanú. Počas 30 dní ho obnovíš opätovným prihlásením."
           }
         }
       }
@@ -3199,6 +3199,170 @@
         }
       }
     },
+    "email.deleted.body" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dostali jsme tvou žádost. Tvůj účet a k němu patřící data uložená na serveru budou za 30 dní trvale smazána. Pokud to chceš zrušit, přihlas se znovu do 30 dní a vše zůstane."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wir haben deine Anfrage erhalten. Dein Konto und die zugehörigen auf dem Server gespeicherten Daten werden in 30 Tagen endgültig gelöscht. Doch anders entschieden? Melde dich innerhalb von 30 Tagen wieder an, dann bleibt alles erhalten."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "We got your request. Your account and the data stored for it on the server will be permanently deleted in 30 days. Changed your mind? Sign in again within 30 days and everything stays."
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Megkaptuk a kérésedet. A fiókod és a hozzá tartozó, szerveren tárolt adatok 30 nap múlva véglegesen törlődnek. Ha meggondolod magad, jelentkezz be újra 30 napon belül, és minden megmarad."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Otrzymaliśmy twoją prośbę. Twoje konto i powiązane dane na serwerze zostaną trwale usunięte za 30 dni. Jeśli chcesz to cofnąć, zaloguj się ponownie w ciągu 30 dni, a wszystko zostanie."
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dostali sme tvoju žiadosť. Tvoj účet a k nemu patriace údaje uložené na serveri sa o 30 dní natrvalo zmažú. Ak to chceš zrušiť, prihlás sa znova do 30 dní a všetko zostane."
+          }
+        }
+      }
+    },
+    "email.deleted.subject" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Smazání účtu: {app}"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kontolöschung: {app}"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Account deletion: {app}"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fiók törlése: {app}"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usunięcie konta: {app}"
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zmazanie účtu: {app}"
+          }
+        }
+      }
+    },
+    "email.deleted.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mažeme tvůj účet"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wir löschen dein Konto"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "We’re deleting your account"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Töröljük a fiókodat"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usuwamy twoje konto"
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mažeme tvoj účet"
+          }
+        }
+      }
+    },
+    "email.footer" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Máš dotaz? Napiš nám: hello@tempomate.app"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fragen? Schreib uns: hello@tempomate.app"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Questions? Write to us: hello@tempomate.app"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kérdésed van? Írj nekünk: hello@tempomate.app"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Masz pytanie? Napisz do nas: hello@tempomate.app"
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Máš otázku? Napíš nám: hello@tempomate.app"
+          }
+        }
+      }
+    },
     "email.ignore" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -3400,6 +3564,129 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Tvoj prihlasovací odkaz"
+          }
+        }
+      }
+    },
+    "email.welcome.body" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tvoje nastavení, uložená místa a – pokud ho zapneš – deník jízd jsou teď stejné na všech tvých zařízeních. Účet je dobrovolný: v Nastavení se můžeš kdykoli odhlásit nebo ho smazat."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deine Einstellungen, gespeicherten Orte und – wenn du es einschaltest – dein Fahrtenbuch sind jetzt auf allen deinen Geräten gleich. Ein Konto ist freiwillig: Du kannst dich jederzeit in den Einstellungen abmelden oder es löschen."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your settings, saved places and – if you turn it on – your trip log are now the same on all your devices. An account is optional: you can sign out or delete it any time in Settings."
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A beállításaid, a mentett helyeid és – ha bekapcsolod – az utak naplója mostantól minden készülékeden ugyanaz. A fiók nem kötelező: a Beállításokban bármikor kijelentkezhetsz vagy törölheted."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Twoje ustawienia, zapisane miejsca i – jeśli go włączysz – dziennik jazd są teraz takie same na wszystkich twoich urządzeniach. Konto jest dobrowolne: w Ustawieniach możesz w każdej chwili się wylogować lub je usunąć."
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tvoje nastavenia, uložené miesta a – ak ho zapneš – denník jázd sú odteraz rovnaké na všetkých tvojich zariadeniach. Účet je dobrovoľný: v Nastaveniach sa môžeš kedykoľvek odhlásiť alebo ho zmazať."
+          }
+        }
+      }
+    },
+    "email.welcome.subject" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vítej v aplikaci {app}"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Willkommen bei {app}"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Welcome to {app}"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Üdvözlünk: {app}"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Witaj w aplikacji {app}"
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vitaj v aplikácii {app}"
+          }
+        }
+      }
+    },
+    "email.welcome.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tvůj účet je připravený"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dein Konto ist bereit"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your account is ready"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kész a fiókod"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Twoje konto jest gotowe"
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tvoj účet je pripravený"
           }
         }
       }

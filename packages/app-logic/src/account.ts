@@ -6,6 +6,7 @@ import type { Place } from './navigation/types';
 import { normalizeName, parseSettings, type Settings } from './settings';
 import { mergeHeatCells, normalizeTrip, type Trip, type TripSample } from './trips';
 import { ZONE_RADII, type HeatCell } from './heat';
+import { captchaOptions } from './captcha';
 
 /**
  * AW22: a valódi, nem kötelező fiók közös logikája (az iOS-pár: `Logic/Account.swift`, a tesztek azonos névvel). A névtelen felhasználó
@@ -574,7 +575,7 @@ export async function startEmailSignIn(client: SupabaseClient, email: string, re
     store.setPendingMerge(await prepareMerge(client));
   }
   // AW23: a levél nyelve az app nyelve (a sablon a `lang` metaadatból választ)
-  const { error } = await client.auth.signInWithOtp({ email: addr, options: { emailRedirectTo: redirectTo, data: { lang: getLanguage() } } });
+  const { error } = await client.auth.signInWithOtp({ email: addr, options: { emailRedirectTo: redirectTo, data: { lang: getLanguage() }, ...(await captchaOptions()) } });
   if (error) throw error;
 }
 
@@ -587,6 +588,6 @@ export async function deleteAccount(client: SupabaseClient): Promise<void> {
 /** Kijelentkezés / fiók törlése után: a készülék új névtelen felhasználóval folytat, a helyi adatok maradnak. */
 export async function continueAnonymously(client: SupabaseClient): Promise<void> {
   await client.auth.signOut({ scope: 'local' });
-  const { error } = await client.auth.signInAnonymously();
+  const { error } = await client.auth.signInAnonymously({ options: await captchaOptions() });
   if (error) throw error;
 }

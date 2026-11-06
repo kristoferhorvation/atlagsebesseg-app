@@ -9,20 +9,23 @@ import { fileURLToPath } from 'node:url';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const functions = join(here, '..', '..', '..', 'supabase', 'functions');
+const dataSrc = join(here, '..', 'src');
 const bundles = [
-  { entry: 'edge.ts', outfile: join(functions, 'promote-temp-gates', 'promote.bundle.js') },
-  { entry: 'edgePlanned.ts', outfile: join(functions, 'fetch-planned-checks', 'planned.bundle.js') },
+  { src: dataSrc, entry: 'edge.ts', outfile: join(functions, 'promote-temp-gates', 'promote.bundle.js') },
+  { src: dataSrc, entry: 'edgePlanned.ts', outfile: join(functions, 'fetch-planned-checks', 'planned.bundle.js') },
+  // AW25: a fiók-levelek sablonja az app-logic szótárából (6 nyelv), hogy a levél és az app szövege egy helyről jöjjön
+  { src: join(here, '..', '..', 'app-logic', 'src'), entry: 'authEmails.ts', outfile: join(functions, 'account-email', 'emails.bundle.js') },
 ];
 for (const b of bundles) {
   await build({
-    entryPoints: [join(here, '..', 'src', b.entry)],
+    entryPoints: [join(b.src, b.entry)],
     bundle: true,
     format: 'esm',
     platform: 'neutral',
     mainFields: ['module', 'main'],
     target: 'es2022',
     outfile: b.outfile,
-    banner: { js: `// GENERÁLT FÁJL – npm run build:edge (packages/data/src/${b.entry}). Ne szerkeszd.` },
+    banner: { js: `// GENERÁLT FÁJL – npm run build:edge (${b.src === dataSrc ? 'packages/data/src' : 'packages/app-logic/src'}/${b.entry}). Ne szerkeszd.` },
   });
   console.log(`Edge bundle: ${b.outfile}`);
 }

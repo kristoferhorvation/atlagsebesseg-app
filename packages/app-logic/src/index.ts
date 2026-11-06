@@ -22,3 +22,4 @@ export * from './heat';
 export * from './track';
 export * from './heatSeed';
 export * from './account';
+export * from './captcha';

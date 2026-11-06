@@ -8,6 +8,7 @@ import type { ReportInsert } from './reports';
 import type { BBox } from './sectionCache';
 import { HEAT, type HeatGlobalRow, type HeatUploadRow } from './heat';
 import { TRACK, type SegmentGlobalRow, type SegmentUploadRow } from './track';
+import { captchaOptions } from './captcha';
 
 export type { SupabaseClient };
 
@@ -49,7 +50,7 @@ export async function ensureSignedIn(client: SupabaseClient | null): Promise<str
   if (!client) return null;
   const { data } = await client.auth.getSession();
   if (data.session) return data.session.user.id;
-  const { data: anon, error } = await client.auth.signInAnonymously();
+  const { data: anon, error } = await client.auth.signInAnonymously({ options: await captchaOptions() });
   if (error) throw error;
   return anon.user?.id ?? null;
 }

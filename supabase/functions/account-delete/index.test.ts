@@ -7,22 +7,25 @@ const env = { supabaseUrl: 'https://teszt.supabase.co', serviceKey: 'service', a
 const post = (token?: string) => new Request('https://x/account-delete', { method: 'POST', headers: token ? { Authorization: `Bearer ${token}` } : {} });
 
 function fake(user: unknown, delStatus = 200) {
-  const calls: { url: string; method: string; auth: string | null }[] = [];
+  const calls: { url: string; method: string; auth: string | null; body: string | null }[] = [];
   const fn = ((input: RequestInfo | URL, init?: RequestInit) => {
     const url = String(input);
-    calls.push({ url, method: init?.method ?? 'GET', auth: new Headers(init?.headers).get('Authorization') });
+    calls.push({ url, method: init?.method ?? 'GET', auth: new Headers(init?.headers).get('Authorization'), body: (init?.body as string) ?? null });
     if (url.endsWith('/auth/v1/user')) return Promise.resolve(user ? new Response(JSON.stringify(user)) : new Response('', { status: 401 }));
     return Promise.resolve(new Response('', { status: delStatus }));
   }) as typeof fetch;
   return { fn, calls };
 }
 
-Deno.test('fiók törlése: a saját JWT azonosítójára, service_role-lal töröl', async () => {
+Deno.test('fiók törlése: a saját JWT azonosítójára törlési kérés service_role-lal, majd minden munkamenet megszűnik', async () => {
   const { fn, calls } = fake({ id: 'u1', is_anonymous: false });
   const r = await handleDelete(post('sajat'), env, fn);
   assertEquals(r.status, 200);
-  assertEquals(calls[0], { url: 'https://teszt.supabase.co/auth/v1/user', method: 'GET', auth: 'Bearer sajat' });
-  assertEquals(calls[1], { url: 'https://teszt.supabase.co/auth/v1/admin/users/u1', method: 'DELETE', auth: 'Bearer service' });
+  assertEquals(await r.json(), { deleted: true, restoreDays: 30 });
+  assertEquals(calls[0], { url: 'https://teszt.supabase.co/auth/v1/user', method: 'GET', auth: 'Bearer sajat', body: null });
+  assertEquals(calls[1], { url: 'https://teszt.supabase.co/rest/v1/account_deletions?on_conflict=user_id', method: 'POST', auth: 'Bearer service', body: '{"user_id":"u1"}' });
+  assertEquals(calls[2], { url: 'https://teszt.supabase.co/auth/v1/logout?scope=global', method: 'POST', auth: 'Bearer sajat', body: null });
+  assertEquals(calls.some((c) => c.method === 'DELETE'), false);
 });
 
 Deno.test('fiók törlése: JWT nélkül és érvénytelen JWT-vel 401, nem töröl', async () => {

@@ -47,3 +47,22 @@ export function authEmailConfig(): AuthEmailConfig {
     mailer_templates_email_change_content: byLang((l) => page(l, 'email.change.title', 'email.change.body', 'email.change.button')),
   };
 }
+
+/** AW25: fiók-levelek (üdvözlés, a törlési kérés visszaigazolása) – az account-email edge function küldi, a nyelv a `lang` metaadatból. */
+export type AccountEmailKind = 'welcome' | 'account_deleted';
+
+const notice = (l: Lang, title: TKey, body: TKey) => `<div style="background:${color.bg};padding:32px 16px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Inter,Roboto,Arial,sans-serif">
+<div style="max-width:440px;margin:0 auto;background:#161920;border:1px solid #2A2E38;border-radius:24px;padding:28px 24px;color:${color.text}">
+<div style="font-size:14px;font-weight:600;color:#A3A9B5;margin:0 0 16px">${BRAND_NAME}</div>
+<h1 style="font-size:24px;line-height:1.25;font-weight:700;margin:0 0 12px">${text(l, title)}</h1>
+<p style="font-size:16px;line-height:1.5;margin:0;color:#D5D8DF">${text(l, body)}</p>
+<p style="font-size:13px;line-height:1.5;margin:24px 0 0;color:#A3A9B5">${text(l, 'email.footer')}</p>
+</div>
+</div>`;
+
+export function accountEmail(kind: AccountEmailKind, lang: string | null | undefined): { subject: string; html: string; lang: Lang } {
+  const l: Lang = (LANGUAGES as readonly string[]).includes(lang ?? '') ? (lang as Lang) : 'en';
+  return kind === 'welcome'
+    ? { subject: text(l, 'email.welcome.subject'), html: notice(l, 'email.welcome.title', 'email.welcome.body'), lang: l }
+    : { subject: text(l, 'email.deleted.subject'), html: notice(l, 'email.deleted.title', 'email.deleted.body'), lang: l };
+}

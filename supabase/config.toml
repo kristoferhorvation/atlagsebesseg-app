@@ -421,3 +421,6 @@ verify_jwt = false
 
 [functions.fetch-planned-checks]
 verify_jwt = false
+
+[functions.account-email]
+verify_jwt = false

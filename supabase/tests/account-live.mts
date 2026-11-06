@@ -178,11 +178,21 @@ try {
   const denied = await anon2.c.functions.invoke('account-delete', { method: 'POST' });
   check(denied.error !== null, 'fiók törlése: névtelen munkamenettel tiltott');
 
-  // 6. fiók törlése az éles edge function-nel: minden sor eltűnik
+  // 6. fiók törlése az éles edge function-nel (AW25: 30 napos visszaállítással): törlési kérés, minden munkamenet megszűnik,
+  //    30 napon belüli újra-belépés visszaállítja; a végleges törlés (a napi purge_retention 30 nap után ugyanígy) minden sort visz
+  const oldRefresh = (await a.c.auth.getSession()).data.session?.refresh_token ?? '';
   await deleteAccount(a.c);
+  check((await admin.auth.admin.getUserById(a.id)).error === null && (await rowsOf('account_deletions', 'user_id', a.id)) === 1, 'fiók törlése: kérés rögzítve, a fiók 30 napig megvan');
+  check((await device().auth.refreshSession({ refresh_token: oldRefresh })).error !== null, 'fiók törlése: a régi munkamenet megszűnt');
+  check((must(await admin.from('account_emails').select('kind').eq('user_id', a.id).eq('kind', 'account_deleted')) as unknown[]).length === 1, 'fiók törlése: a visszaigazoló levél sorba állt');
+  const back = device();
+  await openMagicLink(back, emailOf('a'));
+  check((await rowsOf('account_deletions', 'user_id', a.id)) === 0 && (await rowsOf('profiles', 'user_id', a.id)) === 1, 'fiók törlése: újra-belépés 30 napon belül visszaállítja, az adatok megvannak');
+  await deleteAccount(back);
+  must(await admin.auth.admin.deleteUser(a.id));
   created.delete(a.id);
-  check((await admin.auth.admin.getUserById(a.id)).error !== null, 'fiók törlése: az auth-felhasználó eltűnt');
-  for (const [t, col] of [['profiles', 'user_id'], ['account_fields', 'user_id'], ['cloud_trips', 'user_id'], ['cloud_heat', 'user_id'], ['reports', 'user_id'], ['report_votes', 'user_id'], ['jam_samples', 'user_id']] as const) {
+  check((await admin.auth.admin.getUserById(a.id)).error !== null, 'fiók törlése: 30 nap után az auth-felhasználó eltűnt');
+  for (const [t, col] of [['profiles', 'user_id'], ['account_fields', 'user_id'], ['cloud_trips', 'user_id'], ['cloud_heat', 'user_id'], ['reports', 'user_id'], ['report_votes', 'user_id'], ['jam_samples', 'user_id'], ['account_deletions', 'user_id'], ['account_emails', 'user_id']] as const) {
     check((await rowsOf(t, col, a.id)) === 0, `fiók törlése: a ${t} sorai eltűntek`);
   }
 } catch (e) {

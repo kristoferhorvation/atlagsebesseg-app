@@ -3,6 +3,7 @@ import { toCssVariables } from '@atlagsebesseg/design-tokens';
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { App } from './App';
+import { initCaptcha } from './captcha';
 import { registerServiceWorker } from './sw/register';
 import { trackAppHeight } from './sw/standalone';
 import './styles.css';
@@ -13,6 +14,7 @@ tokens.textContent = `:root{${toCssVariables()}}`;
 document.head.prepend(tokens);
 
 trackAppHeight();
+initCaptcha();
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <App />
