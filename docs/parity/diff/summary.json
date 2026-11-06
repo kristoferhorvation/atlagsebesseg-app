@@ -24,7 +24,7 @@
     {
       "device": "se",
       "state": "ures",
-      "overall": 0.0051,
+      "overall": 0.0044,
       "tile": 0.1094,
       "tileAt": {
         "x": 240,
@@ -68,7 +68,7 @@
     {
       "device": "se",
       "state": "krusing-kesz",
-      "overall": 0.0043,
+      "overall": 0.0044,
       "tile": 0.1094,
       "tileAt": {
         "x": 240,
@@ -142,7 +142,7 @@
     {
       "device": "se",
       "state": "mini-vissza-ures",
-      "overall": 0.0024,
+      "overall": 0.0023,
       "tile": 0,
       "tileAt": null,
       "passed": true
