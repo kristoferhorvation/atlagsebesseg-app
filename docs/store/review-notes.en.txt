@@ -5,11 +5,11 @@ Why background location: the app measures your average speed on average speed se
 Speed cameras: fixed cameras are displayed according to local law per country. Switzerland: not shown. France: only an approximate "Enforcement zone" (about 1 km), no exact position and no alert. Germany: shown with a one-time notice that the driver may not use the feature while driving. Community "Police" and "Speed camera" reports follow the same rule. The app is not a radar detector: it does not detect, receive or interfere with any device or signal; it only uses public map data and user reports.
 
 How to test without driving (simulator mode, about 2 minutes):
-1. Open the app and allow location access.
-2. Tap the gear button (bottom right) to open Settings.
-3. Tap the "GPS" row 5 times: a "Simulator" row appears below.
-4. Tap "Simulator": a recorded drive on a measured section replays (in Italy, sped up); the card shows the live average and the speed you can keep to the section end.
-5. Watch the section end: the result card appears. Exit with Settings > "Exit the simulator".
+1. Open the app. On the start screen tap "Try it without GPS (simulator)" (no location permission needed).
+2. A recorded drive on a measured section replays (in Italy, sped up); the card at the bottom shows the live average and the speed you can keep to the section end.
+3. Watch the colour: green below the limit, amber when slowing down is enough, red when the section average will be over.
+4. At the section end the result card appears.
+5. Exit with the gear button > "Exit the simulator". (After the start screen, the simulator can be reopened in Settings by tapping the "GPS" row 5 times.)
 
 Simulator data stays on the device and is never sent to our server.
 

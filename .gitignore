@@ -37,3 +37,6 @@ xcuserdata/
 packages/parity/.work/
 # AW24: a Safari-próba Info.plist-jeit az xcodegen generálja (packages/parity/safari-probe/project.yml)
 packages/parity/safari-probe/*-Info.plist
+
+# AW25b: az App Store-képek (packages/parity/scripts/store-shots.mjs újragyártja; az ASC-ben fent vannak)
+docs/store/screenshots/

@@ -22,9 +22,9 @@ const SCENES = [
   ['01', 'measure', ['-sim', 'jo', '-simPanel', 'NO', '-simSeek', '0.5', '-simSpeed', '0.05', '-heat', 'ki']],
   ['02', 'navigation', [...NAV, '-navStage', 'nav', '-simSeek', '0.3', '-simSpeed', '0.05', '-alt', 'off', '-heat', 'ki']],
   ['03', 'route-picker', [...NAV, '-navStage', 'picker', '-heat', 'ki']],
-  ['04', 'live-activity', [...NAV, '-navStage', 'nav', '-simSeek', '0.3', '-simSpeed', '0.05', '-alt', 'off', '-livePreview', 'YES', '-heat', 'ki']],
-  ['05', 'heatmap', [...NAV, '-heatSeed', 'YES', '-heat', 'sajat', '-heatView', 'gyakorisag', '-mapLat', '47.4985', '-mapLon', '19.062', '-mapZoom', '13.2', '-parityNoFollow', 'YES', '-cruiseDemo', 'ready']],
-  ['06', 'report', ['-sim', 'jo', '-simPanel', 'NO', '-simSeek', '0.3', '-simSpeed', '0.05', '-reportOpen', 'YES', '-heat', 'ki']],
+  // a Live Activity mock-előnézete fejlesztői feliratokat mutat („(mock)”) – áruházi képnek nem való, kimarad
+  ['04', 'heatmap', [...NAV, '-heatSeed', 'YES', '-heat', 'sajat', '-heatView', 'gyakorisag', '-mapLat', '47.4985', '-mapLon', '19.062', '-mapZoom', '13.2', '-parityNoFollow', 'YES', '-cruiseDemo', 'ready']],
+  ['05', 'report', ['-sim', 'jo', '-simPanel', 'NO', '-simSeek', '0.3', '-simSpeed', '0.05', '-reportOpen', 'YES', '-heat', 'ki']],
 ];
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
