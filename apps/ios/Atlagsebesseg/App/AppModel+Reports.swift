@@ -18,6 +18,13 @@ struct AppToast: Equatable, Identifiable {
 /// Mérés közben a koppintott bejelentés kártyája ennyi idő után magától bezárul (a webes `REPORT_CARD_AUTOCLOSE_MS`).
 let REPORT_CARD_AUTOCLOSE_S = 3.0
 
+/// AW25b (AOS19): a szimulátor csak a Debug-buildben ír az éles Supabase-re (élő próbák); Release-ben (TestFlight, App Store) semmit nem küld.
+#if DEBUG
+let simSendsToServer = true
+#else
+let simSendsToServer = false
+#endif
+
 extension AppModel {
     func setUpReports() {
         reportFeed = ReportFeed(
@@ -51,8 +58,15 @@ extension AppModel {
 
     private func syncReports() {
         guard let feed = reportFeed else { return }
-        let list = feed.list()
+        // AW25b (INV-26): a közösségi Rendőrség / Traffipax a kamerák országonkénti szabályával (a webes `visibleReports`)
+        let layer = visibleReports(feed.list())
+        let list = layer.points
         if list != reports { reports = list }
+        if layer.zones.map(\.id) != reportZones.map(\.id) { reportZones = layer.zones }
+        if layer.countries != reportCountries {
+            reportCountries = layer.countries
+            warnCountries()
+        }
         let p = reportPrompt.update(lastFix, list, voted: { feed.myVote($0) != nil }, now: nowMs())
         // a távolság 10 m-es lépésben frissül (nem minden óra-lépésnél új állapot)
         let same = p?.id == reportPromptState?.id && p?.phase == reportPromptState?.phase
@@ -150,6 +164,9 @@ extension AppModel {
             self.reportSending = nil
             self.reportSheetOpen = false
         }
+        // AW25b (AOS19): Release-ben a szimulátor bejelentése nem megy a szerverre (helyi azonosítóval a térképen marad);
+        // a Debug-build élő próbái (`-autoReport`) továbbra is a szerverre küldenek
+        if sim != nil && !simSendsToServer { return done("sim-local-\(UUID().uuidString)") }
         Task { [weak self] in
             guard let self else { return }
             do {
@@ -173,7 +190,7 @@ extension AppModel {
             if self.reportPrompt.current == id { self.reportPrompt.close() }
             self.syncReports()
         }
-        if sim != nil, simReports.contains(where: { $0.id == id }) { return done() }
+        if sim != nil, simReports.contains(where: { $0.id == id }) || !simSendsToServer || id.hasPrefix("sim-local-") { return done() }
         voting = true
         Task { [weak self] in
             guard let self else { return }
@@ -202,6 +219,7 @@ extension AppModel {
         // új adatforrás: üres feed, az első fixnél lekér (a szerver helyett a mintákat)
         setUpReports()
         reports = []
+        reportZones = []
         reportPrompt.reset()
         selectedReportId = nil
         reportPromptState = nil

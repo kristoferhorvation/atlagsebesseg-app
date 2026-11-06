@@ -7586,6 +7586,47 @@
         }
       }
     },
+    "ios.locationAlwaysUsage" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Na úsekovém měření pokračuje měření i při zamčené obrazovce – proto potřebujeme tvou polohu i na pozadí, dokud je v aplikaci zapnuté GPS."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Auf Abschnittskontrollen läuft die Messung auch bei gesperrtem Bildschirm weiter – dafür wird dein Standort im Hintergrund gebraucht, solange GPS in der App an ist."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "On average speed sections the measurement continues with the screen locked, so your location is needed in the background while GPS is on in the app."
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Szakaszellenőrzésen az átlagsebesség mérése zárolt képernyővel is folytatódik – ehhez a háttérben is kell a helyzeted, amíg a GPS be van kapcsolva az appban."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Na odcinkowym pomiarze prędkości pomiar trwa także przy zablokowanym ekranie – dlatego lokalizacja jest potrzebna w tle, dopóki GPS w aplikacji jest włączony."
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Na úsekovom meraní pokračuje meranie aj pri zamknutej obrazovke – preto je tvoja poloha potrebná aj na pozadí, kým je v appke zapnuté GPS."
+          }
+        }
+      }
+    },
     "ios.locationUsage" : {
       "extractionState" : "manual",
       "localizations" : {

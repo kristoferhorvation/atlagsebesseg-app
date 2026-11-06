@@ -52,6 +52,10 @@ targets:
       - path: ../../packages/data/camera_visibility.json
         group: SharedData
         buildPhase: resources
+      # AW25b (INV-26): a nem alapértelmezett szabályú országok határa – a közösségi bejelentés országához
+      - path: ../../packages/data/country_borders.json
+        group: SharedData
+        buildPhase: resources
       - path: ../../packages/data/output
         group: SharedData
         type: folder
@@ -123,7 +127,9 @@ targets:
           - CFBundleURLName: hu.atlagsebesseg.app
             CFBundleURLSchemes: [atlagsebesseg]
         # alapszöveg; a nyelvenkénti változat az InfoPlist.xcstrings-ből (a szótárból generálva)
-        NSLocationWhenInUseUsageDescription: Your location is needed to detect sections and measure your average speed.
+        NSLocationWhenInUseUsageDescription: Your location is used to detect sections and measure your average speed, including while the screen is locked and the app is measuring.
+        # AW25b (AOS19): háttér-GPS – a szakaszellenőrzés mérése zárolt képernyőn (a nyelvenkénti változat az InfoPlist.xcstrings-ből)
+        NSLocationAlwaysAndWhenInUseUsageDescription: On average speed sections the measurement continues with the screen locked, so your location is needed in the background while GPS is on in the app.
         ITSAppUsesNonExemptEncryption: false
         # Inter (OFL, Resources/Fonts/Inter-OFL.txt) – ugyanaz a betű, mint a weben
         UIAppFonts: [InterVariable.ttf]

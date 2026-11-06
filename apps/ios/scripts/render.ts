@@ -25,7 +25,7 @@ export function renderAll(): Map<string, string> {
   out.set('Atlagsebesseg/Resources/Localizable.xcstrings', xcstrings(Object.keys(DICTIONARIES.hu) as TKey[], (k) => k));
   out.set(
     'Atlagsebesseg/Resources/InfoPlist.xcstrings',
-    xcstrings(['ios.displayName', 'ios.locationUsage'], (k) => ({ 'ios.displayName': 'CFBundleDisplayName', 'ios.locationUsage': 'NSLocationWhenInUseUsageDescription' })[k as string]!),
+    xcstrings(['ios.displayName', 'ios.locationUsage', 'ios.locationAlwaysUsage'], (k) => ({ 'ios.displayName': 'CFBundleDisplayName', 'ios.locationUsage': 'NSLocationWhenInUseUsageDescription', 'ios.locationAlwaysUsage': 'NSLocationAlwaysAndWhenInUseUsageDescription' })[k as string]!),
   );
   // AW22: a widget-kiterjesztés kijelzőneve nyelvenként, az appéval azonos
   out.set('AtlagsebessegWidget/InfoPlist.xcstrings', xcstrings(['ios.displayName'], () => 'CFBundleDisplayName'));

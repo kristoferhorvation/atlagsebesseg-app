@@ -34,7 +34,8 @@ extension AppModel {
     func syncTripNav() {
         // AW23: a navigáció kezdete és vége lezárja a futó utat (a navigált út külön út, utána a krúzing 0-ról indul)
         let wasNav = tripRecorder.navigating
-        tripRecorder.setDestination(nav?.destination.name)
+        // AW25b: a cél a saját címke vagy a koordináta-kulcs, a Mapbox-név nem tárolódik
+        tripRecorder.setDestination(tripDestination(nav?.destination))
         if wasNav != (nav != nil) { pumpTrips() }
         tripRecorder.setLimit(nav?.limitKmh)
         let rerouting = nav?.rerouting ?? false

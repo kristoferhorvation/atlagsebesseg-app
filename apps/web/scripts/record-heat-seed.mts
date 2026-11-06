@@ -1,8 +1,9 @@
-// AW24: a `?heatSeed` / `-heatSeed YES` szimulátor-adat felvétele: valódi utak geometriája (Directions), hogy a hőtérkép-kép utcákon haladó csíkokat mutasson.
+// AW24: a `?heatSeed` / `-heatSeed YES` szimulátor-adat felvétele: valódi utak geometriája, hogy a hőtérkép-kép utcákon haladó csíkokat mutasson.
+// AW25b (Mapbox-feltételek: a Directions-eredmény nem tárolható): a geometria az OSRM nyilvános demó-szerveréről jön (OpenStreetMap-adat,
+// © OpenStreetMap contributors, ODbL), token nélkül, másodpercenként legfeljebb egy kéréssel.
 // Használat: npx tsx apps/web/scripts/record-heat-seed.mts
-import { readFileSync, writeFileSync } from 'node:fs';
+import { writeFileSync } from 'node:fs';
 
-const token = readFileSync(new URL('../.env', import.meta.url), 'utf8').match(/^VITE_MAPBOX_TOKEN=(.+)$/m)![1]!.trim();
 /** [név, áthaladás, km/h, lon,lat;lon,lat…] */
 const ROUTES: [string, number, number, string][] = [
   ['nagykörút', 14, 34, '19.0536,47.5118;19.0702,47.5013;19.0705,47.4931;19.0610,47.4835'],
@@ -18,10 +19,12 @@ const ROUTES: [string, number, number, string][] = [
 ];
 const routes = [];
 for (const [name, passes, kmh, coords] of ROUTES) {
-  const r = await fetch(`https://api.mapbox.com/directions/v5/mapbox/driving/${coords}?geometries=geojson&overview=full&access_token=${token}`);
-  const j = (await r.json()) as { routes: { geometry: { coordinates: [number, number][] }; distance: number }[] };
+  const r = await fetch(`https://router.project-osrm.org/route/v1/driving/${coords}?geometries=geojson&overview=full`, { headers: { 'User-Agent': 'atlagsebesseg-app fixture (heat-seed)' } });
+  const j = (await r.json()) as { code: string; routes: { geometry: { coordinates: [number, number][] }; distance: number }[] };
+  if (j.code !== 'Ok') throw new Error(`OSRM: ${name} → ${j.code}`);
+  await new Promise((ok) => setTimeout(ok, 1100));
   const c = j.routes[0]!.geometry.coordinates.map(([lon, lat]) => [Math.round(lat * 1e6) / 1e6, Math.round(lon * 1e6) / 1e6]);
   console.log(name, c.length, Math.round(j.routes[0]!.distance));
   routes.push({ name, passes, kmh, coords: c });
 }
-writeFileSync(new URL('../../../packages/app-logic/src/fixtures/heat-seed-routes.json', import.meta.url), `${JSON.stringify({ source: 'Mapbox Directions (2026-11-05), csak a szimulátor képeihez', routes })}\n`);
+writeFileSync(new URL('../../../packages/app-logic/src/fixtures/heat-seed-routes.json', import.meta.url), `${JSON.stringify({ source: `OpenStreetMap (© OpenStreetMap contributors, ODbL), OSRM-útvonal (router.project-osrm.org, ${new Date().toISOString().slice(0, 10)}), csak a szimulátor képeihez`, routes })}\n`);

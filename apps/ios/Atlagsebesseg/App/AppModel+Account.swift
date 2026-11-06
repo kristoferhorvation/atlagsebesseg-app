@@ -375,7 +375,7 @@ extension AppModel {
                     defaults.set(try await backend.prepareMerge(), forKey: MERGE_KEY)
                 }
             }
-            try await client.auth.signInWithOTP(email: email, redirectTo: redirect, data: lang)
+            try await client.auth.signInWithOTP(email: email, redirectTo: redirect, data: lang, captchaToken: await captchaToken())
             emailSentTo = email
         }
     }

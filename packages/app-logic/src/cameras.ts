@@ -1,7 +1,9 @@
 import { angleDiffDeg, haversineM, type GpsFix, type LatLon } from '@atlagsebesseg/core';
 import visibilityJson from '@atlagsebesseg/data/camera_visibility.json';
+import bordersJson from '@atlagsebesseg/data/country_borders.json';
 import { formatDistance, speedIn, unitLabel } from './display';
 import { t, type TKey } from './i18n';
+import type { ReportType } from './reports';
 import type { SpeedUnit } from './settings';
 
 /** Fix kamera (a `cameras` tábla sora appbeli alakban). */
@@ -160,4 +162,84 @@ function snap(p: LatLon, stepM: number): LatLon {
   // a hosszúsági lépés a kerekített szélességből – így a szomszédos pontok ugyanarra a rácsra esnek
   const dLon = stepM / (111_195 * Math.cos((lat * Math.PI) / 180));
   return { lat, lon: Math.round(p.lon / dLon) * dLon };
+}
+
+// ---------------------------------------------------------------------------
+// AW25b (INV-26): a közösségi „Rendőrség” és „Traffipax” bejelentés ugyanazzal az országonkénti szabállyal
+// ---------------------------------------------------------------------------
+
+/** A szabály alá eső bejelentés-típusok: a rendőri ellenőrzés és a mobil traffipax (a többi típust nem érinti). */
+export const ENFORCEMENT_REPORTS: readonly ReportType[] = ['rendorseg', 'traffipax'];
+export const isEnforcementReport = (type: ReportType): boolean => ENFORCEMENT_REPORTS.includes(type);
+
+type Ring = readonly (readonly [number, number])[];
+interface Border {
+  country: string;
+  box: { west: number; east: number; south: number; north: number };
+  rings: Ring[];
+}
+
+/** A nem alapértelmezett szabályú országok határa (`country_borders.json`, Natural Earth, ~150 m-es egyszerűsítés). */
+const BORDERS: Border[] = Object.entries((bordersJson as unknown as { countries: Record<string, Ring[][]> }).countries).flatMap(([country, polys]) =>
+  polys.map((rings) => {
+    const outer = rings[0]!;
+    const lons = outer.map((p) => p[0]);
+    const lats = outer.map((p) => p[1]);
+    return { country, box: { west: Math.min(...lons), east: Math.max(...lons), south: Math.min(...lats), north: Math.max(...lats) }, rings };
+  }),
+);
+
+function inRing(ring: Ring, lon: number, lat: number): boolean {
+  let inside = false;
+  for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+    const [xi, yi] = ring[i]!;
+    const [xj, yj] = ring[j]!;
+    if (yi > lat !== yj > lat && lon < ((xj - xi) * (lat - yi)) / (yj - yi) + xi) inside = !inside;
+  }
+  return inside;
+}
+
+/**
+ * A pont országa, ha az a nem alapértelmezett szabályú országok egyike (DE, FR, CH); különben `null` (= alapszabály, pont).
+ * A bejelentésnek nincs ország-mezője, ezért a koordinátából – a határ mentén ~150 m-es a tévedés.
+ */
+export function restrictedCountryAt(p: LatLon): string | null {
+  for (const b of BORDERS) {
+    if (p.lon < b.box.west || p.lon > b.box.east || p.lat < b.box.south || p.lat > b.box.north) continue;
+    if (inRing(b.rings[0]!, p.lon, p.lat) && !b.rings.slice(1).some((h) => inRing(h, p.lon, p.lat))) return b.country;
+  }
+  return null;
+}
+
+/**
+ * A megjelenítendő bejelentések (INV-26, a kamerák szabálya szerint): a `rendorseg` / `traffipax` az országa szerint –
+ * `hide` (CH) kimarad, `zone` (FR) csak a kamerákéval azonos, 500 m-es rácsra kerekített „Ellenőrzési zóna” (a pont, a kártya,
+ * a közeledés-jelzés és az útvonal-panel nem kapja meg), `show` pontként; a többi típus változatlanul. A `countries` a pontként
+ * megmaradt, szabály alá eső bejelentések országai – az egyszeri figyelmeztetéshez (DE).
+ */
+export function visibleReports<R extends { type: ReportType; lat: number; lon: number }>(
+  reports: readonly R[],
+): { points: R[]; zones: { id: string; center: LatLon; radiusM: number; label: string }[]; countries: string[] } {
+  const points: R[] = [];
+  const zones = new Map<string, { id: string; center: LatLon; radiusM: number; label: string }>();
+  const countries = new Set<string>();
+  for (const r of reports) {
+    const country = isEnforcementReport(r.type) ? restrictedCountryAt(r) : null;
+    const mode = country ? cameraVisibility(country) : 'show';
+    if (mode === 'show') {
+      points.push(r);
+      if (country) countries.add(country);
+    } else if (mode === 'zone') {
+      const center = snap({ lat: r.lat, lon: r.lon }, 500);
+      const id = `zone-${center.lat.toFixed(4)}-${center.lon.toFixed(4)}`;
+      zones.set(id, { id, center, radiusM: CAMERA_ZONE_RADIUS_M, label: cameraZoneLabel() });
+    }
+  }
+  return { points, zones: [...zones.values()], countries: [...countries].sort() };
+}
+
+/** Két zóna-lista egyesítése (kamera + bejelentés): az azonos rács-cellájú zóna egyszer. */
+export function mergeZones<Z extends { id: string }>(a: readonly Z[], b: readonly Z[]): Z[] {
+  const seen = new Set(a.map((z) => z.id));
+  return [...a, ...b.filter((z) => !seen.has(z.id))];
 }

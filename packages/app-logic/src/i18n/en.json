@@ -324,6 +324,7 @@
   "nav.man.arrive": "Destination",
   "nav.man.depart": "Start",
   "ios.locationUsage": "Your location is used to detect sections and measure your average speed, including while the screen is locked and the app is measuring.",
+  "ios.locationAlwaysUsage": "On average speed sections the measurement continues with the screen locked, so your location is needed in the background while GPS is on in the app.",
   "ios.displayName": "Tempomate",
   "ios.intent.startNav": "Start navigation",
   "ios.intent.destination": "Destination",

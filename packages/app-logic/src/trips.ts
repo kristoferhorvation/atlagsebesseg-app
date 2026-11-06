@@ -4,6 +4,7 @@ import type { SpeedUnit } from './settings';
 import type { HeatCell } from './heat';
 import { t } from './i18n';
 import { formatTripDuration } from './navigation/maneuver';
+import { displayPlace, placeKey } from './navigation/places';
 
 /**
  * AW19: krúzing mód és az utak naplója (platformfüggetlen; a Swift-pár: `Logic/Trips.swift`, azonos nevű tesztekkel).
@@ -149,10 +150,28 @@ export function maneuverTurnKind(icon: string): keyof TripTurns | null {
   }
 }
 
-/** Régi rekord (AW19 első változat): a `turns` GPS-alapú volt → `dirChanges`; a kanyar 0. */
+/** Régi rekord (AW19 első változat): a `turns` GPS-alapú volt → `dirChanges`; a kanyar 0. AW25b: a névvel tárolt cél → koordináta-kulcs. */
 export function normalizeTrip(raw: Trip): Trip {
-  if (raw.dirChanges) return raw;
-  return { ...raw, dirChanges: { ...raw.turns }, turns: { left: 0, right: 0, uTurn: 0 } };
+  const dest = storedTripDestination(raw);
+  const trip = dest === (raw.destination ?? null) ? raw : { ...raw, destination: dest };
+  if (trip.dirChanges) return trip;
+  return { ...trip, dirChanges: { ...trip.turns }, turns: { left: 0, right: 0, uTurn: 0 } };
+}
+
+/**
+ * AW25b (Mapbox-feltételek, az INV-25 mintájára): az út célja tárolva a saját címke vagy `@<placeKey>` (a koordináta), a
+ * Mapbox-név soha – a cím megjelenítéskor a névtárból jön (`tripTitle`), mint a mentett helyeknél.
+ */
+export const tripDestination = (p: { lat: number; lon: number; label?: string } | null | undefined): string | null =>
+  p ? (p.label?.trim() ? p.label.trim().slice(0, 40) : `@${placeKey(p)}`) : null;
+
+const DEST_KEY = /^@(-?\d+\.\d+),(-?\d+\.\d+)$/;
+
+/** A régi (AW25b előtti) tárolt cél egy Mapbox-név volt: a helyére az út utolsó pontjának kulcsa kerül (pont nélkül `@`). */
+function storedTripDestination(trip: Pick<Trip, 'destination' | 'path'>): string | null {
+  if (trip.destination === null || trip.destination === undefined || trip.destination === '@' || DEST_KEY.test(trip.destination)) return trip.destination ?? null;
+  const last = trip.path?.at(-1)?.at(-1);
+  return last ? `@${placeKey({ lat: last[0], lon: last[1] })}` : '@';
 }
 
 /** Előjeles irányváltás `from` → `to` (°, −180…180; pozitív = jobbra). */
@@ -717,8 +736,13 @@ export function cruiseDemoCard(kind: string, unit: SpeedUnit): CruiseCard {
   return cruiseCard({ cruise: kind === 'ready' ? null : v, active: true, collapsed: kind === 'strip', sectionAheadM: kind === 'full' ? 3200 : null, unit });
 }
 
-/** Az út címe: a cél neve, vagy „Krúzing”. */
-export const tripTitle = (trip: Pick<Trip, 'destination'>): string => trip.destination ?? t('trips.cruise');
+/** Az út címe: a cél neve (a saját címke, vagy a névtárból / koordinátából), vagy „Krúzing”. */
+export function tripTitle(trip: Pick<Trip, 'destination'>): string {
+  const d = trip.destination;
+  if (d === null || d === '@') return t('trips.cruise');
+  const m = DEST_KEY.exec(d);
+  return m ? displayPlace({ id: d, name: '', address: '', lat: Number(m[1]), lon: Number(m[2]) }).name : d;
+}
 
 /** Sebesség a választott egységben („87 km/h”); adat nélkül „–”. */
 export function tripSpeedText(kmh: number | null, unit: SpeedUnit): string {

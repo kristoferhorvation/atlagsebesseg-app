@@ -38,6 +38,8 @@ import {
   reportVisual,
   rowToActiveReport,
   visibleCameras,
+  visibleReports,
+  mergeZones,
   voteReport,
   type ActiveReport,
   type FixedCamera,
@@ -123,6 +125,8 @@ const NAV_SIM = new URLSearchParams(location.search).has('navsim') || new URLSea
 /** `?navsim&alt=worth|maybe|not|aftergate`: a szimulált gyorsabb út kategóriája (AW12); alapból „megéri”. */
 const NAV_SIM_ALT: SimAltMode = (SIM_ALT_MODES as readonly string[]).includes(new URLSearchParams(location.search).get('alt') ?? '') ? (new URLSearchParams(location.search).get('alt') as SimAltMode) : 'worth';
 const SIM_MODE = new URLSearchParams(location.search).has('sim') || NAV_SIM;
+/** AW25b: a szimulátor csak fejlesztői szerveren ír az éles Supabase-re (élő próbák); az éles buildben semmit nem küld (iOS: Release). */
+const SIM_LOCAL_ONLY = import.meta.env.PROD;
 /**
  * AW18: `?navsim&traffic` – dugó mód (a friss Mapbox-lekérések dugót mutatnak, a vezetés araszol); `&fasterAlt` – a
  * tervezésnél a 2. útvonal 1 perccel gyorsabb; `&rerouteFail` – az újratervezés HTTP 503-mal bukik.
@@ -387,6 +391,10 @@ function Drive({ map }: { map: WebMapAdapter }) {
   simRepsRef.current = simReps;
   const fetchReports = useMemo(() => (SIM_MODE ? async () => simRepsRef.current : fetchServerReports), []);
   const feed = useReports(map, view.lastFix, fetchReports, now);
+  // AW25b (INV-26): a közösségi Rendőrség / Traffipax a kamerák országonkénti szabályával (CH rejtve, FR zóna, DE pont)
+  const repLayer = useMemo(() => visibleReports(feed.reports), [feed.reports]);
+  const shownReports = repLayer.points;
+  const repZonesKey = repLayer.zones.map((z) => z.id).join('|');
   const { reload: reloadReports } = feed;
   useEffect(() => {
     if (simReps.length) reloadReports();
@@ -401,18 +409,21 @@ function Drive({ map }: { map: WebMapAdapter }) {
   settingsRef.current = settings;
   const feedRef = useRef(feed);
   feedRef.current = feed;
+  const repLayerRef = useRef(repLayer);
+  repLayerRef.current = repLayer;
   const fixRef = useRef(view.lastFix);
   fixRef.current = view.lastFix;
   const checkPrompt = useCallback(() => {
     const f = feedRef.current;
-    const p = promptWatch.update(fixRef.current, f.reports, (rid) => f.myVote(rid) !== null, now());
+    const reports = repLayerRef.current.points;
+    const p = promptWatch.update(fixRef.current, reports, (rid) => f.myVote(rid) !== null, now());
     // a távolság 10 m-es lépésben frissül (nem minden óra-lépésnél új objektum)
     // AW22: a Veszély közeledés-bemondása, bejelentésenként egyszer
-    const hazard = hazardVoice(p, f.reports.find((r) => r.id === p?.id), hazardSpoken.current);
+    const hazard = hazardVoice(p, reports.find((r) => r.id === p?.id), hazardSpoken.current);
     if (hazard && settingsRef.current.hangos_utasitasok) speak(hazard, getLanguage(), 'section', SIM_MODE);
     setPrompt((prev) => (prev?.id === p?.id && prev?.phase === p?.phase && Math.round((prev?.distanceM ?? 0) / 10) === Math.round((p?.distanceM ?? 0) / 10) ? prev : p));
   }, [promptWatch, now]);
-  useEffect(checkPrompt, [view.lastFix, feed.reports.length, checkPrompt]);
+  useEffect(checkPrompt, [view.lastFix, shownReports.length, checkPrompt]);
   useEffect(() => {
     const id = setInterval(checkPrompt, 1000);
     return () => clearInterval(id);
@@ -421,16 +432,16 @@ function Drive({ map }: { map: WebMapAdapter }) {
     promptWatch.close();
     setPrompt(null);
   }, [promptWatch]);
-  const prompted = prompt ? (feed.reports.find((r) => r.id === prompt.id) ?? null) : null;
-  const selected = feed.reports.find((r) => r.id === selectedId) ?? null;
+  const prompted = prompt ? (shownReports.find((r) => r.id === prompt.id) ?? null) : null;
+  const selected = shownReports.find((r) => r.id === selectedId) ?? null;
   useEffect(() => {
     if (!selectedId || !measuring) return;
     const id = setTimeout(() => setSelectedId(null), REPORT_CARD_AUTOCLOSE_MS);
     return () => clearTimeout(id);
   }, [selectedId, measuring]);
-  const pinsKey = feed.reports.map((r) => `${r.id}:${r.type}:${r.gateKind}`).join('|');
+  const pinsKey = shownReports.map((r) => `${r.id}:${r.type}:${r.gateKind}`).join('|');
   const pins = useMemo<MapReport[]>(
-    () => feed.reports.map((r) => ({ id: r.id, lat: r.lat, lon: r.lon, ...reportVisual(r) })),
+    () => shownReports.map((r) => ({ id: r.id, lat: r.lat, lon: r.lon, ...reportVisual(r) })),
     // csak ha a halmaz (vagy a nyelv – a felirat) változik; a lista minden frissítésnél új tömb
     [pinsKey, lang],
   );
@@ -455,10 +466,10 @@ function Drive({ map }: { map: WebMapAdapter }) {
       map.showCameras(
         // az útvonalválasztó látványában a kamera-ikonok csak zsúfolnának
         (nav.plan ? [] : camLayer.points).map((c) => ({ id: c.id, lat: c.lat, lon: c.lon, icon: cameraIcon(c.type), label: cameraLabel(c.type) })),
-        camLayer.zones,
+        mergeZones(camLayer.zones, repLayer.zones),
         selectedCam?.id ?? null,
       ),
-    [map, camLayer, selectedCam?.id, lang, nav.plan !== null],
+    [map, camLayer, repZonesKey, selectedCam?.id, lang, nav.plan !== null],
   );
   useEffect(
     () =>
@@ -610,7 +621,7 @@ function Drive({ map }: { map: WebMapAdapter }) {
   }, [toast]);
 
   // Egyszeri figyelmeztetés országonként (DE: a vezető nem használhatja a kamera-funkciót) – eszközönként egyszer (INV-24).
-  const countriesKey = [...new Set([...nearCameras, ...plannedShown].map((c) => c.country))].sort().join(',');
+  const countriesKey = [...new Set([...nearCameras.map((c) => c.country), ...plannedShown.map((c) => c.country), ...repLayer.countries])].sort().join(',');
   const warnedCountries = useRef(new Set<string>());
   useEffect(() => {
     const seen = (country: string) => {
@@ -672,7 +683,8 @@ function Drive({ map }: { map: WebMapAdapter }) {
       if (!row) return;
       const label = reportChoiceLabel(choice);
       setSending(choice);
-      createReports(supabase, [row])
+      // AW25b: az éles buildben a szimulátor bejelentése nem megy a szerverre (helyi azonosítóval a térképen marad); fejlesztői szerveren igen
+      (SIM_MODE && SIM_LOCAL_ONLY ? Promise.resolve([`sim-local-${crypto.randomUUID()}`]) : createReports(supabase, [row]))
         .then(([id]) => {
           if (id) feed.addOwn(ownReport(row, id, now()));
           // AW18: a „Dugó” / „Beállt” bejelentés közösségi dugó-mintát is ad (a kártya „Igen”-jénél az `answerJam` adja)
@@ -974,7 +986,7 @@ function Drive({ map }: { map: WebMapAdapter }) {
           <NavPanel
             view={nav.view}
             unit={settings.egyseg}
-            reports={feed.reports}
+            reports={shownReports}
             now={now()}
             request={() => nav.session!.requestAlternatives()}
             onAlts={setPanelAlts}

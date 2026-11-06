@@ -174,7 +174,8 @@ nonisolated let SAVED_OTHERS_MAX = 10
 /// pont) és a felhasználó saját címkéje kerül; a Mapbox-név és -cím nem. A webes `clean` (places.ts) párja.
 nonisolated func storedPlace(_ p: Place) -> Place {
     let label = p.label?.trimmingCharacters(in: .whitespacesAndNewlines)
-    return Place(id: p.id, name: "", address: "", lat: p.lat, lon: p.lon, routable: p.routable, label: (label?.isEmpty ?? true) ? nil : String(label!.prefix(40)))
+    // AW25b: az azonosító is a koordinátából (`placeKey`) – a Mapbox-azonosító nem tárolódik; a régi tárolt elem betöltéskor átíródik
+    return Place(id: placeKey(p), name: "", address: "", lat: p.lat, lon: p.lon, routable: p.routable, label: (label?.isEmpty ?? true) ? nil : String(label!.prefix(40)))
 }
 
 /// A hely kulcsa a névtárhoz: a koordináta 5 tizedesre (~1 m).
@@ -246,28 +247,35 @@ nonisolated private func jsonValue(_ raw: String?) -> Any? {
     return try? JSONSerialization.jsonObject(with: data, options: [.fragmentsAllowed])
 }
 
+/// AW25b: a koordináta-kulcsra átírt régi elemek közül (pl. a fiók-szinkron régi és új mezője) az első marad (a webes `uniqueById`).
+nonisolated private func uniqueById(_ ps: [Place]) -> [Place] {
+    var seen = Set<String>()
+    return ps.filter { seen.insert($0.id).inserted }
+}
+
 /// Tárolt utolsó úti célok; sérült érték helyett üres lista.
 nonisolated func parseRecents(_ raw: String?, max: Int = NAV_CONFIG.recentMax) -> [Place] {
     guard let list = jsonValue(raw ?? "[]") as? [Any] else { return [] }
-    return Array(list.compactMap(cleanPlace).prefix(max))
+    return Array(uniqueById(list.compactMap(cleanPlace)).prefix(max))
 }
 
 /// Új cél a lista elejére; ugyanaz a hely (azonos azonosító vagy 100 m-en belül) nem duplázódik; legfeljebb `max` marad.
 nonisolated func addRecent(_ list: [Place], _ place: Place, max: Int = NAV_CONFIG.recentMax) -> [Place] {
     rememberPlaceName(place)
-    let rest = list.filter { $0.id != place.id && haversineM($0.latLon, place.latLon) > 100 }
-    return Array(([storedPlace(place)] + rest).prefix(max))
+    let sp = storedPlace(place)
+    let rest = list.filter { $0.id != sp.id && haversineM($0.latLon, place.latLon) > 100 }
+    return Array(([sp] + rest).prefix(max))
 }
 
 nonisolated func parseSaved(_ raw: String?) -> SavedPlaces {
     guard let o = jsonValue(raw ?? "null") as? JSONObj else { return .none }
-    let others = ((o["others"] as? [Any]) ?? []).compactMap(cleanPlace)
+    let others = uniqueById(((o["others"] as? [Any]) ?? []).compactMap(cleanPlace))
     return SavedPlaces(home: cleanPlace(o["home"]), work: cleanPlace(o["work"]), others: Array(others.prefix(SAVED_OTHERS_MAX)))
 }
 
 /// Új további mentett cím a lista végére; ugyanaz a hely (azonos azonosító vagy 100 m-en belül) nem duplázódik.
 nonisolated func addSavedOther(_ saved: SavedPlaces, _ place: Place) -> SavedPlaces {
-    if saved.others.contains(where: { $0.id == place.id || haversineM($0.latLon, place.latLon) <= 100 }) { return saved }
+    if saved.others.contains(where: { $0.id == placeKey(place) || haversineM($0.latLon, place.latLon) <= 100 }) { return saved }
     rememberPlaceName(place)
     var s = saved
     s.others = Array((saved.others + [storedPlace(place)]).prefix(SAVED_OTHERS_MAX))

@@ -1,7 +1,8 @@
 import { describe, expect, it, vi } from 'vitest';
 import { LocalProjection, type GpsFix } from '@atlagsebesseg/core';
 import { BUNDLED_CAMERAS } from '../src/bundledCameras';
-import { cameraCardDetail, cameraCardMeta, cameraDirection, cameraSourceText, cameraVisibility, cameraWarning, pendingCountryWarnings, visibleCameras, type FixedCamera } from '../src/cameras';
+import { cameraCardDetail, cameraCardMeta, cameraDirection, cameraSourceText, cameraVisibility, cameraWarning, mergeZones, pendingCountryWarnings, restrictedCountryAt, visibleCameras, visibleReports, type FixedCamera } from '../src/cameras';
+import type { ReportType } from '../src/reports';
 import {
   inPlannedZone,
   onPlannedLine,
@@ -243,6 +244,34 @@ describe('jogi láthatóság (camera_visibility.json)', () => {
     expect(v.zones).toHaveLength(1); // két közeli francia kamera egy zóna
     expect(v.zones[0]!.radiusM).toBe(1000);
     expect(v.zones[0]!.center.lat).not.toBe(48.85123);
+  });
+
+  it('restrictedCountryAt: a szabály alá eső ország a koordinátából (határ menti várospárokkal)', () => {
+    const at = (lat: number, lon: number) => restrictedCountryAt({ lat, lon });
+    expect([at(48.8566, 2.3522), at(47.3769, 8.5417), at(52.52, 13.405), at(47.4979, 19.0402), at(48.2082, 16.3738)]).toEqual(['FR', 'CH', 'DE', null, null]);
+    // Strasbourg / Kehl, Basel, Genf, Monaco (külön ország), Bodeni-tó partja
+    expect([at(48.5734, 7.7521), at(48.5726, 7.8156), at(47.5596, 7.5886), at(46.2044, 6.1432), at(43.7384, 7.4246), at(47.6603, 9.4797)]).toEqual(['FR', 'DE', 'CH', 'CH', null, 'DE']);
+  });
+
+  it('közösségi Rendőrség / Traffipax: CH elrejtve, FR ellenőrzési zóna, DE pont + figyelmeztetés, más típus és ország változatlan', () => {
+    const rep = (id: string, type: ReportType, lat: number, lon: number) => ({ id, type, lat, lon });
+    const v = visibleReports([
+      rep('ch', 'rendorseg', 47.3769, 8.5417),
+      rep('ch-baleset', 'baleset', 47.3769, 8.5417),
+      rep('fr', 'rendorseg', 48.85123, 2.35123),
+      rep('fr-tp', 'traffipax', 48.85124, 2.35124),
+      rep('de', 'traffipax', 52.52, 13.405),
+      rep('hu', 'rendorseg', 47.4979, 19.0402),
+    ]);
+    expect(v.points.map((r) => r.id)).toEqual(['ch-baleset', 'de', 'hu']);
+    expect(v.zones).toHaveLength(1); // a két közeli francia bejelentés egy zóna
+    expect(v.zones[0]!.label).toBe('Ellenőrzési zóna');
+    expect(v.zones[0]!.center.lat).not.toBe(48.85123);
+    expect(v.countries).toEqual(['DE']);
+    expect(pendingCountryWarnings(v.countries, () => false).map((w) => w.country)).toEqual(['DE']);
+    // a kamera és a bejelentés azonos rács-cellájú zónája egyszer
+    const cam = { id: 'c', country: 'FR', type: 'speed', lat: 48.85123, lon: 2.35123, headingDeg: null, road: '', speedLimitKmh: null, source: '', sourceUrl: '', sourceDate: '', verified: false } as FixedCamera;
+    expect(mergeZones(visibleCameras([cam]).zones, v.zones)).toHaveLength(1);
   });
 
   it('a kártya forrás-sora', () => {

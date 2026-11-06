@@ -3,7 +3,7 @@
 // A lock csak engedéllyel frissül: `npm run invariants -- --update-lock INV-xx` (CLAUDE.md: a prompt szó szerint tartalmazza az engedélyt).
 import { createHash } from 'node:crypto';
 import { readFileSync, writeFileSync } from 'node:fs';
-import { addRecent, addSavedOther, altWorth, ALT_OFFER, cameraVisibility, displayPlace, parseSaved, setSavedPlace, pendingCountryWarnings, visibleCameras, type FixedCamera, chooseLightPreset, CRUISE_SECTION_M, cruiseCard, DEFAULT_SETTINGS, DICTIONARIES, HEAT, mapLightPreset, mapTheme, MAP_LOOKS, PositionSmoother, strongGlassFor, TrackIndex, TRAFFIC, TRIP, ZONE_RADII } from '@atlagsebesseg/app-logic';
+import { addRecent, addSavedOther, normalizeTrip, tripDestination, mergeZones, restrictedCountryAt, visibleReports, altWorth, ALT_OFFER, cameraVisibility, displayPlace, parseSaved, setSavedPlace, pendingCountryWarnings, visibleCameras, type FixedCamera, chooseLightPreset, CRUISE_SECTION_M, cruiseCard, DEFAULT_SETTINGS, DICTIONARIES, HEAT, mapLightPreset, mapTheme, MAP_LOOKS, PositionSmoother, strongGlassFor, TrackIndex, TRAFFIC, TRIP, ZONE_RADII } from '@atlagsebesseg/app-logic';
 import { haversineM, meterState } from '@atlagsebesseg/core';
 import { color, size } from '@atlagsebesseg/design-tokens';
 
@@ -270,6 +270,34 @@ const CHECKS: Record<string, () => void> = {
     has(read('apps/web/src/nav/useNavigation.ts'), 'setSavedPlace(prev, kind, place)', 'web: Haza / Munka a tisztító úton');
     has(read('apps/ios/Atlagsebesseg/Navigation/Geocoding.swift'), 'let sp = storedPlace(p)', 'iOS: a tárolt JSON tisztított');
     has(read('apps/ios/Atlagsebesseg/App/AppModel+Navigation.swift'), 'setSavedPlace($0, .home, place)', 'iOS: Haza a tisztító úton');
+  },
+  'INV-26': () => {
+    eq([restrictedCountryAt({ lat: 47.3769, lon: 8.5417 }), restrictedCountryAt({ lat: 48.8566, lon: 2.3522 }), restrictedCountryAt({ lat: 52.52, lon: 13.405 }), restrictedCountryAt({ lat: 47.4979, lon: 19.0402 })], ['CH', 'FR', 'DE', null], 'ország a koordinátából');
+    const rep = (id: string, type: 'rendorseg' | 'traffipax' | 'baleset', lat: number, lon: number) => ({ id, type, lat, lon });
+    const v = visibleReports([rep('ch', 'rendorseg', 47.3769, 8.5417), rep('ch-b', 'baleset', 47.3769, 8.5417), rep('fr', 'traffipax', 48.85123, 2.35123), rep('de', 'rendorseg', 52.52, 13.405), rep('hu', 'traffipax', 47.4979, 19.0402)]);
+    eq(v.points.map((r) => r.id), ['ch-b', 'de', 'hu'], 'CH rejtve, FR nem pont, más típus marad');
+    eq(v.zones.length === 1 && v.zones[0]!.radiusM === 1000 && v.zones[0]!.center.lat !== 48.85123 && v.zones[0]!.label === DICTIONARIES.hu['camera.zone'], true, 'FR: kerekített zóna felirattal');
+    eq(pendingCountryWarnings(v.countries, () => false).map((w) => w.country), ['DE'], 'DE figyelmeztet');
+    const app = read('apps/web/src/App.tsx');
+    has(app, 'const repLayer = useMemo(() => visibleReports(feed.reports), [feed.reports]);', 'web: a szűrt lista');
+    has(app, 'promptWatch.update(fixRef.current, reports,', 'web: a közeledés-jelzés a szűrt listából');
+    has(app, 'mergeZones(camLayer.zones, repLayer.zones)', 'web: a bejelentés-zóna a térképen');
+    lacks(app, 'reports={feed.reports}', 'web: az útvonal-panel a szűrt listából');
+    eq(mergeZones(v.zones, v.zones).length, 1, 'zóna egyszer');
+    has(read('apps/ios/Atlagsebesseg/App/AppModel+Reports.swift'), 'let layer = visibleReports(feed.list())', 'iOS: a szűrt lista');
+  },
+  'INV-27': () => {
+    const hit = { id: 'dXJuOm1ieHBvaTox', name: 'IKEA Budaörs', address: 'Budaörs', lat: 47.4613, lon: 18.9601 };
+    const saved = addSavedOther(setSavedPlace({ home: null, work: null, others: [] }, 'home', hit), { ...hit, lat: 47.6 });
+    const stored = JSON.stringify({ saved, recents: addRecent([], hit) });
+    eq(stored.includes(hit.id), false, 'a Mapbox-azonosító nincs a tárban');
+    eq([saved.home!.id, saved.others[0]!.id], ['47.46130,18.96010', '47.60000,18.96010'], 'a kulcs a koordináta');
+    eq(parseSaved(JSON.stringify({ home: hit })).home!.id, '47.46130,18.96010', 'a régi elem átíródik');
+    eq(tripDestination(hit), '@47.46130,18.96010', 'út célja: koordináta-kulcs');
+    eq(normalizeTrip({ destination: 'IKEA Budaörs', path: [[[47.4613, 18.9601]]] } as never).destination, '@47.46130,18.96010', 'a régi út-cél átíródik');
+    has(read('apps/web/src/hooks/useTrips.ts'), 'tripDestination(nav?.destination)', 'web: az út célja kulccsal');
+    has(read('apps/ios/Atlagsebesseg/App/AppModel+Trips.swift'), 'tripRecorder.setDestination(tripDestination(nav?.destination))', 'iOS: az út célja kulccsal');
+    has(read('apps/ios/Atlagsebesseg/Navigation/Geocoding.swift'), 'return Place(id: placeKey(p), name: "", address: ""', 'iOS: a tárolt azonosító a kulcs');
   },
   'INV-24': () => {
     const rules = JSON.parse(read('packages/data/camera_visibility.json')) as { default: string; countries: Record<string, { mode: string; warning?: string }> };

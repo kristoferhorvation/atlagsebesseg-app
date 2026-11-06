@@ -255,6 +255,6 @@ extension Backend {
     func continueAnonymously() async throws {
         guard let client else { throw BackendError.nincsBeallitas }
         try? await client.auth.signOut(scope: .local)
-        _ = try await client.auth.signInAnonymously()
+        _ = try await client.auth.signInAnonymously(captchaToken: await captchaToken())
     }
 }

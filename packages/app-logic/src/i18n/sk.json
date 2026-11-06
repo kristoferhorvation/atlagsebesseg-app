@@ -324,6 +324,7 @@
   "nav.man.arrive": "Cieľ",
   "nav.man.depart": "Štart",
   "ios.locationUsage": "Tvoja poloha je potrebná na rozpoznanie úsekov a meranie priemernej rýchlosti – aj pri zamknutej obrazovke, kým appka meria.",
+  "ios.locationAlwaysUsage": "Na úsekovom meraní pokračuje meranie aj pri zamknutej obrazovke – preto je tvoja poloha potrebná aj na pozadí, kým je v appke zapnuté GPS.",
   "ios.displayName": "Rýchlosť Nav",
   "ios.intent.startNav": "Spustiť navigáciu",
   "ios.intent.destination": "Cieľ",

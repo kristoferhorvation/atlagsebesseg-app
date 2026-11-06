@@ -14,6 +14,7 @@ import {
   isIdentityTaken,
   mergeFields,
   mergeRecents,
+  placeKey,
   mergeRemoteHeat,
   nameStepNeeded,
   nameStepPrefill,
@@ -215,8 +216,9 @@ describe('AW22: szinkron ütközés', () => {
     let b = noteLocalFields(NO_FIELDS, accountFieldsOf(data()), 10);
     b = (await syncFieldsOnce(srv.remote, b)).state;
     const applied = applyFields(b, data());
-    expect(applied.saved.home?.id).toBe('h');
-    expect(applied.saved.others.map((p) => p.id)).toEqual(['x']);
+    // AW25b: a tárolt azonosító a koordináta-kulcs
+    expect(applied.saved.home?.id).toBe(placeKey(place('h')));
+    expect(applied.saved.others.map((p) => p.id)).toEqual([placeKey(place('x'))]);
     expect(applied.settings.zona_m).toEqual({ x: 1000 });
     a = noteLocalFields(a, accountFieldsOf(data({ saved: { home: place('h'), work: null, others: [] } })), 300);
     a = (await syncFieldsOnce(srv.remote, a)).state;
@@ -227,14 +229,14 @@ describe('AW22: szinkron ütközés', () => {
   });
   it('a helyek sorrendje a felvétel sorrendje', () => {
     const s = noteLocalFields(NO_FIELDS, accountFieldsOf(data({ saved: { ...NO_SAVED, others: [place('z', 40), place('a', 41), place('m', 42)] } })), 100);
-    expect(applyFields(s, data()).saved.others.map((p) => p.id)).toEqual(['z', 'a', 'm']);
+    expect(applyFields(s, data()).saved.others.map((p) => p.lat)).toEqual([40, 41, 42]);
   });
   it('a legutóbbi célok egyesülnek, semmi nem vész el a listából', () => {
     const newer = [place('b', 41), place('a', 40)];
     const older = [place('c', 42), place('a', 40)];
-    expect(mergeRecents(newer, older).map((p) => p.id)).toEqual(['b', 'a', 'c']);
+    expect(mergeRecents(newer, older).map((p) => p.lat)).toEqual([41, 40, 42]);
     const r = mergeFields({ values: { recents: newer as never }, times: { recents: 200 } }, [{ key: 'recents', value: older as never, updated_ms: 100 }]);
-    expect((r.state.values.recents as unknown as Place[]).map((p) => p.id)).toEqual(['b', 'a', 'c']);
+    expect((r.state.values.recents as unknown as Place[]).map((p) => p.lat)).toEqual([41, 40, 42]);
     expect(r.upload[0]?.key).toBe('recents');
   });
   it('a Megszólítás a profilba kerül; a kitöltött nem íródik felül üres profillal', async () => {

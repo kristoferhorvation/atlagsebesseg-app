@@ -100,6 +100,8 @@ nonisolated struct NavDestination: Hashable, Sendable {
     var lat: Double
     var lon: Double
     var routable: LatLon? = nil
+    /// AW25b: a felhasználó saját címkéje (a mentett helyé), az út-napló célja ebből vagy a koordinátából (`tripDestination`).
+    var label: String? = nil
 
     var latLon: LatLon { LatLon(lat: lat, lon: lon) }
     /// A tervezés célpontja (`Place.routeTarget`): a jelölő a címen, az útvonal az útra illesztett ponthoz.

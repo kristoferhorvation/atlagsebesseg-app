@@ -495,6 +495,32 @@ struct TripTextTests {
         trip.destination = "Győr"
         #expect(tripRowParts(trip, .kmh, lang: .hu).title == "Győr")
     }
+
+    @Test("AW25b: a cél a saját címke vagy a koordináta-kulcs; a régi, névvel tárolt cél az út végpontjára íródik")
+    func celKulcs() throws {
+        #expect(tripDestination(Place(id: "x", name: "Győr", address: "", lat: 47.6875, lon: 17.6504)) == "@47.68750,17.65040")
+        #expect(tripDestination(Place(id: "x", name: "Győr", address: "", lat: 47.6875, lon: 17.6504, label: " Edzőterem ")) == "Edzőterem")
+        #expect(tripDestination(nil as Place?) == nil)
+        var trip = try #require(saved(record(northDrive([(72, 100)])).ended).first)
+        // a cím: a névtár (a futás alatt látott név) vagy a koordináta – a párhuzamos tesztek miatt saját, máshol nem látott koordinátán
+        trip.destination = "@47.68751,17.65041"
+        #expect(tripTitle(trip, lang: .hu) == "47.6875, 17.6504")
+        rememberPlaceName(Place(id: "", name: "Győr", address: "", lat: 47.68751, lon: 17.65041))
+        #expect(tripTitle(trip, lang: .hu) == "Győr")
+        trip.destination = "Edzőterem"
+        #expect(tripTitle(trip, lang: .hu) == "Edzőterem")
+        trip.destination = "@"
+        #expect(tripTitle(trip, lang: .hu) == "Krúzing")
+        // régi rekord: a Mapbox-név helyére az út utolsó pontja
+        let last = try #require(trip.path.last?.last)
+        #expect(storedTripDestination("Győr, Baross Gábor út", path: trip.path) == "@" + String(format: "%.5f,%.5f", last[0], last[1]))
+        #expect(storedTripDestination("Győr", path: []) == "@")
+        #expect(storedTripDestination("@47.68750,17.65040", path: trip.path) == "@47.68750,17.65040")
+        #expect(storedTripDestination(nil, path: trip.path) == nil)
+        trip.destination = "Győr"
+        let back = try JSONDecoder().decode(Trip.self, from: JSONEncoder().encode(trip))
+        #expect(back.destination?.hasPrefix("@") == true)
+    }
 }
 
 @Suite("H3-cella (utak naplója)")
@@ -519,7 +545,7 @@ struct TripStoreTests {
         let s = store()
         let trip = Trip(
             id: "t1", startedAt: 1000, endedAt: 2000, distanceM: 500, movingS: 60, idleS: 0, maxKmh: 50, turns: TripTurns(), dirChanges: TripTurns(), reroutes: 0,
-            measurements: [], jamS: 0, destination: "Győr", path: [[[47.5, 19.05], [47.51, 19.05]]], samples: 2
+            measurements: [], jamS: 0, destination: "@47.51000,19.05000", path: [[[47.5, 19.05], [47.51, 19.05]]], samples: 2
         )
         s.addSamples([
             TripSample(tripId: "t1", t: 1000, lat: 47.4979, lon: 19.0402, speedKmh: 50, heading: 90, accuracy: 5, h3: nil),

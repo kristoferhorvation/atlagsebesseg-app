@@ -149,12 +149,18 @@ final class TripStore: BackupStore {
         var st: OpaquePointer?
         sqlite3_prepare_v2(db, "SELECT record FROM trips ORDER BY started_at DESC", -1, &st, nil)
         var out: [Trip] = []
+        var stale: [Trip] = []
         let dec = JSONDecoder()
         while sqlite3_step(st) == SQLITE_ROW {
-            guard let c = sqlite3_column_text(st, 0), let trip = try? dec.decode(Trip.self, from: Data(String(cString: c).utf8)) else { continue }
+            guard let c = sqlite3_column_text(st, 0) else { continue }
+            let raw = String(cString: c)
+            guard let trip = try? dec.decode(Trip.self, from: Data(raw.utf8)) else { continue }
+            // AW25b: a névvel tárolt régi cél egyszer tisztán visszaíródik (a dekódoló már átírta)
+            if let old = (try? JSONSerialization.jsonObject(with: Data(raw.utf8))) as? [String: Any], (old["destination"] as? String) != trip.destination { stale.append(trip) }
             out.append(trip)
         }
         sqlite3_finalize(st)
+        for t in stale { saveTrip(t) }
         return out
     }
 

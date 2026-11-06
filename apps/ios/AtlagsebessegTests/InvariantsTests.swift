@@ -214,6 +214,35 @@ struct InvariantsTests {
         #expect(try Self.source("Map/MapScreen.swift").contains("CameraZoneLabel(text: z.label)"))
     }
 
+    @Test("INV-26: a közösségi Rendőrség / Traffipax a kamerák országonkénti szabályával – CH rejtve, FR zóna, DE pont + figyelmeztetés")
+    func inv26() throws {
+        #expect(restrictedCountryAt(LatLon(lat: 47.3769, lon: 8.5417)) == "CH")
+        #expect(restrictedCountryAt(LatLon(lat: 47.4979, lon: 19.0402)) == nil)
+        let rep = { (id: String, type: ReportType, lat: Double, lon: Double) in
+            ActiveReport(id: id, type: type, gateKind: nil, lat: lat, lon: lon, headingDeg: nil, createdAt: 0, expiresAt: 1)
+        }
+        let v = visibleReports([rep("ch", .rendorseg, 47.3769, 8.5417), rep("ch-b", .baleset, 47.3769, 8.5417), rep("fr", .traffipax, 48.85123, 2.35123), rep("de", .rendorseg, 52.52, 13.405), rep("hu", .traffipax, 47.4979, 19.0402)])
+        #expect(v.points.map(\.id) == ["ch-b", "de", "hu"])
+        #expect(v.zones.count == 1 && v.zones[0].radiusM == 1000 && v.zones[0].center.lat != 48.85123 && v.zones[0].label == t(.cameraZone))
+        #expect(pendingCountryWarnings(v.countries, seen: { _ in false }).map(\.country) == ["DE"])
+        #expect(try Self.source("App/AppModel+Reports.swift").contains("let layer = visibleReports(feed.list())"))
+        #expect(try Self.source("Map/MapScreen.swift").contains("mergeZones(visibleCameras(model.cameras).zones, model.reportZones)"))
+    }
+
+    @Test("INV-27: a mentett hely, a legutóbbi cél és az út célja koordináta-kulccsal, Mapbox-azonosító és -név nélkül")
+    func inv27() throws {
+        let hit = Place(id: "dXJuOm1ieHBvaTox", name: "IKEA Budaörs", address: "Budaörs", lat: 47.4613, lon: 18.9601)
+        var other = hit
+        other.lat = 47.6
+        let saved = addSavedOther(setSavedPlace(.none, .home, hit), other)
+        let stored = serializeSaved(saved) + serializeRecents(addRecent([], hit))
+        #expect(!stored.contains(hit.id))
+        #expect([saved.home!.id, saved.others[0].id] == ["47.46130,18.96010", "47.60000,18.96010"])
+        #expect(tripDestination(hit) == "@47.46130,18.96010")
+        #expect(storedTripDestination("IKEA Budaörs", path: [[[47.4613, 18.9601]]]) == "@47.46130,18.96010")
+        #expect(try Self.source("App/AppModel+Trips.swift").contains("tripRecorder.setDestination(tripDestination(nav?.destination))"))
+    }
+
     @Test("INV-25: mentett helyek – a tárolt alakban nincs Mapbox-név és -cím, a saját címke igen")
     func inv25() throws {
         let hit = Place(id: "mbx1", name: "IKEA Budaörs", address: "Budaörs, Magyarország", lat: 47.4613, lon: 18.9601, routable: LatLon(lat: 47.4611, lon: 18.9603))

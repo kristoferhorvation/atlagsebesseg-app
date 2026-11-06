@@ -33,9 +33,10 @@ const isLatLon = (v: unknown): v is { lat: number; lon: number } => {
  * pont) és a felhasználó saját címkéje kerül; a Mapbox-név és -cím nem. A nevet megjelenítéskor a memóriából (`placeNames`, a futás alatt
  * látott találat) vagy újra lekérve (`reverseGeocodeUrl`) adjuk.
  */
+/** AW25b: az azonosító is a koordinátából (`placeKey`) – a Mapbox-azonosító (`mapbox_id`) nem tárolódik; a régi tárolt elem betöltéskor átíródik. */
 const clean = (p: Place): Place => {
   const label = typeof p.label === 'string' && p.label.trim() ? p.label.trim().slice(0, 40) : undefined;
-  const base: Place = { id: String(p.id ?? placeKey(p)), name: '', address: '', lat: p.lat, lon: p.lon, ...(label ? { label } : {}) };
+  const base: Place = { id: placeKey(p), name: '', address: '', lat: p.lat, lon: p.lon, ...(label ? { label } : {}) };
   return isLatLon(p.routable) ? { ...base, routable: { lat: p.routable.lat, lon: p.routable.lon } } : base;
 };
 
@@ -65,12 +66,15 @@ export const placesNeedingNames = (ps: readonly Place[]): Place[] => ps.filter((
 /** Csak teszthez: a névtár ürítése (egy újraindított app állapota). */
 export const forgetPlaceNames = (): void => placeNames.clear();
 
+/** AW25b: a koordináta-kulcsra átírt régi elemek közül (pl. a fiók-szinkron régi és új mezője) az első marad. */
+const uniqueById = (ps: Place[]): Place[] => ps.filter((p, i) => ps.findIndex((x) => x.id === p.id) === i);
+
 /** Tárolt utolsó úti célok; sérült érték helyett üres lista. */
 export function parseRecents(raw: string | null | undefined, max = NAV_CONFIG.recentMax): Place[] {
   try {
     const v = JSON.parse(raw ?? '[]') as unknown;
     // a régi (AW25 előtti) tárolt nevek a futás idejére a memóriába kerülnek, a tárba már nem
-    return Array.isArray(v) ? v.filter(isPlace).slice(0, max).map((p) => (rememberPlaceName(p), clean(p))) : [];
+    return Array.isArray(v) ? uniqueById(v.filter(isPlace).map((p) => (rememberPlaceName(p), clean(p)))).slice(0, max) : [];
   } catch {
     return [];
   }
@@ -90,7 +94,7 @@ export function parseSaved(raw: string | null | undefined): SavedPlaces {
     return {
       home: isPlace(v?.home) ? (rememberPlaceName(v.home), clean(v.home)) : null,
       work: isPlace(v?.work) ? (rememberPlaceName(v.work), clean(v.work)) : null,
-      others: Array.isArray(v?.others) ? v.others.filter(isPlace).slice(0, SAVED_OTHERS_MAX).map((p) => (rememberPlaceName(p), clean(p))) : [],
+      others: Array.isArray(v?.others) ? uniqueById(v.others.filter(isPlace).map((p) => (rememberPlaceName(p), clean(p)))).slice(0, SAVED_OTHERS_MAX) : [],
     };
   } catch {
     return NO_SAVED;

@@ -1,0 +1,16 @@
+No account is needed: the app works fully in anonymous mode, so no demo account is provided. Sign in (Apple / Google / email link) is optional and only syncs settings and the trip log.
+
+Why background location: the app measures your average speed on average speed sections (section control). A section is often several kilometres long and drivers keep the phone locked; the measurement must continue with the screen locked, so location updates run in the background while the app's GPS is on. The ongoing measurement is shown in a Live Activity. Location is not used for advertising or tracking.
+
+Speed cameras: fixed cameras are displayed according to local law per country. Switzerland: not shown. France: only an approximate "Enforcement zone" (about 1 km), no exact position and no alert. Germany: shown with a one-time notice that the driver may not use the feature while driving. Community "Police" and "Speed camera" reports follow the same rule. The app is not a radar detector: it does not detect, receive or interfere with any device or signal; it only uses public map data and user reports.
+
+How to test without driving (simulator mode, about 2 minutes):
+1. Open the app and allow location access.
+2. Tap the gear button (bottom right) to open Settings.
+3. Tap the "GPS" row 5 times: a "Simulator" row appears below.
+4. Tap "Simulator": a recorded drive on a measured section replays (in Italy, sped up); the card shows the live average and the speed you can keep to the section end.
+5. Watch the section end: the result card appears. Exit with Settings > "Exit the simulator".
+
+Simulator data stays on the device and is never sent to our server.
+
+Export compliance: the app only uses standard HTTPS (exempt). The app does not use the advertising identifier.

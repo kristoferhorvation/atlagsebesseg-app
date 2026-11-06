@@ -353,6 +353,7 @@ struct MapScreen: View {
             syncFollow()
         }
         .onChange(of: model.dataVersion) { rebuild() }
+        .onChange(of: model.reportZones.map(\.id)) { rebuild() }
         .onChange(of: heatKey) { rebuildHeat() }
         .onChange(of: model.zonesVisible) { rebuildZones() }
         .onChange(of: model.zoneFocusSeq) { focusZone() }
@@ -622,11 +623,11 @@ struct MapScreen: View {
             f.properties = ["id": .string(s.id)]
             return f
         })
-        let vis = visibleCameras(model.cameras)
-        zonesFC = FeatureCollection(features: vis.zones.map { z in
+        let zones = mergeZones(visibleCameras(model.cameras).zones, model.reportZones)
+        zonesFC = FeatureCollection(features: zones.map { z in
             Feature(geometry: Polygon(center: CLLocationCoordinate2D(latitude: z.center.lat, longitude: z.center.lon), radius: z.radiusM, vertices: 48))
         })
-        zoneLabels = vis.zones
+        zoneLabels = zones
         rebuildCameras(around: view.lastFix)
     }
 

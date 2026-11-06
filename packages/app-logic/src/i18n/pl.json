@@ -324,6 +324,7 @@
   "nav.man.arrive": "Cel",
   "nav.man.depart": "Start",
   "ios.locationUsage": "Twoja lokalizacja jest potrzebna do rozpoznawania odcinków i mierzenia średniej prędkości – także przy zablokowanym ekranie, dopóki aplikacja mierzy.",
+  "ios.locationAlwaysUsage": "Na odcinkowym pomiarze prędkości pomiar trwa także przy zablokowanym ekranie – dlatego lokalizacja jest potrzebna w tle, dopóki GPS w aplikacji jest włączony.",
   "ios.displayName": "Prędkość Nav",
   "ios.intent.startNav": "Uruchom nawigację",
   "ios.intent.destination": "Cel",

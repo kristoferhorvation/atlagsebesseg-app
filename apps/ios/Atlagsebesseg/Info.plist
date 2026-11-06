@@ -50,8 +50,10 @@
 	<true/>
 	<key>MBXAccessToken</key>
 	<string>$(MAPBOX_ACCESS_TOKEN)</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>On average speed sections the measurement continues with the screen locked, so your location is needed in the background while GPS is on in the app.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>Your location is needed to detect sections and measure your average speed.</string>
+	<string>Your location is used to detect sections and measure your average speed, including while the screen is locked and the app is measuring.</string>
 	<key>NSSupportsLiveActivities</key>
 	<true/>
 	<key>UIAppFonts</key>

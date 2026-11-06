@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { measurementName, TRIP, TripRecorder, type CruiseView, type HeatZone, type NavView, type SessionView } from '@atlagsebesseg/app-logic';
+import { measurementName, TRIP, tripDestination, TripRecorder, type CruiseView, type HeatZone, type NavView, type SessionView } from '@atlagsebesseg/app-logic';
 import type { GpsFix } from '@atlagsebesseg/core';
 import { addSamples, absorbTrip, deleteSamples, saveTrip, purgeTrash } from '../trips/tripStore';
 import { finishTrack, noteOpenTrip } from '../heat/trackPipeline';
@@ -89,7 +89,8 @@ export function useTrips(now: () => number, nav: NavView | null, view: SessionVi
   }, [rec, pump]);
 
   // navigáció: a cél, az újratervezések (a felfutó él) és a helyi dugó-állapot
-  const destination = nav?.destination.name ?? null;
+  // AW25b: a cél a saját címke vagy a koordináta-kulcs, a Mapbox-név nem tárolódik
+  const destination = tripDestination(nav?.destination);
   // AW23: a navigáció kezdete és vége lezárja a futó utat (a navigált út külön út, utána a krúzing 0-ról indul)
   useEffect(() => {
     rec.setDestination(destination);

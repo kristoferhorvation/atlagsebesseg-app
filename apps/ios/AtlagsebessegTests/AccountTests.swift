@@ -232,8 +232,9 @@ struct AccountSyncTests {
         var b = noteLocalFields(FieldState(), fields(data()), now: 10)
         b = try await syncFieldsOnce(srv, b).state
         let applied = applyFields(b, base: data())
-        #expect(applied.saved.home?.id == "h")
-        #expect(applied.saved.others.map(\.id) == ["x"])
+        // AW25b: a tárolt azonosító a koordináta-kulcs
+        #expect(applied.saved.home?.id == placeKey(place("h")))
+        #expect(applied.saved.others.map(\.id) == [placeKey(place("x"))])
         #expect(applied.settings.zonaM == ["x": 1000])
         a = noteLocalFields(a, fields(data(saved: SavedPlaces(home: place("h"), work: nil, others: []))), now: 300)
         a = try await syncFieldsOnce(srv, a).state
@@ -247,18 +248,18 @@ struct AccountSyncTests {
     func order() {
         let saved = SavedPlaces(home: nil, work: nil, others: [place("z", 40), place("a", 41), place("m", 42)])
         let s = noteLocalFields(FieldState(), fields(data(saved: saved)), order: otherPlaceKeys(saved), now: 100)
-        #expect(applyFields(s, base: data()).saved.others.map(\.id) == ["z", "a", "m"])
+        #expect(applyFields(s, base: data()).saved.others.map(\.lat) == [40, 41, 42])
     }
 
     @Test("a legutóbbi célok egyesülnek, semmi nem vész el a listából")
     func recentsUnion() {
         let newer = [place("b", 41), place("a", 40)]
         let older = [place("c", 42), place("a", 40)]
-        #expect(mergeRecents(newer, older).map(\.id) == ["b", "a", "c"])
+        #expect(mergeRecents(newer, older).map(\.lat) == [41, 40, 42])
         let l = accountFieldsOf(data(recents: newer))["recents"]!
         let o = accountFieldsOf(data(recents: older))["recents"]!
         let r = mergeFields(FieldState(values: ["recents": l], times: ["recents": 200]), [FieldRow(key: "recents", value: o, updated_ms: 100)])
-        #expect(parseRecents(r.state.values["recents"]!.json).map(\.id) == ["b", "a", "c"])
+        #expect(parseRecents(r.state.values["recents"]!.json).map(\.lat) == [41, 40, 42])
         #expect(r.upload.first?.key == "recents")
     }
 
@@ -410,7 +411,8 @@ struct AccountStableTests {
     @Test("a webes hely-érték alkalmazás után változatlan mező marad")
     func webShape() throws {
         // AW25 (INV-25): a tárolt alak név és cím nélküli; a régi, névvel tárolt értéket az app egyszer tisztán visszaírja
-        let json = #"{"id":"h","name":"","address":"","lat":47.5,"lon":19}"#
+        // AW25b (INV-27): a tiszta alak azonosítója a koordináta-kulcs
+        let json = #"{"id":"47.50000,19.00000","name":"","address":"","lat":47.5,"lon":19}"#
         let v = try JSONDecoder().decode(FieldValue.self, from: Data(json.utf8))
         var state = noteLocalFields(FieldState(), fields(data()), now: 10)
         state = mergeFields(state, [FieldRow(key: "place.home", value: v, updated_ms: 50)]).state

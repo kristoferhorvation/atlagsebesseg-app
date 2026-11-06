@@ -324,6 +324,7 @@
   "nav.man.arrive": "Ziel",
   "nav.man.depart": "Start",
   "ios.locationUsage": "Dein Standort wird gebraucht, um Messabschnitte zu erkennen und deine Durchschnittsgeschwindigkeit zu messen – auch bei gesperrtem Bildschirm, solange die App misst.",
+  "ios.locationAlwaysUsage": "Auf Abschnittskontrollen läuft die Messung auch bei gesperrtem Bildschirm weiter – dafür wird dein Standort im Hintergrund gebraucht, solange GPS in der App an ist.",
   "ios.displayName": "Tempo Nav",
   "ios.intent.startNav": "Navigation starten",
   "ios.intent.destination": "Ziel",

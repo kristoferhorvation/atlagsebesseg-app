@@ -324,6 +324,7 @@
   "nav.man.arrive": "Cíl",
   "nav.man.depart": "Start",
   "ios.locationUsage": "K rozpoznání úseků a měření průměrné rychlosti potřebujeme tvou polohu – i při zamčené obrazovce, dokud aplikace měří.",
+  "ios.locationAlwaysUsage": "Na úsekovém měření pokračuje měření i při zamčené obrazovce – proto potřebujeme tvou polohu i na pozadí, dokud je v aplikaci zapnuté GPS.",
   "ios.displayName": "Prům. rychlost",
   "ios.intent.startNav": "Spustit navigaci",
   "ios.intent.destination": "Cíl",

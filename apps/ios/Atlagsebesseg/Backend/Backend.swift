@@ -45,7 +45,7 @@ final class Backend {
     func ensureSignedIn() async throws -> String? {
         guard let client else { return nil }
         if let session = try? await client.auth.session { return session.user.id.uuidString }
-        return try await client.auth.signInAnonymously().user.id.uuidString
+        return try await client.auth.signInAnonymously(captchaToken: await captchaToken()).user.id.uuidString
     }
 
     /// A bejelentkezett felhasználó (a saját bejelentés felismeréséhez); munkamenet nélkül `nil`, nem jelentkezik be.

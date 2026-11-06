@@ -14,6 +14,21 @@ struct SettingsSheet: View {
     @State private var tripsOpen = UserDefaults.standard.string(forKey: "settingsOpen") == "trips"
     /// AW20-javítás: az adatmegosztás „Részletek” lapja (`-settingsOpen heatDetails`: rögtön, a képernyőképhez).
     @State private var heatDetailsOpen = UserDefaults.standard.string(forKey: "settingsOpen") == "heatDetails"
+    /// AW25b: a szimulátor-sor Release-ben az 5. koppintásig (a GPS-sorra) rejtett; a feloldás megmarad (`sim:unlocked`).
+    @State private var simUnlocked = UserDefaults.standard.bool(forKey: SettingsSheet.simUnlockKey)
+    @State private var gpsTaps = 0
+    @Environment(\.openURL) private var openURL
+    static let simUnlockKey = "sim:unlocked"
+    /// Ennyi koppintás a GPS-sorra nyitja a szimulátor-sort Release-ben.
+    static let simUnlockTaps = 5
+
+    private var showDevCard: Bool {
+        #if DEBUG
+        true
+        #else
+        simUnlocked || model.sim != nil
+        #endif
+    }
 
     var body: some View {
         AppSheet(peek: peek, onClose: onClose) {
@@ -41,8 +56,11 @@ struct SettingsSheet: View {
                             privacyCard
                             GroupLabel(text: t(.settingsGroupStatus))
                             statusCard
-                            GroupLabel(text: t(.settingsGroupDev))
-                            devCard
+                            // AW25b (AOS19): Release-ben a szimulátor-sor rejtett; a GPS-sorra 5 koppintás előhívja (az App Review tesztútmutatója)
+                            if showDevCard {
+                                GroupLabel(text: t(.settingsGroupDev))
+                                devCard
+                            }
                             Text(t(.settingsAttribution))
                                 .css(Tokens.Typography.caption.size, Tokens.FontWeight.w400)
                                 .foregroundStyle(Tokens.Colors.textMuted)
@@ -225,6 +243,8 @@ struct SettingsSheet: View {
             ToggleRow(label: t(.settingsShare), hint: t(.settingsShareHint), isOn: $model.settings.adatmegosztas)
             // AOS17: a Részletek a megosztás sorához tartozik – köztük nincs vonal
             chevronRow(t(.settingsShareDetails)) { heatDetailsOpen = true }
+            // AW25b (AOS19): az adatvédelmi tájékoztató az app nyelvén – a webes `privacy-policy-row` (SettingsSheet.tsx), a webes példány
+            chevronRow(t(.settingsPrivacyPolicy)) { openURL(privacyPolicyURL(L10n.lang)) }
             BackupRow(model: model)
             DeleteAccountRow(model: model)
         }
@@ -234,6 +254,14 @@ struct SettingsSheet: View {
     private var statusCard: some View {
         ListCard {
             statusRow(t(.settingsGps), model.geo.label)
+                .contentShape(Rectangle())
+                .onTapGesture {
+                    gpsTaps += 1
+                    if gpsTaps >= Self.simUnlockTaps, !simUnlocked {
+                        simUnlocked = true
+                        UserDefaults.standard.set(true, forKey: Self.simUnlockKey)
+                    }
+                }
             RowDivider()
             statusRow(t(.settingsWake), model.started ? t(.geoActive) : t(.geoOff))
             RowDivider()
@@ -340,3 +368,8 @@ struct SettingsSheet: View {
         })
     }
 }
+
+/// AW25b (AOS19): a webes app jogi oldala (`apps/web/public/legal/privacy.<nyelv>.html`, a `docs/legal`-ból generálva). A domain a
+/// `app.tempomate.app` élesítéséig a Vercel-cím (a 301 után is működik).
+nonisolated let LEGAL_BASE_URL = "https://atlagsebesseg.vercel.app/legal"
+nonisolated func privacyPolicyURL(_ lang: Lang) -> URL { URL(string: "\(LEGAL_BASE_URL)/privacy.\(lang.rawValue).html")! }

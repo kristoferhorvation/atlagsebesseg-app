@@ -2,6 +2,7 @@ import type { GpsFix } from '@atlagsebesseg/core';
 import { TRIP } from '../src/trips';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { setLanguage } from '../src/i18n';
+import { rememberPlaceName } from '../src/navigation/places';
 import {
   cruiseCard,
   nextSectionAheadM,
@@ -13,7 +14,9 @@ import {
   simplifyPath,
   tripAvgKmh,
   TripRecorder,
+  tripDestination,
   tripRowParts,
+  tripTitle,
   tripTotals,
   turnsTotal,
   TurnDetector,
@@ -458,6 +461,27 @@ describe('feliratok (napló)', () => {
     const trip = saved(record(northDrive([[72, 100]])).ended)[0]!;
     expect(tripRowParts(trip, 'kmh')).toEqual({ title: 'Krúzing', distance: '2,0 km', duration: '2 perc', avg: '72 km/h', turns: '0 kanyar · 0 irányváltás' });
     expect(tripRowParts({ ...trip, destination: 'Győr' }, 'kmh').title).toBe('Győr');
+  });
+
+  it('AW25b: a cél a saját címke vagy a koordináta-kulcs; a régi, névvel tárolt cél az út végpontjára íródik', () => {
+    setLanguage('hu');
+    expect(tripDestination({ lat: 47.6875, lon: 17.6504 })).toBe('@47.68750,17.65040');
+    expect(tripDestination({ lat: 47.6875, lon: 17.6504, label: ' Edzőterem ' })).toBe('Edzőterem');
+    expect(tripDestination(null)).toBeNull();
+    const trip = saved(record(northDrive([[72, 100]])).ended)[0]!;
+    // a cím: a névtár (a futás alatt látott név) vagy a koordináta
+    expect(tripTitle({ destination: '@47.68750,17.65040' })).toBe('47.6875, 17.6504');
+    rememberPlaceName({ lat: 47.6875, lon: 17.6504, name: 'Győr', address: '' });
+    expect(tripTitle({ destination: '@47.68750,17.65040' })).toBe('Győr');
+    expect(tripTitle({ destination: 'Edzőterem' })).toBe('Edzőterem');
+    expect(tripTitle({ destination: '@' })).toBe('Krúzing');
+    // régi rekord: a Mapbox-név helyére az út utolsó pontja
+    const last = trip.path.at(-1)!.at(-1)!;
+    const old = normalizeTrip({ ...trip, destination: 'Győr, Baross Gábor út' });
+    expect(old.destination).toBe(`@${last[0].toFixed(5)},${last[1].toFixed(5)}`);
+    expect(normalizeTrip({ ...trip, destination: 'Győr', path: [] }).destination).toBe('@');
+    expect(normalizeTrip({ ...trip, destination: '@47.68750,17.65040' }).destination).toBe('@47.68750,17.65040');
+    expect(normalizeTrip(trip).destination).toBeNull();
   });
 });
 

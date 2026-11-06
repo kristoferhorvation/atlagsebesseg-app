@@ -233,6 +233,37 @@ struct VisibilityTests {
         #expect(v.zones[0].radiusM == 1000)
         #expect(v.zones[0].center.lat != 48.85123)
     }
+
+    @Test("restrictedCountryAt: a szabály alá eső ország a koordinátából (határ menti várospárokkal)")
+    func orszagKoordinatabol() {
+        let at = { (lat: Double, lon: Double) in restrictedCountryAt(LatLon(lat: lat, lon: lon)) }
+        #expect([at(48.8566, 2.3522), at(47.3769, 8.5417), at(52.52, 13.405), at(47.4979, 19.0402), at(48.2082, 16.3738)] == ["FR", "CH", "DE", nil, nil])
+        // Strasbourg / Kehl, Basel, Genf, Monaco (külön ország), Bodeni-tó partja
+        #expect([at(48.5734, 7.7521), at(48.5726, 7.8156), at(47.5596, 7.5886), at(46.2044, 6.1432), at(43.7384, 7.4246), at(47.6603, 9.4797)] == ["FR", "DE", "CH", "CH", nil, "DE"])
+    }
+
+    @Test("közösségi Rendőrség / Traffipax: CH elrejtve, FR ellenőrzési zóna, DE pont + figyelmeztetés, más típus és ország változatlan")
+    func kozossegiRendorseg() {
+        let rep = { (id: String, type: ReportType, lat: Double, lon: Double) in
+            ActiveReport(id: id, type: type, gateKind: nil, lat: lat, lon: lon, headingDeg: nil, createdAt: 0, expiresAt: 1)
+        }
+        let v = visibleReports([
+            rep("ch", .rendorseg, 47.3769, 8.5417),
+            rep("ch-baleset", .baleset, 47.3769, 8.5417),
+            rep("fr", .rendorseg, 48.85123, 2.35123),
+            rep("fr-tp", .traffipax, 48.85124, 2.35124),
+            rep("de", .traffipax, 52.52, 13.405),
+            rep("hu", .rendorseg, 47.4979, 19.0402),
+        ])
+        #expect(v.points.map(\.id) == ["ch-baleset", "de", "hu"])
+        #expect(v.zones.count == 1) // a két közeli francia bejelentés egy zóna
+        #expect(v.zones[0].label == t(.cameraZone))
+        #expect(v.zones[0].center.lat != 48.85123)
+        #expect(v.countries == ["DE"])
+        #expect(pendingCountryWarnings(v.countries, seen: { _ in false }).map(\.country) == ["DE"])
+        // a kamera és a bejelentés azonos rács-cellájú zónája egyszer
+        #expect(mergeZones(visibleCameras([cam("c", "FR", 48.85123, 2.35123)]).zones, v.zones).count == 1)
+    }
 }
 
 @Suite("beépített adat")

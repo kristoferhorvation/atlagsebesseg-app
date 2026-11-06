@@ -1000,8 +1000,8 @@ struct PlacesTests {
         var list: [Place] = []
         for i in 0..<14 { list = addRecent(list, p(i)) }
         #expect(list.count == 10)
-        #expect(list.first?.id == "p13")
-        #expect(list.last?.id == "p4")
+        #expect(list.first?.id == placeKey(p(13)))
+        #expect(list.last?.id == placeKey(p(4)))
     }
 
     @Test("ugyanaz a hely nem duplázódik, hanem előre kerül")
@@ -1010,7 +1010,7 @@ struct PlacesTests {
         var same = p(1, lat: 48.0004)
         same.id = "masik-azonosito"
         list = addRecent(list, same)
-        #expect(list.map(\.id) == ["masik-azonosito", "p2"])
+        #expect(list.map(\.id) == ["48.00040,19.00000", placeKey(p(2))])
         #expect(list.map { displayPlace($0).name } == ["Hely 1", "Hely 2"])
     }
 
@@ -1024,8 +1024,9 @@ struct PlacesTests {
         ownHit.lat = 47.5
         ownHit.label = "  Edzőterem  "
         let stored = serializeSaved(addSavedOther(saved, ownHit)) + serializeRecents(addRecent([], hit))
-        for word in ["IKEA", "Budaörs", "retrieveId", "distanceM"] { #expect(!stored.contains(word)) }
-        #expect(saved.home == Place(id: hit.id, name: "", address: "", lat: hit.lat, lon: hit.lon, routable: hit.routable))
+        // AW25b: a Mapbox-azonosító sem tárolódik, a kulcs a koordináta
+        for word in ["IKEA", "Budaörs", "retrieveId", "distanceM", hit.id] { #expect(!stored.contains(word)) }
+        #expect(saved.home == Place(id: "47.46130,18.96010", name: "", address: "", lat: hit.lat, lon: hit.lon, routable: hit.routable))
         // a futás alatt a név megvan (memória), újraindítás után a koordináta, és fordított geokódolásra vár
         #expect(displayPlace(saved.home!).name == "IKEA Budaörs")
         // újraindítás: a tárolt alakból a név nem jön vissza (még nem látott koordináta – a párhuzamos tesztek miatt a közös névtárat nem ürítjük)
@@ -1046,11 +1047,24 @@ struct PlacesTests {
         #expect(parseRecents(#"[{"x":1},null]"#).isEmpty)
         #expect(parseSaved("???") == .none)
         let saved = parseSaved(#"{"home":{"id":"p1","name":"Hely 1","address":"","lat":48,"lon":19},"work":"x"}"#)
-        #expect(saved.home?.id == "p1" && saved.home?.name == "")
+        #expect(saved.home?.id == "48.00000,19.00000" && saved.home?.name == "")
         #expect(saved.work == nil)
         // a tárolt alak visszaolvasható (a weben tárolttal azonos mezők; AW25: név és cím nélkül)
         #expect(parseRecents(serializeRecents([p(1), p(2)])) == [storedPlace(p(1)), storedPlace(p(2))])
         #expect(parseSaved(serializeSaved(SavedPlaces(home: p(1), work: nil))) == SavedPlaces(home: storedPlace(p(1)), work: nil))
+    }
+
+    @Test("AW25b: a régi, Mapbox-azonosítós tárolt hely betöltéskor koordináta-kulcsot kap; az azonos helyű elem egyszer marad")
+    func regiAzonosito() {
+        let old = #"{"id":"dXJuOm1ieHBvaTox","name":"IKEA Budaörs","address":"Budaörs","lat":47.4613,"lon":18.9601}"#
+        let same = #"{"id":"47.46130,18.96010","name":"","address":"","lat":47.4613,"lon":18.9601}"#
+        let other = #"{"id":"p2","name":"Hely 2","address":"","lat":49,"lon":19}"#
+        let saved = parseSaved(#"{"home":\#(old),"work":null,"others":[\#(old),\#(same),\#(other)]}"#)
+        #expect(saved.home?.id == "47.46130,18.96010")
+        #expect(saved.others.map(\.id) == ["47.46130,18.96010", placeKey(p(2))])
+        #expect(parseRecents("[\(old),\(old.replacingOccurrences(of: "dXJuOm1ieHBvaTox", with: "masik"))]").map(\.id) == ["47.46130,18.96010"])
+        #expect(!serializeSaved(saved).contains("dXJuOm1ieHBvaTox"))
+        #expect(displayPlace(saved.home!).name == "IKEA Budaörs")
     }
 }
 
@@ -1702,7 +1716,7 @@ struct Aw12Tests {
         #expect(chips.map(\.icon) == [.home, .pin, .pin])
         #expect(chips.map(\.label) == ["Haza", "Edzőterem", "Nagymama"])
         #expect(parseSaved(serializeSaved(saved)).others.map { displayPlace($0).name } == ["Edzőterem", "Nagymama"])
-        #expect(removeSavedOther(saved, "p2").others.map(\.id) == ["p3"])
+        #expect(removeSavedOther(saved, saved.others[0].id).others.map(\.id) == [placeKey(p(3))])
     }
 }
 

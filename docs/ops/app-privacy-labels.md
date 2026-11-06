@@ -24,7 +24,7 @@ felhasználó-azonosító is azonosító, ezért a névtelen azonosítóval kül
 | User Content › **Photos or Videos** | profilkép | App Functionality | Igen | Nem | csak ha feltölti |
 | User Content › **Other User Content** | bejelentések (típus, irány), szavazatok | App Functionality | Igen | Nem | mások számára névtelen |
 | Identifiers › **User ID** | névtelen auth-azonosító (UUID), fióknál ugyanaz | App Functionality | Igen | Nem | nem IDFA, nem gyári azonosító |
-| Usage Data, Diagnostics | – | – | – | – | nincs saját analitika vagy hibagyűjtés; lásd lent a Mapboxot |
+| Usage Data, Diagnostics | – | – | – | – | nincs saját analitika vagy hibagyűjtés; a Mapbox SDK Product Interaction-je lent |
 
 **Nem gyűjtünk:** egészség, pénzügy, névjegyek, böngészési előzmény, keresési előzmény a szerveren (a legutóbbi célok fióknál csak
 koordinátával szinkronizálódnak – ez a Location sorba tartozik), érzékeny adat, telefonszám, fizikai cím.
@@ -32,16 +32,16 @@ koordinátával szinkronizálódnak – ez a Location sorba tartozik), érzéken
 ## Harmadik féltől származó SDK-k
 
 - **Mapbox Maps SDK** (térkép, telemetria): a Mapbox saját névtelen használati és helyadatot gyűjt, a felhasználó a térkép „i” gombjával
-  kikapcsolhatja. Az Apple szerint a beépített SDK gyűjtése a mi címkénkhez tartozik: a Mapbox SDK saját privacy manifestjét
-  (`PrivacyInfo.xcprivacy` a Mapbox-csomagban) a feltöltés előtt nézd át, és ha a Mapbox „Product Interaction” vagy „Location” adatot
-  analitikára jelöl, vedd fel Analytics céllal, **nem kapcsolt**, **nem követés** jelöléssel.
+  kikapcsolhatja. Az Apple szerint a beépített SDK gyűjtése a mi címkénkhez tartozik. A Mapbox saját manifestje (MapboxCommon 24.26,
+  ellenőrizve 2026-11-06) ezt jelöli, mind **nem kapcsolt**, **nem követés**, cél: App Functionality + **Analytics**: Coarse Location,
+  Precise Location, User ID, Product Interaction. A címkében ezért: Location (Precise, Coarse) és Identifiers › User ID mellé az Analytics
+  cél is („nem kapcsolt” részként), és Usage Data › **Product Interaction** (Analytics, nem kapcsolt, nem követés).
 - **supabase-swift, SwiftyH3:** saját adatgyűjtésük nincs.
 
 ## Nyitott (a feltöltés előtt)
 
-1. **Az appnak nincs saját `PrivacyInfo.xcprivacy` fájlja.** A required-reason API-k (pl. `UserDefaults`: `CA92.1`; fájl-időbélyeg, ha
-   a kód használja) deklarációja nélkül a feltöltés ITMS-91053 figyelmeztetést vagy elutasítást kaphat. Egy iOS-körben kell felvenni a
-   `project.yml`-be (mindkét targetnek), a fenti adattípusokkal egyezően.
+1. ~~Az appnak nincs saját `PrivacyInfo.xcprivacy` fájlja.~~ **Kész (AW25b):** `apps/ios/Atlagsebesseg/Resources/PrivacyInfo.xcprivacy`
+   (a fenti hat adattípus, kapcsolt, App Functionality; `UserDefaults`: `CA92.1`, `1C8F.1`) és a widgeté (`1C8F.1`, adat nélkül).
 2. Captcha (Cloudflare Turnstile) bekapcsolásakor: a Cloudflare a webes kérésekhez IP-t és böngésző-jellemzőt kap – az iOS-címkét nem
    érinti, ha az iOS nem használja; a tájékoztatót igen (`docs/legal/ugyvedi-atnezes.md` 12.).
 3. A címkét az App Store Connectben a fenti táblázat szerint Kristof tölti ki (a fiók az övé).

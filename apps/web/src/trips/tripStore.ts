@@ -89,6 +89,13 @@ export async function saveTrip(trip: Trip): Promise<void> {
 export async function listTrips(): Promise<Trip[]> {
   const db = await open();
   const all = await result(db.transaction('trips').objectStore('trips').getAll() as IDBRequest<Trip[]>);
+  // AW25b: a névvel tárolt régi cél egyszer tisztán visszaíródik (Mapbox-feltételek)
+  const stale = all.filter((t) => normalizeTrip(t).destination !== t.destination);
+  if (stale.length) {
+    const tx = db.transaction('trips', 'readwrite');
+    for (const t of stale) tx.objectStore('trips').put({ ...t, destination: normalizeTrip(t).destination });
+    await done(tx);
+  }
   return all.map(normalizeTrip).sort((a, b) => b.startedAt - a.startedAt);
 }
 

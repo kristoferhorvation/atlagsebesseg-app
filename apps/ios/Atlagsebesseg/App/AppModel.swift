@@ -123,6 +123,10 @@ final class AppModel {
 
     /// A térképen látható (le nem járt) bejelentések.
     var reports: [ActiveReport] = []
+    /// AW25b (INV-26): a `zone` országbeli (FR) Rendőrség / Traffipax bejelentések zónái (a kamera-zónákkal egyesítve rajzolva).
+    var reportZones: [CameraZone] = []
+    /// AW25b (INV-26): a pontként látható, szabály alá eső bejelentések országai (az egyszeri DE-figyelmeztetéshez).
+    var reportCountries: [String] = []
     /// A jelölőre koppintva nyitott kártya.
     var selectedReportId: String?
     /// AOS15: a kamera-jelölőre koppintva nyitott kártya (a webes `CameraCard`; a bejelentés-kártyával kizárják egymást).
@@ -704,7 +708,7 @@ final class AppModel {
     func warnCountries() {
         guard let fix = view.lastFix else { return }
         let here = LatLon(lat: fix.lat, lon: fix.lon)
-        let near = cameras.filter { haversineM(here, LatLon(lat: $0.lat, lon: $0.lon)) <= 15_000 }.map(\.country) + planned.map(\.country)
+        let near = cameras.filter { haversineM(here, LatLon(lat: $0.lat, lon: $0.lon)) <= 15_000 }.map(\.country) + planned.map(\.country) + reportCountries
         let store = UserDefaults.standard
         for w in pendingCountryWarnings(near, seen: { store.object(forKey: "figyelmeztetes:\($0)") != nil }) {
             store.set(1, forKey: "figyelmeztetes:\(w.country)")

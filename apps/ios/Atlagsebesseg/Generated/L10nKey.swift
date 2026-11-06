@@ -328,6 +328,7 @@ enum L10nKey: String, CaseIterable, Sendable {
     case navManArrive = "nav.man.arrive"
     case navManDepart = "nav.man.depart"
     case iosLocationUsage = "ios.locationUsage"
+    case iosLocationAlwaysUsage = "ios.locationAlwaysUsage"
     case iosDisplayName = "ios.displayName"
     case iosIntentStartNav = "ios.intent.startNav"
     case iosIntentDestination = "ios.intent.destination"

@@ -91,10 +91,39 @@ nonisolated struct Trip: Codable, Hashable, Identifiable, Sendable {
         reroutes = try c.decode(Int.self, forKey: .reroutes)
         measurements = try c.decode([TripMeasurement].self, forKey: .measurements)
         jamS = try c.decode(Double.self, forKey: .jamS)
-        destination = try c.decodeIfPresent(String.self, forKey: .destination)
         path = try c.decode([[[Double]]].self, forKey: .path)
+        // AW25b: a névvel tárolt régi cél → koordináta-kulcs (a webes `normalizeTrip`)
+        destination = storedTripDestination(try c.decodeIfPresent(String.self, forKey: .destination), path: path)
         samples = try c.decode(Int.self, forKey: .samples)
     }
+}
+
+/// AW25b (Mapbox-feltételek, az INV-25 mintájára): az út célja tárolva a saját címke vagy `@<placeKey>` (a koordináta), a Mapbox-név
+/// soha – a cím megjelenítéskor a névtárból jön (`tripTitle`), mint a mentett helyeknél (a webes `tripDestination`).
+nonisolated func tripDestination(_ p: Place?) -> String? {
+    guard let p else { return nil }
+    if let label = p.label?.trimmingCharacters(in: .whitespacesAndNewlines), !label.isEmpty { return String(label.prefix(40)) }
+    return "@" + placeKey(p)
+}
+
+/// A navigáció céljából (a `NavDestination` a tervezés `Place`-éből jön, a saját címkével együtt).
+nonisolated func tripDestination(_ d: NavDestination?) -> String? {
+    d.map { tripDestination(Place(id: "", name: $0.name, address: "", lat: $0.lat, lon: $0.lon, label: $0.label)) } ?? nil
+}
+
+/// `@lat,lon` – a koordináta-kulcsos cél.
+nonisolated private func destinationKey(_ d: String) -> LatLon? {
+    guard d.hasPrefix("@") else { return nil }
+    let parts = d.dropFirst().split(separator: ",", omittingEmptySubsequences: false)
+    guard parts.count == 2, parts.allSatisfy({ $0.contains(".") }), let lat = Double(parts[0]), let lon = Double(parts[1]) else { return nil }
+    return LatLon(lat: lat, lon: lon)
+}
+
+/// A régi (AW25b előtti) tárolt cél egy Mapbox-név volt: a helyére az út utolsó pontjának kulcsa kerül (pont nélkül `@`).
+nonisolated func storedTripDestination(_ d: String?, path: [[[Double]]]) -> String? {
+    guard let d, d != "@", destinationKey(d) == nil else { return d }
+    guard let last = path.last?.last, last.count >= 2 else { return "@" }
+    return "@" + placeKey(Place(id: "", name: "", address: "", lat: last[0], lon: last[1]))
 }
 
 /// A navigáció manőverének kanyar-fajtája az ikonból: balra / jobbra (éles is, körforgalom-kijárat iránya), megfordulás; egyéb `nil`.
@@ -644,7 +673,11 @@ nonisolated func mergeHeatCells(_ a: HeatCell, _ b: HeatCell?) -> HeatCell {
 }
 
 /// Az út címe: a cél neve, vagy „Krúzing”.
-nonisolated func tripTitle(_ trip: Trip, lang: Lang? = nil) -> String { trip.destination ?? t(.tripsCruise, lang: lang) }
+nonisolated func tripTitle(_ trip: Trip, lang: Lang? = nil) -> String {
+    guard let d = trip.destination, d != "@" else { return t(.tripsCruise, lang: lang) }
+    guard let p = destinationKey(d) else { return d }
+    return displayPlace(Place(id: d, name: "", address: "", lat: p.lat, lon: p.lon)).name
+}
 
 /// Sebesség a választott egységben („87 km/h”); adat nélkül „–”.
 nonisolated func tripSpeedText(_ kmh: Double?, _ unit: SpeedUnit) -> String {

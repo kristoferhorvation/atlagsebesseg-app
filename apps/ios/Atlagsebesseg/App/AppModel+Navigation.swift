@@ -250,7 +250,7 @@ extension AppModel {
         navSession?.dispose()
         let s = NavigationSession(
             route: route,
-            destination: NavDestination(name: p.dest.name, lat: p.dest.lat, lon: p.dest.lon, routable: p.dest.routable),
+            destination: NavDestination(name: p.dest.name, lat: p.dest.lat, lon: p.dest.lon, routable: p.dest.routable, label: p.dest.label),
             fetchRoutes: fetchRoutes,
             now: { [weak self] in self?.nowMs() ?? Date().timeIntervalSince1970 * 1000 },
             unit: settings.egyseg,

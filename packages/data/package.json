@@ -32,6 +32,7 @@
     "./output/*": "./output/*",
     "./rows": "./src/rows.ts",
     "./camera_visibility.json": "./camera_visibility.json",
+    "./country_borders.json": "./country_borders.json",
     "./planned-parse": "./src/planned/parse.ts"
   }
 }

@@ -24,6 +24,7 @@ import {
   cameraAlertM,
   detourCostPerKm,
   removeSavedOther,
+  placeKey,
   routeAvgKmh,
   routeTarget,
   savedChips,
@@ -981,14 +982,14 @@ describe('helyek', () => {
     let list: ReturnType<typeof parseRecents> = [];
     for (let i = 0; i < 14; i++) list = addRecent(list, p(i));
     expect(list).toHaveLength(10);
-    expect(list[0]!.id).toBe('p13');
-    expect(list.at(-1)!.id).toBe('p4');
+    expect(list[0]!.id).toBe(placeKey(p(13)));
+    expect(list.at(-1)!.id).toBe(placeKey(p(4)));
   });
 
   it('ugyanaz a hely nem duplázódik, hanem előre kerül', () => {
     let list = addRecent(addRecent([], p(1)), p(2));
     list = addRecent(list, { ...p(1), id: 'masik-azonosito', lat: 48.0004 });
-    expect(list.map((x) => x.id)).toEqual(['masik-azonosito', 'p2']);
+    expect(list.map((x) => x.id)).toEqual(['48.00040,19.00000', placeKey(p(2))]);
     expect(list.map((x) => displayPlace(x).name)).toEqual(['Hely 1', 'Hely 2']);
   });
 
@@ -996,8 +997,9 @@ describe('helyek', () => {
     const hit = { id: 'dXJuOm1ieHBvaTox', name: 'IKEA Budaörs', address: 'Budaörs, Pest, Magyarország', lat: 47.4613, lon: 18.9601, routable: { lat: 47.4611, lon: 18.9603 }, retrieveId: 'x', distanceM: 900 };
     const saved = setSavedPlace({ home: null, work: null, others: [] }, 'home', hit);
     const stored = JSON.stringify({ saved, recents: addRecent([], hit), other: addSavedOther(saved, { ...hit, id: 'o', lat: 47.5, label: '  Edzőterem  ' }).others });
-    for (const word of ['IKEA', 'Budaörs', 'retrieveId', 'distanceM']) expect(stored).not.toContain(word);
-    expect(saved.home).toEqual({ id: hit.id, name: '', address: '', lat: hit.lat, lon: hit.lon, routable: hit.routable });
+    // AW25b: a Mapbox-azonosító sem tárolódik, a kulcs a koordináta
+    for (const word of ['IKEA', 'Budaörs', 'retrieveId', 'distanceM', hit.id]) expect(stored).not.toContain(word);
+    expect(saved.home).toEqual({ id: '47.46130,18.96010', name: '', address: '', lat: hit.lat, lon: hit.lon, routable: hit.routable });
     // a futás alatt a név megvan (memória), újraindítás után a koordináta, és fordított geokódolásra vár
     expect(displayPlace(saved.home!).name).toBe('IKEA Budaörs');
     forgetPlaceNames();
@@ -1016,7 +1018,17 @@ describe('helyek', () => {
     expect(parseRecents('nem json')).toEqual([]);
     expect(parseRecents('[{"x":1},null]')).toEqual([]);
     expect(parseSaved('???')).toEqual({ home: null, work: null, others: [] });
-    expect(parseSaved(JSON.stringify({ home: p(1), work: 'x' }))).toMatchObject({ home: { id: 'p1', name: '' }, work: null });
+    expect(parseSaved(JSON.stringify({ home: p(1), work: 'x' }))).toMatchObject({ home: { id: '48.00000,19.00000', name: '' }, work: null });
+  });
+
+  it('AW25b: a régi, Mapbox-azonosítós tárolt hely betöltéskor koordináta-kulcsot kap; az azonos helyű elem egyszer marad', () => {
+    const old = { id: 'dXJuOm1ieHBvaTox', name: 'IKEA Budaörs', address: 'Budaörs', lat: 47.4613, lon: 18.9601 };
+    const saved = parseSaved(JSON.stringify({ home: old, work: null, others: [old, { ...old, id: '47.46130,18.96010', name: '' }, p(2)] }));
+    expect(saved.home!.id).toBe('47.46130,18.96010');
+    expect(saved.others.map((x) => x.id)).toEqual(['47.46130,18.96010', placeKey(p(2))]);
+    expect(parseRecents(JSON.stringify([old, { ...old, id: 'masik' }])).map((x) => x.id)).toEqual(['47.46130,18.96010']);
+    expect(JSON.stringify(saved)).not.toContain(old.id);
+    expect(displayPlace(saved.home!).name).toBe('IKEA Budaörs');
   });
 });
 
@@ -1589,7 +1601,7 @@ describe('AW12: újratervezés, kamera, „Utána”, érkezés, követő zoom, 
       ['pin', 'Nagymama'],
     ]);
     expect(parseSaved(JSON.stringify(saved)).others.map((x) => displayPlace(x).name)).toEqual(['Edzőterem', 'Nagymama']);
-    expect(removeSavedOther(saved, 'p2').others.map((x) => x.id)).toEqual(['p3']);
+    expect(removeSavedOther(saved, saved.others[0]!.id).others.map((x) => x.id)).toEqual([placeKey(p(3))]);
   });
 });
 

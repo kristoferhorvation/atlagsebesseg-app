@@ -193,3 +193,92 @@ nonisolated private func snap(_ p: LatLon, _ stepM: Double) -> LatLon {
     let dLon = stepM / (111_195 * cos(lat * Double.pi / 180))
     return LatLon(lat: lat, lon: jsRound(p.lon / dLon) * dLon)
 }
+
+// MARK: AW25b (INV-26): a közösségi „Rendőrség” és „Traffipax” bejelentés ugyanazzal az országonkénti szabállyal
+
+/// A szabály alá eső bejelentés-típusok (a webes `ENFORCEMENT_REPORTS`).
+nonisolated let ENFORCEMENT_REPORTS: [ReportType] = [.rendorseg, .traffipax]
+nonisolated func isEnforcementReport(_ type: ReportType) -> Bool { ENFORCEMENT_REPORTS.contains(type) }
+
+/// A nem alapértelmezett szabályú országok határa (az appba csomagolt packages/data/country_borders.json, Natural Earth).
+nonisolated struct CountryBorders: Sendable {
+    struct Polygon: Sendable {
+        var country: String
+        var west: Double, east: Double, south: Double, north: Double
+        /// [lon, lat] gyűrűk: az első a külső, a többi lyuk.
+        var rings: [[[Double]]]
+    }
+
+    var polygons: [Polygon]
+
+    init(json: Data) {
+        struct File: Decodable { var countries: [String: [[[[Double]]]]] }
+        let file = (try? JSONDecoder().decode(File.self, from: json))?.countries ?? [:]
+        polygons = file.keys.sorted().flatMap { country in
+            file[country]!.map { rings in
+                let outer = rings[0]
+                return Polygon(
+                    country: country, west: outer.map { $0[0] }.min()!, east: outer.map { $0[0] }.max()!,
+                    south: outer.map { $0[1] }.min()!, north: outer.map { $0[1] }.max()!, rings: rings
+                )
+            }
+        }
+    }
+
+    static let bundled: CountryBorders = {
+        guard let url = Bundle.main.url(forResource: "country_borders", withExtension: "json"), let data = try? Data(contentsOf: url) else {
+            return CountryBorders(json: Data())
+        }
+        return CountryBorders(json: data)
+    }()
+}
+
+nonisolated private func inRing(_ ring: [[Double]], _ lon: Double, _ lat: Double) -> Bool {
+    var inside = false
+    var j = ring.count - 1
+    for i in 0..<ring.count {
+        let xi = ring[i][0], yi = ring[i][1], xj = ring[j][0], yj = ring[j][1]
+        if (yi > lat) != (yj > lat), lon < (xj - xi) * (lat - yi) / (yj - yi) + xi { inside.toggle() }
+        j = i
+    }
+    return inside
+}
+
+/// A pont országa, ha az a nem alapértelmezett szabályú országok egyike (DE, FR, CH); különben `nil` (a webes `restrictedCountryAt`).
+nonisolated func restrictedCountryAt(_ p: LatLon, borders: CountryBorders = .bundled) -> String? {
+    for b in borders.polygons where p.lon >= b.west && p.lon <= b.east && p.lat >= b.south && p.lat <= b.north {
+        if inRing(b.rings[0], p.lon, p.lat), !b.rings.dropFirst().contains(where: { inRing($0, p.lon, p.lat) }) { return b.country }
+    }
+    return nil
+}
+
+/// A megjelenítendő bejelentések a kamerák szabálya szerint (a webes `visibleReports`): CH kimarad, FR csak „Ellenőrzési zóna”
+/// (pont, kártya, közeledés-jelzés és útvonal-panel nélkül), DE és a többi pontként; a `countries` az egyszeri figyelmeztetéshez.
+nonisolated func visibleReports(_ reports: [ActiveReport], rules: VisibilityRules = .bundled) -> (points: [ActiveReport], zones: [CameraZone], countries: [String]) {
+    var points: [ActiveReport] = []
+    var zones: [String: CameraZone] = [:]
+    var order: [String] = []
+    var countries = Set<String>()
+    for r in reports {
+        let country = isEnforcementReport(r.type) ? restrictedCountryAt(LatLon(lat: r.lat, lon: r.lon)) : nil
+        switch country.map({ rules.visibility($0) }) ?? .show {
+        case .show:
+            points.append(r)
+            if let country { countries.insert(country) }
+        case .zone:
+            let center = snap(LatLon(lat: r.lat, lon: r.lon), 500)
+            let id = "zone-\(String(format: "%.4f", center.lat))-\(String(format: "%.4f", center.lon))"
+            if zones[id] == nil { order.append(id) }
+            zones[id] = CameraZone(id: id, center: center, radiusM: CAMERA_ZONE_RADIUS_M, label: cameraZoneLabel())
+        case .hide:
+            break
+        }
+    }
+    return (points, order.map { zones[$0]! }, countries.sorted())
+}
+
+/// Két zóna-lista egyesítése (kamera + bejelentés): az azonos rács-cellájú zóna egyszer (a webes `mergeZones`).
+nonisolated func mergeZones(_ a: [CameraZone], _ b: [CameraZone]) -> [CameraZone] {
+    let seen = Set(a.map(\.id))
+    return a + b.filter { !seen.contains($0.id) }
+}
