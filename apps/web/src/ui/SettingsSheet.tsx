@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { HEAT_MODES, LANGUAGE_NAMES, LOCALES, MEGSZOLITAS_MAX, getLanguage, languageMenu, normalizeName, t, voiceInstructionsHint, type HeatMode, type HeatZone, type MapLook, type SavedPlaces, type Settings, type SpeedUnit } from '@atlagsebesseg/app-logic';
+import { HEAT_MODES, LANGUAGE_NAMES, LOCALES, MEGSZOLITAS_MAX, displayPlace, getLanguage, languageMenu, normalizeName, t, voiceInstructionsHint, type HeatMode, type HeatZone, type MapLook, type SavedPlaces, type Settings, type SpeedUnit } from '@atlagsebesseg/app-logic';
 import { DEFAULT_TOLERANCE } from '@atlagsebesseg/core';
 import { useLanguage, useVoiceStatus } from '../i18n';
 import { purgeTrash, restoreTrash, trashExpiry } from '../trips/tripStore';
@@ -201,7 +201,7 @@ export function SettingsSheet({
           <div className="list-row" key={kind}>
             <div style={{ minWidth: 0 }}>
               <div className="label">{t(kind === 'home' ? 'nav.place.home' : 'nav.place.work')}</div>
-              <div className="hint">{saved[kind]?.name ?? t('nav.place.unset')}</div>
+              <div className="hint">{saved[kind] ? displayPlace(saved[kind]).name : t('nav.place.unset')}</div>
             </div>
             <div className="mini-btns">
               <button className="mini-btn" onClick={() => onPickPlace(kind)}>
@@ -217,7 +217,7 @@ export function SettingsSheet({
             {zoneOf(kind) && <ZonePicker zone={zoneOf(kind)!} name={t(kind === 'home' ? 'nav.place.home' : 'nav.place.work')} settings={settings} update={update} onShow={onShowZone} />}
           </div>
         ))}
-        {saved.others.map((p) => (
+        {saved.others.map(displayPlace).map((p) => (
           <div className="list-row" key={p.id}>
             <div style={{ minWidth: 0 }}>
               <div className="label">{p.name}</div>
@@ -252,6 +252,11 @@ export function SettingsSheet({
           <div className="label">{t('settings.shareDetails')}</div>
           <Icon name="chevronRight" size={20} />
         </button>
+        {/* AW25: az adatvédelmi tájékoztató az app nyelvén (public/legal, a docs/legal-ból generálva) */}
+        <a className="list-row nav-row" data-testid="privacy-policy-row" href={`/legal/privacy.${getLanguage()}.html`} target="_blank" rel="noopener">
+          <div className="label">{t('settings.privacyPolicy')}</div>
+          <Icon name="chevronRight" size={20} />
+        </a>
         <BackupRow account={account} settings={settings} update={update} />
         <DeleteAccountRow account={account} />
       </div>

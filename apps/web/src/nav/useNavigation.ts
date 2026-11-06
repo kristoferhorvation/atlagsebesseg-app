@@ -15,6 +15,7 @@ import {
   routeSummary,
   routeTarget,
   SAVED_KEY,
+  setSavedPlace,
   selectRouteById as pickRouteById,
   type EnforcementData,
   type NavRoute,
@@ -27,7 +28,7 @@ import {
   type Lang,
 } from '@atlagsebesseg/app-logic';
 import type { GpsFix } from '@atlagsebesseg/core';
-import { syncStore } from './backend';
+import { resolvePlaceNames, syncStore } from './backend';
 import { speak, stopSpeech, unlockSpeech } from './speech';
 
 export type PlanStatus = 'nogps' | 'loading' | 'ready' | 'error' | 'ratelimited';
@@ -75,7 +76,7 @@ export function usePlaces() {
       return next;
     });
   }, []);
-  const setSaved = useCallback((kind: 'home' | 'work', place: Place | null) => update((prev) => ({ ...prev, [kind]: place })), [update]);
+  const setSaved = useCallback((kind: 'home' | 'work', place: Place | null) => update((prev) => setSavedPlace(prev, kind, place)), [update]);
   const addOther = useCallback((place: Place) => update((prev) => addSavedOther(prev, place)), [update]);
   const removeOther = useCallback((id: string) => update((prev) => removeSavedOther(prev, id)), [update]);
   // AW22: a fiók szinkronja a teljes listákat cseréli (a másik készülék változása)
@@ -85,6 +86,24 @@ export function usePlaces() {
     setRecents([...nextRecents]);
     syncStore.setItem(RECENTS_KEY, JSON.stringify(nextRecents));
   }, []);
+  // AW25 (INV-25): a régi, Mapbox-névvel tárolt helyek egyszer, betöltéskor tisztán visszaíródnak (a fiók-szinkron a szerveres másolatot is cseréli)
+  useEffect(() => {
+    if (syncStore.getItem(RECENTS_KEY) !== null && syncStore.getItem(RECENTS_KEY) !== JSON.stringify(recents)) syncStore.setItem(RECENTS_KEY, JSON.stringify(recents));
+    if (syncStore.getItem(SAVED_KEY) !== null && syncStore.getItem(SAVED_KEY) !== JSON.stringify(saved)) syncStore.setItem(SAVED_KEY, JSON.stringify(saved));
+    // csak az első betöltéskor
+  }, []);
+  // AW25: a tárolt helyeknek nincs Mapbox-neve – a hiányzót újra lekérjük (memóriába), és a nézet újrarajzol
+  const [, setNamesVersion] = useState(0);
+  useEffect(() => {
+    let alive = true;
+    const all = [...recents, ...[saved.home, saved.work].filter((p): p is Place => p !== null), ...saved.others];
+    void resolvePlaceNames(all).then((found) => {
+      if (alive && found) setNamesVersion((v) => v + 1);
+    });
+    return () => {
+      alive = false;
+    };
+  }, [recents, saved]);
   return { recents, saved: saved ?? NO_SAVED, pushRecent, setSaved, addOther, removeOther, replaceAll };
 }
 

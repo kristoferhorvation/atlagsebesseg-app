@@ -1,4 +1,4 @@
-import { DirectionsClient, getLanguage, parseRetrieve, parseSuggest, RequestCounter, retrieveUrl, SearchSession, suggestUrl, type Place, type SyncStore } from '@atlagsebesseg/app-logic';
+import { DirectionsClient, getLanguage, parseGeocode, parseRetrieve, parseSuggest, placesNeedingNames, rememberPlaceName, RequestCounter, retrieveUrl, reverseGeocodeUrl, SearchSession, suggestUrl, type Place, type SyncStore } from '@atlagsebesseg/app-logic';
 import type { LatLon } from '@atlagsebesseg/core';
 
 /** localStorage szinkron burokban; tiltott tárhelynél csendben üres / nem ment. */
@@ -53,4 +53,31 @@ export async function resolvePlace(hit: Place): Promise<Place> {
   const place = parseRetrieve(await res.json(), hit);
   if (!place) throw new Error('searchbox: nincs hely');
   return place;
+}
+
+/**
+ * AW25 (INV-25): a mentett / legutóbbi helyek neve nincs a tárban – a névtelenekre fordított geokódolás, helyenként egyszer a futás alatt,
+ * az eredmény csak memóriában (`rememberPlaceName`). Automatizált böngészőben (tesztek) és token nélkül nem hív: ott a koordináta látszik.
+ */
+const asked = new Set<string>();
+export async function resolvePlaceNames(places: readonly Place[]): Promise<boolean> {
+  if (!TOKEN || navigator.webdriver) return false;
+  const todo = placesNeedingNames(places).filter((p) => !asked.has(p.id)).slice(0, 12);
+  let found = false;
+  await Promise.all(
+    todo.map(async (p) => {
+      asked.add(p.id);
+      try {
+        const res = await fetch(reverseGeocodeUrl(p, getLanguage(), TOKEN));
+        const hit = res.ok ? parseGeocode(await res.json())[0] : undefined;
+        if (hit) {
+          rememberPlaceName({ lat: p.lat, lon: p.lon, name: hit.name, address: hit.address });
+          found = true;
+        }
+      } catch {
+        // hálózat nélkül a koordináta marad; a következő indításkor újra próbál
+      }
+    }),
+  );
+  return found;
 }

@@ -18,6 +18,8 @@ nonisolated struct Place: Identifiable, Hashable, Codable, Sendable {
     var retrieveId: String? = nil
     /// AW23: a távolság a jelenlegi helyzettől (m), ha a találat adja.
     var distanceM: Double? = nil
+    /// AW25 (INV-25): a felhasználó saját címkéje – a mentett / legutóbbi helyen a Mapbox-név helyett ez tárolható.
+    var label: String? = nil
 
     var latLon: LatLon { LatLon(lat: lat, lon: lon) }
     /// A tervezés célpontja: a cím útra illesztett pontja, ha van, különben maga a cím.

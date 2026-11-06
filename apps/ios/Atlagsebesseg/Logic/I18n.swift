@@ -72,19 +72,95 @@ nonisolated enum L10n {
         bundle.localizedString(forKey: key.rawValue, value: nil, table: "Localizable")
     }
 
-    /// `{név}` helyőrzők kitöltése; a hiányzó paraméter a helyén marad (mint a webes `t()`).
-    static func fill(_ template: String, _ params: [String: String]) -> String {
+    /// `{név}` helyőrzők kitöltése; a hiányzó paraméter a helyén marad (mint a webes `t()`). AW25: ICU-többesszám
+    /// (`{n, plural, one {# perc} few {…} many {…} other {…}}`, a `#` a kiírt érték) – a webes `fill` párja.
+    static func fill(_ template: String, _ params: [String: String], lang: Lang = L10n.lang) -> String {
         guard !params.isEmpty else { return template }
+        let chars = Array(template)
         var out = ""
-        var rest = Substring(template)
-        while let open = rest.firstIndex(of: "{") {
-            out += rest[..<open]
-            guard let close = rest[open...].firstIndex(of: "}") else { break }
-            let name = String(rest[rest.index(after: open)..<close])
-            out += params[name] ?? String(rest[open...close])
-            rest = rest[rest.index(after: close)...]
+        var i = 0
+        while i < chars.count {
+            if chars[i] == "{", let (name, body, end) = pluralBlock(chars, i) {
+                if let v = params[name] {
+                    let branches = pluralBranches(body)
+                    let branch = branches[pluralCategory(pluralNumber(v), lang).rawValue] ?? branches["other"] ?? ""
+                    out += branch.replacingOccurrences(of: "#", with: v)
+                } else {
+                    out += String(chars[i...end])
+                }
+                i = end + 1
+            } else if chars[i] == "{", let close = chars[i...].firstIndex(of: "}") {
+                let name = String(chars[(i + 1)..<close])
+                out += params[name] ?? String(chars[i...close])
+                i = close + 1
+            } else {
+                out.append(chars[i])
+                i += 1
+            }
         }
-        return out + rest
+        return out
+    }
+
+    /// `{név, plural, …}` blokk az `i`-edik karaktertől: a név, a törzs és a záró `}` indexe (kapcsos-egyensúllyal).
+    private static func pluralBlock(_ c: [Character], _ i: Int) -> (String, String, Int)? {
+        var j = i + 1
+        while j < c.count, c[j].isLetter || c[j].isNumber || c[j] == "_" { j += 1 }
+        let head = ", plural,"
+        guard j > i + 1, j + head.count <= c.count, String(c[j..<(j + head.count)]) == head else { return nil }
+        var depth = 0
+        var k = i
+        while k < c.count {
+            if c[k] == "{" { depth += 1 } else if c[k] == "}" { depth -= 1; if depth == 0 { break } }
+            k += 1
+        }
+        guard k < c.count else { return nil }
+        return (String(c[(i + 1)..<j]), String(c[(j + head.count)..<k]), k)
+    }
+
+    private static func pluralBranches(_ body: String) -> [String: String] {
+        let c = Array(body)
+        var out: [String: String] = [:]
+        var k = 0
+        while k < c.count {
+            while k < c.count, c[k].isWhitespace { k += 1 }
+            var e = k
+            while e < c.count, c[e].isLetter { e += 1 }
+            let key = String(c[k..<e])
+            while e < c.count, c[e].isWhitespace { e += 1 }
+            guard !key.isEmpty, e < c.count, c[e] == "{" else { break }
+            var d = 1
+            var f = e + 1
+            while f < c.count, d > 0 { if c[f] == "{" { d += 1 } else if c[f] == "}" { d -= 1 }; f += 1 }
+            out[key] = String(c[(e + 1)..<(f - 1)])
+            k = f
+        }
+        return out
+    }
+
+    /// A paraméter számértéke (a kiírt „2,1” is szám); nem szám → `nan` (az `other` ág).
+    private static func pluralNumber(_ v: String) -> Double {
+        Double(v.replacingOccurrences(of: " ", with: "").replacingOccurrences(of: "\u{00A0}", with: "").replacingOccurrences(of: ",", with: ".")) ?? .nan
+    }
+}
+
+/// AW25: CLDR többesszám-kategória a 6 nyelvre (a webes `pluralCategory` párja, bitre azonos szabállyal).
+nonisolated enum PluralCategory: String, Sendable { case one, few, many, other }
+
+nonisolated func pluralCategory(_ n: Double, _ lang: Lang) -> PluralCategory {
+    if n.isNaN { return .other }
+    let a = abs(n)
+    let isInt = a == a.rounded(.towardZero)
+    switch lang {
+    case .sk, .cs:
+        if !isInt { return .many }
+        return a == 1 ? .one : (a >= 2 && a <= 4 ? .few : .other)
+    case .pl:
+        if !isInt { return .other }
+        if a == 1 { return .one }
+        let m10 = Int(a.truncatingRemainder(dividingBy: 10)), m100 = Int(a.truncatingRemainder(dividingBy: 100))
+        return m10 >= 2 && m10 <= 4 && !(m100 >= 12 && m100 <= 14) ? .few : .many
+    default:
+        return isInt && a == 1 ? .one : .other
     }
 }
 
@@ -92,7 +168,7 @@ nonisolated enum L10n {
 /// (automatikusnál a rendszeré).
 nonisolated func t(_ key: L10nKey, _ params: [String: String] = [:], lang: Lang? = nil) -> String {
     let bundle = (lang ?? LangChoice.shared.preference).flatMap(L10n.bundle(for:)) ?? .main
-    return L10n.fill(L10n.template(key, in: bundle), params)
+    return L10n.fill(L10n.template(key, in: bundle), params, lang: lang ?? L10n.lang)
 }
 
 /// Egy tizedesjegy, a nyelv tizedesjelével („12,3” / „12.3”), ezres tagolás nélkül.

@@ -409,7 +409,8 @@ struct AccountBackupTests {
 struct AccountStableTests {
     @Test("a webes hely-érték alkalmazás után változatlan mező marad")
     func webShape() throws {
-        let json = #"{"id":"h","name":"Haza","address":"","lat":47.5,"lon":19}"#
+        // AW25 (INV-25): a tárolt alak név és cím nélküli; a régi, névvel tárolt értéket az app egyszer tisztán visszaírja
+        let json = #"{"id":"h","name":"","address":"","lat":47.5,"lon":19}"#
         let v = try JSONDecoder().decode(FieldValue.self, from: Data(json.utf8))
         var state = noteLocalFields(FieldState(), fields(data()), now: 10)
         state = mergeFields(state, [FieldRow(key: "place.home", value: v, updated_ms: 50)]).state

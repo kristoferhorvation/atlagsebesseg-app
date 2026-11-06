@@ -1,21 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import { bearingDeg, haversineM, type LatLon } from '@atlagsebesseg/core';
-import { assembleLines, globalLines, HEAT, mapboxMatcher, mapboxMatchUrl, matchChunks, matchRadius, matchTrace, MATCHER_MAPBOX, parseMapboxMatch, parseSegmentOutbox, rawLines, recordTrace, segmentKey, segmentUploadRows, seedGlobalRows, simplifyForMatch, traceChunks, TRACK, TrackIndex, trackSegments, type MapMatcher, type MatchResult, type TrackLine, type TrackPoint, type TripSample } from '../src';
+import { globalLines, gridLines, gridMatcher, HEAT, MATCHER_GRID, MATCHER_MAPBOX, migrateTrack, parseSegmentOutbox, recordTrace, segmentKey, segmentUploadRows, seedGlobalRows, smoothLine, TRACK, TrackIndex, trackSegments, type TrackLine, type TrackMatcher, type TrackPoint, type TripSample, type TripTrack } from '../src';
 import fixture from '../src/fixtures/track-budapest.json';
 import roadsFile from '../src/fixtures/track-budapest-roads.json';
 
 const samples: TripSample[] = fixture.samples.map(([t, lat, lon, kmh]) => ({ tripId: 'budapest', t: t!, lat: lat!, lon: lon!, speedKmh: kmh!, heading: null, accuracy: 8, h3: null, limitKmh: null }));
 const parts = recordTrace(samples);
-
-/** A felvett illesztő: a rögzített valódi válaszokat adja vissza, sorrendben. */
-const replayMatcher = (): MapMatcher => {
-  const all = fixture.matches.flat();
-  let i = 0;
-  return { id: MATCHER_MAPBOX, match: async (p) => parseMapboxMatch(all[i++], p.length) };
-};
-const lines = await matchTrace(parts, replayMatcher());
-const matched = lines.filter((l) => l.matched);
-const raw = lines.filter((l) => !l.matched);
+/** AW25: a csík a saját rács-illesztővel a nyers pontokból (Map Matching nélkül). */
+const lines = gridLines(parts);
 
 /** A pont távolsága a szakasztól (m, helyi síkban). */
 function segDist(p: LatLon, a: number[], b: number[]): number {
@@ -41,42 +33,43 @@ const line = (coords: [number, number][], matched = true, kmh = 50): TrackLine =
 /** Észak felé egyenes, `n` darab `stepM` méteres lépéssel. */
 const north = (n: number, stepM: number, lat0 = 47.5, lon0 = 19): [number, number][] => Array.from({ length: n + 1 }, (_, i) => [lat0 + (i * stepM) / 111_195, lon0]);
 
-describe('AW24: valódi budapesti nyomat', () => {
-  it('az illesztett vonal az utcán halad: minden csúcs az OSM-úthálózaton van, a nyers pontok átlagosan távolabb', () => {
-    const vertices = matched.flatMap((l) => l.coords);
+describe('AW25: valódi budapesti nyomat, saját rács-illesztő', () => {
+  it('a csík a nyers pontokból, az utcán halad: a csúcsok a cellán belül az OSM-úthálózat mellett', () => {
+    const vertices = lines.flatMap((l) => l.coords);
     expect(vertices.length).toBeGreaterThan(30);
-    for (const [lat, lon] of vertices) expect(roadDist({ lat, lon })).toBeLessThan(6);
+    expect(lines.every((l) => l.matched)).toBe(true);
+    for (const [lat, lon] of vertices) expect(roadDist({ lat, lon })).toBeLessThan(25);
     const avg = (x: number[]) => x.reduce((s, v) => s + v, 0) / x.length;
-    const rawD = avg(parts.flat().map((p) => roadDist(p)));
-    expect(avg(vertices.map(([lat, lon]) => roadDist({ lat, lon })))).toBeLessThan(rawD);
+    expect(avg(vertices.map(([lat, lon]) => roadDist({ lat, lon })))).toBeLessThan(10);
   });
 
-  it('a kanyart követi: a vonal irányt vált, és nem vágja le a sarkot (több csúcs, mint az egyszerűsített pontok közti egyenes)', () => {
-    const c = matched[0]!.coords;
+  it('a kanyart követi: a kirajzolt vonal irányt vált (40 m-enként mérve)', () => {
+    // a simított vonal csúcsai sűrűk: 40 m-enként újramintázva mérünk
+    const all = smoothLine(lines[0]!.coords);
+    const c: [number, number][] = [all[0]!];
+    for (const x of all) if (haversineM({ lat: c.at(-1)![0], lon: c.at(-1)![1] }, { lat: x[0], lon: x[1] }) >= 40) c.push(x);
     let turns = 0;
     let prev: number | null = null;
     for (let i = 1; i < c.length; i++) {
-      const d = haversineM({ lat: c[i - 1]![0], lon: c[i - 1]![1] }, { lat: c[i]![0], lon: c[i]![1] });
-      if (d < 10) continue;
       const b = bearingDeg({ lat: c[i - 1]![0], lon: c[i - 1]![1] }, { lat: c[i]![0], lon: c[i]![1] });
       if (prev !== null && Math.abs(((b - prev + 540) % 360) - 180) > 45) turns++;
       prev = b;
     }
     expect(turns).toBeGreaterThanOrEqual(2);
-    expect(c.length).toBeGreaterThan(simplifyForMatch(parts[0]!).length);
   });
 
-  it('a tilos megfordulás egyenes: a két irány külön illeszkedik, a visszaforduló pontnál nincs körbevezető vonal', () => {
-    const chunks = traceChunks(simplifyForMatch(parts[1]!));
-    expect(chunks.length).toBeGreaterThanOrEqual(2);
-    // a szétválasztás miatt az illesztés mindkét oldalon biztos
-    for (const m of fixture.matches[1]!) for (const x of m.matchings!) expect(x.confidence).toBeGreaterThan(TRACK.minConfidence);
-    // az egész nyomat hossza körül marad: kerülő (a háztömb megkerülése) nincs benne
+  it('két áthaladás ugyanazon az utcán (eltolt GPS-zajjal) többnyire ugyanazokat a szakaszkulcsokat adja', () => {
+    const shifted = recordTrace(samples.map((x, i) => ({ ...x, lat: x.lat + ((i % 3) - 1) * 0.00002, lon: x.lon + ((i % 2) * 2 - 1) * 0.00002 })));
+    const a = new Set(trackSegments(lines).map((s) => s.key));
+    const b = trackSegments(gridLines(shifted)).map((s) => s.key);
+    expect(b.filter((k) => a.has(k)).length / b.length).toBeGreaterThan(0.7);
+  });
+
+  it('a megfordulásnál nincs kerülő: a csík hossza a nyers nyomat körül marad', () => {
     const rawLen = parts.reduce((s, p) => s + lengthM(p.map((x) => [x.lat, x.lon])), 0);
-    expect(lines.reduce((s, l) => s + lengthM(l.coords), 0)).toBeLessThan(rawLen * 1.1);
+    expect(lines.reduce((s, l) => s + lengthM(smoothLine(l.coords)), 0)).toBeLessThan(rawLen * 1.25);
     const uturn = fixture.samples.find((s) => s[0] === fixture.uturnT)!;
-    const near = (l: TrackLine) => l.coords.some(([lat, lon]) => haversineM({ lat, lon }, { lat: uturn[1]!, lon: uturn[2]! }) < 40);
-    expect(lines.some(near)).toBe(true);
+    expect(lines.some((l) => l.coords.some(([lat, lon]) => haversineM({ lat, lon }, { lat: uturn[1]!, lon: uturn[2]! }) < 40))).toBe(true);
   });
 
   it('a GPS-kiesésnél megszakad: két darab, köztük nincs vonal', () => {
@@ -86,7 +79,8 @@ describe('AW24: valódi budapesti nyomat', () => {
     expect(a.t).toBe(fixture.gap!.beforeT);
     expect(b.t).toBe(fixture.gap!.afterT);
     expect(haversineM(a, b)).toBeGreaterThan(TRACK.gapM);
-    const crossing = lines.some((l) => l.coords.some(([lat, lon]) => haversineM({ lat, lon }, a) < 1) && l.coords.some(([lat, lon]) => haversineM({ lat, lon }, b) < 1));
+    expect(lines.length).toBe(2);
+    const crossing = lines.some((l) => l.coords.some(([lat, lon]) => haversineM({ lat, lon }, a) < 30) && l.coords.some(([lat, lon]) => haversineM({ lat, lon }, b) < 30));
     expect(crossing).toBe(false);
   });
 });
@@ -115,102 +109,54 @@ describe('AW24: pontsor a mintákból', () => {
     const far = [...near, sample(3000, 47.51, 19), sample(4000, 47.5103, 19)];
     expect(recordTrace(far).length).toBe(2);
   });
-
-  it('az egyszerűsítés egyenesen kevesebb pontot hagy, a kanyart megtartja, nagy hézagot nem', () => {
-    const straight = north(100, 20).map(([lat, lon], i) => pt(i * 1000, lat, lon));
-    const s = simplifyForMatch(straight);
-    expect(s.length).toBeLessThan(10);
-    for (let i = 1; i < s.length; i++) expect(haversineM(s[i - 1]!, s[i]!)).toBeLessThanOrEqual(TRACK.maxSpacingM + 20);
-    const corner = [...north(5, 40).map(([lat, lon], i) => pt(i * 1000, lat, lon)), pt(6000, 47.5018, 19.001)];
-    expect(simplifyForMatch(corner).length).toBeGreaterThanOrEqual(3);
-  });
-
-  it('megfordulásnál új kérés indul, a közös ponttal', () => {
-    const fwd = north(5, 40).map(([lat, lon], i) => pt(i * 1000, lat, lon));
-    const back = north(4, 40).reverse().map(([lat, lon], i) => pt(6000 + i * 1000, lat, lon));
-    const c = traceChunks([...fwd, ...back]);
-    expect(c.length).toBe(2);
-    expect(c[0]!.at(-1)).toBe(fwd.at(-1));
-    expect(c[1]![0]).toBe(fwd.at(-1));
-    expect(traceChunks(fwd).length).toBe(1);
-  });
-
-  it('a darabolás a pontkorlát szerint, egy közös ponttal', () => {
-    const p = north(249, 20).map(([lat, lon], i) => pt(i * 1000, lat, lon));
-    const c = matchChunks(p);
-    expect(c.every((x) => x.length <= 100)).toBe(true);
-    expect(c.length).toBe(3);
-    expect(c[0]!.at(-1)).toBe(c[1]![0]);
-    expect(c.flat().length).toBe(250 + 2);
-    expect(matchChunks(p.slice(0, 1))).toEqual([]);
-  });
 });
 
-describe('AW24: illesztő-réteg', () => {
-  it('a kérés: driving, teljes geometria, sugár a pontosságból, növekvő időbélyeg', () => {
-    const u = new URL(mapboxMatchUrl([pt(1000, 47.5, 19, 40, 8), pt(1000, 47.501, 19, 40, null), pt(2000, 47.502, 19, 40, 80)], 'pk.x'));
-    expect(u.pathname).toContain('/matching/v5/mapbox/driving/19.000000,47.500000;');
-    expect(u.searchParams.get('geometries')).toBe('geojson');
-    expect(u.searchParams.get('overview')).toBe('full');
-    expect(u.searchParams.get('radiuses')).toBe('12;30;50');
-    const ts = u.searchParams.get('timestamps')!.split(';').map(Number);
-    expect(ts[1]!).toBeGreaterThan(ts[0]!);
-    expect(ts[2]!).toBeGreaterThan(ts[1]!);
-    expect(matchRadius(1)).toBe(TRACK.radiusMinM);
-  });
-
-  it('a 422 és a NoMatch egyenes vonalat ad, a szerverhiba kivétel (később újrapróba)', async () => {
-    const p = north(3, 50).map(([lat, lon], i) => pt(i * 1000, lat, lon));
-    const res = (status: number, body: unknown) => (async () => new Response(JSON.stringify(body), { status })) as unknown as typeof fetch;
-    const l = await matchTrace([p], mapboxMatcher('pk.x', res(422, { code: 'InvalidInput' })));
+describe('AW25: illesztő-réteg (saját, cserélhető)', () => {
+  it('a rács-illesztő: a cellasor folytonos (szomszédos cellák), a cellaközéppont a rácsé, a visszalépés kimarad', async () => {
+    const p = north(40, 5).map(([lat, lon], i) => pt(i * 1000, lat, lon));
+    const l = await gridMatcher.lines([p]);
+    expect(gridMatcher.id).toBe(MATCHER_GRID);
     expect(l.length).toBe(1);
-    expect(l[0]!.matched).toBe(false);
-    const n = await matchTrace([p], mapboxMatcher('pk.x', res(200, { code: 'NoMatch' })));
-    expect(n[0]!.matched).toBe(false);
-    await expect(matchTrace([p], mapboxMatcher('pk.x', res(503, {})))).rejects.toThrow('http_503');
+    for (let i = 1; i < l[0]!.coords.length; i++) expect(haversineM({ lat: l[0]!.coords[i - 1]![0], lon: l[0]!.coords[i - 1]![1] }, { lat: l[0]!.coords[i]![0], lon: l[0]!.coords[i]![1] })).toBeLessThan(32);
+    // a cellahatáron oda-vissza ugráló pont nem ad A–B–A lépcsőt
+    const edge = Math.floor(47.5 / TRACK.gridDeg + 1) * TRACK.gridDeg;
+    const jitter = [pt(0, edge - 0.00003, 19), pt(1000, edge + 0.00001, 19), pt(2000, edge - 0.00002, 19), pt(3000, edge - 0.0001, 19)];
+    expect(gridLines([jitter])).toEqual([]);
   });
 
   it('másik illesztő ugyanazon a felületen cserélhető', async () => {
     const p = north(2, 50).map(([lat, lon], i) => pt(i * 1000, lat, lon));
-    const other: MapMatcher = {
-      id: 'osrm',
-      match: async (c): Promise<MatchResult> => ({ matchings: [{ confidence: 1, coords: c.map((x) => [x.lat, x.lon]), legsM: c.slice(1).map((x, i) => haversineM(c[i]!, x)) }], tracepoints: c.map((x) => ({ matching: 0, lat: x.lat, lon: x.lon })) }),
-    };
-    const l = await matchTrace([p], other);
+    const other: TrackMatcher = { id: 'valhalla', lines: async (ps) => ps.map((x) => ({ matched: true, coords: x.map((y) => [y.lat, y.lon] as [number, number]), kmh: x.map((y) => y.kmh ?? 0) })) };
+    const l = await other.lines([p]);
     expect(l.length).toBe(1);
     expect(l[0]!.matched).toBe(true);
   });
 
-  it('illesztő nélkül a nyers pontok egyenesei, a darabok külön', () => {
-    const l = rawLines([north(2, 50).map(([lat, lon], i) => pt(i, lat, lon)), north(2, 50, 47.6).map(([lat, lon], i) => pt(i, lat, lon))]);
-    expect(l.length).toBe(2);
-    expect(l.every((x) => !x.matched)).toBe(true);
+  it('a tárolt Mapbox-illesztés cseréje: nyers pontsorral újraépül, nélküle a geometria törlődik; a rács-illesztett és a függő változatlan', () => {
+    const base: TripTrack = { tripId: 't', startedAt: 0, status: 'done', share: false, parts, lines: [line([[47.5, 19], [47.51, 19]])], matcher: MATCHER_MAPBOX };
+    const re = migrateTrack(base);
+    expect(re.matcher).toBe(MATCHER_GRID);
+    expect(re.lines).toEqual(gridLines(parts));
+    const gone = migrateTrack({ ...base, parts: [] });
+    expect(gone.lines).toEqual([]);
+    expect(gone.matcher).toBe(MATCHER_GRID);
+    const ok = { ...base, matcher: MATCHER_GRID };
+    expect(migrateTrack(ok)).toBe(ok);
+    const pending = { ...base, status: 'pending' as const };
+    expect(migrateTrack(pending)).toBe(pending);
+    // a régi, illesztés nélküli egyenes is a rácsra kerül (stabil kulcsok); nyers pontsor nélkül marad
+    expect(migrateTrack({ ...base, matcher: null }).matcher).toBe(MATCHER_GRID);
+    const bare = { ...base, matcher: null, parts: [] };
+    expect(migrateTrack(bare)).toBe(bare);
   });
 
-  it('kerülő-őr: a két pont közti háztömb-megkerülés helyett egyenes', () => {
-    const a = pt(0, 47.5, 19);
-    const b = pt(1000, 47.5003, 19);
-    const loop: [number, number][] = [[47.5, 19], [47.502, 19], [47.502, 19.002], [47.5003, 19.002], [47.5003, 19]];
-    const r: MatchResult = { matchings: [{ confidence: 0.9, coords: loop, legsM: [lengthM(loop)] }], tracepoints: [{ matching: 0, lat: 47.5, lon: 19 }, { matching: 0, lat: 47.5003, lon: 19 }] };
-    const l = assembleLines([[a, b]], [r]);
-    expect(l.length).toBe(1);
-    expect(l[0]!.matched).toBe(false);
-    expect(l[0]!.coords.length).toBe(2);
-  });
-
-  it('gyenge bizalmú illesztés nem számít', () => {
-    const a = pt(0, 47.5, 19);
-    const b = pt(1000, 47.5003, 19);
-    const r: MatchResult = { matchings: [{ confidence: 0.05, coords: [[47.5, 19], [47.5003, 19]], legsM: [33] }], tracepoints: [{ matching: 0, lat: 47.5, lon: 19 }, { matching: 0, lat: 47.5003, lon: 19 }] };
-    expect(assembleLines([[a, b]], [r])[0]!.matched).toBe(false);
-  });
-
-  it('illesztett és egyenes darab váltásánál nincs rés', () => {
-    const p = [pt(0, 47.5, 19), pt(1000, 47.5003, 19), pt(2000, 47.5006, 19)];
-    const r: MatchResult = { matchings: [{ confidence: 0.9, coords: [[47.5, 19], [47.5003, 19]], legsM: [33] }], tracepoints: [{ matching: 0, lat: 47.5, lon: 19 }, { matching: 0, lat: 47.5003, lon: 19 }, null] };
-    const l = assembleLines([p], [r]);
-    expect(l.map((x) => x.matched)).toEqual([true, false]);
-    expect(l[1]!.coords[0]).toEqual(l[0]!.coords.at(-1));
+  it('kirajzolás: a lépcső simított, a végpontok maradnak, két pontnál változatlan', () => {
+    const stair: [number, number][] = [[0, 0], [0, 1], [1, 1], [1, 2], [2, 2]];
+    const sm = smoothLine(stair);
+    expect(sm[0]).toEqual([0, 0]);
+    expect(sm.at(-1)).toEqual([2, 2]);
+    expect(sm.length).toBeGreaterThan(stair.length);
+    expect(smoothLine([[0, 0], [1, 1]])).toEqual([[0, 0], [1, 1]]);
   });
 });
 

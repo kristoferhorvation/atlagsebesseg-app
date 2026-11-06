@@ -1648,6 +1648,19 @@ a.list-row {
   border-color: var(--color-text-muted);
 }
 
+/* AW25 (INV-24): a kamera-zóna felirata (FR) – a pont helyett; nem koppintható */
+.camera-zone-label {
+  pointer-events: none;
+  padding: 4px 10px;
+  border-radius: var(--radius-pill);
+  font-size: var(--type-caption-size);
+  font-weight: 600;
+  white-space: nowrap;
+  color: var(--color-text);
+  background: var(--color-surface-strong);
+  border: 1.5px dashed var(--color-text-faint);
+}
+
 .camera-card-ic {
   color: var(--color-text-muted);
   background: var(--color-surface-raised);

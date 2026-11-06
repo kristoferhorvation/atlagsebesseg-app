@@ -170,12 +170,75 @@ nonisolated struct SavedPlaces: Equatable, Sendable {
 /// Legfeljebb ennyi további mentett cím.
 nonisolated let SAVED_OTHERS_MAX = 10
 
-/// Érvényes hely-e a tárolt (laza) JSON-elem; ha igen, a tisztított alakja.
+/// AW25 (INV-25, Mapbox-feltételek): tartósan (helyi tár, fiók-szinkron) a keresési találatból csak a koordináta (+ az útra illesztett
+/// pont) és a felhasználó saját címkéje kerül; a Mapbox-név és -cím nem. A webes `clean` (places.ts) párja.
+nonisolated func storedPlace(_ p: Place) -> Place {
+    let label = p.label?.trimmingCharacters(in: .whitespacesAndNewlines)
+    return Place(id: p.id, name: "", address: "", lat: p.lat, lon: p.lon, routable: p.routable, label: (label?.isEmpty ?? true) ? nil : String(label!.prefix(40)))
+}
+
+/// A hely kulcsa a névtárhoz: a koordináta 5 tizedesre (~1 m).
+nonisolated func placeKey(_ p: Place) -> String { String(format: "%.5f,%.5f", p.lat, p.lon) }
+
+/// AW25: a futás alatt látott Mapbox-nevek – csak memóriában (a Mapbox ideiglenes tárolást enged), soha nem a tárba.
+nonisolated private final class PlaceNames: @unchecked Sendable {
+    static let shared = PlaceNames()
+    private let lock = NSLock()
+    private var names: [String: (name: String, address: String)] = [:]
+    func set(_ key: String, _ v: (name: String, address: String)) { lock.withLock { names[key] = v } }
+    func get(_ key: String) -> (name: String, address: String)? { lock.withLock { names[key] } }
+    func clear() { lock.withLock { names = [:] } }
+}
+
+/// Egy találat nevének megjegyzése a futás idejére (választáskor, mentéskor, fordított geokódoláskor).
+nonisolated func rememberPlaceName(_ p: Place) {
+    let name = p.name.trimmingCharacters(in: .whitespacesAndNewlines)
+    if !name.isEmpty { PlaceNames.shared.set(placeKey(p), (name, p.address)) }
+}
+
+/// Megjelenítésre: a saját címke, különben a futás alatt látott / újra lekért név; ha még nincs, a koordináta.
+nonisolated func displayPlace(_ p: Place) -> Place {
+    var out = p
+    let known = PlaceNames.shared.get(placeKey(p))
+    if let label = p.label, !label.isEmpty {
+        out.name = label
+        out.address = known.map { [$0.name, $0.address].filter { !$0.isEmpty }.joined(separator: ", ") } ?? ""
+    } else if p.name.isEmpty {
+        out.name = known?.name ?? String(format: "%.4f, %.4f", p.lat, p.lon)
+        out.address = known?.address ?? ""
+    }
+    return out
+}
+
+/// A helyek, amelyeknek se címkéje, se ismert neve nincs – ezekre megy fordított geokódolás (egyszer helyenként).
+nonisolated func placesNeedingNames(_ ps: [Place]) -> [Place] {
+    ps.filter { ($0.label ?? "").isEmpty && $0.name.isEmpty && PlaceNames.shared.get(placeKey($0)) == nil }
+}
+
+/// Csak teszthez: a névtár ürítése (egy újraindított app állapota).
+nonisolated func forgetPlaceNames() { PlaceNames.shared.clear() }
+
+/// AW25: fordított geokódolás (koordináta → név) a mentett / legutóbbi hely megjelenítéséhez; az eredmény csak memóriában marad.
+nonisolated func reverseGeocodeUrl(_ p: LatLon, lang: Lang, token: String) -> URL {
+    var c = URLComponents(string: "https://api.mapbox.com/search/geocode/v6/reverse")!
+    c.queryItems = [
+        URLQueryItem(name: "longitude", value: String(format: "%.6f", p.lon)),
+        URLQueryItem(name: "latitude", value: String(format: "%.6f", p.lat)),
+        URLQueryItem(name: "language", value: directionsLanguage(lang)),
+        URLQueryItem(name: "limit", value: "1"),
+        URLQueryItem(name: "access_token", value: token),
+    ]
+    return c.url!
+}
+
+/// Érvényes hely-e a tárolt (laza) JSON-elem; ha igen, a tisztított alakja (a régi, névvel tárolt elem neve a futás idejére a memóriába kerül).
 nonisolated private func cleanPlace(_ v: Any?) -> Place? {
     guard let o = v as? JSONObj, let name = o["name"] as? String, let lat = jsonNum(o["lat"]), let lon = jsonNum(o["lon"]) else { return nil }
     let r = o["routable"] as? JSONObj
     let routable = r.flatMap { r in jsonNum(r["lat"]).flatMap { la in jsonNum(r["lon"]).map { LatLon(lat: la, lon: $0) } } }
-    return Place(id: str(o["id"]) ?? "\(lat),\(lon)", name: name, address: (o["address"] as? String) ?? "", lat: lat, lon: lon, routable: routable)
+    let p = Place(id: str(o["id"]) ?? "\(lat),\(lon)", name: name, address: (o["address"] as? String) ?? "", lat: lat, lon: lon, routable: routable, label: o["label"] as? String)
+    rememberPlaceName(p)
+    return storedPlace(p)
 }
 
 nonisolated private func jsonValue(_ raw: String?) -> Any? {
@@ -191,8 +254,9 @@ nonisolated func parseRecents(_ raw: String?, max: Int = NAV_CONFIG.recentMax) -
 
 /// Új cél a lista elejére; ugyanaz a hely (azonos azonosító vagy 100 m-en belül) nem duplázódik; legfeljebb `max` marad.
 nonisolated func addRecent(_ list: [Place], _ place: Place, max: Int = NAV_CONFIG.recentMax) -> [Place] {
+    rememberPlaceName(place)
     let rest = list.filter { $0.id != place.id && haversineM($0.latLon, place.latLon) > 100 }
-    return Array(([place] + rest).prefix(max))
+    return Array(([storedPlace(place)] + rest).prefix(max))
 }
 
 nonisolated func parseSaved(_ raw: String?) -> SavedPlaces {
@@ -204,8 +268,18 @@ nonisolated func parseSaved(_ raw: String?) -> SavedPlaces {
 /// Új további mentett cím a lista végére; ugyanaz a hely (azonos azonosító vagy 100 m-en belül) nem duplázódik.
 nonisolated func addSavedOther(_ saved: SavedPlaces, _ place: Place) -> SavedPlaces {
     if saved.others.contains(where: { $0.id == place.id || haversineM($0.latLon, place.latLon) <= 100 }) { return saved }
+    rememberPlaceName(place)
     var s = saved
-    s.others = Array((saved.others + [place]).prefix(SAVED_OTHERS_MAX))
+    s.others = Array((saved.others + [storedPlace(place)]).prefix(SAVED_OTHERS_MAX))
+    return s
+}
+
+/// AW25: Haza / Munka beállítása vagy törlése – a tárba csak a koordináta és a saját címke kerül (INV-25).
+nonisolated func setSavedPlace(_ saved: SavedPlaces, _ kind: SavedChip.Kind, _ place: Place?) -> SavedPlaces {
+    if let place { rememberPlaceName(place) }
+    var s = saved
+    if kind == .home { s.home = place.map(storedPlace) }
+    if kind == .work { s.work = place.map(storedPlace) }
     return s
 }
 
@@ -229,15 +303,18 @@ nonisolated func savedChips(_ saved: SavedPlaces, lang: Lang? = nil) -> [SavedCh
     var out: [SavedChip] = []
     if let h = saved.home { out.append(SavedChip(id: "home", icon: .home, label: t(.navPlaceHome, lang: lang), place: h)) }
     if let w = saved.work { out.append(SavedChip(id: "work", icon: .work, label: t(.navPlaceWork, lang: lang), place: w)) }
-    return out + saved.others.map { SavedChip(id: "other:\($0.id)", icon: .pin, label: $0.name, place: $0) }
+    return out + saved.others.map { SavedChip(id: "other:\($0.id)", icon: .pin, label: displayPlace($0).name, place: displayPlace($0)) }
 }
 
 /// A helyek JSON-alakja (a weben tárolttal azonos mezők).
 nonisolated func placesJSON(_ places: [Place?]) -> [Any] {
     places.map { p in
         p.map { p -> [String: Any] in
-            var o: [String: Any] = ["id": p.id, "name": p.name, "address": p.address, "lat": p.lat, "lon": p.lon]
-            if let r = p.routable { o["routable"] = ["lat": r.lat, "lon": r.lon] }
+            // AW25 (INV-25): a Mapbox-név és -cím nem kerül a tárba (a mező a régi olvasókért marad, üresen)
+            let sp = storedPlace(p)
+            var o: [String: Any] = ["id": sp.id, "name": "", "address": "", "lat": sp.lat, "lon": sp.lon]
+            if let r = sp.routable { o["routable"] = ["lat": r.lat, "lon": r.lon] }
+            if let l = sp.label { o["label"] = l }
             return o
         } ?? NSNull()
     }

@@ -4,7 +4,7 @@ import { assertEquals } from 'jsr:@std/assert@1';
 import { handleEmail } from './handler.ts';
 import { accountEmail } from './emails.bundle.js';
 
-const env = { supabaseUrl: 'https://teszt.supabase.co', serviceKey: 'service', cronSecret: 'cron', resendKey: 're_x', from: 'Tempomate <hello@tempomate.app>' };
+const env = { supabaseUrl: 'https://teszt.supabase.co', serviceKey: 'service', cronSecret: 'cron', resendKey: 're_x', from: 'Tempomate <no-reply@tempomate.app>' };
 const uid = '00000000-0000-0000-0000-0000000000a1';
 const post = (body: unknown, token = 'cron') =>
   new Request('https://x/account-email', { method: 'POST', headers: { Authorization: `Bearer ${token}` }, body: JSON.stringify(body) });

@@ -214,6 +214,17 @@ struct VisibilityTests {
         #expect(rules.countries["DE"]?.warning == "warn.camera.DE")
     }
 
+    @Test("egyszeri ország-figyelmeztetés: csak DE, egyszer; a zóna felirata az app nyelvén")
+    func orszagFigyelmeztetes() {
+        var seen = Set<String>()
+        let first = pendingCountryWarnings(["de", "HU", "FR", "CH", "DE"], seen: { seen.contains($0) })
+        #expect(first.map(\.country) == ["DE"])
+        #expect(first.first?.text == t(.warnCameraDE))
+        for w in first { seen.insert(w.country) }
+        #expect(pendingCountryWarnings(["DE", "HU"], seen: { seen.contains($0) }).isEmpty)
+        #expect(visibleCameras([cam("f", "FR", 48.85, 2.35)]).zones.first?.label == t(.cameraZone))
+    }
+
     @Test("show → pont, zone → ±1 km zóna pont nélkül (rácsra kerekítve), hide → semmi")
     func modok() {
         let v = visibleCameras([cam("a", "HU"), cam("b", "FR", 48.85123, 2.35123), cam("c", "CH"), cam("d", "FR", 48.85124, 2.35124)])

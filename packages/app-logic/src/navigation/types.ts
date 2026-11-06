@@ -17,6 +17,8 @@ export interface Place {
   retrieveId?: string;
   /** AW23: a távolság a jelenlegi helyzettől (m), ha a találat adja. */
   distanceM?: number;
+  /** AW25 (INV-25): a felhasználó saját címkéje – a mentett / legutóbbi helyen a Mapbox-név helyett ez tárolható. */
+  label?: string;
 }
 
 /** A tervezés célpontja: a cím útra illesztett pontja, ha van, különben maga a cím. */

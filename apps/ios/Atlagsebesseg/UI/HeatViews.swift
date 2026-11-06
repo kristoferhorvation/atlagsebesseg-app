@@ -106,7 +106,7 @@ struct HeatDetailsView: View {
         var out: [(String, String)] = []
         if model.saved.home != nil { out.append(("home", t(.navPlaceHome))) }
         if model.saved.work != nil { out.append(("work", t(.navPlaceWork))) }
-        out.append(contentsOf: model.saved.others.map { ($0.id, $0.name) })
+        out.append(contentsOf: model.saved.others.map { ($0.id, displayPlace($0).name) })
         return out
     }
 }

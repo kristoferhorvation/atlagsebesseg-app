@@ -1,4 +1,4 @@
-import { appendSegmentOutbox, parseSegmentOutbox, uploadSegmentRows, type SegmentUploadRow, type SupabaseClient } from '@atlagsebesseg/app-logic';
+import { appendSegmentOutbox, MATCHER_GRID, parseSegmentOutbox, uploadSegmentRows, type SegmentUploadRow, type SupabaseClient } from '@atlagsebesseg/app-logic';
 
 /**
  * AW24: a közösségi hőtérkép feltöltési sora útszakaszonként (opt-out, `adatmegosztas`). A sorok a localStorage-ban várnak (`heat:segments:outbox:v1`), amíg a feltöltés
@@ -7,7 +7,7 @@ import { appendSegmentOutbox, parseSegmentOutbox, uploadSegmentRows, type Segmen
 export const SEGMENT_OUTBOX_KEY = 'heat:segments:outbox:v1';
 const OLD_OUTBOX_KEY = 'heat:outbox:v1';
 /** Az illesztő jelölése a közösségi sorokon; a régi sorban nincs ilyen, ma egy szolgáltató van. */
-export const SEGMENT_MATCHER = 'mapbox';
+export const SEGMENT_MATCHER = MATCHER_GRID; // AW25: a saját rács-illesztő (a Mapbox-illesztés kikerült)
 
 const read = (): SegmentUploadRow[] => {
   try {

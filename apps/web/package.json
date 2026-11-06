@@ -8,6 +8,8 @@
     "dev": "vite",
     "dev:https": "HTTPS=1 vite",
     "build": "vite build",
+    "legal": "tsx scripts/build-legal.ts",
+    "manifests": "tsx scripts/build-manifests.ts",
     "preview": "vite preview",
     "icons": "node scripts/make-icons.mjs",
     "test": "eslint src && vitest run",

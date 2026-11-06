@@ -12,7 +12,7 @@ Deno.serve((req: Request) =>
       serviceKey: Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
       cronSecret: Deno.env.get('CRON_SECRET') ?? '',
       resendKey: Deno.env.get('RESEND_API_KEY') ?? '',
-      from: Deno.env.get('MAIL_FROM') ?? 'Tempomate <hello@tempomate.app>',
+      from: Deno.env.get('MAIL_FROM') ?? 'Tempomate <no-reply@tempomate.app>',
     },
     accountEmail
   )

@@ -1,13 +1,15 @@
-import { angleDiffDeg, bearingDeg, haversineM, type LatLon } from '@atlagsebesseg/core';
+import { bearingDeg, haversineM } from '@atlagsebesseg/core';
 import { HEAT, heatWeight, inZone, type HeatView, type HeatZone, type HeatViewport } from './heat';
 import { simplifyPath, TRIP, type TripSample } from './trips';
 
 /**
- * AW24: hőtérkép utcákra illesztett csíkokkal (a rácscellák helyett). Platformfüggetlen; a Swift-pár: `Logic/Track.swift`, azonos nevű tesztekkel
- * (`track.test.ts` ↔ `TrackTests.swift`), közös fixtúrán (`fixtures/track-budapest.json`).
+ * AW24: hőtérkép csíkokkal (a rácscellák helyett). Platformfüggetlen; a Swift-pár: `Logic/Track.swift`, azonos nevű tesztekkel
+ * (`track.test.ts` ↔ `TrackTests.swift`), közös fixtúrán (`fixtures/track-budapest.json`, valódi nyers nyomat).
  *
- * Út végén: minták → pontsor (`recordTrace`) → egyszerűsítés (`simplifyForMatch`) → darabolás (`matchChunks`) → illesztő (`MapMatcher`, cserélhető) → vonalak
- * (`assembleLines`) → útszakaszok (`trackSegments`). Ahol az illesztés nem sikerül vagy kerülőt adna, a nyers pontok közti egyenes marad; a GPS-kiesésnél a csík megszakad.
+ * AW25 (Kristof döntése, Mapbox-feltételek: a Map Matching eredménye nem tárolható): a csík a SAJÁT nyers GPS-pontokból készül. Út végén:
+ * minták → pontsor (`recordTrace`: 20 m-es pontok, pontosság-szűrés, kiesésnél megszakad) → illesztő (`TrackMatcher`, cserélhető; ma a
+ * `gridMatcher`: a pontsor egy rögzített, kb. 22 m-es rács celláin át, így ugyanaz az utca más utakon ugyanazokat a szakaszkulcsokat adja;
+ * később saját Valhalla-szerver) → útszakaszok (`trackSegments`). A lépcsőzést csak a kirajzolás simítja (`smoothLine`).
  */
 export const TRACK = {
   /** Kb. ennyi méterenként egy pont… */
@@ -18,23 +20,15 @@ export const TRACK = {
   turnMinM: 8,
   /** Ekkora ugrás pont nélkül valódi GPS-kiesés: a csík megszakad (m). */
   gapM: 200,
-  /** Illesztés előtti egyszerűsítés (Douglas–Peucker, m). */
-  simplifyM: 6,
-  /** Egyszerűsítés után sem maradhat ennél nagyobb hézag (m): a ritka pontok közt az illesztő másik utat választhat. */
-  maxSpacingM: 400,
-  /** A Map Matching kérésenkénti pontkorlátja. */
-  matchMaxCoords: 100,
-  /** Az illesztési sugár a pont pontosságából, ezek közé szorítva (m; a Map Matching felső határa 50). */
-  radiusMinM: 10,
-  radiusMaxM: 50,
-  /** Ennél gyengébb bizalmú illesztés nem számít (0…1). */
-  minConfidence: 0.1,
-  /** Kerülő-őr: az illesztett darab hossza a két pont légvonalához képest (tilos megfordulásnál az illesztő körbevinné az utcán). */
-  detourFactor: 2,
-  detourExtraM: 150,
-  /** Megfordulás a pontsorban (fok): itt új illesztési kérés indul, a két irány egymástól függetlenül illeszkedik, köztük nincs körbevezetés. */
-  reversalDeg: 135,
-  /** Az útszakaszok hossza az illesztett vonal mentén (m). */
+  /** AW25: a rács-illesztő cellája szélességben (fok, kb. 22 m); hosszúságban egész fokos sávonként a szélesség koszinuszával nyújtva. */
+  gridDeg: 0.0002,
+  /** A pontsor mintavétele a cellák kereséséhez (m): kisebb a cellánál, így a cellasor folytonos. */
+  gridSampleM: 5,
+  /** A kirajzolás egyszerűsítése (Douglas–Peucker, m; a cellalépcső legfeljebb ~16 m-re tér el az átlótól): az átlós utca cellalépcsője egyenes lesz, a valódi kanyar marad. */
+  smoothSimplifyM: 20,
+  /** A kirajzolás simítása utána (Chaikin-lépések): a töréspontok kerekek, a végpontok maradnak. */
+  smoothSteps: 2,
+  /** Az útszakaszok hossza a vonal mentén (m). */
   segmentM: 25,
   /** A szakasz kulcsának kerekítése (fok, kb. 1 m). */
   keyDecimals: 5,
@@ -50,8 +44,10 @@ export const TRACK = {
   zoneMarginM: 25,
 } as const;
 
-/** Az illesztő szolgáltatót jelöli az eredményen: a Mapbox-eredmény így külön törölhető, ha saját illesztőre váltunk. */
+/** Az illesztő jelölése az eredményen. A `mapbox` csak a régi (AW24) tárolt adat felismeréséhez kell: az ilyen geometria cserélendő (`migrateTrack`). */
 export const MATCHER_MAPBOX = 'mapbox';
+/** AW25: a saját rács-illesztő (nyers GPS-pontokból). */
+export const MATCHER_GRID = 'grid';
 
 export interface TrackPoint {
   t: number;
@@ -61,7 +57,7 @@ export interface TrackPoint {
   acc: number | null;
 }
 
-/** Egy összefüggő vonaldarab: `matched` az úthálózatra illesztett, különben a nyers pontok közti egyenes. */
+/** Egy összefüggő vonaldarab: `matched` a saját illesztővel készült (stabil szakaszkulcsok, mehet a közösségbe), különben a nyers pontok közti egyenes. */
 export interface TrackLine {
   matched: boolean;
   coords: [number, number][];
@@ -119,225 +115,87 @@ export function recordTrace(samples: readonly TripSample[]): TrackPoint[][] {
   return parts;
 }
 
-/** Egyenes szakaszon kevesebb pont az illesztés előtt (a kanyarok és a megfordulás megmaradnak); `maxSpacingM`-nél nagyobb hézag nem marad. */
-export function simplifyForMatch(points: readonly TrackPoint[]): TrackPoint[] {
-  if (points.length <= 2) return [...points];
-  const kept = new Set(simplifyPath(points as readonly LatLon[], TRACK.simplifyM));
-  const out: TrackPoint[] = [];
-  let lastI = 0;
-  points.forEach((p, i) => {
-    if (kept.has(p)) {
-      if (i > 0) {
-        // a nagy hézagba az eredeti pontokból kerül vissza
-        let from = lastI;
-        for (let k = lastI + 1; k < i; k++) {
-          if (haversineM(points[from]!, points[k + 1]!) > TRACK.maxSpacingM) {
-            out.push(points[k]!);
-            from = k;
-          }
-        }
-      }
-      out.push(p);
-      lastI = i;
-    }
-  });
-  return out;
-}
-
-/** Darabolás a kérésenkénti pontkorlát szerint; a szomszédos darabok egy pontot közösen tartalmaznak, így a vonal nem szakad el. */
-export function matchChunks(points: readonly TrackPoint[], max: number = TRACK.matchMaxCoords): TrackPoint[][] {
-  if (points.length <= max) return points.length >= 2 ? [[...points]] : [];
-  const out: TrackPoint[][] = [];
-  for (let i = 0; i < points.length - 1; i += max - 1) out.push(points.slice(i, i + max));
-  return out;
-}
-
-/** A kérésekre bontás: a megfordulásnál mindig új kérés indul (egy tilos megfordulás különben a teljes darab illesztését lerontja), azon belül a pontkorlát szerint. */
-export function traceChunks(points: readonly TrackPoint[]): TrackPoint[][] {
-  const out: TrackPoint[][] = [];
-  let from = 0;
-  for (let i = 1; i < points.length - 1; i++) {
-    if (reversalAt(points, i)) {
-      out.push(...matchChunks(points.slice(from, i + 1)));
-      from = i;
-    }
-  }
-  out.push(...matchChunks(points.slice(from)));
-  return out;
-}
-
-/** Az illesztési sugár a pont pontosságából (ismeretlen pontosságnál a tartomány közepe). */
-export const matchRadius = (acc: number | null): number => Math.round(Math.max(TRACK.radiusMinM, Math.min(TRACK.radiusMaxM, acc === null ? (TRACK.radiusMinM + TRACK.radiusMaxM) / 2 : acc * 1.5)));
-
-/** A Mapbox Map Matching kérése (`driving`, teljes GeoJSON-geometria; a sugár a pontosságból, az időbélyeg szigorúan növekvő). */
-export function mapboxMatchUrl(points: readonly TrackPoint[], token: string): string {
-  const coords = points.map((p) => `${p.lon.toFixed(6)},${p.lat.toFixed(6)}`).join(';');
-  let last = 0;
-  const stamps = points.map((p) => {
-    last = Math.max(Math.floor(p.t / 1000), last + 1);
-    return String(last);
-  });
-  const q = new URLSearchParams({ geometries: 'geojson', overview: 'full', steps: 'false', tidy: 'false', radiuses: points.map((p) => matchRadius(p.acc)).join(';'), timestamps: stamps.join(';') });
-  q.set('access_token', token);
-  return `https://api.mapbox.com/matching/v5/mapbox/driving/${coords}?${q}`;
-}
-
-/** Az illesztő válasza közös alakban; más szolgáltató (OSRM, Valhalla) ugyanezt adja a `MapMatcher` mögött. */
-export interface MatchResult {
-  /** `legsM`: a szomszédos illesztett pontok közti táv a vonal mentén (m): ezzel ugyanaz az utca oda-vissza sem téveszthető össze. */
-  matchings: { confidence: number; coords: [number, number][]; legsM: number[] }[];
-  /** Pontonként (a kérés sorrendjében): melyik illesztéshez tartozik és hova került; `null`: nem illeszthető. */
-  tracepoints: ({ matching: number; lat: number; lon: number } | null)[];
-}
-
-/** Cserélhető illesztő-réteg (ma Mapbox, később saját szerver). Hálózati hiba: kivétel (az út később újrapróbálódik); „nincs illesztés”: üres eredmény. */
-export interface MapMatcher {
-  readonly id: string;
-  match(points: readonly TrackPoint[]): Promise<MatchResult>;
-}
-
-const EMPTY_MATCH = (n: number): MatchResult => ({ matchings: [], tracepoints: new Array(n).fill(null) });
-
-/** A Map Matching válasz feldolgozása; a `NoMatch` és társai üres eredmény, nem hiba. */
-export function parseMapboxMatch(json: unknown, n: number): MatchResult {
-  const j = json as { code?: string; matchings?: { confidence?: number; geometry?: { coordinates?: [number, number][] }; legs?: { distance?: number }[] }[]; tracepoints?: ({ matchings_index?: number; location?: [number, number] } | null)[] } | null;
-  if (!j || j.code !== 'Ok' || !Array.isArray(j.matchings) || !Array.isArray(j.tracepoints)) return EMPTY_MATCH(n);
-  return {
-    matchings: j.matchings.map((m) => ({ confidence: m.confidence ?? 0, coords: (m.geometry?.coordinates ?? []).map(([lon, lat]) => [lat, lon] as [number, number]), legsM: (m.legs ?? []).map((l) => l.distance ?? 0) })),
-    tracepoints: j.tracepoints.map((t) => (t && typeof t.matchings_index === 'number' && t.location ? { matching: t.matchings_index, lat: t.location[1], lon: t.location[0] } : null)),
-  };
-}
-
-/** Mapbox-illesztő; a `fetchFn` a tesztben és a felvételnél cserélhető. */
-export function mapboxMatcher(token: string, fetchFn: typeof fetch = fetch): MapMatcher {
-  return {
-    id: MATCHER_MAPBOX,
-    async match(points) {
-      const r = await fetchFn(mapboxMatchUrl(points, token));
-      // a 422 (nem illeszthető bemenet) nem ismételhető: egyenes vonalak; a többi hiba később újrapróbálódik
-      if (r.status === 422) return EMPTY_MATCH(points.length);
-      if (!r.ok) throw new Error(`matching http_${r.status}`);
-      return parseMapboxMatch(await r.json(), points.length);
-    },
-  };
-}
-
-/** A vonal darabja két, a vonal mentén mért távolság között. */
-function sliceByDistance(line: readonly [number, number][], from: number, to: number): [number, number][] {
-  const out: [number, number][] = [];
-  let run = 0;
-  for (let i = 0; i < line.length - 1; i++) {
-    const a = line[i]!;
-    const b = line[i + 1]!;
-    const d = distance(a, b);
-    const next = run + d;
-    const pointAt = (m: number): [number, number] => (d === 0 ? [a[0], a[1]] : [a[0] + ((b[0] - a[0]) * (m - run)) / d, a[1] + ((b[1] - a[1]) * (m - run)) / d]);
-    if (out.length === 0 && next >= from) out.push(pointAt(Math.max(from, run)));
-    if (next >= to) {
-      out.push(pointAt(Math.min(to, next)));
-      return out;
-    }
-    if (out.length > 0 && next > from) out.push([b[0], b[1]]);
-    run = next;
-  }
-  return out;
-}
-
 const lengthOf = (c: readonly [number, number][]) => c.slice(1).reduce((sum, x, i) => sum + distance(c[i]!, x), 0);
 
-/** Megfordul-e a pontsor az `i`. pontnál. */
-function reversalAt(points: readonly TrackPoint[], i: number): boolean {
-  const a = points[i - 1];
-  const b = points[i];
-  const c = points[i + 1];
-  if (!a || !b || !c) return false;
-  return angleDiffDeg(bearingDeg(a, b), bearingDeg(b, c)) >= TRACK.reversalDeg;
+/** Cserélhető illesztő-réteg: a nyers pontsor darabjaiból vonalak (ma a saját rács-illesztő, később saját Valhalla-szerver). Hálózati hiba: kivétel. */
+export interface TrackMatcher {
+  readonly id: string;
+  lines(parts: readonly (readonly TrackPoint[])[]): Promise<TrackLine[]>;
 }
+
+/** A rács cellája: egész indexek; a hosszúsági lépés az egész fokos szélességi sávból, így a cella helye mindenhol determinisztikus. */
+const lonStep = (lat: number) => TRACK.gridDeg / Math.cos((Math.floor(lat) + 0.5) * (Math.PI / 180));
+const cellOf = (lat: number, lon: number): [number, number] => [Math.floor(lat / TRACK.gridDeg), Math.floor(lon / lonStep(lat))];
+const cellCenter = (c: readonly [number, number]): [number, number] => {
+  const lat = (c[0] + 0.5) * TRACK.gridDeg;
+  return [round6(lat), round6((c[1] + 0.5) * lonStep(lat))];
+};
 
 /**
- * A vonalak az illesztésből: két egymás utáni pont közt az illesztett darab, ha mindkettő ugyanabban az (elég biztos) illesztésben van és a darab nem kerülő; különben a nyers
- * egyenes (tilosban fordulás, parkoló, illesztési hiba). `chunks` és `results` párban; a vonal nem szakad el, csak a darabok (GPS-kiesés) között.
+ * AW25: a saját illesztő. A pontsor darabjait sűrűn mintázva a rács cellasorává alakítja (az egymást követő azonos cella egy; az A–B–A
+ * visszalépés – GPS-zaj a cellahatáron – kimarad), a vonal a cellaközéppontokon halad. Darabonként külön vonal: a kiesésnél megszakad.
  */
-export function assembleLines(chunks: readonly (readonly TrackPoint[])[], results: readonly MatchResult[]): TrackLine[] {
-  const out: TrackLine[] = [];
-  let cur: TrackLine | null = null;
-  const put = (matched: boolean, coords: [number, number][], kmhA: number, kmhB: number) => {
-    const total = lengthOf(coords);
-    let run = 0;
-    const speeds = coords.map((c, i) => {
-      if (i > 0) run += distance(coords[i - 1]!, c);
-      return total > 0 ? kmhA + ((kmhB - kmhA) * run) / total : kmhA;
-    });
-    if (cur && cur.matched === matched) {
-      const skip = distance(cur.coords.at(-1)!, coords[0]!) < 0.01 ? 1 : 0;
-      cur.coords.push(...coords.slice(skip));
-      cur.kmh.push(...speeds.slice(skip));
-    } else {
-      // az előző darab végéhez kötve: a váltásnál sincs rés
-      const joint = cur?.coords.at(-1);
-      const head: [number, number][] = joint && distance(joint, coords[0]!) >= 0.01 ? [joint] : [];
-      cur = { matched, coords: [...head, ...coords], kmh: [...head.map(() => kmhA), ...speeds] };
-      out.push(cur);
-    }
-  };
-  chunks.forEach((points, ci) => {
-    const r = results[ci] ?? EMPTY_MATCH(points.length);
-    const ordinals = new Map<number, number>();
-    const tp = (i: number) => r.tracepoints[i] ?? null;
-    /** A pont sorszáma az illesztésén belül (a `legsM` szerinti hely). */
-    const ordinalAt: (number | null)[] = points.map((_, i) => {
-      const t = tp(i);
-      if (!t) return null;
-      const n = ordinals.get(t.matching) ?? 0;
-      ordinals.set(t.matching, n + 1);
-      return n;
-    });
-    for (let i = 0; i < points.length - 1; i++) {
-      const a = points[i]!;
-      const b = points[i + 1]!;
-      const ta = tp(i);
-      const tb = tp(i + 1);
-      const m = ta && tb && ta.matching === tb.matching ? r.matchings[ta.matching] : undefined;
-      const kA = a.kmh ?? 0;
-      const kB = b.kmh ?? kA;
-      let piece: [number, number][] | null = null;
-      const n = ordinalAt[i];
-      if (m && n !== null && n !== undefined && m.confidence >= TRACK.minConfidence && m.coords.length >= 2 && n < m.legsM.length) {
-        // a leg-távok és a geometria hossza kerekítésben eltér: arányosan a vonal hosszára
-        const legsTotal = m.legsM.reduce((s, x) => s + x, 0);
-        const scale = legsTotal > 0 ? lengthOf(m.coords) / legsTotal : 1;
-        const from = m.legsM.slice(0, n).reduce((s, x) => s + x, 0) * scale;
-        const legM = m.legsM[n]! * scale;
-        const chord = haversineM(a, b);
-        const limit = Math.max(chord * TRACK.detourFactor, chord + TRACK.detourExtraM);
-        if (legM <= limit) {
-          const c = sliceByDistance(m.coords, from, from + legM);
-          if (c.length >= 2 && legM > 0) piece = c;
-        }
-      }
-      if (piece) put(true, piece, kA, kB);
-      else put(false, [ta ? [ta.lat, ta.lon] : [a.lat, a.lon], tb ? [tb.lat, tb.lon] : [b.lat, b.lon]], kA, kB);
-    }
-  });
-  return out;
-}
-
-/** Illesztő nélkül (szimulátor, token nélkül): a nyers pontok egyenesei, a kiesésnél megszakítva. */
-export function rawLines(parts: readonly (readonly TrackPoint[])[]): TrackLine[] {
-  return parts.filter((p) => p.length >= 2).map((p) => ({ matched: false, coords: p.map((x) => [x.lat, x.lon] as [number, number]), kmh: p.map((x) => x.kmh ?? 0) }));
-}
-
-/** Teljes illesztés: darabonként egyszerűsít, darabol, illeszt; a darabok (GPS-kiesés) külön vonalak maradnak, soha nem kötődnek össze. */
-export async function matchTrace(parts: readonly (readonly TrackPoint[])[], matcher: MapMatcher): Promise<TrackLine[]> {
+export function gridLines(parts: readonly (readonly TrackPoint[])[]): TrackLine[] {
   const out: TrackLine[] = [];
   for (const part of parts) {
     if (part.length < 2) continue;
-    const chunks = traceChunks(simplifyForMatch(part));
-    const results: MatchResult[] = [];
-    for (const c of chunks) results.push(await matcher.match(c));
-    out.push(...assembleLines(chunks, results));
+    const cells: { c: [number, number]; kmh: number }[] = [];
+    const visit = (lat: number, lon: number, kmh: number) => {
+      const c = cellOf(lat, lon);
+      const last = cells.at(-1);
+      if (last && last.c[0] === c[0] && last.c[1] === c[1]) return;
+      const prev = cells.at(-2);
+      if (prev && prev.c[0] === c[0] && prev.c[1] === c[1]) {
+        cells.pop();
+        return;
+      }
+      cells.push({ c, kmh });
+    };
+    for (let i = 0; i < part.length - 1; i++) {
+      const p = part[i]!;
+      const q = part[i + 1]!;
+      const n = Math.max(1, Math.ceil(haversineM(p, q) / TRACK.gridSampleM));
+      for (let k = 0; k < n; k++) visit(p.lat + ((q.lat - p.lat) * k) / n, p.lon + ((q.lon - p.lon) * k) / n, (p.kmh ?? 0) + (((q.kmh ?? 0) - (p.kmh ?? 0)) * k) / n);
+    }
+    const last = part.at(-1)!;
+    visit(last.lat, last.lon, last.kmh ?? 0);
+    if (cells.length >= 2) out.push({ matched: true, coords: cells.map((x) => cellCenter(x.c)), kmh: cells.map((x) => round1(x.kmh)) });
   }
   return out;
+}
+
+export const gridMatcher: TrackMatcher = { id: MATCHER_GRID, lines: async (parts) => gridLines(parts) };
+
+/**
+ * AW25: a tárolt út a döntés után. A Mapbox-illesztett (vagy illesztés nélküli régi, egyenes) vonal a nyers pontsorból újraépül a saját
+ * illesztővel; ahol nincs nyers pontsor, a Mapbox-geometria törlődik (üres `lines`; a rekord marad, hogy ne épüljön újra). Függő és már
+ * rács-illesztett út változatlan (ugyanaz az objektum: a hívó így látja, hogy nincs mit írni).
+ */
+export function migrateTrack(t: TripTrack): TripTrack {
+  if (t.status !== 'done' || t.matcher === MATCHER_GRID) return t;
+  const parts = t.parts.filter((p) => p.length >= 2);
+  if (parts.length === 0 && t.matcher !== MATCHER_MAPBOX) return t;
+  return { ...t, lines: gridLines(parts), matcher: MATCHER_GRID };
+}
+
+/**
+ * Kirajzoláshoz: Douglas–Peucker (`smoothSimplifyM`, a rács lépcsője egyenes lesz), majd Chaikin-simítás (`smoothSteps` lépés); a végpontok
+ * maradnak. A tárolt adat és a szakaszkulcsok nem változnak.
+ */
+export function smoothLine(coords: readonly [number, number][], steps: number = TRACK.smoothSteps): [number, number][] {
+  let c = simplifyPath(coords.map(([lat, lon]) => ({ lat, lon })), TRACK.smoothSimplifyM).map((p) => [p.lat, p.lon] as [number, number]);
+  for (let s = 0; s < steps && c.length > 2; s++) {
+    const n: [number, number][] = [c[0]!];
+    for (let i = 0; i < c.length - 1; i++) {
+      const a = c[i]!;
+      const b = c[i + 1]!;
+      if (i > 0) n.push([0.75 * a[0] + 0.25 * b[0], 0.75 * a[1] + 0.25 * b[1]]);
+      if (i < c.length - 2) n.push([0.25 * a[0] + 0.75 * b[0], 0.25 * a[1] + 0.75 * b[1]]);
+    }
+    n.push(c.at(-1)!);
+    c = n;
+  }
+  return c;
 }
 
 /** Az út helyi rekordja a mintákból, feldolgozásra várva. */

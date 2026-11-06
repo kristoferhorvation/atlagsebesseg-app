@@ -25,34 +25,13 @@ function readPreference(): LangPreference {
   }
 }
 
-/** AW22: a telepítéskor látszó név és leírás is az app nyelvén (a statikus `manifest.webmanifest` magyar, ez a többi nyelv példánya). */
+/** AW22: a telepítéskor látszó név és leírás is az app nyelvén. AW25: statikus nyelvenkénti fájl (`scripts/build-manifests.ts`) – a
+ * blob-URL-es manifestet a böngésző telepítéskor nem fogadja el. */
 function localizeManifest(): void {
   const link = document.querySelector<HTMLLinkElement>('link[rel="manifest"]');
-  if (!link || typeof URL.createObjectURL !== 'function') return;
-  if (getLanguage() === 'hu') {
-    link.href = '/manifest.webmanifest';
-    return;
-  }
-  const at = (path: string) => `${location.origin}${path}`;
-  const manifest = {
-    name: template('app.name'),
-    short_name: template('ios.displayName'),
-    description: template('app.description'),
-    lang: getLanguage(),
-    id: at('/'),
-    start_url: at('/'),
-    scope: at('/'),
-    display: 'standalone',
-    orientation: 'portrait',
-    background_color: '#06070A',
-    theme_color: '#06070A',
-    icons: [
-      { src: at('/icons/icon-192.png'), sizes: '192x192', type: 'image/png' },
-      { src: at('/icons/icon-512.png'), sizes: '512x512', type: 'image/png' },
-      { src: at('/icons/icon-maskable-512.png'), sizes: '512x512', type: 'image/png', purpose: 'maskable' },
-    ],
-  };
-  link.href = URL.createObjectURL(new Blob([JSON.stringify(manifest)], { type: 'application/manifest+json' }));
+  if (!link) return;
+  const lang = getLanguage();
+  link.href = lang === 'hu' ? '/manifest.webmanifest' : `/manifest.${lang}.webmanifest`;
 }
 
 /** A nyelv-választás állapota (a tárolás itt, a `t()` állapota az app-logic-ban). */

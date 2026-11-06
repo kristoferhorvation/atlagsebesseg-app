@@ -1,3 +1,4 @@
+import { gridLines } from './track';
 import { haversineM } from '@atlagsebesseg/core';
 import { mergePasses, type HeatCell, type HeatGlobalRow, type HeatGeo, type HeatPass } from './heat';
 import type { TrackLine } from './track';
@@ -35,10 +36,10 @@ const SIDE: [number, number][] = [
 export function heatSeedTrackLines(routes: readonly { passes: number; kmh: number; coords: readonly (readonly number[])[] }[]): TrackLine[][] {
   const out: TrackLine[][] = [];
   routes.forEach((r, ri) => {
-    const coords = r.coords.map((c) => [c[0]!, c[1]!] as [number, number]);
     for (let i = 0; i < r.passes; i++) {
       const kmh = r.kmh + ((i * 7 + ri * 3) % 13) - 6;
-      out.push([{ matched: true, coords, kmh: coords.map(() => kmh) }]);
+      // AW25: mint egy valódi út – a pontsor a saját rács-illesztőn át (`gridLines`)
+      out.push(gridLines([r.coords.map((c, k) => ({ t: k * 1000, lat: c[0]!, lon: c[1]!, kmh, acc: 8 }))]));
     }
   });
   return out;

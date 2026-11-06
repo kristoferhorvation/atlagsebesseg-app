@@ -130,8 +130,9 @@ nonisolated func localMatches(_ query: String, saved: SavedPlaces, recents: [Pla
     var seen = Set<String>()
     var out: [Place] = []
     let all: [Place?] = [saved.home, saved.work] + saved.others.map(Optional.some) + recents.map(Optional.some)
-    for case let p? in all {
-        guard seen.insert(p.id).inserted else { continue }
+    for case let raw? in all {
+        guard seen.insert(raw.id).inserted else { continue }
+        let p = displayPlace(raw) // AW25: a tárolt helyen nincs Mapbox-név; a futás alatt ismert / újra lekért névvel egyezik
         if fold(p.name).contains(q) || fold(p.address).contains(q) { out.append(p) }
         if out.count >= max { break }
     }

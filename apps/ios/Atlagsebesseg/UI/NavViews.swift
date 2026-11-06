@@ -315,8 +315,9 @@ struct SearchPanel: View {
                     .padding(.horizontal, Tokens.Space.s4)
                     .padding(.top, Tokens.Space.s2)
                     .padding(.bottom, Tokens.Space.s1)
+                let _ = model.placeNamesVersion // AW25: a fordított geokódolással érkező nevekre újrarajzol
                 if model.recents.isEmpty { note(t(.navSearchNoRecent)) }
-                ForEach(model.recents) { p in row(.pin, p.name, p.address) { model.choose(p) } }
+                ForEach(model.recents.map(displayPlace)) { p in row(.pin, p.name, p.address) { model.choose(p) } }
             }
         }
     }

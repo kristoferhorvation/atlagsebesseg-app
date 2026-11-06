@@ -40,6 +40,13 @@ export function parseGeocode(json: unknown): Place[] {
   });
 }
 
+/** AW25: fordított geokódolás (koordináta → név) a mentett / legutóbbi hely megjelenítéséhez; az eredmény csak memóriában marad. */
+export function reverseGeocodeUrl(p: LatLon, lang: Lang, token: string): string {
+  const q = new URLSearchParams({ longitude: p.lon.toFixed(6), latitude: p.lat.toFixed(6), language: directionsLanguage(lang), limit: '1' });
+  q.set('access_token', token);
+  return `https://api.mapbox.com/search/geocode/v6/reverse?${q}`;
+}
+
 /** Keresni csak elég hosszú szövegre érdemes (költségvédelem). */
 export const shouldSearch = (q: string, min = NAV_CONFIG.geocodeMinChars): boolean => q.trim().length >= min;
 

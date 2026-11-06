@@ -20,6 +20,7 @@ struct MapScreen: View {
     @State private var sectionsFC = FeatureCollection(features: [])
     @State private var cameraPoints: [FixedCamera] = []
     @State private var zonesFC = FeatureCollection(features: [])
+    @State private var zoneLabels: [CameraZone] = []
     @State private var routesFC = FeatureCollection(features: [])
     /// AW20: a hőtérkép pontjai (súllyal); navigáció / mérés közben üres.
     @State private var heatFC = FeatureCollection(features: [])
@@ -261,6 +262,14 @@ struct MapScreen: View {
                 .variableAnchors([ViewAnnotationAnchorConfig(anchor: .bottom)])
             }
 
+            // AW25 (INV-24): a kamera-zóna felirata a közepén (a webes `.camera-zone-label`), nem koppintható
+            ForEvery(zoneLabels) { z in
+                MapViewAnnotation(coordinate: CLLocationCoordinate2D(latitude: z.center.lat, longitude: z.center.lon)) {
+                    CameraZoneLabel(text: z.label)
+                }
+                .allowOverlap(true)
+            }
+
             ForEvery(model.plan == nil ? cameraPoints : []) { cam in
                 MapViewAnnotation(coordinate: CLLocationCoordinate2D(latitude: cam.lat, longitude: cam.lon)) {
                     // AOS15: koppintásra a kamera kártyája (a webes `CameraCard`), a kiválasztott nagyobb
@@ -407,7 +416,8 @@ struct MapScreen: View {
     private func rebuildHeat() {
         heatBuiltAt = Date().timeIntervalSince1970
         heatFC = FeatureCollection(features: model.heatLines().map { l in
-            var f = Feature(geometry: LineString(l.coords.map { CLLocationCoordinate2D(latitude: $0[0], longitude: $0[1]) }))
+            // AW25: a rács lépcsője kirajzoláskor simítva (`smoothLine`, a webes `heatGeoJson` párja)
+            var f = Feature(geometry: LineString(smoothLine(l.coords).map { CLLocationCoordinate2D(latitude: $0[0], longitude: $0[1]) }))
             f.properties = ["weight": .number(l.weight), "grey": .boolean(l.grey)]
             return f
         })
@@ -616,6 +626,7 @@ struct MapScreen: View {
         zonesFC = FeatureCollection(features: vis.zones.map { z in
             Feature(geometry: Polygon(center: CLLocationCoordinate2D(latitude: z.center.lat, longitude: z.center.lon), radius: z.radiusM, vertices: 48))
         })
+        zoneLabels = vis.zones
         rebuildCameras(around: view.lastFix)
     }
 
@@ -632,6 +643,23 @@ struct MapScreen: View {
 
 /// Kamera-jelölő (a webes `.camera-pin`, DESIGN.md A7): kicsi, visszafogott – 32 pt-es lekerekített négyzet, sötét üveg,
 /// halvány él, fehér vonalikon, 56 pt-es érintési cél; kiválasztva 1,2-szeres, erősebb éllel.
+/// AW25 (INV-24): a webes `.camera-zone-label` (styles.css): pill, `surfaceStrong`, 1,5 pt szaggatott `textFaint` keret, caption 600.
+private struct CameraZoneLabel: View {
+    let text: String
+
+    var body: some View {
+        Text(text)
+            .css(Tokens.Typography.caption.size, Tokens.FontWeight.w600)
+            .foregroundStyle(Tokens.Colors.text)
+            .lineLimit(1)
+            .padding(.vertical, 4)
+            .padding(.horizontal, 10)
+            .background(Tokens.Colors.surfaceStrong, in: Capsule())
+            .overlay(Capsule().strokeBorder(Tokens.Colors.textFaint, style: StrokeStyle(lineWidth: 1.5, dash: [3, 3])))
+            .allowsHitTesting(false)
+    }
+}
+
 private struct CameraPin: View {
     let camera: FixedCamera
     let selected: Bool

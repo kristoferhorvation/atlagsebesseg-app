@@ -1,0 +1,6 @@
+# AW25: a web-app és a jogi oldalak indexelhetők; a szimulátor- és teszt-paraméteres címek nem.
+User-agent: *
+Allow: /
+Allow: /legal/
+Disallow: /*?sim
+Disallow: /*?navsim

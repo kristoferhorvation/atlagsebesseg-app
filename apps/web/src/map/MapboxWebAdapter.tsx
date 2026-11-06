@@ -2,7 +2,7 @@ import type { FeatureCollection, LineString, MultiLineString, MultiPolygon, Poin
 import mapboxgl, { type GeoJSONSource, type Map as MbMap } from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { useEffect, useRef } from 'react';
-import { followZoom, mapTheme, MapStore, PositionSmoother, placeAltLabel, type LightPreset, type MapLook } from '@atlagsebesseg/app-logic';
+import { followZoom, mapTheme, MapStore, PositionSmoother, placeAltLabel, smoothLine, type LightPreset, type MapLook } from '@atlagsebesseg/app-logic';
 import { LocalProjection, type GpsFix, type LatLon, type Section } from '@atlagsebesseg/core';
 import { camera as cameraToken, color, size } from '@atlagsebesseg/design-tokens';
 import { iconSvg } from '../ui/Icon';
@@ -168,6 +168,7 @@ class MapController {
   private destMarker: mapboxgl.Marker | null = null;
   private readonly pins = new Map<string, { marker: mapboxgl.Marker; el: HTMLButtonElement; key: string }>();
   private readonly cams = new Map<string, { marker: mapboxgl.Marker; el: HTMLButtonElement; key: string }>();
+  private readonly zoneLabels = new Map<string, mapboxgl.Marker>();
   private readonly routeLabels = new Map<string, { marker: mapboxgl.Marker; el: HTMLButtonElement; label: NonNullable<MapRoute['label']> }>();
   /** AW17: a címkék újrahelyezése mozgáskor, képkockánként legfeljebb egyszer. */
   private labelRaf = 0;
@@ -603,6 +604,26 @@ class MapController {
     }
   }
 
+  /** AW25 (INV-24): a kamera-zóna felirata a zóna közepén – a pontos hely helyett ennyi látszik (FR). */
+  private syncZoneLabels(zones: readonly MapZone[]): void {
+    const keep = new Set<string>();
+    for (const z of zones) {
+      if (!z.label) continue;
+      const key = `${z.id}|${z.label}`;
+      keep.add(key);
+      if (this.zoneLabels.has(key)) continue;
+      const el = document.createElement('div');
+      el.className = 'camera-zone-label';
+      el.textContent = z.label;
+      this.zoneLabels.set(key, new mapboxgl.Marker({ element: el, rotationAlignment: 'viewport', pitchAlignment: 'viewport' }).setLngLat([z.center.lon, z.center.lat]).addTo(this.map));
+    }
+    for (const [key, marker] of this.zoneLabels) {
+      if (keep.has(key)) continue;
+      marker.remove();
+      this.zoneLabels.delete(key);
+    }
+  }
+
   /** Az úti cél jelölője. */
   private syncDestination(dest: LatLon | null): void {
     this.destMarker?.remove();
@@ -672,7 +693,10 @@ class MapController {
       (m.getSource('privacy-zones') as GeoJSONSource | undefined)?.setData(zonesGeoJson(s.privacyZones ?? []));
       this.map.getContainer().dataset.zones = String(s.privacyZones?.length ?? 0);
     }
-    if (s.cameraZones !== p?.cameraZones) (m.getSource('camera-zones') as GeoJSONSource | undefined)?.setData(zonesGeoJson(s.cameraZones));
+    if (s.cameraZones !== p?.cameraZones) {
+      (m.getSource('camera-zones') as GeoJSONSource | undefined)?.setData(zonesGeoJson(s.cameraZones));
+      this.syncZoneLabels(s.cameraZones);
+    }
     if (s.highlightId !== p?.highlightId) {
       const f: mapboxgl.FilterSpecification = ['==', ['get', 'id'], s.highlightId ?? ''];
       const others: mapboxgl.FilterSpecification = ['!=', ['get', 'id'], s.highlightId ?? ''];
@@ -818,7 +842,7 @@ function heatColor(view: 'gyakorisag' | 'atlagsebesseg'): mapboxgl.ExpressionSpe
 function heatGeoJson(heat: MapHeat | null): FeatureCollection<LineString> {
   return {
     type: 'FeatureCollection',
-    features: (heat?.lines ?? []).map((l) => ({ type: 'Feature', properties: { weight: l.weight, grey: l.grey }, geometry: { type: 'LineString', coordinates: l.coords.map(([lat, lon]) => [lon, lat]) } })),
+    features: (heat?.lines ?? []).map((l) => ({ type: 'Feature', properties: { weight: l.weight, grey: l.grey }, geometry: { type: 'LineString', coordinates: smoothLine(l.coords).map(([lat, lon]) => [lon, lat]) } })),
   };
 }
 

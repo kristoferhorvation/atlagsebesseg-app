@@ -1,7 +1,7 @@
 import type { LatLon } from '@atlagsebesseg/core';
 import { directionsLanguage, type Lang } from '../i18n';
 import { NAV_COUNTRIES } from './config';
-import type { SavedPlaces } from './places';
+import { displayPlace, type SavedPlaces } from './places';
 import type { Place } from './types';
 
 /**
@@ -134,9 +134,10 @@ export function localMatches(query: string, saved: SavedPlaces, recents: readonl
   if (!q) return [];
   const seen = new Set<string>();
   const out: Place[] = [];
-  for (const p of [saved.home, saved.work, ...saved.others, ...recents]) {
-    if (!p || seen.has(p.id)) continue;
-    seen.add(p.id);
+  for (const raw of [saved.home, saved.work, ...saved.others, ...recents]) {
+    if (!raw || seen.has(raw.id)) continue;
+    seen.add(raw.id);
+    const p = displayPlace(raw); // AW25: a tárolt helyen nincs Mapbox-név; a futás alatt ismert / újra lekért névvel egyezik
     if (fold(p.name).includes(q) || fold(p.address).includes(q)) out.push(p);
     if (out.length >= max) break;
   }

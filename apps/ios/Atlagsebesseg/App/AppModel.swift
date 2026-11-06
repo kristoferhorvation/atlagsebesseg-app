@@ -95,6 +95,9 @@ final class AppModel {
     /// Az utolsó 10 úti cél és a mentett helyek (a weben tárolttal azonos kulcs és alak).
     var recents: [Place] = []
     var saved = SavedPlaces.none
+    /// AW25: a fordított geokódolással megérkezett helynevek (memóriában): a változás a nézeteket újrarajzolja.
+    var placeNamesVersion = 0
+    @ObservationIgnored var askedPlaceNames = Set<String>()
     /// Az útvonalválasztó állapota (kiválasztott cél → útvonalak).
     var plan: PlanState?
     /// Az útvonalválasztó kártya adatai útvonalanként.
@@ -694,6 +697,19 @@ final class AppModel {
         planned = serverPlanned + simPlanned
         dataVersion += 1
         session?.setSections(sections)
+        warnCountries()
+    }
+
+    /// AW25 (INV-24): egyszeri ország-figyelmeztetés (DE) a környék (15 km, mint a weben) kameráinak és méréseinek országaira, készülékenként egyszer.
+    func warnCountries() {
+        guard let fix = view.lastFix else { return }
+        let here = LatLon(lat: fix.lat, lon: fix.lon)
+        let near = cameras.filter { haversineM(here, LatLon(lat: $0.lat, lon: $0.lon)) <= 15_000 }.map(\.country) + planned.map(\.country)
+        let store = UserDefaults.standard
+        for w in pendingCountryWarnings(near, seen: { store.object(forKey: "figyelmeztetes:\($0)") != nil }) {
+            store.set(1, forKey: "figyelmeztetes:\(w.country)")
+            showToast(AppToast(text: w.text, color: Tokens.StatusColors.hataron, icon: .report, seconds: 6))
+        }
     }
 
     // MARK: szimulátor-vezérlés

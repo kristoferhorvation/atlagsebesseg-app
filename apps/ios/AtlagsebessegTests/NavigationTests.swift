@@ -1010,7 +1010,34 @@ struct PlacesTests {
         var same = p(1, lat: 48.0004)
         same.id = "masik-azonosito"
         list = addRecent(list, same)
-        #expect(list.map(\.name) == ["Hely 1", "Hely 2"])
+        #expect(list.map(\.id) == ["masik-azonosito", "p2"])
+        #expect(list.map { displayPlace($0).name } == ["Hely 1", "Hely 2"])
+    }
+
+    @Test("AW25: tárolva csak a koordináta és a saját címke, a Mapbox-név és -cím nem; megjelenítéskor újra lekérhető")
+    func csakKoordinata() {
+        let hit = Place(id: "dXJuOm1ieHBvaTox", name: "IKEA Budaörs", address: "Budaörs, Pest, Magyarország", lat: 47.4613, lon: 18.9601,
+                        routable: LatLon(lat: 47.4611, lon: 18.9603), retrieveId: "x", distanceM: 900)
+        let saved = setSavedPlace(.none, .home, hit)
+        var ownHit = hit
+        ownHit.id = "o"
+        ownHit.lat = 47.5
+        ownHit.label = "  Edzőterem  "
+        let stored = serializeSaved(addSavedOther(saved, ownHit)) + serializeRecents(addRecent([], hit))
+        for word in ["IKEA", "Budaörs", "retrieveId", "distanceM"] { #expect(!stored.contains(word)) }
+        #expect(saved.home == Place(id: hit.id, name: "", address: "", lat: hit.lat, lon: hit.lon, routable: hit.routable))
+        // a futás alatt a név megvan (memória), újraindítás után a koordináta, és fordított geokódolásra vár
+        #expect(displayPlace(saved.home!).name == "IKEA Budaörs")
+        // újraindítás: a tárolt alakból a név nem jön vissza (még nem látott koordináta – a párhuzamos tesztek miatt a közös névtárat nem ürítjük)
+        let back = parseSaved(serializeSaved(SavedPlaces(home: Place(id: "r", name: "", address: "", lat: 47.4613, lon: 18.9701))))
+        #expect(displayPlace(back.home!).name == "47.4613, 18.9701")
+        #expect(placesNeedingNames([back.home!]).count == 1)
+        // a saját címke tárolható és megjelenik
+        let own = addSavedOther(back, ownHit).others[0]
+        #expect(own.label == "Edzőterem")
+        #expect(displayPlace(own).name == "Edzőterem")
+        #expect(placesNeedingNames([own]).isEmpty)
+        #expect(reverseGeocodeUrl(hit.latLon, lang: .hu, token: "pk.x").absoluteString == "https://api.mapbox.com/search/geocode/v6/reverse?longitude=18.960100&latitude=47.461300&language=hu&limit=1&access_token=pk.x")
     }
 
     @Test("sérült tárolt érték helyett üres lista / üres mentett helyek")
@@ -1019,11 +1046,11 @@ struct PlacesTests {
         #expect(parseRecents(#"[{"x":1},null]"#).isEmpty)
         #expect(parseSaved("???") == .none)
         let saved = parseSaved(#"{"home":{"id":"p1","name":"Hely 1","address":"","lat":48,"lon":19},"work":"x"}"#)
-        #expect(saved.home?.name == "Hely 1")
+        #expect(saved.home?.id == "p1" && saved.home?.name == "")
         #expect(saved.work == nil)
-        // a tárolt alak visszaolvasható (a weben tárolttal azonos mezők)
-        #expect(parseRecents(serializeRecents([p(1), p(2)])) == [p(1), p(2)])
-        #expect(parseSaved(serializeSaved(SavedPlaces(home: p(1), work: nil))) == SavedPlaces(home: p(1), work: nil))
+        // a tárolt alak visszaolvasható (a weben tárolttal azonos mezők; AW25: név és cím nélkül)
+        #expect(parseRecents(serializeRecents([p(1), p(2)])) == [storedPlace(p(1)), storedPlace(p(2))])
+        #expect(parseSaved(serializeSaved(SavedPlaces(home: p(1), work: nil))) == SavedPlaces(home: storedPlace(p(1)), work: nil))
     }
 }
 
@@ -1674,7 +1701,7 @@ struct Aw12Tests {
         let chips = savedChips(saved, lang: .hu)
         #expect(chips.map(\.icon) == [.home, .pin, .pin])
         #expect(chips.map(\.label) == ["Haza", "Edzőterem", "Nagymama"])
-        #expect(parseSaved(serializeSaved(saved)).others.map(\.name) == ["Edzőterem", "Nagymama"])
+        #expect(parseSaved(serializeSaved(saved)).others.map { displayPlace($0).name } == ["Edzőterem", "Nagymama"])
         #expect(removeSavedOther(saved, "p2").others.map(\.id) == ["p3"])
     }
 }

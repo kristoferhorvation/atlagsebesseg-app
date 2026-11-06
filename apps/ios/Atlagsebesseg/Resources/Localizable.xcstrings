@@ -294,37 +294,37 @@
         "cs" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Trvale smazat"
+            "value" : "Smazat účet"
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Endgültig löschen"
+            "value" : "Konto löschen"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Delete permanently"
+            "value" : "Delete account"
           }
         },
         "hu" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Végleges törlés"
+            "value" : "Fiók törlése"
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Usuń na stałe"
+            "value" : "Usuń konto"
           }
         },
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Natrvalo zmazať"
+            "value" : "Zmazať účet"
           }
         }
       }
@@ -2088,6 +2088,47 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Radar"
+          }
+        }
+      }
+    },
+    "camera.zone" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kontrolní zóna"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kontrollzone"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enforcement zone"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ellenőrzési zóna"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Strefa kontroli"
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kontrolná zóna"
           }
         }
       }
@@ -6936,7 +6977,7 @@
         "cs" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Radar za {d} metrů, maximálně {x}"
+            "value" : "Radar za {d, plural, one {# metr} few {# metry} many {# metru} other {# metrů}}, maximálně {x}"
           }
         },
         "de" : {
@@ -6960,13 +7001,13 @@
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Fotoradar za {d} metrów, maksimum {x}"
+            "value" : "Fotoradar za {d, plural, one {# metr} few {# metry} many {# metrów} other {# metra}}, maksimum {x}"
           }
         },
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Radar o {d} metrov, maximum {x}"
+            "value" : "Radar o {d, plural, one {# meter} few {# metre} many {# metra} other {# metrov}}, maximum {x}"
           }
         }
       }
@@ -6977,7 +7018,7 @@
         "cs" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Radar za {d} metrů"
+            "value" : "Radar za {d, plural, one {# metr} few {# metry} many {# metru} other {# metrů}}"
           }
         },
         "de" : {
@@ -7001,13 +7042,13 @@
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Fotoradar za {d} metrów"
+            "value" : "Fotoradar za {d, plural, one {# metr} few {# metry} many {# metrów} other {# metra}}"
           }
         },
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Radar o {d} metrov"
+            "value" : "Radar o {d, plural, one {# meter} few {# metre} many {# metra} other {# metrov}}"
           }
         }
       }
@@ -10656,7 +10697,7 @@
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "{n} radarov · {v} overených"
+            "value" : "{n, plural, one {# radar} few {# radary} many {# radaru} other {# radarov}} · {v, plural, one {# overený} few {# overené} many {# overeného} other {# overených}}"
           }
         }
       }
@@ -12102,7 +12143,7 @@
         "cs" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Zácpa na trase, příjezd o {n} minut později."
+            "value" : "Zácpa na trase, příjezd o {n, plural, one {# minutu} few {# minuty} many {# minuty} other {# minut}} později."
           }
         },
         "de" : {
@@ -12132,7 +12173,7 @@
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Zápcha na trase, príchod o {n} minút neskôr."
+            "value" : "Zápcha na trase, príchod o {n, plural, one {# minútu} few {# minúty} many {# minúty} other {# minút}} neskôr."
           }
         }
       }
@@ -12143,7 +12184,7 @@
         "cs" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Rychlejší trasa, ušetříš {n} minut"
+            "value" : "Rychlejší trasa, ušetříš {n, plural, one {# minutu} few {# minuty} many {# minuty} other {# minut}}"
           }
         },
         "de" : {
@@ -12173,7 +12214,7 @@
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Rýchlejšia trasa, úspora {n} minút"
+            "value" : "Rýchlejšia trasa, ušetríš {n, plural, one {# minútu} few {# minúty} many {# minúty} other {# minút}}"
           }
         }
       }
@@ -12255,7 +12296,7 @@
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Rýchlejšia trasa, {n} minút, obchádzka {km} kilometrov, rozhodnutie je na tebe"
+            "value" : "Rýchlejšia trasa, {n, plural, one {# minúta} few {# minúty} many {# minúty} other {# minút}}, obchádzka {km, plural, one {# kilometer} few {# kilometre} many {# kilometra} other {# kilometrov}}, rozhodnutie je na tebe"
           }
         }
       }
@@ -12296,7 +12337,7 @@
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Rýchlejšia trasa, ale neoplatí sa, obchádzka {km} kilometrov"
+            "value" : "Rýchlejšia trasa, ale neoplatí sa, obchádzka {km, plural, one {# kilometer} few {# kilometre} many {# kilometra} other {# kilometrov}}"
           }
         }
       }
@@ -12307,7 +12348,7 @@
         "cs" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Rychlejší trasa, úspora {n} minut, výjezd za {km} kilometrů"
+            "value" : "Rychlejší trasa, ušetříš {n, plural, one {# minutu} few {# minuty} many {# minuty} other {# minut}}, výjezd za {km, plural, one {# kilometr} few {# kilometry} many {# kilometru} other {# kilometrů}}"
           }
         },
         "de" : {
@@ -12337,7 +12378,7 @@
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Rýchlejšia trasa, úspora {n} minút, zjazd o {km} kilometrov"
+            "value" : "Rýchlejšia trasa, ušetríš {n, plural, one {# minútu} few {# minúty} many {# minúty} other {# minút}}, zjazd o {km, plural, one {# kilometer} few {# kilometre} many {# kilometra} other {# kilometrov}}"
           }
         }
       }
@@ -14849,7 +14890,7 @@
         "cs" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Nebezpečí na silnici za {m} metrů"
+            "value" : "Nebezpečí na silnici za {m, plural, one {# metr} few {# metry} many {# metru} other {# metrů}}"
           }
         },
         "de" : {
@@ -14873,13 +14914,13 @@
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Zagrożenie na drodze za {m} metrów"
+            "value" : "Zagrożenie na drodze za {m, plural, one {# metr} few {# metry} many {# metrów} other {# metra}}"
           }
         },
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Nebezpečenstvo na ceste o {m} metrov"
+            "value" : "Nebezpečenstvo na ceste o {m, plural, one {# meter} few {# metre} many {# metra} other {# metrov}}"
           }
         }
       }
@@ -16196,6 +16237,47 @@
         }
       }
     },
+    "settings.privacyPolicy" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zásady ochrany soukromí"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Datenschutzerklärung"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Privacy policy"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tájékoztató"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Polityka prywatności"
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zásady ochrany súkromia"
+          }
+        }
+      }
+    },
     "settings.requests" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -17116,7 +17198,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Can’t recover"
+            "value" : "Can’t get back under"
           }
         },
         "hu" : {
@@ -17157,7 +17239,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "can’t recover"
+            "value" : "can’t get under"
           }
         },
         "hu" : {
@@ -19635,7 +19717,7 @@
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "{n} odbočení · {d} zmien smeru"
+            "value" : "{n, plural, one {# odbočenie} few {# odbočenia} many {# odbočenia} other {# odbočení}} · {d, plural, one {# zmena smeru} few {# zmeny smeru} many {# zmeny smeru} other {# zmien smeru}}"
           }
         }
       }

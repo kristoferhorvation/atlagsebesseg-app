@@ -70,6 +70,8 @@ export interface MapZone {
   id: string;
   center: LatLon;
   radiusM: number;
+  /** AW25: felirat a zóna közepén (kamera-zóna: „Ellenőrzési zóna”, INV-24); az adatvédelmi zónának nincs. */
+  label?: string;
 }
 
 /** Tervezett mérés vonala(i) vagy zónája (a település határa): halvány sárga. */

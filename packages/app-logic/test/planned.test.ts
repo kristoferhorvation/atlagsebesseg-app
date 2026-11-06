@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { LocalProjection, type GpsFix } from '@atlagsebesseg/core';
 import { BUNDLED_CAMERAS } from '../src/bundledCameras';
-import { cameraCardDetail, cameraCardMeta, cameraDirection, cameraSourceText, cameraVisibility, cameraWarning, visibleCameras, type FixedCamera } from '../src/cameras';
+import { cameraCardDetail, cameraCardMeta, cameraDirection, cameraSourceText, cameraVisibility, cameraWarning, pendingCountryWarnings, visibleCameras, type FixedCamera } from '../src/cameras';
 import {
   inPlannedZone,
   onPlannedLine,
@@ -203,6 +203,16 @@ describe('a sáv szövege', () => {
 });
 
 describe('jogi láthatóság (camera_visibility.json)', () => {
+  it('egyszeri ország-figyelmeztetés: csak DE, egyszer; a zóna felirata az app nyelvén', () => {
+    const seen = new Set<string>();
+    const first = pendingCountryWarnings(['de', 'HU', 'FR', 'CH', 'DE'], (c) => seen.has(c));
+    expect(first).toEqual([{ country: 'DE', text: 'Németországban a vezető nem használhatja ezt a funkciót' }]);
+    for (const w of first) seen.add(w.country);
+    expect(pendingCountryWarnings(['DE', 'HU'], (c) => seen.has(c))).toEqual([]);
+    const fr = { id: 'f', country: 'FR', type: 'speed', lat: 48.85, lon: 2.35, headingDeg: null, road: '', speedLimitKmh: null, source: 'OpenStreetMap', sourceUrl: '', sourceDate: '', verified: false } as FixedCamera;
+    expect(visibleCameras([fr]).zones[0]!.label).toBe('Ellenőrzési zóna');
+  });
+
   it('induló értékek', () => {
     for (const c of ['HU', 'AT', 'IT', 'PL', 'ES', 'NL', 'GB', 'DE']) expect(cameraVisibility(c)).toBe('show');
     expect(cameraVisibility('FR')).toBe('zone');

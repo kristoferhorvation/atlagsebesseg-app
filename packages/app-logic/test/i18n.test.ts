@@ -1,5 +1,7 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import {
+  fill,
+  pluralCategory,
   DICTIONARIES,
   LANGUAGES,
   LANGUAGE_NAMES,
@@ -25,7 +27,8 @@ import { reportVisual } from '../src/reportFeed';
 
 afterEach(() => setLanguage('hu'));
 
-const placeholders = (s: string) => [...s.matchAll(/\{(\w+)\}/g)].map((m) => m[1]!).sort();
+// AW25: az ICU-többesszám (`{n, plural, …}`) is paraméter; egy név egyszer számít
+const placeholders = (s: string) => [...new Set([...s.matchAll(/\{(\w+)(?:\}|, plural,)/g)].map((m) => m[1]!))].sort();
 
 describe('szótárak: minden kulcs mind a 6 nyelven', () => {
   it('a nyelvek: hu, en, de, sk, cs, pl', () => {
@@ -199,5 +202,35 @@ describe('formázás nyelv szerint', () => {
     expect(REPORT_CHOICES.map((c) => reportChoiceLabel(c.id))).toEqual(['Police', 'Speed camera', 'Accident', 'Hazard', 'Road closed', 'Map error', 'Traffic', 'Standstill', 'Section start', 'Section end']);
     setLanguage('pl');
     expect(timeAgo(2 * 3600_000)).toBe('2 godz. temu');
+  });
+});
+
+describe('AW25: többesszám (ICU, SK/CS/PL)', () => {
+  it('CLDR-kategóriák a 6 nyelven: hu/en/de one–other, sk/cs one–few–many(tört)–other, pl one–few–many–other(tört)', () => {
+    const cats = (lang: Lang) => [0, 1, 2, 4, 5, 12, 22, 25, 1.5].map((n) => pluralCategory(n, lang));
+    expect(cats('hu')).toEqual(['other', 'one', 'other', 'other', 'other', 'other', 'other', 'other', 'other']);
+    expect(cats('en')).toEqual(cats('hu'));
+    expect(cats('de')).toEqual(cats('hu'));
+    expect(cats('sk')).toEqual(['other', 'one', 'few', 'few', 'other', 'other', 'other', 'other', 'many']);
+    expect(cats('cs')).toEqual(cats('sk'));
+    expect(cats('pl')).toEqual(['many', 'one', 'few', 'few', 'many', 'many', 'few', 'many', 'other']);
+    expect(pluralCategory(Number.NaN, 'sk')).toBe('other');
+  });
+
+  it('kiírás és hang: a szám és a főnév egyezik, a tizedes vesszős érték is szám; hiányzó paraméter a helyén', () => {
+    expect(t('nav.voice.faster', { n: 1 }, 'sk')).toBe('Rýchlejšia trasa, ušetríš 1 minútu');
+    expect(t('nav.voice.faster', { n: 3 }, 'sk')).toBe('Rýchlejšia trasa, ušetríš 3 minúty');
+    expect(t('nav.voice.faster', { n: 7 }, 'sk')).toBe('Rýchlejšia trasa, ušetríš 7 minút');
+    expect(t('nav.voice.fasterWorthExit', { n: 2, km: '2,5' }, 'cs')).toBe('Rychlejší trasa, ušetříš 2 minuty, výjezd za 2,5 kilometru');
+    expect(t('ios.alert.camera', { d: 22, x: '90 km/h' }, 'pl')).toBe('Fotoradar za 22 metry, maksimum 90 km/h');
+    expect(t('ios.alert.camera', { d: 250, x: '90 km/h' }, 'pl')).toBe('Fotoradar za 250 metrów, maksimum 90 km/h');
+    expect(t('trips.rowTurns', { n: 1, d: 5 }, 'sk')).toBe('1 odbočenie · 5 zmien smeru');
+    expect(t('nav.picker.cameras', { n: 2, v: 1 }, 'sk')).toBe('2 radary · 1 overený');
+    expect(fill('{n, plural, one {# kus} other {# kusov}} – {x}', { x: 'a' }, 'sk')).toBe('{n, plural, one {# kus} other {# kusov}} – a');
+  });
+
+  it('EN: „Can’t get back under” (a régi „Can’t recover” helyett)', () => {
+    expect(t('slowdown.cant', undefined, 'en')).toBe('Can’t get back under');
+    expect(t('slowdown.compactCant', undefined, 'en')).toBe('can’t get under');
   });
 });

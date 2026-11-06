@@ -1,4 +1,4 @@
-// AW24: a kör képei a dev-szerverről: hőtérkép csíkokkal (gyakoriság / átlagsebesség, közelről / kizoomolva), krúzing-kártya, Fiók-kártya. docs/screenshots/<dátum>-aw24-web-*.png
+// AW24: a kör képei a dev-szerverről: hőtérkép csíkokkal (gyakoriság / átlagsebesség, közelről / kizoomolva), krúzing-kártya, Fiók-kártya. docs/screenshots/<dátum>-<kör>-web-*.png (a kör: SHOTS_ROUND, alap aw24)
 // Használat: node scripts/aw24-shots.mjs [heat|cruise|account] [szélesség]. A szélesség nélkül mind a négy méret.
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -8,6 +8,8 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..', '..');
 const OUT = join(ROOT, 'docs', 'screenshots');
 const BASE = process.env.SHOTS_BASE ?? 'http://localhost:5173';
 const DATE = new Date().toISOString().slice(0, 10);
+// AW25: a kör neve a fájlnévben (régi ↔ új összevetéshez ugyanazok a nézetek)
+const ROUND = process.env.SHOTS_ROUND ?? 'aw24';
 const ALL = [[320, 667], [375, 667], [402, 874], [440, 956]];
 const only = process.argv[2];
 const SIZES = process.argv[3] ? ALL.filter(([w]) => String(w) === process.argv[3]) : ALL;
@@ -30,13 +32,13 @@ try {
       for (const [zname, lat, lon, zoom] of [['kozel', 47.5015, 19.0645, 14.6], ['kozep', 47.4985, 19.07, 12.4], ['tavol', 47.53, 18.85, 9.3]]) {
         await p.evaluate(`window.__mapJump(${lat}, ${lon}, ${zoom})`);
         await sleep(5000);
-        await p.shot(`${DATE}-aw24-web-heat-gyakorisag-${zname}-${w}.png`);
+        await p.shot(`${DATE}-${ROUND}-web-heat-gyakorisag-${zname}-${w}.png`);
       }
       await p.evaluate(`document.querySelector('.heat-switch .segmented button[aria-pressed="false"]').click()`);
       for (const [zname, lat, lon, zoom] of [['kozel', 47.5015, 19.0645, 14.6], ['tavol', 47.53, 18.85, 9.3]]) {
         await p.evaluate(`window.__mapJump(${lat}, ${lon}, ${zoom})`);
         await sleep(5000);
-        await p.shot(`${DATE}-aw24-web-heat-atlagsebesseg-${zname}-${w}.png`);
+        await p.shot(`${DATE}-${ROUND}-web-heat-atlagsebesseg-${zname}-${w}.png`);
       }
       await p.close();
     }
@@ -45,7 +47,7 @@ try {
         const p = await page(w, h, `/?navsim&panel=0&heat=sajat&heatSeed&cruiseDemo=${kind}`);
         await p.waitFor(q('.cruise-card'), 60000, 'kártya');
         await sleep(4000);
-        await p.shot(`${DATE}-aw24-web-cruise-${kind}-${w}.png`);
+        await p.shot(`${DATE}-${ROUND}-web-cruise-${kind}-${w}.png`);
         await p.close();
       }
       for (const look of ['vilagos', 'visszafogott']) {
@@ -54,7 +56,7 @@ try {
         await sleep(1500);
         await p.waitFor(q('.cruise-card'), 60000, 'kártya');
         await sleep(4000);
-        await p.shot(`${DATE}-aw24-web-cruise-full-${look}-${w}.png`);
+        await p.shot(`${DATE}-${ROUND}-web-cruise-full-${look}-${w}.png`);
         await p.close();
       }
     }
@@ -66,14 +68,14 @@ try {
         await sleep(1500);
         await p.waitFor(q('[data-testid="account-card"]'), 60000, 'fiók');
         await sleep(800);
-        await p.shot(`${DATE}-aw24-web-account-${state}-top-${w}.png`);
+        await p.shot(`${DATE}-${ROUND}-web-account-${state}-top-${w}.png`);
         await p.evaluate(`document.querySelector('[data-testid="privacy-group"]').scrollIntoView({ block: 'center' }); true`);
         await sleep(400);
-        await p.shot(`${DATE}-aw24-web-account-${state}-privacy-${w}.png`);
+        await p.shot(`${DATE}-${ROUND}-web-account-${state}-privacy-${w}.png`);
         if (state === 'in') {
           await p.evaluate(`document.querySelector('[data-testid="account-signout"]').scrollIntoView({ block: 'end' }); true`);
           await sleep(400);
-          await p.shot(`${DATE}-aw24-web-account-in-bottom-${w}.png`);
+          await p.shot(`${DATE}-${ROUND}-web-account-in-bottom-${w}.png`);
         }
         await p.close();
       }

@@ -196,11 +196,12 @@ struct SettingsSheet: View {
 
     private var placesCard: some View {
         ListCard {
+            let _ = model.placeNamesVersion // AW25: a fordított geokódolással érkező nevekre újrarajzol
             slotRow(t(.navPlaceHome), model.saved.home, .home)
             RowDivider()
             slotRow(t(.navPlaceWork), model.saved.work, .work)
             RowDivider()
-            ForEach(model.saved.others) { p in
+            ForEach(model.saved.others.map(displayPlace)) { p in
                 VStack(alignment: .leading, spacing: 14) {
                     HStack(spacing: 14) {
                         placeText(p.name, p.address)
@@ -284,7 +285,7 @@ struct SettingsSheet: View {
     private func slotRow(_ label: String, _ place: Place?, _ slot: PlaceSlot) -> some View {
         VStack(alignment: .leading, spacing: 14) {
             HStack(spacing: 14) {
-                placeText(label, place?.name ?? t(.navPlaceUnset))
+                placeText(label, place.map { displayPlace($0).name } ?? t(.navPlaceUnset))
                 // a webes `.mini-btns`: 8 pt-es térköz
                 HStack(spacing: Tokens.Space.s2) {
                     Button(t(.navPlaceSet)) { pick(slot) }.buttonStyle(MiniButtonStyle())

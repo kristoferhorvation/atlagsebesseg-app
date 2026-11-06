@@ -2,7 +2,7 @@ import AtlagsebessegCore
 import Foundation
 
 // AW20 + AW24: hőtérkép bekötése (a webes `useHeat` és `trackPipeline` párja). Saját mód: az utak vonalai (`TripStore.tracks`) a `TrackIndex`-ben, szakaszonként összesítve. Közösségi mód: a
-// `heat_segments_global` nézet a látható téglalapra (10 perces gyorsítótár). Út végén a pontsor az illesztőhöz megy (`MapMatcher`, ma Mapbox); hálózati hibánál a sor függőben marad és később
+// `heat_segments_global` nézet a látható téglalapra (10 perces gyorsítótár). Út végén a pontsor az illesztőhöz megy (`TrackMatcher`; AW25 óta a saját rács-illesztő a nyers pontokból, a Mapbox Map Matching kikerült); hibánál a sor függőben marad és később
 // újrapróbálódik. Feltöltés (csak bekapcsolt megosztásnál): a szakaszok a várólistába, onnan a `heat_segments` táblába; az út első és utolsó 300 m-e és a zónák sosem mennek fel
 // (`segmentUploadRows`). A régi utak a nyers mintákból visszamenőleg épülnek újra, de közösségbe nem mennek. Szimulátorban nincs illesztés és feltöltés.
 extension AppModel {
@@ -47,10 +47,8 @@ extension AppModel {
         }
     }
 
-    private var trackMatcher: MapMatcher? {
-        guard sim == nil, let token = Bundle.main.object(forInfoDictionaryKey: "MBXAccessToken") as? String, token.hasPrefix("pk.") else { return nil }
-        return MapboxMatcher(token: token)
-    }
+    /// AW25 (Kristof, Mapbox-feltételek): a saját rács-illesztő; cserélhető (később saját Valhalla-szerver).
+    private var trackMatcher: TrackMatcher { gridMatcher }
 
     /// A vonal elkészítése; a kész utat a hőtérképre és (ha kérték) a feltöltési sorba teszi. Hálózati hibánál kivétel: a sor függőben marad.
     private func completeTrack(_ t: TripTrack) async throws {
@@ -59,15 +57,15 @@ extension AppModel {
         defer { tracksInFlight.remove(t.tripId) }
         let matcher = trackMatcher
         let lines: [TrackLine]
-        if let matcher { lines = try await matchTrace(t.parts, matcher) } else { lines = rawLines(t.parts) }
+        lines = try await matcher.lines(t.parts)
         var done = t
         done.status = "done"
         done.lines = lines
-        done.matcher = matcher?.id
+        done.matcher = matcher.id
         tripStore.saveTrack(done)
         trackIndex.add(lines)
         heatVersion += 1
-        guard done.share, settings.adatmegosztas, matcher != nil, sim == nil else { return }
+        guard done.share, settings.adatmegosztas, sim == nil else { return }
         let rows = segmentUploadRows(lines: lines, startedAt: done.startedAt, tzOffsetMin: Double(TimeZone.current.secondsFromGMT()) / 60, zones: heatZoneList)
         guard !rows.isEmpty else { return }
         let queue = appendSegmentOutbox(parseSegmentOutbox(UserDefaults.standard.string(forKey: Self.segmentOutboxKey)), rows)
@@ -87,6 +85,19 @@ extension AppModel {
             for trip in self.tripStore.tripsWithoutTrack() where trip.id != open {
                 self.tripStore.saveTrack(pendingTrack(trip.id, startedAt: trip.startedAt, samples: self.tripStore.samples(trip.id), share: false))
                 await Task.yield()
+            }
+            // AW25: a tárolt Mapbox-illesztett (és régi egyenes) vonal a nyers pontsorból újra; nyers pontsor nélkül a Mapbox-geometria törlődik
+            var migrated = false
+            for t in self.tripStore.tracks() {
+                let m = migrateTrack(t)
+                if m != t {
+                    self.tripStore.saveTrack(m)
+                    migrated = true
+                }
+            }
+            if migrated {
+                self.rebuildTrackIndex()
+                self.heatVersion += 1
             }
             for t in self.tripStore.tracks() where t.status == "pending" && t.tripId != open {
                 do {
@@ -215,7 +226,7 @@ extension AppModel {
             guard let self else { return }
             defer { self.heatFlushing = false }
             do {
-                try await self.backend.uploadSegments(queue, matcher: MATCHER_MAPBOX)
+                try await self.backend.uploadSegments(queue, matcher: MATCHER_GRID)
                 // közben érkezett új sorok megmaradnak
                 let now = parseSegmentOutbox(UserDefaults.standard.string(forKey: Self.segmentOutboxKey))
                 UserDefaults.standard.set(serializeSegmentOutbox(Array(now.dropFirst(queue.count))), forKey: Self.segmentOutboxKey)

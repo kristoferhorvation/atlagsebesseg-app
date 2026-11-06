@@ -199,4 +199,33 @@ struct InvariantsTests {
         #expect(!standalone.contains("screen.height"))
         #expect(try Self.repoFile("package.json").contains("\"webkit:layout\""))
     }
+
+    @Test("INV-24: kamera-korlátozás országonként – DE pont + egyszeri figyelmeztetés, FR felirattal ellátott zóna, CH rejtve")
+    func inv24() throws {
+        let rules = VisibilityRules.bundled
+        #expect(["DE", "FR", "CH", "HU", "SK"].map { rules.visibility($0) } == [.show, .zone, .hide, .show, .show])
+        #expect(pendingCountryWarnings(["DE", "FR", "CH", "HU"], seen: { _ in false }).map(\.country) == ["DE"])
+        #expect(pendingCountryWarnings(["DE"], seen: { _ in true }).isEmpty)
+        let cam = { (c: String) in FixedCamera(id: c, country: c, type: .speed, lat: 48.85123, lon: 2.35123, headingDeg: nil, road: "", speedLimitKmh: nil, source: "", sourceUrl: "", sourceDate: "", verified: false) }
+        let v = visibleCameras([cam("FR"), cam("CH"), cam("DE")])
+        #expect(v.points.map(\.country) == ["DE"])
+        #expect(v.zones.count == 1 && v.zones[0].radiusM == 1000 && v.zones[0].center.lat != 48.85123 && v.zones[0].label == t(.cameraZone))
+        #expect(try Self.source("Logic/Alerts.swift").contains("rules.visibility(c.country) == .show"))
+        #expect(try Self.source("Map/MapScreen.swift").contains("CameraZoneLabel(text: z.label)"))
+    }
+
+    @Test("INV-25: mentett helyek – a tárolt alakban nincs Mapbox-név és -cím, a saját címke igen")
+    func inv25() throws {
+        let hit = Place(id: "mbx1", name: "IKEA Budaörs", address: "Budaörs, Magyarország", lat: 47.4613, lon: 18.9601, routable: LatLon(lat: 47.4611, lon: 18.9603))
+        var own = hit
+        own.id = "o"
+        own.lat = 47.6
+        own.label = "Edzőterem"
+        let saved = addSavedOther(setSavedPlace(.none, .work, hit), own)
+        let stored = serializeSaved(saved) + serializeRecents(addRecent([], hit))
+        #expect(!stored.contains("IKEA") && !stored.contains("Budaörs"))
+        #expect(parseSaved(serializeSaved(saved)).others.first?.label == "Edzőterem")
+        #expect(displayPlace(saved.work!).name == "IKEA Budaörs")
+        #expect(try Self.source("Navigation/Geocoding.swift").contains("let sp = storedPlace(p)"))
+    }
 }

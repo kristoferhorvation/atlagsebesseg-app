@@ -1,0 +1,16 @@
+# Podmienky používania – Tempomate
+
+**Verzia:** 1.0 · **Účinnosť od:** 6. novembra 2026 · **Jazyk:** slovenčina (preklad maďarského originálu; v prípade rozporu má prednosť maďarská verzia)
+
+1. **Služba.** Tempomate je bezplatná aplikácia, ktorá meria tvoju priemernú rýchlosť na úsekoch s úsekovým meraním rýchlosti, naviguje a vedie denník tvojich jázd. Poskytovateľ: Kristóf Horváth, individuálny vývojár (pozri Impresum).
+2. **Len na informačné účely.** Všetky údaje v aplikácii – rýchlostné obmedzenie, úsek, radar, hlásenie, čas príchodu – majú **len informačný charakter** a môžu byť neúplné, aktualizované s oneskorením alebo nepresné. Meranie GPS sa môže líšiť od úradného meradla. Vždy platí dopravná značka na mieste a úradné meranie.
+3. **Dodržiavanie pravidiel cestnej premávky je tvoja zodpovednosť.** Ako vodič vozidla zodpovedáš za dodržiavanie pravidiel cestnej premávky, za svoju rýchlosť a za svoju pozornosť. Počas jazdy telefón neovládaj. Upevni ho do držiaka a nastavenia urob pred jazdou.
+4. **Zobrazenie radarov podľa krajiny.** Zobrazenie pevných radarov a plánovaných policajných meraní prispôsobujeme miestnemu právu: v **Nemecku** sa radary zobrazujú, ale pri prvom zobrazení upozorníme, že vodič túto funkciu počas jazdy nesmie používať; vo **Francúzsku** sa namiesto presného miesta zobrazuje len „Kontrolná zóna“ s polomerom asi 1 km, bez upozornenia na radar; vo **Švajčiarsku** sa radary ani plánované merania nezobrazujú; v ostatných krajinách sa zobrazujú na presnom mieste. Meranie na úsekoch merania priemernej rýchlosti to neovplyvňuje. Dodržiavanie miestneho práva je všade tvoja zodpovednosť. Aplikácia **nie je radarový detektor**: nedetekuje ani neruší žiadne meracie zariadenie.
+5. **Komunitné hlásenia.** Nahlasuj len skutočné udalosti, ktoré si sám videl. Zneužívanie (hromadné alebo nepravdivé hlásenia) obmedzujeme a takéto hlásenia odstraňujeme.
+6. **Bez záruky.** Aplikáciu poskytujeme „tak, ako je“. Nepretržitú a bezchybnú prevádzku nezaručujeme. V najväčšom rozsahu, ktorý zákon dovoľuje, nezodpovedáme za škodu, pokutu ani meškanie, ktoré vzniknú používaním aplikácie. Toto neobmedzuje zodpovednosť za škodu spôsobenú úmyselne alebo z hrubej nedbanlivosti ani zodpovednosť za porušenie zmluvy, ktoré spôsobí ujmu na živote, tele alebo zdraví.
+7. **Vek.** Aplikáciu môžeš používať **od 16 rokov**.
+8. **Účet a údaje.** Účet je nepovinný. Spracúvanie údajov opisujú Zásady ochrany osobných údajov (https://tempomate.app/privacy).
+9. **Ukončenie.** Používanie aplikácie môžeš kedykoľvek ukončiť a svoj účet môžeš zmazať v aplikácii (Nastavenia › Ochrana súkromia › „Zmazať účet“). Službu môžeme ukončiť alebo zmeniť. Zneužívajúce používanie (napr. automatizované odosielanie) môžeme obmedziť bez predchádzajúceho upozornenia.
+10. **Tretie strany.** Mapu, vyhľadávanie a trasu poskytuje Mapbox (© Mapbox, © prispievatelia OpenStreetMap). Na aplikáciu stiahnutú z App Store sa vzťahuje aj štandardná licenčná zmluva s koncovým používateľom od spoločnosti Apple (EULA).
+11. **Rozhodné právo.** Tieto podmienky sa riadia maďarským právom. Spotrebiteľ tým nestráca ochranu, ktorú mu poskytujú kogentné predpisy na ochranu spotrebiteľa v krajine jeho bydliska.
+12. **Kontakt:** hello@tempomate.app

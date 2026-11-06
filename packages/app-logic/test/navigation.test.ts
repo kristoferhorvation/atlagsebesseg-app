@@ -8,6 +8,11 @@ import { BUDAPEST_GYOR_DIRECTIONS } from '../src/navigation/fixtures';
 import {
   absorbArrivalStub,
   addRecent,
+  displayPlace,
+  forgetPlaceNames,
+  placesNeedingNames,
+  reverseGeocodeUrl,
+  setSavedPlace,
   addSavedOther,
   adjustedDurations,
   ALT_OFFER,
@@ -983,14 +988,35 @@ describe('helyek', () => {
   it('ugyanaz a hely nem duplázódik, hanem előre kerül', () => {
     let list = addRecent(addRecent([], p(1)), p(2));
     list = addRecent(list, { ...p(1), id: 'masik-azonosito', lat: 48.0004 });
-    expect(list.map((x) => x.name)).toEqual(['Hely 1', 'Hely 2']);
+    expect(list.map((x) => x.id)).toEqual(['masik-azonosito', 'p2']);
+    expect(list.map((x) => displayPlace(x).name)).toEqual(['Hely 1', 'Hely 2']);
+  });
+
+  it('AW25: tárolva csak a koordináta és a saját címke, a Mapbox-név és -cím nem; megjelenítéskor újra lekérhető', () => {
+    const hit = { id: 'dXJuOm1ieHBvaTox', name: 'IKEA Budaörs', address: 'Budaörs, Pest, Magyarország', lat: 47.4613, lon: 18.9601, routable: { lat: 47.4611, lon: 18.9603 }, retrieveId: 'x', distanceM: 900 };
+    const saved = setSavedPlace({ home: null, work: null, others: [] }, 'home', hit);
+    const stored = JSON.stringify({ saved, recents: addRecent([], hit), other: addSavedOther(saved, { ...hit, id: 'o', lat: 47.5, label: '  Edzőterem  ' }).others });
+    for (const word of ['IKEA', 'Budaörs', 'retrieveId', 'distanceM']) expect(stored).not.toContain(word);
+    expect(saved.home).toEqual({ id: hit.id, name: '', address: '', lat: hit.lat, lon: hit.lon, routable: hit.routable });
+    // a futás alatt a név megvan (memória), újraindítás után a koordináta, és fordított geokódolásra vár
+    expect(displayPlace(saved.home!).name).toBe('IKEA Budaörs');
+    forgetPlaceNames();
+    const back = parseSaved(JSON.stringify(saved));
+    expect(displayPlace(back.home!).name).toBe('47.4613, 18.9601');
+    expect(placesNeedingNames([back.home!])).toHaveLength(1);
+    // a saját címke tárolható és megjelenik
+    const own = addSavedOther(back, { ...hit, id: 'o', lat: 47.5, label: '  Edzőterem  ' }).others[0]!;
+    expect(own.label).toBe('Edzőterem');
+    expect(displayPlace(own).name).toBe('Edzőterem');
+    expect(placesNeedingNames([own])).toEqual([]);
+    expect(reverseGeocodeUrl(hit, 'hu', 'pk.x')).toBe('https://api.mapbox.com/search/geocode/v6/reverse?longitude=18.960100&latitude=47.461300&language=hu&limit=1&access_token=pk.x');
   });
 
   it('sérült tárolt érték helyett üres lista / üres mentett helyek', () => {
     expect(parseRecents('nem json')).toEqual([]);
     expect(parseRecents('[{"x":1},null]')).toEqual([]);
     expect(parseSaved('???')).toEqual({ home: null, work: null, others: [] });
-    expect(parseSaved(JSON.stringify({ home: p(1), work: 'x' }))).toMatchObject({ home: { name: 'Hely 1' }, work: null });
+    expect(parseSaved(JSON.stringify({ home: p(1), work: 'x' }))).toMatchObject({ home: { id: 'p1', name: '' }, work: null });
   });
 });
 
@@ -1562,7 +1588,7 @@ describe('AW12: újratervezés, kamera, „Utána”, érkezés, követő zoom, 
       ['pin', 'Edzőterem'],
       ['pin', 'Nagymama'],
     ]);
-    expect(parseSaved(JSON.stringify(saved)).others.map((x) => x.name)).toEqual(['Edzőterem', 'Nagymama']);
+    expect(parseSaved(JSON.stringify(saved)).others.map((x) => displayPlace(x).name)).toEqual(['Edzőterem', 'Nagymama']);
     expect(removeSavedOther(saved, 'p2').others.map((x) => x.id)).toEqual(['p3']);
   });
 });

@@ -4,7 +4,7 @@
   "buildCommand": "npm run build --workspace apps/web",
   "outputDirectory": "apps/web/dist",
   "framework": null,
-  "rewrites": [{ "source": "/((?!\\.well-known/|assets/|icons/|sw\\.js|manifest\\.webmanifest|apple-touch-icon\\.png).*)", "destination": "/index.html" }],
+  "rewrites": [{ "source": "/((?!\\.well-known/|assets/|icons/|legal/|sw\\.js|manifest\\.webmanifest|manifest\\.[a-z]{2}\\.webmanifest|og-image\\.png|robots\\.txt|apple-touch-icon\\.png).*)", "destination": "/index.html" }],
   "headers": [
     {
       "source": "/sw.js",
@@ -22,7 +22,7 @@
       "headers": [{ "key": "Content-Type", "value": "application/json" }]
     },
     {
-      "source": "/manifest.webmanifest",
+      "source": "/manifest(.*).webmanifest",
       "headers": [{ "key": "Content-Type", "value": "application/manifest+json" }]
     },
     {

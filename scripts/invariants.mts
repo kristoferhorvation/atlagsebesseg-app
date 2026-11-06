@@ -3,7 +3,7 @@
 // A lock csak engedéllyel frissül: `npm run invariants -- --update-lock INV-xx` (CLAUDE.md: a prompt szó szerint tartalmazza az engedélyt).
 import { createHash } from 'node:crypto';
 import { readFileSync, writeFileSync } from 'node:fs';
-import { altWorth, ALT_OFFER, chooseLightPreset, CRUISE_SECTION_M, cruiseCard, DEFAULT_SETTINGS, DICTIONARIES, HEAT, mapLightPreset, mapTheme, MAP_LOOKS, PositionSmoother, strongGlassFor, TrackIndex, TRAFFIC, TRIP, ZONE_RADII } from '@atlagsebesseg/app-logic';
+import { addRecent, addSavedOther, altWorth, ALT_OFFER, cameraVisibility, displayPlace, parseSaved, setSavedPlace, pendingCountryWarnings, visibleCameras, type FixedCamera, chooseLightPreset, CRUISE_SECTION_M, cruiseCard, DEFAULT_SETTINGS, DICTIONARIES, HEAT, mapLightPreset, mapTheme, MAP_LOOKS, PositionSmoother, strongGlassFor, TrackIndex, TRAFFIC, TRIP, ZONE_RADII } from '@atlagsebesseg/app-logic';
 import { haversineM, meterState } from '@atlagsebesseg/core';
 import { color, size } from '@atlagsebesseg/design-tokens';
 
@@ -259,6 +259,35 @@ const CHECKS: Record<string, () => void> = {
   'INV-21': () => {
     eq(DEFAULT_SETTINGS.felho_mentes, true, 'a felhős mentés alapja');
     has(read('apps/ios/Atlagsebesseg/Logic/Settings.swift'), 'var felhoMentes = true', 'iOS: a felhős mentés alapja');
+  },
+  'INV-25': () => {
+    const hit = { id: 'mbx1', name: 'IKEA Budaörs', address: 'Budaörs, Magyarország', lat: 47.4613, lon: 18.9601, routable: { lat: 47.4611, lon: 18.9603 } };
+    const saved = addSavedOther(setSavedPlace({ home: null, work: null, others: [] }, 'work', hit), { ...hit, id: 'o', lat: 47.6, label: 'Edzőterem' });
+    const stored = JSON.stringify({ saved, recents: addRecent([], hit) });
+    eq(['IKEA', 'Budaörs'].filter((w) => stored.includes(w)), [], 'a tárolt alakban nincs Mapbox-név / -cím');
+    eq(parseSaved(stored.slice(9, stored.indexOf(',"recents"'))).others[0]?.label, 'Edzőterem', 'a saját címke tárolódik');
+    eq(displayPlace(saved.work!).name, 'IKEA Budaörs', 'megjelenítéskor a futás alatti név');
+    has(read('apps/web/src/nav/useNavigation.ts'), 'setSavedPlace(prev, kind, place)', 'web: Haza / Munka a tisztító úton');
+    has(read('apps/ios/Atlagsebesseg/Navigation/Geocoding.swift'), 'let sp = storedPlace(p)', 'iOS: a tárolt JSON tisztított');
+    has(read('apps/ios/Atlagsebesseg/App/AppModel+Navigation.swift'), 'setSavedPlace($0, .home, place)', 'iOS: Haza a tisztító úton');
+  },
+  'INV-24': () => {
+    const rules = JSON.parse(read('packages/data/camera_visibility.json')) as { default: string; countries: Record<string, { mode: string; warning?: string }> };
+    eq(rules.default, 'show', 'alap: show');
+    eq(Object.fromEntries(Object.entries(rules.countries).filter(([, v]) => v.mode !== 'show' || v.warning)), { FR: { mode: 'zone' }, DE: { mode: 'show', warning: 'warn.camera.DE' }, CH: { mode: 'hide' } }, 'a nem alapértelmezett országok');
+    eq(['DE', 'FR', 'CH', 'HU', 'SK'].map(cameraVisibility), ['show', 'zone', 'hide', 'show', 'show'], 'cameraVisibility');
+    eq(pendingCountryWarnings(['DE', 'FR', 'CH', 'HU'], () => false).map((w) => w.country), ['DE'], 'csak DE figyelmeztet');
+    eq(pendingCountryWarnings(['DE'], () => true), [], 'egyszer');
+    const cam = (country: string): FixedCamera => ({ id: country, country, type: 'speed', lat: 48.85123, lon: 2.35123, headingDeg: null, road: '', speedLimitKmh: null, source: '', sourceUrl: '', sourceDate: '', verified: false });
+    const v = visibleCameras([cam('FR'), cam('CH'), cam('DE')]);
+    eq(v.points.map((c) => c.country), ['DE'], 'pontként csak DE');
+    eq(v.zones.length === 1 && v.zones[0]!.radiusM === 1000 && v.zones[0]!.center.lat !== 48.85123 && v.zones[0]!.label === DICTIONARIES.hu['camera.zone'], true, 'FR: kerekített 1 km-es zóna felirattal');
+    eq(DICTIONARIES.hu['camera.zone'], 'Ellenőrzési zóna', 'a zóna felirata');
+    has(read('packages/app-logic/src/navigation/enforcement.ts'), "cameraVisibility(c.country) !== 'show'", 'útvonal-kamera csak show');
+    has(read('apps/ios/Atlagsebesseg/Logic/Alerts.swift'), 'rules.visibility(c.country) == .show', 'iOS: kamera-jelzés csak show');
+    has(read('apps/ios/Atlagsebesseg/Navigation/Enforcement.swift'), 'rules.visibility(c.country) == .show', 'iOS: útvonal-kamera csak show');
+    has(read('apps/web/src/map/MapboxWebAdapter.tsx'), 'camera-zone-label', 'web: zóna-felirat');
+    has(read('apps/ios/Atlagsebesseg/Map/MapScreen.swift'), 'CameraZoneLabel(text: z.label)', 'iOS: zóna-felirat');
   },
 };
 

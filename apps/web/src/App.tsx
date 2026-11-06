@@ -5,7 +5,7 @@ import {
   congestionRuns,
   cameraLabel,
   cameraVisibility,
-  cameraWarning,
+  pendingCountryWarnings,
   createJamSamples,
   createReports,
   currentUserId,
@@ -609,22 +609,26 @@ function Drive({ map }: { map: WebMapAdapter }) {
     return () => clearTimeout(id);
   }, [toast]);
 
-  // Egyszeri figyelmeztetés országonként (DE: a vezető nem használhatja a kamera-funkciót) – eszközönként egyszer.
+  // Egyszeri figyelmeztetés országonként (DE: a vezető nem használhatja a kamera-funkciót) – eszközönként egyszer (INV-24).
   const countriesKey = [...new Set([...nearCameras, ...plannedShown].map((c) => c.country))].sort().join(',');
   const warnedCountries = useRef(new Set<string>());
   useEffect(() => {
-    for (const country of countriesKey ? countriesKey.split(',') : []) {
-      const text = cameraWarning(country);
-      if (!text || warnedCountries.current.has(country)) continue;
-      warnedCountries.current.add(country);
-      const key = `figyelmeztetes:${country}`;
+    const seen = (country: string) => {
+      if (warnedCountries.current.has(country)) return true;
       try {
-        if (localStorage.getItem(key)) continue;
-        localStorage.setItem(key, '1');
+        return localStorage.getItem(`figyelmeztetes:${country}`) !== null;
+      } catch {
+        return false; // tárhely nélkül munkamenetenként egyszer
+      }
+    };
+    for (const w of pendingCountryWarnings(countriesKey ? countriesKey.split(',') : [], seen)) {
+      warnedCountries.current.add(w.country);
+      try {
+        localStorage.setItem(`figyelmeztetes:${w.country}`, '1');
       } catch {
         // tárhely nélkül munkamenetenként egyszer
       }
-      showToast({ text, tone: 'hataron', icon: 'report', ms: 6000 });
+      showToast({ text: w.text, tone: 'hataron', icon: 'report', ms: 6000 });
     }
   }, [countriesKey, showToast]);
 

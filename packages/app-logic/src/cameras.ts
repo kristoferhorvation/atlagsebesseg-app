@@ -114,6 +114,23 @@ export function cameraWarning(country: string): string | null {
   return key ? t(key) : null;
 }
 
+/**
+ * AW25 (INV-24): az egyszeri ország-figyelmeztetések, amelyek most esedékesek – a környék kameráinak / méréseinek országaiból,
+ * a már látott országok nélkül (DE: „a vezető nem használhatja”). A „látott” tárolása platformonként (web: localStorage, iOS:
+ * UserDefaults, `figyelmeztetes:<ország>`), készülékenként egyszer.
+ */
+export function pendingCountryWarnings(countries: Iterable<string>, seen: (country: string) => boolean): { country: string; text: string }[] {
+  const out: { country: string; text: string }[] = [];
+  for (const country of [...new Set([...countries].map((c) => c.toUpperCase()))].sort()) {
+    const text = cameraWarning(country);
+    if (text && !seen(country)) out.push({ country, text });
+  }
+  return out;
+}
+
+/** AW25 (INV-24): a `zone` mód felirata a térképen (a pontos hely helyett), az aktuális nyelven. */
+export const cameraZoneLabel = (): string => t('camera.zone');
+
 /** A zóna sugara (`zone` mód): a pont helyett ±1 km. */
 export const CAMERA_ZONE_RADIUS_M = 1000;
 
@@ -122,16 +139,16 @@ export const CAMERA_ZONE_RADIUS_M = 1000;
  * nem kerül a térképre), `show` pontként. A zóna középpontja 500 m-es rácsra kerekített, hogy a
  * zónából ne lehessen a pontos helyet visszaszámolni.
  */
-export function visibleCameras(cameras: readonly FixedCamera[]): { points: FixedCamera[]; zones: { id: string; center: LatLon; radiusM: number }[] } {
+export function visibleCameras(cameras: readonly FixedCamera[]): { points: FixedCamera[]; zones: { id: string; center: LatLon; radiusM: number; label: string }[] } {
   const points: FixedCamera[] = [];
-  const zones = new Map<string, { id: string; center: LatLon; radiusM: number }>();
+  const zones = new Map<string, { id: string; center: LatLon; radiusM: number; label: string }>();
   for (const c of cameras) {
     const mode = cameraVisibility(c.country);
     if (mode === 'show') points.push(c);
     else if (mode === 'zone') {
       const center = snap({ lat: c.lat, lon: c.lon }, 500);
       const id = `zone-${center.lat.toFixed(4)}-${center.lon.toFixed(4)}`;
-      zones.set(id, { id, center, radiusM: CAMERA_ZONE_RADIUS_M });
+      zones.set(id, { id, center, radiusM: CAMERA_ZONE_RADIUS_M, label: cameraZoneLabel() });
     }
   }
   return { points, zones: [...zones.values()] };

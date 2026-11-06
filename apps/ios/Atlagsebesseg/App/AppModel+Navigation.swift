@@ -32,6 +32,10 @@ extension AppModel {
     func setUpNavigation() {
         recents = parseRecents(placesStore.getItem(RECENTS_KEY))
         saved = parseSaved(placesStore.getItem(SAVED_KEY))
+        // AW25 (INV-25): a régi, Mapbox-névvel tárolt helyek egyszer tisztán visszaíródnak; a hiányzó nevek újra lekérve (memóriába)
+        if let raw = placesStore.getItem(RECENTS_KEY), raw != serializeRecents(recents) { placesStore.setItem(RECENTS_KEY, serializeRecents(recents)) }
+        if let raw = placesStore.getItem(SAVED_KEY), raw != serializeSaved(saved) { placesStore.setItem(SAVED_KEY, serializeSaved(saved)) }
+        resolvePlaceNames()
         #if DEBUG
         // `-simPlaces YES` (csak szimulátorban, DEBUG): teszt-helyek a zóna-képernyőképekhez (nem tárolódnak, a mentett helyeket nem írják felül)
         if UserDefaults.standard.bool(forKey: "simPlaces") {
@@ -110,9 +114,30 @@ extension AppModel {
         pickFor = .dest
         switch slot {
         case .dest: requestPlan(place)
-        case .home: updateSaved { $0.home = place }
-        case .work: updateSaved { $0.work = place }
+        case .home: updateSaved { $0 = setSavedPlace($0, .home, place) }
+        case .work: updateSaved { $0 = setSavedPlace($0, .work, place) }
         case .other: updateSaved { $0 = addSavedOther($0, place) }
+        }
+    }
+
+    /// AW25 (INV-25): a névtelen mentett / legutóbbi helyekre fordított geokódolás, helyenként egyszer a futás alatt; az eredmény csak
+    /// memóriában (a webes `resolvePlaceNames`). Szimulátor-módban és token nélkül nem hív: ott a koordináta látszik.
+    func resolvePlaceNames() {
+        guard let token = mapboxToken, sim == nil else { return }
+        let all = recents + [saved.home, saved.work].compactMap { $0 } + saved.others
+        let todo = placesNeedingNames(all).filter { !askedPlaceNames.contains($0.id) }.prefix(12)
+        guard !todo.isEmpty else { return }
+        for p in todo { askedPlaceNames.insert(p.id) }
+        let lang = L10n.lang
+        Task { [weak self] in
+            var found = false
+            for p in todo {
+                guard let res = try? await urlSessionFetch(reverseGeocodeUrl(p.latLon, lang: lang, token: token)), res.status == 200,
+                      let hit = parseGeocode(try? JSONSerialization.jsonObject(with: res.data)).first else { continue }
+                rememberPlaceName(Place(id: p.id, name: hit.name, address: hit.address, lat: p.lat, lon: p.lon))
+                found = true
+            }
+            if found { await MainActor.run { self?.placeNamesVersion += 1 } }
         }
     }
 

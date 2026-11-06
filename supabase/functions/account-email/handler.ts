@@ -34,7 +34,7 @@ export async function handleEmail(req: Request, env: Env, render: Render, fetchF
   const r = await fetchFn('https://api.resend.com/emails', {
     method: 'POST',
     headers: { Authorization: `Bearer ${env.resendKey}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ from: env.from, to: [user.email], subject: mail.subject, html: mail.html }),
+    body: JSON.stringify({ from: env.from, to: [user.email], reply_to: 'hello@tempomate.app', subject: mail.subject, html: mail.html }),
   });
   if (!r.ok) return json({ sent: false, reason: `resend_${r.status}` }, 502);
   const id = ((await r.json()) as { id?: string }).id ?? '';

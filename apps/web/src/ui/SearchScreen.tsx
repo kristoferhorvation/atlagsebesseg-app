@@ -1,4 +1,4 @@
-import { formatDistance, localMatches, NAV_CONFIG, savedChips, SearchController, t, type Place, type SavedPlaces, type SearchState, type Settings } from '@atlagsebesseg/app-logic';
+import { displayPlace, formatDistance, localMatches, NAV_CONFIG, savedChips, SearchController, t, type Place, type SavedPlaces, type SearchState, type Settings } from '@atlagsebesseg/app-logic';
 import { useEffect, useRef, useState } from 'react';
 import type { SearchFor } from '../nav/useNavigation';
 import { Icon, type IconName } from './Icon';
@@ -127,7 +127,7 @@ export function SearchScreen({
               <>
                 <div className="group-label">{t('nav.search.recent')}</div>
                 {recents.length === 0 && <div className="search-note">{t('nav.search.noRecent')}</div>}
-                {recents.map((p) => (
+                {recents.map(displayPlace).map((p) => (
                   <PlaceRow key={p.id} icon="pin" name={p.name} address={p.address} onClick={() => onPick(p)} />
                 ))}
               </>

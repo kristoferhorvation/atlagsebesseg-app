@@ -217,3 +217,37 @@ struct ParityLintTests {
     ])
     func alap(pattern: String) { #expect(hits(pattern).isEmpty, "\(hits(pattern))") }
 }
+
+/// AW25: a webes `i18n.test.ts` „többesszám” blokkjának párja (azonos nevekkel).
+@Suite("AW25: többesszám (ICU, SK/CS/PL)")
+struct PluralTests {
+    @Test("CLDR-kategóriák a 6 nyelven: hu/en/de one–other, sk/cs one–few–many(tört)–other, pl one–few–many–other(tört)")
+    func kategoriak() {
+        func cats(_ l: Lang) -> [PluralCategory] { [0, 1, 2, 4, 5, 12, 22, 25, 1.5].map { pluralCategory($0, l) } }
+        #expect(cats(.hu) == [.other, .one, .other, .other, .other, .other, .other, .other, .other])
+        #expect(cats(.en) == cats(.hu) && cats(.de) == cats(.hu))
+        #expect(cats(.sk) == [.other, .one, .few, .few, .other, .other, .other, .other, .many])
+        #expect(cats(.cs) == cats(.sk))
+        #expect(cats(.pl) == [.many, .one, .few, .few, .many, .many, .few, .many, .other])
+        #expect(pluralCategory(.nan, .sk) == .other)
+    }
+
+    @Test("kiírás és hang: a szám és a főnév egyezik, a tizedes vesszős érték is szám; hiányzó paraméter a helyén")
+    func kiiras() {
+        #expect(t(.navVoiceFaster, ["n": "1"], lang: .sk) == "Rýchlejšia trasa, ušetríš 1 minútu")
+        #expect(t(.navVoiceFaster, ["n": "3"], lang: .sk) == "Rýchlejšia trasa, ušetríš 3 minúty")
+        #expect(t(.navVoiceFaster, ["n": "7"], lang: .sk) == "Rýchlejšia trasa, ušetríš 7 minút")
+        #expect(t(.navVoiceFasterWorthExit, ["n": "2", "km": "2,5"], lang: .cs) == "Rychlejší trasa, ušetříš 2 minuty, výjezd za 2,5 kilometru")
+        #expect(t(.iosAlertCamera, ["d": "22", "x": "90 km/h"], lang: .pl) == "Fotoradar za 22 metry, maksimum 90 km/h")
+        #expect(t(.iosAlertCamera, ["d": "250", "x": "90 km/h"], lang: .pl) == "Fotoradar za 250 metrów, maksimum 90 km/h")
+        #expect(t(.tripsRowTurns, ["n": "1", "d": "5"], lang: .sk) == "1 odbočenie · 5 zmien smeru")
+        #expect(t(.navPickerCameras, ["n": "2", "v": "1"], lang: .sk) == "2 radary · 1 overený")
+        #expect(L10n.fill("{n, plural, one {# kus} other {# kusov}} – {x}", ["x": "a"], lang: .sk) == "{n, plural, one {# kus} other {# kusov}} – a")
+    }
+
+    @Test("EN: „Can’t get back under” (a régi „Can’t recover” helyett)")
+    func enCant() {
+        #expect(t(.slowdownCant, lang: .en) == "Can’t get back under")
+        #expect(t(.slowdownCompactCant, lang: .en) == "can’t get under")
+    }
+}

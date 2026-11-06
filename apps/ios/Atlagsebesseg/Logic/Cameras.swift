@@ -145,6 +145,22 @@ nonisolated struct CameraZone: Identifiable, Hashable, Sendable {
     var id: String
     var center: LatLon
     var radiusM: Double
+    /// AW25 (INV-24): a zóna felirata a térképen („Ellenőrzési zóna”) – a pontos hely helyett ennyi látszik.
+    var label: String
+}
+
+/// AW25 (INV-24): a `zone` mód felirata az aktuális nyelven (a webes `cameraZoneLabel`).
+nonisolated func cameraZoneLabel() -> String { t(.cameraZone) }
+
+/// AW25 (INV-24): az egyszeri ország-figyelmeztetések, amelyek most esedékesek (a webes `pendingCountryWarnings`) – a környék
+/// kameráinak országaiból, a már látottak nélkül (DE). A „látott” a UserDefaults-ban (`figyelmeztetes:<ország>`, mint a weben).
+nonisolated func pendingCountryWarnings(_ countries: [String], seen: (String) -> Bool, rules: VisibilityRules = .bundled) -> [(country: String, text: String)] {
+    var out: [(country: String, text: String)] = []
+    for c in Set(countries.map { $0.uppercased() }).sorted() {
+        guard let raw = rules.countries[c]?.warning, let key = L10nKey(rawValue: raw), !seen(c) else { continue }
+        out.append((c, t(key)))
+    }
+    return out
 }
 
 /// A megjelenítendő kamerák a láthatóság szerint: `hide` kimarad, `zone` csak zónaként (a pont nem kerül a
@@ -162,7 +178,7 @@ nonisolated func visibleCameras(_ cameras: [FixedCamera], rules: VisibilityRules
             let center = snap(LatLon(lat: c.lat, lon: c.lon), 500)
             let id = "zone-\(String(format: "%.4f", center.lat))-\(String(format: "%.4f", center.lon))"
             if zones[id] == nil { order.append(id) }
-            zones[id] = CameraZone(id: id, center: center, radiusM: CAMERA_ZONE_RADIUS_M)
+            zones[id] = CameraZone(id: id, center: center, radiusM: CAMERA_ZONE_RADIUS_M, label: cameraZoneLabel())
         case .hide:
             break
         }

@@ -3,13 +3,13 @@ import Foundation
 import Testing
 @testable import Atlagsebesseg
 
-// AW24: a `packages/app-logic/test/track.test.ts` párja (egy TS `it` = egy Swift `@Test`, azonos névvel), közös fixtúrán.
+// AW24: a `packages/app-logic/test/track.test.ts` párja (egy TS `it` = egy Swift `@Test`, azonos névvel), közös fixtúrán. AW25: saját rács-illesztő (Map Matching nélkül).
 
 nonisolated private struct Fixture: @unchecked Sendable {
     let samples: [TripSample]
-    let matches: [Any]
     let gap: (before: Double, after: Double)
     let uturnT: Double
+    let uturn: [Double]
     let roads: [[[Double]]]
 
     nonisolated(unsafe) static let shared: Fixture = {
@@ -17,24 +17,16 @@ nonisolated private struct Fixture: @unchecked Sendable {
         let j = try! JSONSerialization.jsonObject(with: Data(contentsOf: dir.appendingPathComponent("track-budapest.json"))) as! [String: Any]
         let r = try! JSONSerialization.jsonObject(with: Data(contentsOf: dir.appendingPathComponent("track-budapest-roads.json"))) as! [String: Any]
         let gap = j["gap"] as! [String: Double]
+        let raw = j["samples"] as! [[Double]]
+        let uturnT = j["uturnT"] as! Double
         return Fixture(
-            samples: (j["samples"] as! [[Double]]).map { TripSample(tripId: "budapest", t: $0[0], lat: $0[1], lon: $0[2], speedKmh: $0[3], heading: nil, accuracy: 8, h3: nil, limitKmh: nil) },
-            matches: (j["matches"] as! [[Any]]).flatMap { $0 },
+            samples: raw.map { TripSample(tripId: "budapest", t: $0[0], lat: $0[1], lon: $0[2], speedKmh: $0[3], heading: nil, accuracy: 8, h3: nil, limitKmh: nil) },
             gap: (gap["beforeT"]!, gap["afterT"]!),
-            uturnT: j["uturnT"] as! Double,
+            uturnT: uturnT,
+            uturn: raw.first { $0[0] == uturnT }!,
             roads: r["roads"] as! [[[Double]]]
         )
     }()
-}
-
-/// A felvett illesztő: a rögzített valódi válaszokat adja vissza, sorrendben.
-nonisolated private final class ReplayMatcher: MapMatcher, @unchecked Sendable {
-    let id = MATCHER_MAPBOX
-    private var i = 0
-    func match(_ points: [TrackPoint]) async throws -> MatchResult {
-        defer { i += 1 }
-        return parseMapboxMatch(Fixture.shared.matches[i], points.count)
-    }
 }
 
 private func segDist(_ p: LatLon, _ a: [Double], _ b: [Double]) -> Double {
@@ -65,65 +57,68 @@ private func line(_ coords: [[Double]], matched: Bool = true, kmh: Double = 50) 
 private func north(_ n: Int, _ stepM: Double, lat0: Double = 47.5, lon0: Double = 19) -> [[Double]] { (0...n).map { [lat0 + Double($0) * stepM / 111_195, lon0] } }
 private func northPts(_ n: Int, _ stepM: Double, lat0: Double = 47.5) -> [TrackPoint] { north(n, stepM, lat0: lat0).enumerated().map { pt(Double($0.offset) * 1000, $0.element[0], $0.element[1]) } }
 
-private struct ScriptedMatcher: MapMatcher {
-    let id = "teszt"
-    let result: @Sendable ([TrackPoint]) throws -> MatchResult
-    func match(_ points: [TrackPoint]) async throws -> MatchResult { try result(points) }
-}
+private let fixtureParts = recordTrace(Fixture.shared.samples)
+private let fixtureLines = gridLines(fixtureParts)
 
-@Suite("AW24: valódi budapesti nyomat")
+@Suite("AW25: valódi budapesti nyomat, saját rács-illesztő")
 struct TrackFixtureTests {
-    private func all() async throws -> (parts: [[TrackPoint]], lines: [TrackLine]) {
-        let parts = recordTrace(Fixture.shared.samples)
-        return (parts, try await matchTrace(parts, ReplayMatcher()))
-    }
-
-    @Test("az illesztett vonal az utcán halad: minden csúcs az OSM-úthálózaton van, a nyers pontok átlagosan távolabb")
-    func utcan() async throws {
-        let (parts, lines) = try await all()
-        let vertices = lines.filter(\.matched).flatMap(\.coords)
+    @Test("a csík a nyers pontokból, az utcán halad: a csúcsok a cellán belül az OSM-úthálózat mellett")
+    func utcan() {
+        let vertices = fixtureLines.flatMap(\.coords)
         #expect(vertices.count > 30)
-        for v in vertices { #expect(roadDist(ll(v)) < 6) }
-        let avg = { (x: [Double]) in x.reduce(0, +) / Double(x.count) }
-        #expect(avg(vertices.map { roadDist(ll($0)) }) < avg(parts.flatMap { $0 }.map { roadDist($0.latLon) }))
+        let allMatched = fixtureLines.allSatisfy { $0.matched }
+        #expect(allMatched)
+        for v in vertices { #expect(roadDist(ll(v)) < 25) }
+        let avg = vertices.map { roadDist(ll($0)) }.reduce(0, +) / Double(vertices.count)
+        #expect(avg < 10)
     }
 
-    @Test("a kanyart követi: a vonal irányt vált, és nem vágja le a sarkot (több csúcs, mint az egyszerűsített pontok közti egyenes)")
-    func kanyar() async throws {
-        let (parts, lines) = try await all()
-        let c = lines.filter(\.matched)[0].coords
+    @Test("a kanyart követi: a kirajzolt vonal irányt vált (40 m-enként mérve)")
+    func kanyar() {
+        let all = smoothLine(fixtureLines[0].coords)
+        var c: [[Double]] = [all[0]]
+        for x in all where haversineM(ll(c[c.count - 1]), ll(x)) >= 40 { c.append(x) }
         var turns = 0
         var prev: Double?
         for i in 1..<c.count {
-            if haversineM(ll(c[i - 1]), ll(c[i])) < 10 { continue }
             let b = bearingDeg(ll(c[i - 1]), ll(c[i]))
-            if let p = prev, angleDiffDeg(b, p) > 45 { turns += 1 }
+            if let p = prev, abs((b - p + 540).truncatingRemainder(dividingBy: 360) - 180) > 45 { turns += 1 }
             prev = b
         }
         #expect(turns >= 2)
-        #expect(c.count > simplifyForMatch(parts[0]).count)
     }
 
-    @Test("a tilos megfordulás egyenes: a két irány külön illeszkedik, a visszaforduló pontnál nincs körbevezető vonal")
-    func megfordulas() async throws {
-        let (parts, lines) = try await all()
-        #expect(traceChunks(simplifyForMatch(parts[1])).count >= 2)
-        let rawLen = parts.reduce(0) { $0 + lengthM($1.map { [$0.lat, $0.lon] }) }
-        #expect(lines.reduce(0) { $0 + lengthM($1.coords) } < rawLen * 1.1)
-        let u = Fixture.shared.samples.first { $0.t == Fixture.shared.uturnT }!
-        #expect(lines.contains { $0.coords.contains { haversineM(ll($0), LatLon(lat: u.lat, lon: u.lon)) < 40 } })
+    @Test("két áthaladás ugyanazon az utcán (eltolt GPS-zajjal) többnyire ugyanazokat a szakaszkulcsokat adja")
+    func kulcsok() {
+        let shifted = recordTrace(Fixture.shared.samples.enumerated().map { i, x in
+            var y = x
+            y.lat += Double(i % 3 - 1) * 0.00002
+            y.lon += Double((i % 2) * 2 - 1) * 0.00002
+            return y
+        })
+        let a = Set(trackSegments(fixtureLines).map(\.key))
+        let b = trackSegments(gridLines(shifted)).map(\.key)
+        #expect(Double(b.filter { a.contains($0) }.count) / Double(b.count) > 0.7)
+    }
+
+    @Test("a megfordulásnál nincs kerülő: a csík hossza a nyers nyomat körül marad")
+    func megfordulas() {
+        let rawLen = fixtureParts.reduce(0) { $0 + lengthM($1.map { [$0.lat, $0.lon] }) }
+        #expect(fixtureLines.reduce(0) { $0 + lengthM(smoothLine($1.coords)) } < rawLen * 1.25)
+        let u = Fixture.shared.uturn
+        #expect(fixtureLines.contains { l in l.coords.contains { haversineM(ll($0), LatLon(lat: u[1], lon: u[2])) < 40 } })
     }
 
     @Test("a GPS-kiesésnél megszakad: két darab, köztük nincs vonal")
-    func kieses() async throws {
-        let (parts, lines) = try await all()
-        #expect(parts.count == 2)
-        let a = parts[0].last!
-        let b = parts[1][0]
+    func kieses() {
+        #expect(fixtureParts.count == 2)
+        let a = fixtureParts[0].last!
+        let b = fixtureParts[1][0]
         #expect(a.t == Fixture.shared.gap.before)
         #expect(b.t == Fixture.shared.gap.after)
         #expect(haversineM(a.latLon, b.latLon) > TRACK.gapM)
-        let crossing = lines.contains { l in l.coords.contains { haversineM(ll($0), a.latLon) < 1 } && l.coords.contains { haversineM(ll($0), b.latLon) < 1 } }
+        #expect(fixtureLines.count == 2)
+        let crossing = fixtureLines.contains { l in l.coords.contains { haversineM(ll($0), a.latLon) < 30 } && l.coords.contains { haversineM(ll($0), b.latLon) < 30 } }
         #expect(!crossing)
     }
 }
@@ -153,108 +148,64 @@ struct TrackTraceTests {
         #expect(recordTrace(near).count == 1)
         #expect(recordTrace(near + [sample(3000, 47.51, 19), sample(4000, 47.5103, 19)]).count == 2)
     }
-
-    @Test("az egyszerűsítés egyenesen kevesebb pontot hagy, a kanyart megtartja, nagy hézagot nem")
-    func egyszerusites() {
-        let s = simplifyForMatch(northPts(100, 20))
-        #expect(s.count < 10)
-        for i in 1..<s.count { #expect(haversineM(s[i - 1].latLon, s[i].latLon) <= TRACK.maxSpacingM + 20) }
-        let corner = northPts(5, 40) + [pt(6000, 47.5018, 19.001)]
-        #expect(simplifyForMatch(corner).count >= 3)
-    }
-
-    @Test("megfordulásnál új kérés indul, a közös ponttal")
-    func megfordulasKeres() {
-        let fwd = northPts(5, 40)
-        let back = north(4, 40).reversed().enumerated().map { pt(6000 + Double($0.offset) * 1000, $0.element[0], $0.element[1]) }
-        let c = traceChunks(fwd + back)
-        #expect(c.count == 2)
-        #expect(c[0].last == fwd.last)
-        #expect(c[1][0] == fwd.last)
-        #expect(traceChunks(fwd).count == 1)
-    }
-
-    @Test("a darabolás a pontkorlát szerint, egy közös ponttal")
-    func darabolas() {
-        let p = northPts(249, 20)
-        let c = matchChunks(p)
-        #expect(c.allSatisfy { $0.count <= 100 })
-        #expect(c.count == 3)
-        #expect(c[0].last == c[1][0])
-        #expect(c.flatMap { $0 }.count == 252)
-        #expect(matchChunks(Array(p.prefix(1))).isEmpty)
-    }
 }
 
-@Suite("AW24: illesztő-réteg")
+@Suite("AW25: illesztő-réteg (saját, cserélhető)")
 struct TrackMatcherTests {
-    @Test("a kérés: driving, teljes geometria, sugár a pontosságból, növekvő időbélyeg")
-    func keres() throws {
-        let url = try #require(mapboxMatchUrl([pt(1000, 47.5, 19, 40, 8), pt(1000, 47.501, 19, 40, nil), pt(2000, 47.502, 19, 40, 80)], token: "pk.x"))
-        let c = try #require(URLComponents(url: url, resolvingAgainstBaseURL: false))
-        let q = Dictionary(uniqueKeysWithValues: (c.queryItems ?? []).map { ($0.name, $0.value ?? "") })
-        #expect(c.path.contains("/matching/v5/mapbox/driving/19.000000,47.500000;"))
-        #expect(q["geometries"] == "geojson")
-        #expect(q["overview"] == "full")
-        #expect(q["radiuses"] == "12;30;50")
-        let ts = q["timestamps"]!.split(separator: ";").map { Int($0)! }
-        #expect(ts[1] > ts[0])
-        #expect(ts[2] > ts[1])
-        #expect(matchRadius(1) == Int(TRACK.radiusMinM))
-    }
-
-    @Test("a 422 és a NoMatch egyenes vonalat ad, a szerverhiba kivétel (később újrapróba)")
-    func hibak() async throws {
-        let p = northPts(3, 50)
-        let n = try await matchTrace([p], ScriptedMatcher { parseMapboxMatch(["code": "NoMatch"], $0.count) })
-        #expect(n[0].matched == false)
-        let e = try await matchTrace([p], ScriptedMatcher { .empty($0.count) })
-        #expect(e.count == 1)
-        #expect(e[0].matched == false)
-        await #expect(throws: MatchHTTPError.self) { _ = try await matchTrace([p], ScriptedMatcher { _ in throw MatchHTTPError(status: 503) }) }
+    @Test("a rács-illesztő: a cellasor folytonos (szomszédos cellák), a cellaközéppont a rácsé, a visszalépés kimarad")
+    func racs() async throws {
+        let l = try await gridMatcher.lines([northPts(40, 5)])
+        #expect(gridMatcher.id == MATCHER_GRID)
+        #expect(l.count == 1)
+        for i in 1..<l[0].coords.count { #expect(haversineM(ll(l[0].coords[i - 1]), ll(l[0].coords[i])) < 32) }
+        let edge = floor(47.5 / TRACK.gridDeg + 1) * TRACK.gridDeg
+        let jitter = [pt(0, edge - 0.00003, 19), pt(1000, edge + 0.00001, 19), pt(2000, edge - 0.00002, 19), pt(3000, edge - 0.0001, 19)]
+        #expect(gridLines([jitter]).isEmpty)
     }
 
     @Test("másik illesztő ugyanazon a felületen cserélhető")
     func csere() async throws {
-        let p = northPts(2, 50)
-        let other = ScriptedMatcher { c in
-            MatchResult(matchings: [.init(confidence: 1, coords: c.map { [$0.lat, $0.lon] }, legsM: (1..<c.count).map { haversineM(c[$0 - 1].latLon, c[$0].latLon) })], tracepoints: c.map { .init(matching: 0, lat: $0.lat, lon: $0.lon) })
+        struct Other: TrackMatcher {
+            let id = "valhalla"
+            func lines(_ parts: [[TrackPoint]]) async throws -> [TrackLine] { parts.map { p in TrackLine(matched: true, coords: p.map { [$0.lat, $0.lon] }, kmh: p.map { $0.kmh ?? 0 }) } }
         }
-        let l = try await matchTrace([p], other)
+        let l = try await Other().lines([northPts(2, 50)])
         #expect(l.count == 1)
         #expect(l[0].matched)
     }
 
-    @Test("illesztő nélkül a nyers pontok egyenesei, a darabok külön")
-    func nyers() {
-        let l = rawLines([northPts(2, 50), northPts(2, 50, lat0: 47.6)])
-        #expect(l.count == 2)
-        #expect(l.allSatisfy { !$0.matched })
+    @Test("a tárolt Mapbox-illesztés cseréje: nyers pontsorral újraépül, nélküle a geometria törlődik; a rács-illesztett és a függő változatlan")
+    func migracio() {
+        let base = TripTrack(tripId: "t", startedAt: 0, status: "done", share: false, parts: fixtureParts, lines: [line([[47.5, 19], [47.51, 19]])], matcher: MATCHER_MAPBOX)
+        let re = migrateTrack(base)
+        #expect(re.matcher == MATCHER_GRID)
+        #expect(re.lines == gridLines(fixtureParts))
+        var noParts = base
+        noParts.parts = []
+        let gone = migrateTrack(noParts)
+        #expect(gone.lines.isEmpty && gone.matcher == MATCHER_GRID)
+        var ok = base
+        ok.matcher = MATCHER_GRID
+        #expect(migrateTrack(ok) == ok)
+        var pending = base
+        pending.status = "pending"
+        #expect(migrateTrack(pending) == pending)
+        var old = base
+        old.matcher = nil
+        #expect(migrateTrack(old).matcher == MATCHER_GRID)
+        var bare = old
+        bare.parts = []
+        #expect(migrateTrack(bare) == bare)
     }
 
-    @Test("kerülő-őr: a két pont közti háztömb-megkerülés helyett egyenes")
-    func kerulo() {
-        let loop = [[47.5, 19], [47.502, 19], [47.502, 19.002], [47.5003, 19.002], [47.5003, 19]]
-        let r = MatchResult(matchings: [.init(confidence: 0.9, coords: loop, legsM: [lengthM(loop)])], tracepoints: [.init(matching: 0, lat: 47.5, lon: 19), .init(matching: 0, lat: 47.5003, lon: 19)])
-        let l = assembleLines([[pt(0, 47.5, 19), pt(1000, 47.5003, 19)]], [r])
-        #expect(l.count == 1)
-        #expect(l[0].matched == false)
-        #expect(l[0].coords.count == 2)
-    }
-
-    @Test("gyenge bizalmú illesztés nem számít")
-    func bizalom() {
-        let r = MatchResult(matchings: [.init(confidence: 0.05, coords: [[47.5, 19], [47.5003, 19]], legsM: [33])], tracepoints: [.init(matching: 0, lat: 47.5, lon: 19), .init(matching: 0, lat: 47.5003, lon: 19)])
-        #expect(assembleLines([[pt(0, 47.5, 19), pt(1000, 47.5003, 19)]], [r])[0].matched == false)
-    }
-
-    @Test("illesztett és egyenes darab váltásánál nincs rés")
-    func valtas() {
-        let p = [pt(0, 47.5, 19), pt(1000, 47.5003, 19), pt(2000, 47.5006, 19)]
-        let r = MatchResult(matchings: [.init(confidence: 0.9, coords: [[47.5, 19], [47.5003, 19]], legsM: [33])], tracepoints: [.init(matching: 0, lat: 47.5, lon: 19), .init(matching: 0, lat: 47.5003, lon: 19), nil])
-        let l = assembleLines([p], [r])
-        #expect(l.map(\.matched) == [true, false])
-        #expect(l[1].coords[0] == l[0].coords.last)
+    @Test("kirajzolás: a lépcső simított, a végpontok maradnak, két pontnál változatlan")
+    func simitas() {
+        let stair: [[Double]] = [[0, 0], [0, 1], [1, 1], [1, 2], [2, 2]]
+        let sm = smoothLine(stair)
+        #expect(sm[0] == [0, 0])
+        #expect(sm[sm.count - 1] == [2, 2])
+        #expect(sm.count > stair.count)
+        #expect(smoothLine([[0, 0], [1, 1]]) == [[0, 0], [1, 1]])
     }
 }
 

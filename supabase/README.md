@@ -218,3 +218,18 @@ A Supabase beépített levelezője csak csapattagoknak küld, óránként ~2 lev
 `heat_segments`: közösségi összesítés útszakaszonként (csak beszúrás, a tábla nem olvasható, `heat_segments_global` ≥ 3 beküldéstől; `matcher` jelöli az illesztőt). `cloud_tracks`: a saját utak pontsora és illesztett vonalai (csak valódi fiók). `profiles.avatar`: kicsinyített profilkép. A régi `heat_cells` érintetlen, a kliens nem ír és nem olvas belőle.
 
 **Mapbox-feltételek:** a Map Matching eredményének tárolása a Product Terms §2.10.1-be ütközik; a Mapbox-eredmény így törölhető: `delete from heat_segments where matcher = 'mapbox'`, `update`/`delete` a `cloud_tracks`-on `matcher = 'mapbox'` szerint; a `parts` nyers pontsorból más illesztővel újraépül.
+
+## Védelem és megőrzés (AW25, `20261106000000_store_vedelem.sql`)
+- **Napi kvóta** telepítésenként (a névtelen auth-azonosító): `insert_quota` + `tg_insert_quota` utasítás-szintű trigger a `reports`,
+  `report_votes`, `jam_samples`, `heat_segments`, `heat_cells` táblán; a korlát a `quota_limit()`-ben (30 bejelentés, 200 szavazat,
+  300 dugó-minta, 30 000 útszakasz-sor / nap). Túllépés: SQLSTATE `PT429` (HTTP 429), az utasítás visszagördül. Munkamenet nélküli
+  (csak anon kulcsos) beszúrás: `42501`. A service_role és a cron kvóta nélkül ír.
+- **Megőrzés:** `purge_retention()` – cron `purge-retention`, naponta 03:17 UTC: bejelentés, szavazat, dugó-minta 90 nap; a felhős
+  minták (`cloud_trips.samples`) és nyers pontsor (`cloud_tracks.track.parts`) 90 nap után kiürül; a 30 napja kért fiók-törlés végleges;
+  a 12 hónapja nem használt, adat nélküli névtelen azonosító törlődik. Visszatérési érték: darabszámok (jsonb).
+- **Fiók törlése 30 napos visszaállítással:** az `account-delete` az `account_deletions`-be ír és minden munkamenetet megszüntet; az új
+  bejelentkezés (`auth.sessions` insert, `sessions_restore_account`) visszaállít.
+- **Fiók-levelek:** `account_emails` (egy levél egyszer: `welcome`, `account_deleted` + a kérés ideje), `queue_account_email()` → pg_net →
+  `account-email` edge function (CRON_SECRET a Vaultból, `verify_jwt = false`). Kell hozzá: `RESEND_API_KEY` (Supabase-titok), opcionálisan
+  `MAIL_FROM` (alap: `Tempomate <no-reply@tempomate.app>`). A levél hibája az auth-folyamatot nem akasztja meg.
+- Teszt: `store_vedelem_test.sql` (23 ellenőrzés, ROLLBACK), `npm run db:account-live` (37, a 30 napos út élőben).
