@@ -1010,7 +1010,7 @@ try {
       await sleep(500);
     }
     const tn = db2.trips[0] ?? null;
-    check('AW19: navigációval ugyanaz az út – a cél („Győr”), az újratervezés (letérés) és a szakaszmérés ugyanabban a rekordban', db2.trips.length === 1 && tn.destination === 'Győr' && tn.reroutes >= 1 && tn.measurements.length === 1 && tn.distanceM === SIM_TRIP.distanceM && JSON.stringify(tn.dirChanges) === JSON.stringify(SIM_TRIP.dirChanges) && tn.turns.left + tn.turns.right + tn.turns.uTurn >= 1, JSON.stringify({ dest: tn?.destination, reroutes: tn?.reroutes, m: tn?.measurements.length, d: tn?.distanceM, turns: tn?.turns, dir: tn?.dirChanges }));
+    check('AW19: navigációval ugyanaz az út – a cél (Győr koordináta-kulcsa, AW25b), az újratervezés (letérés) és a szakaszmérés ugyanabban a rekordban', db2.trips.length === 1 && tn.destination === '@47.68750,17.65040' && tn.reroutes >= 1 && tn.measurements.length === 1 && tn.distanceM === SIM_TRIP.distanceM && JSON.stringify(tn.dirChanges) === JSON.stringify(SIM_TRIP.dirChanges) && tn.turns.left + tn.turns.right + tn.turns.uTurn >= 1, JSON.stringify({ dest: tn?.destination, reroutes: tn?.reroutes, m: tn?.measurements.length, d: tn?.distanceM, turns: tn?.turns, dir: tn?.dirChanges }));
     // a szerverre semmi: a navigációs szimulátor nem küld, a napló csak az IndexedDB-ben (a dugó-minták változatlanok)
     await cn.goto('/?navsim&panel=0&sheet=trips');
     await cn.waitFor(q('.trip-row'), 30_000, 'napló (?sheet=trips)');

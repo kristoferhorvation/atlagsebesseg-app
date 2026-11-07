@@ -39,6 +39,7 @@ import {
   rowToActiveReport,
   visibleCameras,
   visibleReports,
+  rememberPlaceName,
   mergeZones,
   voteReport,
   type ActiveReport,
@@ -122,6 +123,8 @@ import { TripLogSheet } from './ui/TripLog';
 
 /** `?navsim`: a navigációs szimulátor (Budapest → Győr, rögzített Directions-fixtúrával). */
 const NAV_SIM = new URLSearchParams(location.search).has('navsim') || new URLSearchParams(location.search).has('cruise');
+// AW25b: a szimulátor saját célpontjainak neve a futás idejére a névtárba (a napló címe a koordináta-kulcsból ebből jön)
+if (NAV_SIM) for (const p of SIM_PLACES) rememberPlaceName(p);
 /** `?navsim&alt=worth|maybe|not|aftergate`: a szimulált gyorsabb út kategóriája (AW12); alapból „megéri”. */
 const NAV_SIM_ALT: SimAltMode = (SIM_ALT_MODES as readonly string[]).includes(new URLSearchParams(location.search).get('alt') ?? '') ? (new URLSearchParams(location.search).get('alt') as SimAltMode) : 'worth';
 const SIM_MODE = new URLSearchParams(location.search).has('sim') || NAV_SIM;

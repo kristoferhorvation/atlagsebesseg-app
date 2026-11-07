@@ -344,6 +344,8 @@ final class AppModel {
         let t0 = Parity.wallMs().rounded()
         simPlanned = fixture.planned.map { $0.check(at: t0) }
         loadSimReports(fixture, t0: t0)
+        // AW25b: a szimulátor saját célpontjainak neve a futás idejére a névtárba (a napló címe a koordináta-kulcsból ebből jön)
+        for p in fixture.nav?.places ?? [] { rememberPlaceName(p) }
         resetAlerts()
         rebuildData()
         session = TrackingSession(sections, now: { [weak self] in self?.nowMs() ?? Date().timeIntervalSince1970 * 1000 })
